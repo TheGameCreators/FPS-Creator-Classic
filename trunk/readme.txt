@@ -13,3 +13,5 @@ Used Under Public License:
   3. You CAN make a GAME with this source code for the purpose of selling it
 
 These license terms are designed to protect the IP rights of TGC Ltd.
+
+This line has been added to test the Google CODE and TortoiseMERGE :)
