@@ -16,7 +16,7 @@ These license terms are designed to protect the IP rights of TGC Ltd.
 
 This line has been added to test the Google CODE and TortoiseMERGE
 
-Hello world! And then some.
+Hello world! And then some. Again!
 
 Another change made by TGC2.
 
