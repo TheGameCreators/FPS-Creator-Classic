@@ -23,7 +23,7 @@ rem SafeArrays=No
 rem
 rem DBPro: http://darkbasicpro.thegamecreators.com
 rem FPSC: http://www.fpscreator.com
-rem
+rem 
 
 rem Special build flags for 'genre' switch
 global fpgchud$ : fpgchud$=""
