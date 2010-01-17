@@ -23,7 +23,7 @@ rem SafeArrays=No
 rem
 rem DBPro: http://darkbasicpro.thegamecreators.com
 rem FPSC: http://www.fpscreator.com
-rem 
+rem
 
 rem Special build flags for 'genre' switch
 global fpgchud$ : fpgchud$=""
@@ -2104,6 +2104,7 @@ global gxbox : gxbox=0
 global gxboxinvert : gxboxinvert=0
 global gshowalluniquetextures : gshowalluniquetextures=0
 global gaspectratio : gaspectratio=0
+global gnewblossershaders : gnewblossershaders=1
 
 rem Version Control - TEST GAME Mode
 global gtestgamemodefromeditor : gtestgamemodefromeditor=0
@@ -2262,6 +2263,7 @@ if file exist(tfile$)=1
     tryfield$="mousesensitivity" : if field$=tryfield$ then gmousesensitivity=value1
     tryfield$="producelogfiles" : if field$=tryfield$ then gproducelogfiles=value1
     tryfield$="hsrmode" : if field$=tryfield$ then ghsrmode=value1
+    tryfield$="newblossershaders" : if field$=tryfield$ then gnewblossershaders=value1
     `
     tryfield$="usesky" : if field$=tryfield$ then guseskystate=value1
     tryfield$="usefloor" : if field$=tryfield$ then gusefloorstate=value1
@@ -12766,7 +12768,13 @@ _common_makeeffecttextureset:
  texdir4$=""
  texdir5$=""
  `
-
+ rem V117 - 110110 - new full shader style means D2 preferred over D (thanks to Mark Blosser PS2 shaders)
+ texturingtoken$="D"
+ if gnewblossershaders=1
+  rem Abolishes use of unshaded D textures
+  texturingtoken$="D2"
+ endif
+ `
  rem determine effect textures to use
  if tfile$<>"" and segnoeffects=0
   `
@@ -12805,8 +12813,8 @@ _common_makeeffecttextureset:
      if hardcodedtexturestages=2
       rem [LM]+[DIFF+NORM]
       ensureclearlayermax=2
-      texdir1$=tstr1$+"D"+tstr2$
-      texdir2$=tstr1$+"D"+tstr2$
+      texdir1$=tstr1$+texturingtoken$+tstr2$
+      texdir2$=tstr1$+texturingtoken$+tstr2$
       texdir3$=tstr1$+"N"+tstr2$
       rem Absolutely must have a NORMAL MAP, or fail this effect
       absolutelyrequirethistexture=3
@@ -12820,7 +12828,7 @@ _common_makeeffecttextureset:
      if hardcodedtexturestages=12
       rem [DIFF+NORM]
       ensureclearlayermax=1
-      texdir1$=tstr1$+"D"+tstr2$
+      texdir1$=tstr1$+texturingtoken$+tstr2$
       texdir2$=tstr1$+"N"+tstr2$
       rem Absolutely must have a NORMAL MAP, or fail this effect
       absolutelyrequirethistexture=2
@@ -12828,7 +12836,7 @@ _common_makeeffecttextureset:
      if hardcodedtexturestages=13
       rem [DIFF+NORM+SPEC]
       ensureclearlayermax=2
-      texdir1$=tstr1$+"D"+tstr2$
+      texdir1$=tstr1$+texturingtoken$+tstr2$
       texdir2$=tstr1$+"N"+tstr2$
       texdir3$=tstr1$+"S"+tstr2$
       rem Absolutely must have a NORMAL MAP, or fail this effect
@@ -12838,14 +12846,14 @@ _common_makeeffecttextureset:
      rem Standard DINS system
      if teffectuseslightmapstage=1
       rem [LM]+[DIFF+ILLU+NORM+SPEC+BRIH]
-      texdir1$=tstr1$+"D"+tstr2$
-      texdir2$=tstr1$+"D"+tstr2$
+      texdir1$=tstr1$+texturingtoken$+tstr2$
+      texdir2$=tstr1$+texturingtoken$+tstr2$
       texdir3$=tstr1$+"I"+tstr2$
       texdir4$=tstr1$+"N"+tstr2$
       texdir5$=tstr1$+"S"+tstr2$
      else
       rem [DIFF+ILLU+NORM+SPEC+BRIH]
-      texdir1$=tstr1$+"D"+tstr2$
+      texdir1$=tstr1$+texturingtoken$+tstr2$
       texdir2$=tstr1$+"I"+tstr2$
       texdir3$=tstr1$+"N"+tstr2$
       texdir4$=tstr1$+"S"+tstr2$
@@ -25646,6 +25654,7 @@ setuparr$(i)="mousesensitivity="+str$( gmousesensitivity ) : inc i
 setuparr$(i)="producelogfiles="+str$( gproducelogfiles ) : inc i
 setuparr$(i)="hsrmode="+str$( ghsrmode ) : inc i
 setuparr$(i)="aspectratio="+str$( gaspectratio ) : inc i
+setuparr$(i)="newblossershaders="+str$( gnewblossershaders ) : inc i
 `
 setuparr$(i)="" : inc i
 setuparr$(i)="[GAMEMULTIPLAYER]" : inc i
@@ -26869,6 +26878,11 @@ if deactivatecollision=0 and skipcol=0
    if camerastoodonphyobj=0
     lcamerastoodonphyobjmovingx#=object position x(tgravitydefeatedbyphy)
     lcamerastoodonphyobjmovingz#=object position z(tgravitydefeatedbyphy)
+
+set cursor 0,200
+print lcamerastoodonphyobjmovingx#
+print lcamerastoodonphyobjmovingz#
+
    endif
    camerastoodonphyobj=tgravitydefeatedbyphy
   else
@@ -39851,6 +39865,7 @@ if file exist(tfile$)=1
     `V109 BETA8 - 060508 - leave these for main SETUP.INI to control (otherwise hidden in FPG)
     `tryfield$="bloodonfloor" : if field$=tryfield$ then gbloodonfloor=value1
     `tryfield$="imageblockmode" : if field$=tryfield$ then gimageblockmode=value1
+    tryfield$="newblossershaders" : if field$=tryfield$ then gnewblossershaders=value1
     `
     rem arena settings
     tryfield$="gameobjectivetype" : if field$=tryfield$ then ggameobjectivetype=value1
@@ -40238,6 +40253,7 @@ _interface_savebuildgame:
  setuparr$(i)="bloodonfloor="+str$(gbloodonfloor) : inc i
  `V109 BETA8 - 060508 - leave these for main SETUP.INI to control (otherwise hidden in FPG)
  `setuparr$(i)="imageblockmode="+str$(gimageblockmode) : inc i
+ setuparr$(i)="newblossershaders="+str$( gnewblossershaders ) : inc i
  setuparr$(i)="" : inc i
  setuparr$(i)="multiplayergame="+str$(gmultiplayergame) : inc i
  setuparr$(i)="gameobjectivetype="+str$(ggameobjectivetype) : inc i
@@ -40646,6 +40662,7 @@ setuparr$(i)="producelogfiles="+str$( gproducelogfiles ) : inc i
 setuparr$(i)="hsrmode="+str$( ghsrmode ) : inc i
 setuparr$(i)="optimizemode=1" : inc i
 setuparr$(i)="aspectratio="+str$( gaspectratio ) : inc i
+setuparr$(i)="newblossershaders="+str$( gnewblossershaders ) : inc i
 `
 setuparr$(i)="" : inc i
 setuparr$(i)="[GAMEMULTIPLAYER]" : inc i

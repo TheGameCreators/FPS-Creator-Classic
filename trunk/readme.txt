@@ -26,6 +26,11 @@ V1.1.7
  * Prevented the entity debug text to show at same time as RAWTEXT as the font size becomes an issue
  * Added NOTE to FPI Wizards warning that they overwrite any external FPI (and rely on internal templates)
  * Added LIGHTSOURCE data to scenery shaders to allow segment shaders to pickup local average light position
+ * Added new NEWBLOSSERSHADERS flag to SETUP.INI, when set to one substitutes all D for D2 texture loading
+ * Added for new shaders/textures in the PS2 effectbank folder (huge thanks to Mark Blosser for the hard work here)
+ * Added blinking and pulsating corridor segment pieces to enrich scifi themed game levels
+ * NOTE: New sample level added to mapbank called GS13-PS2ShadedScifi.fpm demonstrating the above improvements
+ * NOTE: Remember to switch FULL SHADER EFFECTS on in order to view the improved scifi segments
 
 V1.1.6 BETA 18 - 11/11/09
 -------------------------
