@@ -20958,9 +20958,16 @@ if object exist(obj)=1
   teffectid=entityelement(e).eleprof.usingeffect
   if teffectid>0
    set object effect obj,teffectid
-   texture object obj,0,entityelement(e).eleprof.texdid : rem FPGC - 250809 - apply element texture to shaded obj (fastbone for chars)
+   rem FPGC - 250809 - apply element texture to shaded obj (fastbone for chars)
+   if entityelement(e).eleprof.texdid>0
+    rem V117 - 220110 - but only if have texture, otherwise you wipe out the internal object texture!
+    texture object obj,0,entityelement(e).eleprof.texdid
+   endif
   else
-   texture object obj,0,entityelement(e).eleprof.texdid
+   if entityelement(e).eleprof.texdid>0
+    rem V117 - 220110 - but only if have texture, otherwise you wipe out the internal object texture!
+    texture object obj,0,entityelement(e).eleprof.texdid
+   endif
   endif
  endif
  `
