@@ -824,6 +824,13 @@ type entityprofiletype
  rotatethrow as integer
  explodable as integer
  explodedamage as integer
+ headframestart as integer
+ headframefinish as integer
+ reserve1 as integer
+ reserve2 as integer
+ reserve3 as integer
+ reserve4 as integer
+ reserve5 as integer
 endtype
 global animmax=200
 global footfallmax=200
@@ -6418,9 +6425,11 @@ for e=1 to entityelementlist
           if tsnd>0
            rem animate mouth
            perform checklist for object limbs obj
-           if checklist quantity()>=139
+           if checklist quantity()>=entityprofile(entid).headframefinish and entityprofile(entid).headframefinish>0
             gosub _lipsync_control
-            for limb=59 to 139
+            `for limb=58 to 80 : rem mark
+            `for limb=59 to 139 : rem jon
+            for limb=entityprofile(entid).headframestart to entityprofile(entid).headframefinish
              set object frame obj,limb,pose,1
             next limb
             rotate limb obj,77,-40,45+(cos(entityelement(e).ai.headangle)-30.0),(sin(entityelement(e).ai.headangle)-30.0)
@@ -20194,6 +20203,10 @@ if file exist(tprofile$)=0
       endif
      next q
     endif
+    `
+    rem FPGC - V117 - 090210 - determine if entity has a head, and which limbs represent it
+    tryfield$="headlimbs"
+    if field$=tryfield$ then entityprofile(entid).headframestart=value1 : entityprofile(entid).headframefinish=value2
     `
     rem entity decal refs
     tryfield$="decalmax"

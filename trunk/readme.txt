@@ -32,6 +32,7 @@ V1.1.7
  * NOTE: New sample level added to mapbank called GS13-PS2ShadedScifi.fpm demonstrating the above improvements
  * NOTE: Remember to switch FULL SHADER EFFECTS on in order to view the improved scifi segments
  * Fixed bug causing entities that did not specify a TEXTURED field to wipe out texture when any shading applied
+ * Added new HEADLIMBS field in FPE to control the DarkVOICES feature (specifies which limbs are the head)
 
 V1.1.6 BETA 18 - 11/11/09
 -------------------------
