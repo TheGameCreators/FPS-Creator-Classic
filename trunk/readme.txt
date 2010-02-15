@@ -33,6 +33,9 @@ V1.1.7
  * NOTE: Remember to switch FULL SHADER EFFECTS on in order to view the improved scifi segments
  * Fixed bug causing entities that did not specify a TEXTURED field to wipe out texture when any shading applied
  * Added new HEADLIMBS field in FPE to control the DarkVOICES feature (specifies which limbs are the head)
+ * Added new 1.6GB MEMORY cap on all build processes, to ensure excessive memory usage does not crash PC
+ * Added new flag 'systemmemorycapoff=0' which controls whether above system mem cap if switched off
+
 
 V1.1.6 BETA 18 - 11/11/09
 -------------------------

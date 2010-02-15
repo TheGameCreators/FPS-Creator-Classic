@@ -2112,6 +2112,7 @@ global gxboxinvert : gxboxinvert=0
 global gshowalluniquetextures : gshowalluniquetextures=0
 global gaspectratio : gaspectratio=0
 global gnewblossershaders : gnewblossershaders=1
+global gsystemmemorycapoff : gsystemmemorycapoff=0
 
 rem Version Control - TEST GAME Mode
 global gtestgamemodefromeditor : gtestgamemodefromeditor=0
@@ -2250,6 +2251,7 @@ if file exist(tfile$)=1
     tryfield$="bloodonfloor" : if field$=tryfield$ then gbloodonfloor=value1
     tryfield$="imageblockmode" : if field$=tryfield$ then gimageblockmode=value1
     tryfield$="showalluniquetextures" : if field$=tryfield$ then gshowalluniquetextures=value1
+    tryfield$="systemmemorycapoff" : if field$=tryfield$ then gsystemmemorycapoff=value1
     `
     tryfield$="xbox"
     if field$=tryfield$
@@ -24021,6 +24023,17 @@ if grealgameviewstate=0 and segobjusedformapeditor=0 and goptimizemode=1
   rem settings
   LM Boost Curved Surface Quality glightmaxsize,(glightboost*1.0)
   `
+  rem FPGC - 110210 - some systems having issues with builds exceeding 1.5GB, so provide a graceful cap
+  if gsystemmemorycapoff=0
+   if (system smem available(1)/1024)>1600
+    do
+     debugviewtext(270,"Build process has exceed 1.6GB of system memory. Press CANCEL to abort!")
+     sleep 10
+    loop
+    end
+   endif
+  endif
+  `
   rem start the light mapping thread
   lm set light map name ""
   lm set light map file format 1 : rem DDS
@@ -40719,6 +40732,7 @@ setuparr$(i)="lightmapthreadmax="+str$(glightthreadmax) : inc i
 setuparr$(i)="bloodonfloor="+str$(gbloodonfloor) : inc i
 setuparr$(i)="imageblockmode="+str$(gimageblockmode) : inc i
 setuparr$(i)="showalluniquetextures="+str$(gshowalluniquetextures) : inc i
+setuparr$(i)="systemmemorycapoff="+str$(gsystemmemorycapoff) : inc i
 `
 setuparr$(i)="" : inc i
 setuparr$(i)="[GAMEDEBUG]" : inc i
