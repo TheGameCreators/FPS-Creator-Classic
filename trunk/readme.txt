@@ -44,6 +44,45 @@ V1.1.7
  * NOTE: For the escape key, use the controllers start button (or similarly placed central buttons)
  * When building final game, all WAV files are assumed to come with a .LIPSYNC (so they get copied over)
 
+FPGC WORK AND NOTES
+-------------------
+
+ * Mouse Sensitivity flag in SETUP.INI (centralise SETUP.INI code)
+ * Restore size of debug text if RAWTEXT changes it
+ * Add entity name to equipment entity (so wrench only activates 'broken door' and nothing else) TEST
+ * Stop wrench animation if did are not actually activating anything
+ * When jump off very tall structures (cannot get hurt)
+ * Wrench equipment and graphics complete
+ * Integrated VR920 support (through SETUP.INI VRMODE=1)
+ * Added store to unified interface (with ADULT RATED flag to remove unsuitable content)
+ * Changed sounds so less violent bone crunching noises, now thuds and cute
+ * Changed RED haze HUD to cyan so does not seem like blood
+ * Removed any additional references to guns and ammo from the interface and arena
+ * Selected EDU friendly Model Packs for eventual Add-On Packs
+ * Floor segments in ART MODE, reduce highlighter to a thin waffer (better visual)
+ * Cannot add "W" as an additional shortcut WALL PAINTING as used for waypoint mode
+ * LOG by default so we can offer more help when bugs strike (loading levels missing media etc)
+ * Changed default so shroud is set to full (faster PCs that in 2005 and it makes the editor look nicer)
+ * Prevented 'missing media' prompt from showing when LOG mode is active
+ * New 'performance hit' mode in editor to allow custom textures to be shown in map and game (for characters)
+ * Renamed STORY ZONE to MEDIA ZONE (trigger video and sound)
+ * Rediscovered DROP action for equipment so when you press the H KEY it will drop the equipment item you are carrying (all equipment)
+ * Added VRMODEMAG field as a percentage magnifier for all VR tracking input data (100=default no magnification,200=twice as sensitive)
+ * Characters can now be textured within the map editor and instantly previewed using those textures
+ * Extended DROP functionality in FPI so can drop JUST THE ITEM BEING HELD (VISUALLY)
+ * Raised highlighter (so Z clash does not happen when draw floor then drag a character in)
+ * Brightened up map editor with ambience so it does not look VERY DARK when adding just characters!!
+ * Fixed so game ALWAYS comes to front Z order position (previously hides behind FPSC sometimes)
+ * Added new art from Peter to complete FPGC front end and ABOUT images
+ * Added HASEQUIPMENT to mirror HASWEAPON so characters can hold equipment instead of weapons
+ * Renamed SOUND/SOUNDSET fields to CUSTOM VALUES so we can add text and other data for scripts (prompts)
+ * Properties Dialog detects non-shooting genre and removes references to weapons and ammo fields
+ * Added new WEBLINK action as part of NEWMEDIAINZONE.FPI (used by MEDIA ZONE) to launch web links
+ * Further aligned new interface to direct Auto Update to X9 server, fixed logo alignment and removed NEW ARENA
+ * Added extra code to allow BUILD GAME to produce non-violent EXEs
+ * Added warning bar when user is putting too many entities down (ten year old kid syndrome indicator) - goes RED!
+ * Player Start Marker defaults lives and strength to zero (for non-confrontational default game state)
+
 V1.1.6 BETA 18 - 11/11/09
 -------------------------
 
