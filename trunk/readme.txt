@@ -35,7 +35,11 @@ V1.1.7
  * Added new HEADLIMBS field in FPE to control the DarkVOICES feature (specifies which limbs are the head)
  * Added new 1.6GB MEMORY cap on all build processes, to ensure excessive memory usage does not crash PC
  * Added new flag 'systemmemorycapoff=0' which controls whether above system mem cap if switched off
-
+ 
+ * Introduced latest ODE Phyics DLL (replacing old ODE module from 2005)
+ * Fixed world step issue created between old 2005 ODE and new 2010 ODE modules (timer based physics)
+ * Fixed character rotation issue caused by old ODE/new ODE, now all characters orient forwards
+ * Added new RAGDOLL FPI action and ragdollcorpse.fpi script, simply select to ragdoll your characters
 
 V1.1.6 BETA 18 - 11/11/09
 -------------------------

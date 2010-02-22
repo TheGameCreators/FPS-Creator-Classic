@@ -1289,6 +1289,7 @@ rem AI constants
 #constant AIACTPIVOTRANDOM 358
 #constant AIACTLOOKATPLR 359
 #constant AIACTSETTARGETNAME 360
+#constant AIACTRAGDOLL 370
 #constant AIACTPLRASS 401
 #constant AIACTPLRNOASS 402
 #constant AIACTPLRMOVEUP 403
@@ -3026,7 +3027,11 @@ _main_game_core:
  else
   rem the warmup allows decals to form, player start gravity to settle, etc
   cls 0 : dec gamewarmupcount : if gamewarmupcount<0 then gamewarmupcount=0
-  if gamewarmupcount=0 then cleardelta=mousemovex() : cleardelta=mousemovey()
+  if gamewarmupcount=0
+   cleardelta=mousemovex() : cleardelta=mousemovey()
+   rem switch gravity on after warm up (maybe?)
+   `ode set world gravity physicsgravx#,physicsgravy#,physicsgravz#
+  endif
  endif
  `
  rem Sky stays with camera
@@ -3293,8 +3298,9 @@ _main_game_showwindownow:
   rem run direct from EXE
  else
   rem test game to front
-  rem FPGC - 010909 - TEST GAME needs this to keep window to the very front always
+  rem FPGC - 010909 - TEST GAME needs this to keep window to the very front always (though not when debuggin)
   window to front "__topmost__"+"FPSC Game"
+  `window to front "FPSC Game"
  endif
 return
 
@@ -8712,20 +8718,44 @@ _entity_deducthealth:
    if tresult=4
     aifile$=entityelement(e).eleprof.aidestroy$
     gosub _entity_setnewai
+    rem FPGC - 220210 - any waypoint activity must stop right away
+    entityelement(e).ai.waypoint.state=999
+    entityelement(e).mover.moved=0
    else
     rem only if not already reacting
     if entityelement(e).ai.libindex=entityelement(e).ai.libmain or entityelement(e).ai.libindex=entityelement(e).ai.libshoot or tresult=3
      if timpacttype=2
+      `
+      rem FPGC - 220210 - if RAGDOLL appears in DESTROY script name, go straight to DESTROY script (no throw anim!)
+      tdestroyasragdoll=0
+      tdestroyname$=lower$(entityelement(e).eleprof.aidestroy$)
+      for tn=1 to len(entityelement(e).eleprof.aidestroy$)-7
+       if left$(tdestroyname$,7)="ragdoll"
+        tdestroyasragdoll=1
+       endif
+       tdestroyname$=right$(tdestroyname$,len(tdestroyname$)-1)
+      next tn
+      `
       rem Blast
-      aifile$="people\throwback.fpi"
-      if tdir=1 then aifile$="people\throwback.fpi"
-      if tdir=2 then aifile$="people\throwfore.fpi"
-      if tdir=3 then aifile$="people\throwleft.fpi"
-      if tdir=4 then aifile$="people\throwright.fpi"
+      if tdestroyasragdoll=1
+       aifile$="people\throwragdollback.fpi"
+       if tdir=1 then aifile$="people\throwragdollback.fpi"
+       if tdir=2 then aifile$="people\throwragdollfore.fpi"
+       if tdir=3 then aifile$="people\throwragdollleft.fpi"
+       if tdir=4 then aifile$="people\throwragdollright.fpi"
+      else
+       aifile$="people\throwback.fpi"
+       if tdir=1 then aifile$="people\throwback.fpi"
+       if tdir=2 then aifile$="people\throwfore.fpi"
+       if tdir=3 then aifile$="people\throwleft.fpi"
+       if tdir=4 then aifile$="people\throwright.fpi"
+      endif
       gosub _entity_setnewai
+      `
       rem any waypoint activity must stop right away
       entityelement(e).ai.waypoint.state=999
       entityelement(e).mover.moved=0
+      `
      endif
     endif
    endif
@@ -8954,6 +8984,7 @@ actword$(AIACTINCFRAME)="incframe"
 actword$(AIACTDECFRAME)="decframe"
 actword$(AIACTANIMATE)="animate"
 actword$(AIACTADVFRAME)="advframe"
+actword$(AIACTRAGDOLL)="ragdoll"
 actword$(AIACTPLRASS)="associateplayer"
 actword$(AIACTPLRNOASS)="unassociateplayer"
 actword$(AIACTPLRMOVEUP)="plrmoveup"
@@ -10498,6 +10529,21 @@ if aiindex>0
      `
      case AIACTTRIGGERFORCE:
       taddforcesphere=aiactionseq(seq).value
+     endcase
+     `
+     case AIACTRAGDOLL:
+      rem FPGC - 210210 - by popular demand, ragdoll via script
+      if entityprofile(entid).ischaracter=1
+       ODE Create Ragdoll from bone model obj,0.6 : rem was 0.8 up to 171007 (was 0.6 on 300707)
+       detach object from static obj
+       rem set friction and weight for the character as a ragdoll
+       ode set contact fdir1 obj,entityprofile(tttentid).phyfriction
+       rem ragdoll must use 'percentage' as each bone has its own mass
+       ode set body mass obj,1.0
+       rem stabalize the object
+       ode set linear velocity obj,0,0,0
+       ode set angular velocity obj,0,0,0
+      endif
      endcase
      `
      case AIACTPLRASS:
@@ -12704,6 +12750,10 @@ _ai_loadessentialentityscripts:
  ai$="people\throwfore.fpi" : gosub _ai_locateaiindex : gosub _ai_load
  ai$="people\throwleft.fpi" : gosub _ai_locateaiindex : gosub _ai_load
  ai$="people\throwright.fpi" : gosub _ai_locateaiindex : gosub _ai_load
+ ai$="people\throwragdollback.fpi" : gosub _ai_locateaiindex : gosub _ai_load
+ ai$="people\throwragdollfore.fpi" : gosub _ai_locateaiindex : gosub _ai_load
+ ai$="people\throwragdollleft.fpi" : gosub _ai_locateaiindex : gosub _ai_load
+ ai$="people\throwragdollright.fpi" : gosub _ai_locateaiindex : gosub _ai_load
  `
 return
 
@@ -22794,6 +22844,7 @@ _gameflow_default:
       startofgametime=timer()
       continueokay=0
       gamewarmupcount=30
+      gosub _ode_beginphysics
       while continueokay=0
        if showgamemenu=0
         gosub _main_game_core
@@ -25760,7 +25811,11 @@ _ode_init:
 rem start ode
 ode start : rem set to regular world stepping
 ode set world gravity physicsgravx#,physicsgravy#,physicsgravz#
-ode set world step 0.05 : rem needed for accuracy
+rem FPGC - 210210 - now set gravity after warm up to prevent objects falling down before their time (maybe?)
+`ode set world gravity 0,0,0
+
+rem FPGC - 210210 - made ragdolls mode solid by decreasing CFM (need this for ragdolls onyl)
+`ode set world step 0.05 : rem needed for accuracy (only used in 2005 version of ODE)
 softness#=2.5 : rem soft as the player (was 2.0)
 ode set world erp (0.2)*softness#
 ode set world cfm (10^-5)*softness#
@@ -25894,6 +25949,14 @@ set ambient light 75
 rem no need for dbpro standard collision 'automated' system
 SET GLOBAL COLLISION OFF
 
+return
+
+_ode_beginphysics:
+ `
+ rem ensure internal ODE timer is not going to cause HUGE physics calc
+ rem (from time between setting up ODE and the game starting)
+ ode update 0.001
+ `
 return
 
 _ode_ensurephysicsobjvalid:
@@ -26128,6 +26191,11 @@ _ode_setupewithphysics:
       entityelement(e).rz=object angle z(tobj)
       rem must ensure default matrix in ODE is unrotated to begin with (RY controls angle)
       yrotate object tobj,0
+     endif
+     `
+     rem FPGC - 210210 - new ODE DLL requires all characters are 180 degree rotated (new internal matrix code)
+     if entityprofile(entid).ischaracter=1
+      yrotate object tobj,180
      endif
      `
      rem physics object is static or dynamic
@@ -26911,11 +26979,6 @@ if deactivatecollision=0 and skipcol=0
    if camerastoodonphyobj=0
     lcamerastoodonphyobjmovingx#=object position x(tgravitydefeatedbyphy)
     lcamerastoodonphyobjmovingz#=object position z(tgravitydefeatedbyphy)
-
-set cursor 0,200
-print lcamerastoodonphyobjmovingx#
-print lcamerastoodonphyobjmovingz#
-
    endif
    camerastoodonphyobj=tgravitydefeatedbyphy
   else
@@ -27965,8 +28028,9 @@ _ode_update:
   next e
  endif
  `
- rem update physics
- for phy=1 to 2 : ode update : next phy
+ rem update physics (FPGC - 210210 - new ODE requires only one timer based update call)
+ `for phy=1 to 2 : ode update : next phy
+ ode update
  `
  rem for next run - debug readouts
  if physicsdebug=1 then set cursor 0,0
