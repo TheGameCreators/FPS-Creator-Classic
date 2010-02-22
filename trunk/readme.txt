@@ -40,6 +40,9 @@ V1.1.7
  * Fixed world step issue created between old 2005 ODE and new 2010 ODE modules (timer based physics)
  * Fixed character rotation issue caused by old ODE/new ODE, now all characters orient forwards
  * Added new RAGDOLL FPI action and ragdollcorpse.fpi script, simply select to ragdoll your characters
+ * Added extra support for controller within the title and in-game menus (no need for keyboard now)
+ * NOTE: For the escape key, use the controllers start button (or similarly placed central buttons)
+ * When building final game, all WAV files are assumed to come with a .LIPSYNC (so they get copied over)
 
 V1.1.6 BETA 18 - 11/11/09
 -------------------------

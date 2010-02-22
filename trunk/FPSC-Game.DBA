@@ -3065,15 +3065,27 @@ _main_game_core:
  if gvrmode<>0
   rem VR920
   set camera rotation xyz
-  rotate camera camangx#,camangy#,0
+  if gvrmode=4
+   rem VRMODE 4 - player has no mouselook control of looking up/down (use tracker)
+   rotate camera 0,camangy#,0
+  else
+   rotate camera camangx#,camangy#,0
+  endif
   if gvrmode>=2
    pitch camera up vrmodetrackerx#
-   cappedvrmodetrackery#=vrmodetrackery#
-   if cappedvrmodetrackery#>10 then cappedvrmodetrackery#=10
-   if cappedvrmodetrackery#<-10 then cappedvrmodetrackery#=-10
-   tsubtletracking#=curvevalue(cappedvrmodetrackery#,tsubtletracking#,5.0)
-   turn camera left tsubtletracking#
-   precama#=camangy#+(vrmodetrackery#*-1)
+   if gvrmode=2 or gvrmode=3
+    rem VRMODE 2 - head turn causes player to turn
+    cappedvrmodetrackery#=vrmodetrackery#
+    if cappedvrmodetrackery#>10 then cappedvrmodetrackery#=10
+    if cappedvrmodetrackery#<-10 then cappedvrmodetrackery#=-10
+    tsubtletracking#=curvevalue(cappedvrmodetrackery#,tsubtletracking#,5.0)
+    turn camera left tsubtletracking#
+    precama#=camangy#+(vrmodetrackery#*-1)
+   endif
+   if gvrmode=4
+    rem VRMODE 4 - head turn, player angle stays put
+    turn camera left vrmodetrackery#
+   endif
    roll camera right vrmodetrackerz#
   else
    precama#=camangy#
@@ -3128,7 +3140,7 @@ _main_game_core:
  `
  rem Exit Conditions for test game
  if grealgameviewstate=0
-  if escapekey()=1 then continueokay=1 : levelwon=2 : rem QUIT
+  if control_escapekey()=1 then continueokay=1 : levelwon=2 : rem QUIT
  endif
  `
 return
@@ -9980,8 +9992,8 @@ if aiindex>0
     endcase
     case AICONDESCAPEKEYPRESSED:
      conda=aiconditionseq(seq).valuea
-     if escapekey()=1 and conda=0 then airesult=0
-     if escapekey()=0 and conda=1 then airesult=0
+     if control_escapekey()=1 and conda=0 then airesult=0
+     if control_escapekey()=0 and conda=1 then airesult=0
     endcase
     case AICONDSCANCODEKEYPRESSED:
      conda=aiconditionseq(seq).valuea
@@ -11535,12 +11547,12 @@ if aiindex>0
         load animation videofilename$,lastvideoplayed
         play animation lastvideoplayed,0,0,screen width(),screen height()
         while animation playing(lastvideoplayed)=1
-         if escapekey()=1 then exit
+         if control_escapekey()=1 then exit
          if spacekey()=1 then exit
-         if mouseclick()<>0 then exit
+         if control_mouseclick()<>0 then exit
          sync
         endwhile
-        while escapekey()=1 or spacekey()=1 or mouseclick()<>0 : sync : endwhile
+        while control_escapekey()=1 or spacekey()=1 or control_mouseclick()<>0 : sync : endwhile
         delete animation lastvideoplayed
         lastvideoplayed=0
         tensureentitytimestampsupdated=1
@@ -11772,7 +11784,7 @@ if aiindex>0
        gosub _saveload_savegame
        saveloadfile$=""
       endif
-      while mouseclick()<>0 : endwhile
+      while control_mouseclick()<>0 : endwhile
       position mouse screen width()/2,(screen height()/4)*3.5
       cleardelta=mousemovex() : cleardelta=mousemovey()
       hudselectionmade=0
@@ -11816,7 +11828,7 @@ if aiindex>0
       gosub _saveload_savebox_earlygrab
       cleardelta=mousemovex() : cleardelta=mousemovey()
       position mouse screen width()/2,(screen height()/4)*3
-      hudselectionmade=0 : ttemp=mouseclick()
+      hudselectionmade=0 : ttemp=control_mouseclick()
       showgamemenu=1
       `
       rem FPGC - 110809 - when in pause mode, freeze all 3D object frames (record here)
@@ -11832,7 +11844,7 @@ if aiindex>0
      endcase
      case AIACTRESUMEGAME:
       showgamemenu=0
-      while mouseclick()<>0 : endwhile
+      while control_mouseclick()<>0 : endwhile
       cleardelta=mousemovex() : cleardelta=mousemovey()
       tensureentitytimestampsupdated=1
      endcase
@@ -13499,6 +13511,14 @@ function addfiletocollection(filename$)
     if tokay=1
      array insert at bottom filecollection$()
      filecollection$()=filename$
+     `
+     rem FPGC - 220210 - if .WAV, assume a LIPSYNC could be with it (even if ultimately not copied)
+     if lower$(right$(filename$,4))=".wav"
+      lipsyncfilename$=left$(filename$,len(filename$)-4)+".lipsync"
+      array insert at bottom filecollection$()
+      filecollection$()=lipsyncfilename$
+     endif
+     `
     endif
    endif
   endif
@@ -14468,7 +14488,7 @@ endif
 rem Mouseclick
 tmouseclick=mouseclick()
 
-rem U71 - XBOX360 Contoller
+rem U71 - Contoller
 if gxbox=1 : rem define in a config later
  if joystick z()<-500 then tmouseclick=1
  if joystick fire x(9)=1 then tmouseclick=2
@@ -14500,7 +14520,7 @@ if player(plrid).health>0 or playerstartstrength=0
  if (plrkeyR)=1 then player(plrid).state.firingmode=2
 endif
 
-rem U71 - XBOX360 Contoller
+rem U71 - Contoller
 if gxbox=1 : rem define in a config later
  if joystick hat angle(0)=18000 then k$="0"
  if joystick hat angle(0)=0 then k$=str$(weaponkeyselection)
@@ -14552,7 +14572,7 @@ endif
 rem Mouse Wheel scrolls weapons
 tmz=mousemovez()
 
-rem U71 - XBOX360 Contoller
+rem U71 - Contoller
 if gxbox=1 : rem define in a config later
  if joystick hat angle(0)=9000 then tmz=10
  if joystick hat angle(0)=27000 then tmz=-10
@@ -22882,7 +22902,7 @@ _gameflow_default:
         for s=1 to 65535 : if sound exist(s)=1 : stop sound s : endif : next s
         `
         rem Ensure mouse button released totally
-        while mouseclick()<>0 : sync : endwhile
+        while control_mouseclick()<>0 : sync : endwhile
         `
         rem ARENA GAME FINISHED
         rem levelwon (0-lost,1-won,2-skip)
@@ -24769,6 +24789,33 @@ return
 ` AI and HUD Shared Code
 `
 
+_ai_hud_controller:
+ `
+ rem FPGC - 220210 - Controller
+ ttmouseclick=0 : tjtx#=0 : tjty#=0
+ if gxbox=1
+  tjtx1#=(joystick x()/10.0)
+  tjty1#=(joystick y()/10.0)
+  tjtx2#=(joystick twist x()-32767.0)/(327.67*0.5)
+  tjty2#=(joystick twist y()-32767.0)/327.67
+  tjtx#=tjtx1# : if abs(tjtx2#)>abs(tjtx1#) then tjtx#=tjtx2#
+  tjty#=tjty1# : if abs(tjty2#)>abs(tjty1#) then tjty#=tjty2#
+  if ttcontrolofmousepos=1
+   if abs(tjtx#)>50 or abs(tjty#)>50
+    tjtx#=mousex()+(tjtx#/10.0)
+    tjty#=mousey()+(tjty#/10.0)
+    position mouse tjtx#,tjty#+1
+   endif
+  endif
+  if joystick z()<-500 then ttmouseclick=1
+  if joystick fire a()=1 then ttmouseclick=1
+  if joystick fire b()=1 then ttmouseclick=1
+  if joystick fire c()=1 then ttmouseclick=1
+  if joystick fire d()=1 then ttmouseclick=1
+ endif
+ `
+return
+
 _ai_hud_view:
  `
  rem FPGC - 160909 - intercept HUD creation on some occasions
@@ -25061,7 +25108,10 @@ _ai_hud_view:
   `
   rem Special HUD Pointer
   if hud(hudid).maintype=2
-
+   `
+   rem FPGC - 220210 - Contoller
+   ttmouseclick=0 : ttcontrolofmousepos=1 : gosub _ai_hud_controller
+   `
    rem Can Display At Mouse Coordinate
    hud(hudid).posx=mousex()-((hud(hudid).width/2)*gratiox#)
    hud(hudid).posy=mousey()-((hud(hudid).height/2)*gratioy#)
@@ -25082,7 +25132,8 @@ _ai_hud_view:
      endif
     endif
    next thudid
-   if mouseclick()=1
+   `
+   if control_mouseclick()=1
     for thudid=1 to hudmax
      if hud(thudid).highlighted=1
       hudselectionmade=hud(thudid).typemode
@@ -26597,7 +26648,7 @@ if leftkey()=1 then plrkeyA=1
 if downkey()=1 then plrkeyS=1
 if rightkey()=1 then plrkeyD=1
 
-rem U71 - XBOX360 Contoller
+rem U71 - Contoller
 if gxbox=1 : rem define in a config later
  `
  rem Hard Code XBOX360 controls to optional player controls
@@ -27106,9 +27157,10 @@ if showgamemenu=0
   cammovey#=cammovey#/100.0 : cammovey#=cammovey#*gmousesensitivity
  endif
  `
- rem U71 - XBOX360 Contoller
+ rem U71 - Contoller
  if gxbox=1 : rem define in a config later
-  jtx#=(joystick twist x()-32767.0)/327.67
+  `jtx#=(joystick twist x()-32767.0)/327.67 - FPGC - 220210 - turn too slow
+  jtx#=(joystick twist x()-32767.0)/(327.67*0.5)
   jty#=(joystick twist y()-32767.0)/327.67
   if gxboxinvert=1 then jty#=jty#*-1.0
   if abs(jtx#)>50.0 then cammovex#=jtx#/10.0
@@ -27139,9 +27191,13 @@ if gvrmode<>0
   vrmodetrackerz#=vrmodetrackerz#*vrmodemagnifier#
  endif
 endif
-if gvrmode>=2
+if gvrmode>0
  rem VR920
- if inkey$()="#" then reset tracking
+ if inkey$()="\" then reset tracking
+endif
+if gvrmode=2 or gvrmode=3
+ rem VR920
+ rem VRMODE 2 and 3 turn player
  if gvrmode=2
   rem delta based turning
   ttrackerturn#=0
@@ -27153,7 +27209,8 @@ if gvrmode>=2
   endif
   lastttrackerturn#=vrmodetrackery#
   lastcamangy#=wrapvalue(lastcamangy#-ttrackerturn#)
- else
+ endif
+ if gvrmode=3
   rem extreme head turning
   ttrackerturn#=vrmodetrackery#
   if abs(ttrackerturn#)>10
@@ -27418,7 +27475,7 @@ if camerapickup=1
  tpickupkeystate=0
  if keystate(20)=1 or mouseclick()=2 then tpickupkeystate=1
  `
- rem U71 - XBOX360 Contoller
+ rem U71 - Contoller
  if gxbox=1 : rem define in a config later
   if joystick fire b()=1 then tpickupkeystate=1
  endif
@@ -27553,7 +27610,7 @@ if camerapicked>0
  rem throw
  if mouseclick()=1 then camerapickeddrop=1 : camerapickedthrown=1
  `
- rem U71 - XBOX360 Contoller
+ rem U71 - Contoller
  if gxbox=1 : rem define in a config later
   if joystick z()>500 then camerapickeddrop=1 : camerapickedthrown=1
  endif
@@ -28914,7 +28971,7 @@ _multi_control:
     if stateanimwait(iLocalEL)>0
      rem and wait for click to respawn
      player(plrindex).health=0
-     if mouseclick()<>0 or (spacekey()=1 and gtalkytoaster=0)
+     if control_mouseclick()<>0 or (spacekey()=1 and gtalkytoaster=0)
       stateplayagain(iLocalEL)=1
       if createorjoin=2
        rem if client, send this click to server
@@ -31182,6 +31239,13 @@ _saveload_maindialogloop:
  saveloadmousey=screen height()/2
  cleardelta#=mousemovex() : cleardelta#=mousemovey()
  while saveload.slotselected=0
+  `
+  rem FPGC - 220210 - Contoller
+  ttmouseclick=0 : ttcontrolofmousepos=0 : gosub _ai_hud_controller
+  if abs(tjtx#)>50 or abs(tjty#)>50
+   inc saveloadmousex,tjtx#/10.0 : inc saveloadmousey,tjty#/10.0
+  endif
+  `
   gosub _saveload_savebox_run
   mcammovex#=mousemovex() : mcammovey#=mousemovey()
   if gmousesensitivity>0 and gmousesensitivity<100
@@ -31338,15 +31402,15 @@ _saveload_savebox_run:
   ink rgb(tyesnochoice1*255,tyesnochoice1*255,tyesnochoice1*255),0 : text tareyousurex+400,tareyousurey+22,strarr$(650)
   ink rgb(tyesnochoice2*255,tyesnochoice2*255,tyesnochoice2*255),0 : text tareyousurex+450,tareyousurey+22,strarr$(651)
   rem select one
-  if mouseclick()=1 and (tyesnochoice1=1 or tyesnochoice2=1)
-   saveload.areyousure=0 : while mouseclick()=1 : endwhile
+  if control_mouseclick()=1 and (tyesnochoice1=1 or tyesnochoice2=1)
+   saveload.areyousure=0 : while control_mouseclick()=1 : endwhile
    if tyesnochoice1=1 then saveload.slotselected=saveload.slothighlight
   endif
   rem Escape from confirmer box
-  if escapekey()=1 then saveload.areyousure=0 : while escapekey()=1 : endwhile
+  if control_escapekey()=1 then saveload.areyousure=0 : while control_escapekey()=1 : endwhile
  else
   rem Select slot
-  if mouseclick()=1 and saveload.slothighlight>0
+  if control_mouseclick()=1 and saveload.slothighlight>0
    rem Slot X selected
    sloti=saveload.slothighlight
    if saveloadslot$(sloti)=strarr$(645)
@@ -31358,9 +31422,9 @@ _saveload_savebox_run:
     saveload.areyousure=1
    endif
   endif
-  if escapekey()=1
+  if control_escapekey()=1
    saveload.slotselected=-1
-   while escapekey()=1 : endwhile
+   while control_escapekey()=1 : endwhile
   endif
  endif
  `
@@ -42577,6 +42641,28 @@ function closeresource()
   endif
  endif
 endfunction
+
+function control_escapekey()
+ returnvalue=escapekey()
+ if gxbox=1
+  rem FPGC - 220210 - intercept with controller input
+  if joystick fire x(6)=1 then returnvalue=1
+  if joystick fire x(7)=1 then returnvalue=1
+ endif
+endfunction returnvalue
+
+function control_mouseclick()
+ returnvalue=mouseclick()
+ if gxbox=1
+  rem FPGC - 220210 - intercept with controller input
+  if joystick z()<-500 then returnvalue=1
+  if joystick fire a()=1 then returnvalue=1
+  if joystick fire b()=1 then returnvalue=1
+  if joystick fire c()=1 then returnvalue=1
+  if joystick fire d()=1 then returnvalue=1
+ endif
+endfunction returnvalue
+
 
 rem
 rem DARKVOICES LIPSYNC SUBROUTINES
