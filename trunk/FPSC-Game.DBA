@@ -7342,8 +7342,10 @@ if entityelement(e).force.active=1
    rem so small we can make them zero
    if entityprofile(entid).ischaracter=1
     rem characters regain themselves quicker
-    if abs(entityelement(e).force.ix)<2 then entityelement(e).force.ix=0.0
-    if abs(entityelement(e).force.iz)<2 then entityelement(e).force.iz=0.0
+    `if abs(entityelement(e).force.ix)<2 then entityelement(e).force.ix=0.0
+    `if abs(entityelement(e).force.iz)<2 then entityelement(e).force.iz=0.0
+    rem FPGC - 230210 - makes no sense for characters to slide back, so keep them put
+    entityelement(e).force.ix=0.0 : entityelement(e).force.iz=0.0
    else
     rem inanimate objects slide to a stop
     if abs(entityelement(e).force.ix)<0.1 then entityelement(e).force.ix=0.0
@@ -8748,25 +8750,29 @@ _entity_deducthealth:
        tdestroyname$=right$(tdestroyname$,len(tdestroyname$)-1)
       next tn
       `
-      rem Blast
-      if tdestroyasragdoll=1
-       aifile$="people\throwragdollback.fpi"
-       if tdir=1 then aifile$="people\throwragdollback.fpi"
-       if tdir=2 then aifile$="people\throwragdollfore.fpi"
-       if tdir=3 then aifile$="people\throwragdollleft.fpi"
-       if tdir=4 then aifile$="people\throwragdollright.fpi"
+      rem FPGC - 230210 - if shutgun style damage (throw to floor), but ragdoll, ignore
+      if entityelement(e).health>0 and timpacttype=2 and tdestroyasragdoll=1
+       rem ignore
       else
-       aifile$="people\throwback.fpi"
-       if tdir=1 then aifile$="people\throwback.fpi"
-       if tdir=2 then aifile$="people\throwfore.fpi"
-       if tdir=3 then aifile$="people\throwleft.fpi"
-       if tdir=4 then aifile$="people\throwright.fpi"
+       rem Blast
+       if tdestroyasragdoll=1
+        aifile$="people\throwragdollback.fpi"
+        if tdir=1 then aifile$="people\throwragdollback.fpi"
+        if tdir=2 then aifile$="people\throwragdollfore.fpi"
+        if tdir=3 then aifile$="people\throwragdollright.fpi"
+        if tdir=4 then aifile$="people\throwragdollleft.fpi"
+       else
+        aifile$="people\throwback.fpi"
+        if tdir=1 then aifile$="people\throwback.fpi"
+        if tdir=2 then aifile$="people\throwfore.fpi"
+        if tdir=3 then aifile$="people\throwleft.fpi"
+        if tdir=4 then aifile$="people\throwright.fpi"
+       endif
+       gosub _entity_setnewai
+       rem any waypoint activity must stop right away
+       entityelement(e).ai.waypoint.state=999
+       entityelement(e).mover.moved=0
       endif
-      gosub _entity_setnewai
-      `
-      rem any waypoint activity must stop right away
-      entityelement(e).ai.waypoint.state=999
-      entityelement(e).mover.moved=0
       `
      endif
     endif
@@ -25867,9 +25873,12 @@ rem FPGC - 210210 - now set gravity after warm up to prevent objects falling dow
 
 rem FPGC - 210210 - made ragdolls mode solid by decreasing CFM (need this for ragdolls onyl)
 `ode set world step 0.05 : rem needed for accuracy (only used in 2005 version of ODE)
-softness#=2.5 : rem soft as the player (was 2.0)
-ode set world erp (0.2)*softness#
-ode set world cfm (10^-5)*softness#
+`softness#=2.5 : rem soft as the player (was 2.0)
+`ode set world erp (0.2)*softness#
+`ode set world cfm (10^-5)*softness#
+rem 030707 - made ragdolls mode solid by decreasing CFM (need this for ragdolls onyl)
+ode set world cfm 0.000002 : rem this is good for ragdolls who hold their fixed joints
+ode set world erp 0.2 : rem 0.1 soft for ragdolls and crates
 
 rem make physics universe
 if object exist(physicsuniverseobj)=1 then delete object physicsuniverseobj
