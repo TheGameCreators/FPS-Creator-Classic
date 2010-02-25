@@ -261,6 +261,7 @@ global flakbankmax=0
 rem Init FPSC then leap to SETUP.INI loader
 leavegamedataalone=0
 gosub _FPSC_Full_Data_Init
+gosub _main_initcalceyes
 goto _FPSC_Setup
 
 rem Subroutine to completely construct FPSCData
@@ -2110,6 +2111,7 @@ global gbloodonfloor : gbloodonfloor=0
 global gimageblockmode : gimageblockmode=0
 global gxbox : gxbox=0
 global gxboxinvert : gxboxinvert=0
+global gxboxcontrollertype : gxboxcontrollertype=0
 global gshowalluniquetextures : gshowalluniquetextures=0
 global gaspectratio : gaspectratio=0
 global gnewblossershaders : gnewblossershaders=1
@@ -2256,9 +2258,11 @@ if file exist(tfile$)=1
     `
     tryfield$="xbox"
     if field$=tryfield$
-     if value1=0 then gxbox=0 : gxboxinvert=0
-     if value1=1 then gxbox=1 : gxboxinvert=0
-     if value1=2 then gxbox=1 : gxboxinvert=1
+     if value1=0 then gxbox=0 : gxboxinvert=0 : gxboxcontrollertype=0
+     if value1=1 then gxbox=1 : gxboxinvert=0 : gxboxcontrollertype=0
+     if value1=2 then gxbox=1 : gxboxinvert=1 : gxboxcontrollertype=0
+     if value1=3 then gxbox=1 : gxboxinvert=0 : gxboxcontrollertype=1
+     if value1=4 then gxbox=1 : gxboxinvert=1 : gxboxcontrollertype=1
     endif
     `
     tryfield$="dynamiclighting" : if field$=tryfield$ then gdynamiclightingstate=value1
@@ -3090,29 +3094,24 @@ _main_game_core:
   else
    precama#=camangy#
   endif
-  toggle=1-toggle
-  eyeLX#=newxvalue(0,precama#-90,0.75)
-  eyeLZ#=newzvalue(0,precama#-90,0.75)
-  eyeRX#=newxvalue(0,precama#+90,0.75)
-  eyeRZ#=newzvalue(0,precama#+90,0.75)
+  `
+  rem FPGC - 250210 - new stereo eye positioning (correct this time)
+  rem position left eye camera and do main render
+  gosub _main_calceyes
   precamx#=camera position x()
   precamy#=camera position y()
   precamz#=camera position z()
-  `prepeek#=vrmodetrackerz#/1.5
-  prepeek#=0  :rem roll to peek disabled
-  prepeekX#=newxvalue(0,precama#+90,prepeek#)
-  prepeekZ#=newzvalue(0,precama#+90,prepeek#)
-  rem position left eye camera and do main render
-  position camera precamx#+prepeekX#+eyeLX#,precamy#,precamz#+prepeekZ#+eyeLZ#
+  position camera camera position x()+x vector4(13),camera position y()+y vector4(13),camera position z()+z vector4(13)
   sync
   rem then relocate camera to right eye and render quickly
-  position camera precamx#+prepeekX#+eyeRX#,precamy#,precamz#+prepeekZ#+eyeRZ#
+  position camera camera position x()+x vector4(14),camera position y()+y vector4(14),camera position z()+z vector4(14)
   rem re-paint all HUD graphics as they are rendered over regular 3D
   gosub _ai_hud_view
   fastsync
   rem restore camera position and rotation for engine flow
   position camera precamx#,precamy#,precamz#
   rotate camera camangx#,camangy#,0
+  `
  else
   sync
  endif
@@ -3144,6 +3143,23 @@ _main_game_core:
  endif
  `
 return
+
+_main_initcalceyes:
+ rem FPGC - 250210 - set-up distance between left and right eyes
+ r=make vector4(11) : r=make vector4(12)
+ r=make vector4(13) : r=make vector4(14)
+ set vector4 11,-2.5,0,0,0 : set vector4 12,2.5,0,0,0
+ r=make matrix4(15)
+return
+
+_main_calceyes:
+ rem FPGC - 250210 - use view matrix (inverted) to make eyes align to camera 'head'
+ view matrix4 15
+ r=inverse matrix4(15,15)
+ transform vector4 13,11,15
+ transform vector4 14,12,15
+return
+
 
 rem
 rem LEES Game Runner Code
@@ -24800,10 +24816,14 @@ _ai_hud_controller:
  rem FPGC - 220210 - Controller
  ttmouseclick=0 : tjtx#=0 : tjty#=0
  if gxbox=1
+  rem some controllers do not use TWIST like the XBOX360 (right analog)
   tjtx1#=(joystick x()/10.0)
   tjty1#=(joystick y()/10.0)
-  tjtx2#=(joystick twist x()-32767.0)/(327.67*0.5)
-  tjty2#=(joystick twist y()-32767.0)/327.67
+  tjtx2#=0 : tjty2#=0
+  if gxboxcontrollertype=0
+   tjtx2#=(joystick twist x()-32767.0)/(327.67*0.5)
+   tjty2#=(joystick twist y()-32767.0)/327.67
+  endif
   tjtx#=tjtx1# : if abs(tjtx2#)>abs(tjtx1#) then tjtx#=tjtx2#
   tjty#=tjty1# : if abs(tjty2#)>abs(tjty1#) then tjty#=tjty2#
   if ttcontrolofmousepos=1
@@ -27168,9 +27188,11 @@ if showgamemenu=0
  `
  rem U71 - Contoller
  if gxbox=1 : rem define in a config later
-  `jtx#=(joystick twist x()-32767.0)/327.67 - FPGC - 220210 - turn too slow
-  jtx#=(joystick twist x()-32767.0)/(327.67*0.5)
-  jty#=(joystick twist y()-32767.0)/327.67
+  jtx#=0 : jty#=0
+  if gxboxcontrollertype=0
+   jtx#=(joystick twist x()-32767.0)/(327.67*0.5)
+   jty#=(joystick twist y()-32767.0)/327.67
+  endif
   if gxboxinvert=1 then jty#=jty#*-1.0
   if abs(jtx#)>50.0 then cammovex#=jtx#/10.0
   if abs(jty#)>50.0 then cammovey#=jty#/10.0
@@ -27190,9 +27212,10 @@ if plrzoomin#>0 then camrotspeed#=camrotspeed#/plrzoomin#
 
 rem GRAB VR920 tracker info once
 if gvrmode<>0
- vrmodetrackerx#=get tracking pitch(1)
- vrmodetrackery#=get tracking yaw(1)
- vrmodetrackerz#=get tracking roll(1)
+ rem mode 2 = device driver filtering
+ vrmodetrackerx#=get tracking pitch(2)
+ vrmodetrackery#=get tracking yaw(2)
+ vrmodetrackerz#=get tracking roll(2)
  if vrmodemag>0
   vrmodemagnifier#=vrmodemag : vrmodemagnifier#=vrmodemagnifier#/100.0
   vrmodetrackerx#=vrmodetrackerx#*vrmodemagnifier#
@@ -27202,7 +27225,7 @@ if gvrmode<>0
 endif
 if gvrmode>0
  rem VR920
- if inkey$()="\" then reset tracking
+ if scancode()=86 or inkey$()="\" then reset tracking
 endif
 if gvrmode=2 or gvrmode=3
  rem VR920
