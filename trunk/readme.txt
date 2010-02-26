@@ -44,6 +44,8 @@ V1.1.7
  * Added extra support for controller within the title and in-game menus (no need for keyboard now)
  * NOTE: For the escape key, use the controllers start button (or similarly placed central buttons)
  * When building final game, all WAV files are assumed to come with a .LIPSYNC (so they get copied over)
+ * Fixed issues relating to rag doll jitters, and limb handling good for non-specific models (legacy)
+ * Now prevents weapons such as shotguns (blast) from knocking over ragdoll based characters until dead
 
 FPGC WORK AND NOTES
 -------------------
