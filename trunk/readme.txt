@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
 
+ * Added ETIMERSTART AND ETIMERGREATER to allow for personal entity timers
  * Added AICONDSOUNDFINISHED to allow sequence of WAV sounds to be played inside FPI scripts
  * Added new TALK FPI command (identical to SOUND command except this one triggers DarkVOICES for compatible characters
  * Extended ENTITYELEMENT data structure with new 'soundistalking' for DarkVOICES (FPI=TALK) support
@@ -43,8 +44,6 @@ V1.1.7
  * Added extra support for controller within the title and in-game menus (no need for keyboard now)
  * NOTE: For the escape key, use the controllers start button (or similarly placed central buttons)
  * When building final game, all WAV files are assumed to come with a .LIPSYNC (so they get copied over)
- * Fixed issues relating to rag doll jitters, and limb handling good for non-specific models (legacy)
- * Now prevents weapons such as shutguns (blast) from knocking over ragdoll based characters until dead
 
 FPGC WORK AND NOTES
 -------------------
