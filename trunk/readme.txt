@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
 
+ * Fixed bug causing machine gun's sounds to cut off
  * Added ETIMERSTART AND ETIMERGREATER to allow for personal entity timers
  * Added AICONDSOUNDFINISHED to allow sequence of WAV sounds to be played inside FPI scripts
  * Added new TALK FPI command (identical to SOUND command except this one triggers DarkVOICES for compatible characters
