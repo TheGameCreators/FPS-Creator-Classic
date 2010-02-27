@@ -86,6 +86,7 @@ Rem Hockeykid - 250210 - Entity DarkAI
 type darkaitype
    `action$ as string
    `actiondelay as integer
+   isdoor as integer
    aimotive as integer
    zombie as integer
    aistop as integer
@@ -3148,6 +3149,8 @@ else
    ai set player ducking 0
 endif
 
+print doors
+
 Rem Hockeykid - 250210 - Update AI
 ai update
 
@@ -3346,6 +3349,8 @@ if gcompilestandaloneexe=0
   gosub _multi_restartprepare
   multiplayerinitialised=0
  endif
+ Rem Hockeykid - 260210 - Added gosub for finding doors (for Dark AI system)
+ gosub _darkai_finddoors
  `
  rem Starting main loop
  debugviewtext(329,strarr$(629))
@@ -12098,6 +12103,9 @@ if aiindex>0
     Rem Hockeykid - 250210 - Dark AI
       case AIACTADDALLY:
          obj=entityelement(e).obj
+         if ai entity exist(obj)
+            ai kill entity obj
+         endif
         tcont=0
         for y=1 to 20
            if entityelement(e).y >= container(y).y#-50.0 and entityelement(e).y <= container(y).y#+50.0
@@ -12129,6 +12137,9 @@ if aiindex>0
       case AIACTADDENEMY:
          obj=entityelement(e).obj
         tcont=0
+        if ai entity exist(obj)
+           ai kill entity obj
+        endif
         for y=1 to 20
            if entityelement(e).y >= container(y).y#-50.0 and entityelement(e).y <= container(y).y#+50.0
               tcont=y : exit
@@ -15860,7 +15871,9 @@ if gunmodeloopsnd>0
   if gunmode<101 or gunmode>107
    if sound exist(gunmodeloopsnd)=1
     if sound playing(gunmodeloopsnd)=1
-     stop sound gunmodeloopsnd
+      Rem Hockeykid - 260210 - changed line to stop sounds from cutting off
+     `stop sound gunmodeloopsnd
+      pause sound gunmodeloopsnd : resume sound gunmodeloopsnd
     endif
    endif
    gunmodeloopsnd=0 : gunmodeloopstarted=0
@@ -43610,6 +43623,20 @@ ttilez#=tentz#/100
 
 Rem Calculate Zone Info
 
+
+return
+
+_darkai_finddoors:
+
+for e=1 to entityelementlist
+   if entityelement(e).obj>0
+      obj=entityelement(e).obj
+      tentid=entityelement(e).bankindex
+      if entityelement(e).eleprof.physics=3 and entityelement(e).eleprof.transparency=0
+         entityelement(e).darkai.isdoor=1 : inc doors
+      endif
+   endif
+next e
 
 return
 
