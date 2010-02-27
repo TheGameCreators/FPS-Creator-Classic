@@ -86,6 +86,7 @@ Rem Hockeykid - 250210 - Entity DarkAI
 type darkaitype
    `action$ as string
    `actiondelay as integer
+   ehit as integer
    isdoor as integer
    aimotive as integer
    zombie as integer
@@ -97,6 +98,7 @@ type darkaitype
    delay2 as integer
    ambushed as integer
    ambushx# as float
+   ambushy# as float
    ambushz# as float
    running as boolean
    reference as integer
@@ -3149,7 +3151,6 @@ else
    ai set player ducking 0
 endif
 
-print doors
 
 Rem Hockeykid - 250210 - Update AI
 ai update
@@ -3226,7 +3227,8 @@ ai update
  `
  rem Exit Conditions for test game
  if grealgameviewstate=0
-  if control_escapekey()=1 then continueokay=1 : levelwon=2 : rem QUIT
+   Rem Hockeykid - 260210 - Added ai reset to avoid Dark AI from creating a silent crash
+  if control_escapekey()=1 then ai reset : continueokay=1 : levelwon=2 : rem QUIT
  endif
  `
 return
@@ -3351,6 +3353,8 @@ if gcompilestandaloneexe=0
  endif
  Rem Hockeykid - 260210 - Added gosub for finding doors (for Dark AI system)
  gosub _darkai_finddoors
+ Rem Hockeykid - 260210 - Added subroutine for debugging Dark AI
+ gosub _darkai_debug
  `
  rem Starting main loop
  debugviewtext(329,strarr$(629))
@@ -3409,6 +3413,7 @@ gametransitionscreen=1 : gametransitionscreencount=600/2
 return
 
 _main_game_showwindownow:
+
  set window layout 0,0,0
  maximize window
  show window
@@ -3418,8 +3423,8 @@ _main_game_showwindownow:
   rem test game to front
   rem FPGC - 010909 - TEST GAME needs this to keep window to the very front always (though not when debuggin)
   window to front "__topmost__"+"FPSC Game"
-  `window to front "FPSC Game"
  endif
+
 return
 
 _main_game_corecontrol:
@@ -6931,8 +6936,11 @@ if entityelement(e).fireweapon=1
       tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y : tdamagez#=entityelement(e).z
       stte=e : e=entityelement(e).actualtarget-1 : tte=entityelement(e).actualtarget-1
       Rem Hockeykid - 250210 - set entity to hit
+      if ai entity exist(entityelement(e).obj) then ai set entity hit entityelement(e).obj,tdamagex#,tdamagez#
       entityelement(e).darkai.ambushed=1
+      entityelement(e).darkai.ehit=tte
       entityelement(e).darkai.ambushx#=tdamagex#
+      entityelement(e).darkai.ambushy#=tdamagey#
       entityelement(e).darkai.ambushz#=tdamagez#
 
       gosub _entity_deducthealth : e=stte
@@ -12227,10 +12235,12 @@ if aiindex>0
                entityelement(e).actualtargetz=mez#
                entityelement(e).losttargetcount=0
             else
-               if array count(phyobjele())>=ttarget
-                  tent = phyobjele(ttarget)
+               `if array count(phyobjele())>=ttarget
+                  for l=1 to entityelementlist
+                     if entityelement(l).obj=ttarget then tent = l : exit
+                  next l
                   if tent>0
-                     entityelement(e).actualtarget=phyobjele(ttarget)+1
+                     entityelement(e).actualtarget=tent+1
                      if entityelement(e).actualtarget>0
                         tte=entityelement(e).actualtarget-1
                         entityelement(e).actualtargetx=entityelement(tte).x
@@ -12241,7 +12251,7 @@ if aiindex>0
                   else
 
                   endif
-               endif
+               `endif
             endif
          endif
    endcase
@@ -43306,7 +43316,6 @@ for y=0 to 19
    endif
 next y
 
-
 rem Handle Reference Object
 remstart
 if entityelement(e).darkai.reference=0
@@ -43352,6 +43361,7 @@ else
    ttargetvisibleduck=0
 endif
 
+tentid=entityelement(e).bankindex
 rem Collect Status Information
 tducking=ai get entity is ducking(obj)
 tmoving=ai get entity is moving(obj)
@@ -43572,7 +43582,6 @@ if tstate=STATE_RETREAT
    endif
 endif
 
-
 rem Apply New Actions
 `if entityelement(e).darkai.running=1 and ai get entity is ducking(obj)=0
    `ai set entity speed obj,(entityelement(e).eleprof.speed*2.0)/2.0
@@ -43615,11 +43624,14 @@ if tmoving=1
     if conda#<-120.0 or conda#>120.0 then entityelement(e).darkai.action=2
 endif
 
+Gosub _darkai_blood
 
 Rem Cross-Layer Interaction
 ttilex#=tentx#/100
 ttiley#=tenty#/100
 ttilez#=tentz#/100
+
+
 
 Rem Calculate Zone Info
 
@@ -43633,10 +43645,65 @@ for e=1 to entityelementlist
       obj=entityelement(e).obj
       tentid=entityelement(e).bankindex
       if entityelement(e).eleprof.physics=3 and entityelement(e).eleprof.transparency=0
-         entityelement(e).darkai.isdoor=1 : inc doors
+         entityelement(e).darkai.isdoor=1
       endif
    endif
 next e
 
 return
 
+_darkai_debug:
+for y=0 to 2000 step 100
+   k=y-100+2
+   c=y/100
+   ai debug show obstacle bounds c,k
+next y
+return
+
+_darkai_blood:
+
+if entityelement(e).darkai.ehit>0
+   tbullethitflesh=entityelement(e).darkai.ehit
+   bulletrayhit=1
+   distx#=entityelement(e).darkai.ambushx#-entityelement(e).x
+   disty#=entityelement(e).darkai.ambushy#-entityelement(e).y
+   distz#=entityelement(e).darkai.ambushy#-entityelement(e).z
+   dist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
+   bulletrayhitdist#=dist#
+    Rem Hockeykid - 270210 - Creat blood splat if hit
+   decalid=entitydecal(tentid,1)
+   if decalid>0
+      x2#=tmyx# : y2#=tmyy# : z2#=tmyz#
+      x1#=entityelement(e).darkai.ambushx# : y1#=entityelement(e).darkai.ambushy# : z1#=entityelement(e).darkai.ambushy#
+      rem direction from player to entity
+      tix#=x2#-x1# : tiy#=y2#-y1# : tiz#=z2#-z1#
+      tdd#=sqrt(abs(tix#*tix#)+abs(tiy#*tiy#)+abs(tiz#*tiz#))
+      tix#=tix#/tdd# : tiy#=tiy#/tdd# : tiz#=tiz#/tdd#
+      rem find point of impact
+      tix#=tix#*(bulletrayhitdist#-10.0)
+      tiy#=tiy#*(bulletrayhitdist#-10.0)
+      tiz#=tiz#*(bulletrayhitdist#-10.0)
+      rem create a splat decal
+      decalscalemodx=0 : rem FPSCV101 - fix
+      decalorient=0 : decalx=x1#+tix# : decaly=y1#+tiy# : decalz=z1#+tiz#
+      originatore=-1 : gosub _decalelement_create
+   endif
+   if tbullethitflesh>0
+   rem blood splat
+      tscorchtype3=8+rnd(3)
+      tscorchsize3#=10.0+((tbullethitflesh/100.0)*(20.0+rnd(20)))
+      if gbloodonfloor=1
+         rem FPSC - X9 - V109 - 310308 - if flagged, blood is redirected to floor
+         if bulletrayhit>0
+            tempx#=entityelement(bulletrayhit).x
+            tempy#=entityelement(bulletrayhit).y
+            tempz#=entityelement(bulletrayhit).z
+            tempraytofloor#=static raycast(tempx#,tempy#+25,tempz#,tempx#,tempy#-125,tempz#)
+         endif
+      endif
+      add static scorch tscorchsize3#,tscorchtype3
+   endif
+   entityelement(e).darkai.ehit=0
+endif
+
+return
