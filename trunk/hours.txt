@@ -1,0 +1,26 @@
+start
+2/25/10=6:10
+2/25/10=6:35
+;end
+start
+2/25/10=7:36
+2/25/10=8:51
+;end
+start
+2/25/10=9:10
+2/25/10=9:40
+;end
+2/25/10=Total 2 hours and 10 minutes
+start
+2/26/10=4:23
+2/26/10=5:38
+;end
+start
+2/26/10=6:58
+2/26/10=7:24
+;end
+2/26/10=Total 1 hour 41 minutes
+start
+HOURS NOT LOGGED BY HOUR
+;end
+2/27/10=Total 4 hours 18 minutes
