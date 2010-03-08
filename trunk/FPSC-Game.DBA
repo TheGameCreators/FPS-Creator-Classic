@@ -85,10 +85,16 @@ dim loadreport$(100000)
 Rem Hockeykid - 250210 - Entity DarkAI
 type darkaitype
    `action$ as string
-   `actiondelay as integer
+   beenhurt as integer
+   control as integer
+   follow as integer
+   actionmode as integer
+   statecustom as integer
    ehit as integer
    isdoor as integer
    aimotive as integer
+   maxm as integer
+   minm as integer
    zombie as integer
    aistop as integer
    holdpos as integer
@@ -104,6 +110,7 @@ type darkaitype
    reference as integer
    action as integer
    adddynamic as integer
+   custom as integer
 endtype
 
 Rem Hockeykid - 250210 - Dark AI added type for containers/layers
@@ -1292,6 +1299,7 @@ Rem End Dark AI
 #constant AICONDHUDEDITDONE 822
 #constant AICONDHUDHAVENAME 823
 #constant AICONDSCANCODEKEYPRESSED 824
+#constant AICONDKEYPRESSED 825
 #constant AICONDLAST 900
 
 #constant AIACTNONE 0
@@ -1435,7 +1443,7 @@ Rem Hockeykid - 250210 - Dark AI constants
 #constant AIACTAIALLYFOLLOW 1059
 #constant AIACTADDENEMY 1060
 #constant AIACTAISETTARGET 1061
-#constant AIACTDARKAIMOVERANDOM 1062
+#constant AIACTAIMOVERANDOM 1062
 #constant AIACTALLYKILL 1063
 #constant AIACTENEMYKILL 1064
 #constant AIACTAIMOVEMENT 1065
@@ -1443,6 +1451,8 @@ Rem Hockeykid - 250210 - Dark AI constants
 #constant AIACTTOGGLEACTIVE 1067
 #constant AIACTADDZOMBIE 1068
 #constant AIACTAIMOTIVE 1069
+#constant AIACTAIACTION 1070
+#constant AIACTAIFOLLOWPLR 1071
 Rem end Dark AI constants
 #constant AIACTHUDRESET 1100
 #constant AIACTHUDX 1101
@@ -6935,13 +6945,6 @@ if entityelement(e).fireweapon=1
       tdamagesource=0 : timpacttype=1
       tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y : tdamagez#=entityelement(e).z
       stte=e : e=entityelement(e).actualtarget-1 : tte=entityelement(e).actualtarget-1
-      Rem Hockeykid - 250210 - set entity to hit
-      if ai entity exist(entityelement(e).obj) then ai set entity hit entityelement(e).obj,tdamagex#,tdamagez#
-      entityelement(e).darkai.ambushed=1
-      entityelement(e).darkai.ehit=tte
-      entityelement(e).darkai.ambushx#=tdamagex#
-      entityelement(e).darkai.ambushy#=tdamagey#
-      entityelement(e).darkai.ambushz#=tdamagez#
 
       gosub _entity_deducthealth : e=stte
       tentid=entityelement(e).bankindex
@@ -8859,6 +8862,10 @@ _entity_deducthealth:
      if playersound(tplrid,tsnd)>0
       playinternal3dsoundfactor(playersound(tplrid,tsnd),entityelement(e).x,entityelement(e).y,entityelement(e).z,5.0)
      endif
+     if entityelement(e).darkai.beenhurt=0
+      entityelement(e).darkai.ambushed=1 : rem instant attack
+      entityelement(e).darkai.beenhurt=1
+     endif
     endif
    endif
   endif
@@ -9109,6 +9116,8 @@ conword$(AICONDHUDEDITDONE)="hudeditdone"
 conword$(AICONDHUDHAVENAME)="hudhavename"
 Rem Hockeykid - 250210 - added etimer
 conword$(AICONDETIMERGREATER)="etimergreater"
+Rem Hockeykid - 020310 - added keypressed
+conword$(AICONDKEYPRESSED)="keypressed"
 Rem Hockeykid - 250210 - Dark AI start
 conword$(AICONDDARKAISTRAFEL)="strafingleft"
 conword$(AICONDDARKAISTRAFER)="strafingright"
@@ -9307,7 +9316,7 @@ actword$(AIACTADDALLY)="addally"
 actword$(AIACTAIALLYFOLLOW)="allyfollow"
 actword$(AIACTADDENEMY)="addenemy"
 actword$(AIACTAISETTARGET)="aisettarget"
-actword$(AIACTDARKAIMOVERANDOM)="aimoverandom"
+actword$(AIACTAIMOVERANDOM)="aimoverandom"
 actword$(AIACTALLYKILL)="killally"
 actword$(AIACTENEMYKILL)="killenemy"
 actword$(AIACTAIMOVEMENT)="allowmove"
@@ -9315,6 +9324,8 @@ actword$(AIACTAIACTIVE)="setaiactive"
 actword$(AIACTTOGGLEACTIVE)="alwaysactive"
 actword$(AIACTADDZOMBIE)="addzombie"
 actword$(AIACTAIMOTIVE)="aimotive"
+actword$(AIACTAIACTION)="aiaction"
+actword$(AIACTAIFOLLOWPLR)="aifollowplr"
 
 return
 
@@ -10197,6 +10208,9 @@ if aiindex>0
      conda=aiconditionseq(seq).valuea
      if hudhaveplayername=0 and conda=1 then airesult=0
      if hudhaveplayername=1 and conda=0 then airesult=0
+    endcase
+    case AICONDKEYPRESSED:
+      if keystate(aiconditionseq(seq).valuea)<>aiconditionseq(seq).valueb then airesult=0
     endcase
     Rem Hockeykid - 250210 - Dark AI conditions
     case AICONDDARKAISTRAFEL:
@@ -12213,6 +12227,9 @@ if aiindex>0
             if aiactionseq(seq).value<>0 then entityelement(e).darkai.aistop=0
          endif
       endcase
+      case AIACTAIACTION:
+         entityelement(e).darkai.actionmode=aiactionseq(seq).value
+      endcase
       case AIACTTOGGLEACTIVE:
          entityelement(e).eleprof.phyalways=aiactionseq(seq).value
       endcase
@@ -12221,21 +12238,19 @@ if aiindex>0
       endcase
       case AIACTAISETTARGET:
          obj=entityelement(e).obj
+         tent = 0
          if ai entity exist(obj)
-            ttwo=ai get entity count targets(obj)
-            ttwot=rnd(ttwo)
-            if ttwot=0 and ai get entity count targets(obj)>0 then ttwot=1
-            entityelement(e).ttarget=AI Get Entity Target ID (obj,ttwot)
+            entityelement(e).ttarget=AI Get Entity Target ID (obj,1)
             ttarget=entityelement(e).ttarget
-            debugtarget=entityelement(e).ttarget
-            if ttarget = physicsplayerborble
-               entityelement(e).actualtarget=1
-               entityelement(e).actualtargetx=mex#
-               entityelement(e).actualtargety=mey#
-               entityelement(e).actualtargetz=mez#
-               entityelement(e).losttargetcount=0
-            else
-               `if array count(phyobjele())>=ttarget
+            if ttarget>0
+               if ttarget = physicsplayerborble
+                  entityelement(e).actualtarget=1
+                  entityelement(e).actualtargetx=mex#
+                  entityelement(e).actualtargety=mey#
+                  entityelement(e).actualtargetz=mez#
+                  entityelement(e).losttargetcount=0
+               else
+                  `if array count(phyobjele())>=ttarget
                   for l=1 to entityelementlist
                      if entityelement(l).obj=ttarget then tent = l : exit
                   next l
@@ -12248,10 +12263,8 @@ if aiindex>0
                         entityelement(e).actualtargetz=entityelement(tte).z
                         entityelement(e).losttargetcount=0
                      endif
-                  else
-
                   endif
-               `endif
+               endif
             endif
          endif
    endcase
@@ -12266,6 +12279,20 @@ if aiindex>0
       if ai entity exist(enemyadd)
          ai kill entity enemyadd
       endif remend
+     endcase
+     case AIACTAIMOVERANDOM:
+      if ai entity exist(entityelement(e).obj)
+          Rem Hockeykid - 030310 - Reset control mode to manual
+         if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control obj,0
+         if ai get entity team (entityelement(e).obj)=1 and entityelement(e).darkai.follow=1 then Gosub _darkai_stopfollow
+          entityelement(e).darkai.actionmode=2
+      endif
+     endcase
+     case AIACTAIFOLLOWPLR:
+      if ai entity exist(entityelement(e).obj)
+         if aiactionseq(seq).value=1 then entityelement(e).darkai.actionmode=1
+         if aiactionseq(seq).value=0 then entityelement(e).darkai.actionmode=4
+      endif
      endcase
 Rem End Dark AI
      `
@@ -43300,6 +43327,7 @@ Rem Hockeykid - 250210 - Dark AI create/declare constants
 #constant STATE_ATTACKING 1
 #constant STATE_COVER 2
 #constant STATE_RETREAT 3
+#constant STATE_CUSTOM 4
 
 
 Rem Hockeykid - 250210 - Dark AI control subroutine
@@ -43316,17 +43344,10 @@ for y=0 to 19
    endif
 next y
 
-rem Handle Reference Object
-remstart
-if entityelement(e).darkai.reference=0
-   airmodobj=airmodobj+1
-   entityelement(e).darkai.reference=airmodoffset+airmodobj
-   make object cube entityelement(e).darkai.reference,15
-   color object entityelement(e).darkai.reference,RGB(255,0,0)
-else
-   position object entityelement(e).darkai.reference,ai get entity x(obj),entityelement(e).y,ai get entity z(obj)
-endif
-remend
+Rem reset ttarget(s)
+ttargetvisible=0
+ttargetvisibleduck=0
+
 
 rem Collect Sensory Information
 if ai get entity target id(obj,1)<>0
@@ -43352,14 +43373,12 @@ if tobjtarget>0
       endif
       ttargetvisible=ai get entity can see(obj,ttargetx#,ttargetz#,1)
       ttargetvisibleduck=ai get entity can see(obj,ttargetx#,ttargetz#,0)
-   else
-      ttargetvisible=0
-      ttargetvisibleduck=0
    endif
-else
-   ttargetvisible=0
-   ttargetvisibleduck=0
 endif
+
+print ttargets
+print ttargetvisible
+print ttargetvisibleduck
 
 tentid=entityelement(e).bankindex
 rem Collect Status Information
@@ -43371,9 +43390,6 @@ Rem Hockeykid - 250210 - Added line so Dark AI entities have footfall sounds
 if tmoving>0 then plrid=entityelement(e).fakeplayerid : Gosub _player_playfootfall
 rem collect ai motive
 motive=entityelement(e).darkai.aimotive
-rem motive numbers
- `0=default behaviour random walking around spawn point for enemies for allies follow the player
- `
 
 rem Collect State Information
 tstate=entityelement(e).darkai.state
@@ -43387,88 +43403,115 @@ rem Reset Actions
 ai set entity no look at point obj
 entityelement(e).darkai.running=0
 
-rem hockeykid's mediocre attempt at making stairs
-rem commented out for now to work on some more important bugs
-remstart
-if static volume(tmyx#,tmyy#+30,tmyz#,ai get entity x(obj),entityelement(e).y+30,ai get entity z(obj),1.0)=1 and get static collision floor()=1
-      ` ai entity move close obj,tmyx##+get static collision x(),tmyz##+get static collision z()
-       entityelement(e).y=tmyy#+get static collision y()
-endif remend
+`Sees opponent
+if ttargetvisible=1 and entityelement(e).darkai.state=STATE_IDLE or ttargets>0 and entityelement(e).darkai.state=STATE_IDLE
+   if ttargetvisibleduck=0
+      entityelement(e).darkai.state=STATE_COVER
+   else
+      entityelement(e).darkai.state=STATE_ATTACKING
+   endif
+endif
+Rem current unused AI action is 8
 
 rem Idle
 if tstate=STATE_IDLE
    `Stand up
- if entityelement(e).darkai.zombie<>1
    if tducking=1 then ai entity stand obj
-   `Survey Suroundings
-   if tturning=0 and tmoving=0 and entityelement(e).darkai.delay<timer() and ai get entity team(obj)=1
-      entityelement(e).darkai.delay=timer()+1000
-      ai entity look around obj,40,360
-   endif
-   `Detect Sounds
-   if tsound>0
-     if ai get entity team(obj)<>1 then ai entity move to closest sound obj
-     `if ai get entity team(obj)=1 and bcsoundx#<>camera position x() and bcsoundz#<>camera position z() then ai entity move to closest sound obj
-   endif
-   distapart#=(entityelement(e).x-camera position x())^2+(entityelement(e).z-camera position z())^2
-   `randommove=1
-   if ai get entity team(obj)=1 and distapart#>22500 and tsound=0
-     ai entity go to position obj,camera position x(),camera position z()
-     `ai entity look at position obj,camera position x(),camera position z()
-    endif
-if ai get entity team(obj)=1 and distapart#<22500 and tsound=0
-     ai entity go to position obj,entityelement(e).x,entityelement(e).z
-     `ai entity look at position obj,camera position x(),camera position z()
-endif
-remstart if randommove=1 and entityelement(e).darkai.delay<timer()
-entityelement(e).darkai.delay=timer()+1000
-      ai entity random move obj,300,1000
-  endif remend
-  rem lets try for some....erm random enemy movement based on.....(insert idea here...)?
-  rem ah lets try the ai entity random move, we'll use a timer for this :D
-  rem extra note : timer was set to 5 seconds but seemed to long (maybe falty or not a good command) changed to 2 seconds.
-  rem it was the entity rotation that was throwing this off constantly reseting the timer! This works for enemies but I will  need a way for
-  rem allies as i don't think a fpi command would be the best route
-  if entityelement(e).darkai.delay<timer() and ai get entity team(obj)=2
-   entityelement(e).darkai.delay=timer()+2500
-   ai entity random move obj,300,1000
-  endif
 
-  rem how often? well try hmm 5 seconds?
-   `Ambushed
-   if entityelement(e).darkai.ambushed>0
-      entityelement(e).darkai.ambushed=0
-      entityelement(e).darkai.state=STATE_COVER
-      ai entity move to cover obj,entityelement(e).darkai.ambushx#,entityelement(e).darkai.ambushz#
+   Rem Hockeykid - All AI types
+   if entityelement(e).darkai.actionmode=5
+      ai entity move to closest sound obj
    endif
-   `Sees opponent
-   if ttargetvisible=1 or ttargets>0
-      if ttargetvisibleduck=0
-         entityelement(e).darkai.state=STATE_COVER
-      else
-         entityelement(e).darkai.state=STATE_ATTACKING
+   if entityelement(e).darkai.actionmode=6
+      ai entity move away from sound obj
+   endif
+    Rem Hockeykid - 020310 - Special area for allies only
+   if ai get entity team(obj)=1
+         `Follow the player
+      if entityelement(e).darkai.actionmode=1
+         if tsound=0
+            ai set entity control obj,1
+            ai entity follow player obj,60
+            entityelement(e).darkai.follow=1
+            Rem set the entities control variable to 1 so can be swtiched off later if on
+            entityelement(e).darkai.control=1
+            entityelement(e).darkai.actionmode=0
+         endif
       endif
-   endif
- endif
-   rem zombie
-if entityelement(e).darkai.zombie=1
-      distapart#=(entityelement(e).x-camera position x())^2+(entityelement(e).z-camera position z())^2
-      if distapart#>3600
-         ai entity go to position obj,camera position x(),camera position z()
-      else
+
+      if entityelement(e).darkai.actionmode=4 and entityelement(e).darkai.follow<>0
+         ai entity separate obj
+         Rem Hockeykid - 030310 - Reset control mode to manual
+         if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control obj,0
+         entityelement(e).darkai.follow=0
+         Rem Hockeykid - 030310 - Call actionmode 3 so entities stop right away
+         entityelement(e).darkai.actionmode=3
+         entityelement(e).darkai.follow=0
+      endif
+
+      if entityelement(e).darkai.actionmode<>4 and entityelement(e).darkai.follow<>0 and entityelement(e).darkai.actionmode<>0
+         ai entity separate obj
+         Rem Hockeykid - 030310 - Reset control mode to manual
+         if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control obj,0
+         entityelement(e).darkai.follow=0
          ai entity go to position obj,entityelement(e).x,entityelement(e).z
       endif
+
+
    endif
+
+   Rem Hockeykid - 020310 -  Area for both enemies and allies
+   if ai get entity team(obj)<>0
+      `Move randomly
+      if entityelement(e).darkai.delay<timer() and entityelement(e).darkai.actionmode=2
+         entityelement(e).darkai.delay=timer()+2500
+         ai entity random move obj,300,1000
+      endif
+      `Survey Suroundings
+      if tturning=0 and tmoving=0 and entityelement(e).darkai.delay<timer() and entityelement(e).darkai.actionmode<>2
+         entityelement(e).darkai.delay=timer()+1000
+         ai entity look around obj,40,360
+      endif
+      `Stop entity in its tracks
+      if entityelement(e).darkai.actionmode=3
+         Rem entity must be in manual mode
+         if entityelement(e).darkai.control=1 then ai set entity control obj,0 : entityelement(e).darkai.control=0
+         ai entity go to position obj,entityelement(e).x,entityelement(e).z
+         entityelement(e).darkai.actionmode=0
+      endif
+      `Ambushed
+      if entityelement(e).darkai.ambushed>0
+         entityelement(e).darkai.ambushed=0
+         entityelement(e).darkai.state=STATE_COVER
+         ai entity move to cover obj,entityelement(e).darkai.ambushx#,entityelement(e).darkai.ambushz#
+      endif
+
+      `Sees opponent
+      if ttargetvisible=1 or ttargets>0
+         if ttargetvisibleduck=0
+            entityelement(e).darkai.state=STATE_COVER
+         else
+            entityelement(e).darkai.state=STATE_ATTACKING
+         endif
+      endif
+
+   endif
+
+
+   `
 endif
 
 rem Attacking
 if tstate=STATE_ATTACKING or tstate=STATE_COVER
-if entityelement(e).darkai.zombie=1 and tstate=STATE_COVER then entityelement(e).darkai.state=STATE_ATTACKING
 if entityelement(e).darkai.aistop=1 then ai entity stop obj
    if tobjtarget>0
       ai entity look at position obj,ttargetx#,ttargetz#
       if entityelement(e).darkai.state<>STATE_COVER and ttargetvisibleduck=0
          entityelement(e).darkai.state=STATE_COVER : ai entity move to cover obj,ttargetx#,ttargetz#
+      endif
+      if entityelement(e).darkai.actionmode=7 and entityelement(e).darkai.state<>STATE_COVER and ttargetvisibleduck=0
+         entityelement(e).darkai.state=STATE_COVER
+         ai entity move to cover obj,ttargetx#,ttargetz#
       endif
       if ttargets>2 and tmoving=1
          entityelement(e).darkai.running=1
@@ -43495,27 +43538,6 @@ if entityelement(e).darkai.aistop=1 then ai entity stop obj
          entityelement(e).darkai.state=STATE_ATTACKING
       endif
 endif
-remstart
-rem start our priorities
-if tstate<>STATE_IDLE and tstate<>STATE_RETREAT
-   if entityelement(e).darkai.pridelay<timer()
-   rem do a rnd calculation to generate priorities
-   rem but first we need to find out which priorities our entities have set
-   rem if we have 3 priorities then aipri should =3 we times by 100 so each rnd value has a value of 100 to sit in
-      aipri=entityelement(e).darkai.pri*100
-      aichoice=rnd(aipri)
-      if aichoice>=0 and aichoice=<99
-      rem do something (make sure we reset the timer) the rest shall be worked on tomorrow 10/27/09
-      endif
-      if aichoice>=100 and aichoice=<199
-      rem do something (make sure we reset the timer) the rest shall be worked on tomorrow 10/27/09
-      endif
-      if aichoice>=200 and aichoice=<299
-      rem do something (make sure we reset the timer) the rest shall be worked on tomorrow 10/27/09
-      endif
-
-endif
-remend
 
 rem Open Attacking
 if tstate=STATE_ATTACKING
@@ -43658,11 +43680,13 @@ for y=0 to 2000 step 100
    c=y/100
    ai debug show obstacle bounds c,k
 next y
+Rem debug view cones
+ai debug show view arcs 550
 return
 
 _darkai_blood:
 
-if entityelement(e).darkai.ehit>0
+if entityelement(e).darkai.ehit>1
    tbullethitflesh=entityelement(e).darkai.ehit
    bulletrayhit=1
    distx#=entityelement(e).darkai.ambushx#-entityelement(e).x
@@ -43685,7 +43709,8 @@ if entityelement(e).darkai.ehit>0
       tiz#=tiz#*(bulletrayhitdist#-10.0)
       rem create a splat decal
       decalscalemodx=0 : rem FPSCV101 - fix
-      decalorient=0 : decalx=x1#+tix# : decaly=y1#+tiy# : decalz=z1#+tiz#
+      Rem Hockeykid - 270210 - added rnd(8) to y height so blood splay is not always at the same y
+      decalorient=0 : decalx=x1#+tix# : decaly=y1#+tiy#+rnd(8) : decalz=z1#+tiz#
       originatore=-1 : gosub _decalelement_create
    endif
    if tbullethitflesh>0
@@ -43707,3 +43732,17 @@ if entityelement(e).darkai.ehit>0
 endif
 
 return
+
+_darkai_stop:
+   ai entity go to position entityelement(e).obj,entityelement(e).x,entityelement(e).z
+return
+_darkai_stopfollow:
+if ai get entity team(entityelement(e).obj)=1
+   ai entity separate entityelement(e).obj
+   if entityelement(e).darkai.control=1 then ai set entity control entityelement(e).obj,0 : entityelement(e).darkai.control=0
+   ai entity go to position entityelement(e).obj,entityelement(e).x,entityelement(e).z
+   entityelement(e).darkai.follow=0
+endif
+
+return
+

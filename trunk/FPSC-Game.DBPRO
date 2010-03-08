@@ -5,7 +5,7 @@ project name=FPSC-Game
 
 
 ; **** source file information ****
-main=FPSC-Game.dba
+main=FPSC-Game.DBA
 ; The compiler only needs to read the final source from this entry - the editor
 ; handles include files, concatenation, etc.
 final source=_Temp.dbsource
