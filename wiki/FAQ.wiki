@@ -4,13 +4,21 @@
 =FPS Creator X9 Frequently Asked Questions=
 
 Compatibility and Bug Reports - things that are compatible and how to report bugs
+
 Serial Code - problems with entering or getting serial codes
+
 Multiplayer - specific issues about getting multiplayer arena games to work
+
 Performance - issues about the speed of the game
+
 Visuals - problems with how it looks and graphical corruption
+
 Media - all things related to objects, entities, segments, etc.
+
 Debugging - how to find out why the game does not do what you expected
+
 Usage - general questions about how to do certain game specific things within your level
+
 
 =Compatibility and Bug Reports=
 
