@@ -30,22 +30,29 @@ rem Special build flags for 'genre' switch
 global fpgchud$ : fpgchud$=""
 global fpgchuds$ : fpgchuds$=""
 global fpgcgenre : fpgcgenre=0
-if path exist("files\gamecore\equipment")=1
- rem FPGC - Equipment Only Genre (no weapons)
- fpgchud$="equipment"
- fpgchuds$="equipment"
- fpgcgenre=0
+if runengineinframe=1
+ rem FPSC - 260210 - engine in frame to run FPSC in an ActiveX frame
+ fpgchud$="gun"
+ fpgchuds$="guns"
+ fpgcgenre=1
 else
- rem ONLY if not educational equipment based (not FPGC)
- if path exist("files\gamecore\guns")=1
-  rem FPSC - Shooter Genre
-  fpgchud$="gun"
-  fpgchuds$="guns"
-  fpgcgenre=1
+ if path exist("files\gamecore\equipment")=1
+  rem FPGC - Equipment Only Genre (no weapons)
+  fpgchud$="equipment"
+  fpgchuds$="equipment"
+  fpgcgenre=0
+ else
+  rem ONLY if not educational equipment based (not FPGC)
+  if path exist("files\gamecore\guns")=1
+   rem FPSC - Shooter Genre
+   fpgchud$="gun"
+   fpgchuds$="guns"
+   fpgcgenre=1
+  endif
  endif
-endif
-if fpgchud$=""
- exit prompt "Genre Unknown", "Init Error" : end
+ if fpgchud$=""
+  exit prompt "Genre Unknown", "Init Error" : end
+ endif
 endif
 
 Rem Hockeykid - 250210 - Dark AI start dark ai and set properties
@@ -2554,41 +2561,51 @@ rem Right away set LEGACY CONVERT MODE (LOAD OBJECT should not load extra UV lay
 set legacy convert mode 1
 
 rem And finally switch the resolution if different from default
-if trueappname$="FPSC-MapEditor"
- rem set resolution for map editor (backbuffer size of renderable area ratio to desktop)
- bkwidth=desktop width()-(800-652) : bkheight=desktop height()-(600-480)
- set display mode desktop width(),desktop height(),screen depth(),0,0,0,bkwidth,bkheight
-else
- `
- rem Set FULLSCREEN MODE (or keep windowed mode) (game only)
- if gtestgamemodefromeditor=0 and gcompilestandaloneexe=0
-  if gfullscreen=1 then set window off
+if runengineinframe=1
+ rem FPGC - 260210 - display size from SETUP.INI, else 640x480
+ vsyncflag=1 : thevrmodeflag=0 : if gvrmode<>0 then thevrmodeflag=1
+ if check display mode(gdisplaywidth,gdisplayheight,gdisplaydepth)=1
+  set display mode gdisplaywidth,gdisplayheight,gdisplaydepth,vsyncflag,0,0,0,0,thevrmodeflag
+ else
+  set display mode 640,480,gdisplaydepth,vsyncflag
  endif
- `
- rem set resolution for game
- if tnopathprotomode=0 or gvrmode<>0
-  rem FPGC - 121009 - changed EXE from 1024x768 to 640x480 (for NetBook + odd PCs)
-  rem and also detect -1,-1 in which case use desktop width and height
-  if gdisplaywidth=-1 or gdisplayheight=-1 then gdisplaywidth=desktop width() : gdisplayheight=desktop height()
-  `if gdisplaywidth<>1024 or gdisplayheight<>768 or gdisplaydepth<>32 or gvrmode<>0
-  if gdisplaywidth<>640 or gdisplayheight<>480 or gdisplaydepth<>32 or gvrmode<>0
-   rem V115 - activate VSYNC mode for U74
-   vsyncflag=1
-   thevrmodeflag=0 : if gvrmode<>0 then thevrmodeflag=1
-   if check display mode(gdisplaywidth,gdisplayheight,gdisplaydepth)=1
-    set display mode gdisplaywidth,gdisplayheight,gdisplaydepth,vsyncflag,0,0,0,0,thevrmodeflag
-   else
-    set display mode desktop width(),desktop height(),gdisplaydepth,vsyncflag
+else
+ if trueappname$="FPSC-MapEditor"
+  rem set resolution for map editor (backbuffer size of renderable area ratio to desktop)
+  bkwidth=desktop width()-(800-652) : bkheight=desktop height()-(600-480)
+  set display mode desktop width(),desktop height(),screen depth(),0,0,0,bkwidth,bkheight
+ else
+  `
+  rem Set FULLSCREEN MODE (or keep windowed mode) (game only)
+  if gtestgamemodefromeditor=0 and gcompilestandaloneexe=0
+   if gfullscreen=1 then set window off
+  endif
+  `
+  rem set resolution for game
+  if tnopathprotomode=0 or gvrmode<>0
+   rem FPGC - 121009 - changed EXE from 1024x768 to 640x480 (for NetBook + odd PCs)
+   rem and also detect -1,-1 in which case use desktop width and height
+   if gdisplaywidth=-1 or gdisplayheight=-1 then gdisplaywidth=desktop width() : gdisplayheight=desktop height()
+   `if gdisplaywidth<>1024 or gdisplayheight<>768 or gdisplaydepth<>32 or gvrmode<>0
+   if gdisplaywidth<>640 or gdisplayheight<>480 or gdisplaydepth<>32 or gvrmode<>0
+    rem V115 - activate VSYNC mode for U74
+    vsyncflag=1
+    thevrmodeflag=0 : if gvrmode<>0 then thevrmodeflag=1
+    if check display mode(gdisplaywidth,gdisplayheight,gdisplaydepth)=1
+     set display mode gdisplaywidth,gdisplayheight,gdisplaydepth,vsyncflag,0,0,0,0,thevrmodeflag
+    else
+     set display mode desktop width(),desktop height(),gdisplaydepth,vsyncflag
+    endif
    endif
   endif
+  `
+  rem FPGC - 131009 - option use use correct aspect ratio?
+  if gaspectratio=1
+   aspect#=desktop width() : aspect#=aspect#/desktop height()
+   set camera aspect aspect#
+  endif
+  `
  endif
- `
- rem FPGC - 131009 - option use use correct aspect ratio?
- if gaspectratio=1
-  aspect#=desktop width() : aspect#=aspect#/desktop height()
-  set camera aspect aspect#
- endif
- `
 endif
 global gratiox# : gratiox#=gdisplaywidth : gratiox#=gratiox#/1024.0
 global gratioy# : gratioy#=gdisplayheight : gratioy#=gratioy#/768.0
@@ -3423,18 +3440,19 @@ gametransitionscreen=1 : gametransitionscreencount=600/2
 return
 
 _main_game_showwindownow:
-
- set window layout 0,0,0
- maximize window
- show window
- if grealgameviewstate=1
-  rem run direct from EXE
- else
-  rem test game to front
-  rem FPGC - 010909 - TEST GAME needs this to keep window to the very front always (though not when debuggin)
-  window to front "__topmost__"+"FPSC Game"
+ if runengineinframe=0
+  set window layout 0,0,0
+  maximize window
+  show window
+  if grealgameviewstate=1
+   rem run direct from EXE
+  else
+   rem test game to front
+   rem FPGC - 010909 - TEST GAME needs this to keep window to the very front always (though not when debuggin)
+   window to front "__topmost__"+"FPSC Game"
+   `window to front "FPSC Game"
+  endif
  endif
-
 return
 
 _main_game_corecontrol:
