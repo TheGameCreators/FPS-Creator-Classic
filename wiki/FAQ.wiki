@@ -15,33 +15,43 @@ Usage - general questions about how to do certain game specific things within yo
 =Compatibility and Bug Reports=
 
 QC01> I tried to run FPSC on Windows Vista, but I am getting errors?
+
 AC01> FPSC is not designed for, and has not been officially tested to run on Vista. The software has been designed for Windows XP.
 
 Q> I know I have latest drivers and I have other directx 9 3d games that work fine?
+
 A> DirectX is constantly being updated, and other programs may interfere with your operating system configuration. It is always best to visit www.microsoft.com/directx and download the latest version of DirectX that they offer, even if you have current DirectX games that work. Never assume the version of DirectX you have installed is sufficient for the later versions of FPS Creator.
 
 Q> I will try to get some screenshots but I don't know a program that takes screenshots?
+
 A> The easiest way to take a snapshot of your crashed screen is to press the PRINT SCREEN button located in the top right of your keyboard. Once you have done this, open the PAINT program which can be found in the START > All Programs > Accessories which is a small paint package. Now go to the EDIT menu and select the PASTE item and it will paste the contents of the clipboard that holds your screen into the workspace of the paint package. Now select FILE and SAVE AS. Select SAVE AS TYPE to JPG and give your shot a unique name that describes what you see as wrong in the screen. You can then send this lightweight JPG file along with your bug report or issue.
 
 Q> When I try to uninstall FPS Creator, it says it has complete but it does not uninstall it from the registry?
+
 A> If your system is not letting you uninstall FPS Creator, you may need to remove the registry manually.  To do this, go to the START menu and select RUN in XP, then type "REGEDIT" which opens the registry editor. Navigate to "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\". Now look through the initial GUID items (long hexadecimal values) and open each one to find any entries that refer to FPS Creator installed components and delete the entire GUID entry. Do this at your own risk as you are permanently editing your registry. Once all traces of FPS Creator have been removed from the uninstall section of the registry, you should be able to remove the files manually from your computer and run the FPS Creator installer a fresh.
 
 Q> Before I installed the update, FPSC ran fine. After I added the update my laptop freezes when I try to test a level with 2 prefabs, one player and one weapon. It gets to the point of creating "static geometry" and then locks up the machine. I have to hard boot in order to get it unfroze, why?
+
 A> One proven solution is to update your video drivers, set your monitor to LCD instead of AGP and it may work.
 
 Q> I ran my test game or try to build my final game and it says that it has "encountered a problem and that it needs to close" and then the map editor needs to close. What is wrong?
+
 A> For cases like this, you need to report your bug in the FPS Creator Bug Forum. Before you do however, you can go through some standard checks to ensure full compatibility with the software. Installed the latest update to FPS Creator and make the update right after a fresh install of FPS Creator from your CD or installation file. Ensure you make the appropriate backups before you reinstall anything! Check if you have installed the latest drivers available for your graphics card, and that you have installed the latest DirectX from the Microsoft website. When you make a screenshot of the error, take a shot of the whole desktop at the exactly moment you experienced the first error message and save as a JPG. Describe the steps you took immediately after applying the update which leads to the crash. Confirm that you have all background tasks disabled or dormant so they do not interfer with FPSC and that you are running in full administrator mode not impeded by the use of virtual emulation of the operating system. Also confirm that your system can run other DirectX 9 3D games and that there are no problems running those. Following the above will provide a thorough analysis of the software against your system and allow other forum users and the technical support staff every chance to find a solution for you. Typically, during the above process, it is common to discover the reason for the failure first time without having to report the issue or consult technical support.
 
 Q> Can we take an X9 level and make the same game with it under X10?
+
 A> Not really. There are differences between the X9 and X10 versions making your game look different, plus X10 has some limits with X9 content. The content would be limited to what is compatible with X10, as some X9 levels and content will not migrate over perfectly. You could have two executables one for XP and one for Vista, but they would be visibly different and you would have to modify the X10 level to account for the change in content compatibility.
 
 Q> Also for Windows 7 would we be able to use the VISTA version for DirectX?
+
 A> We have no plans to support Windows 7 and all FPS Creator products for the time being will not officially support this operating system.
 
 Q> I want to upgrade FPS Creator with the BUILD GAME UPGRADE, how do I do that?
+
 A> Download the latest update here:http://www.fpscreator.com/downloads.html. Once installed, click the BUILD GAME item which will take you to the store where you can register an account, buy some Game Creator Store points and purchase directly within the store. It will download and upgrade your FPS Creator automatically.
 
 Q> I'm keep getting this error (canot create memblock) for over a week! What can i do about it?
+
 A> The most likely reason is that you have introduced something new to your installation of FPS Creator or your operating system in the last week which has subsequently caused the software to malfunction. The quick solution is to trace back your activity to find the component that is causing this new error in FPS Creator. The long-term solution is to back-up your files and required work and then perform a complete re-installation of FPS Creator from the original CD, then apply the latest patch from the FPSC website. Be especially aware of custom media from third parties which have not been approved or tested by TGC, as these media files should be used at your own risk and can cause a number of errors, including the type of error mentioned above.
 
 =Serial Code=
