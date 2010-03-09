@@ -63,7 +63,6 @@ ai set avoid mode 1
 Rem Hockeykid - 250210 - Dark AI global Variables
 Global darkaiuni = 200000
 
-
 rem NEXTGENBRANCH : DarkVoices
 nextgenbranch=1
 
@@ -3167,21 +3166,30 @@ _main_game_core:
  inc gameperftotalcount, perftimer()-gameperftotalcountTOP
  gameperftotalcountTOP=perftimer()
  `
+ Rem Hockeykid - 250210 - set players position to the dark ai
+ rem lee - 090310 - adjusted player AI position to include Y coordinate
+ tcamx#=object position x(physicsplayerborble)
+ tcamy#=object position y(physicsplayerborble)
+ tcamz#=object position z(physicsplayerborble)
+ if player(1).health>0
+  rem player in world - enemies bate!
+  AI Set Player Position tcamx#,tcamy#,tcamz#
+ else
+  rem player is heaven - out of reach of enemies
+  AI Set Player Position 0,150000,0
+ endif
+ `
+ Rem Hockeykid - 250210 - Dark AI Tell AI system if player crouching
+ if crouchmode<>0
+  ai set player ducking 1
+ else
+  ai set player ducking 0
+ endif
+ `
+ Rem Hockeykid - 250210 - Update AI
+ ai update
+ `
  rem Update screen
-
-Rem Hockeykid - 250210 - set players position to the dark ai
-ai set player position object position x(physicsplayerborble),object position z(physicsplayerborble)
-Rem Hockeykid - 250210 - Dark AI Tell AI system if player crouching
-if crouchmode<>0
-   ai set player ducking 1
-else
-   ai set player ducking 0
-endif
-
-
-Rem Hockeykid - 250210 - Update AI
-ai update
-
  if gvrmode<>0
   rem VR920
   set camera rotation xyz
@@ -14940,7 +14948,12 @@ tmouseclick=mouseclick()
 
 rem U71 - Contoller
 if gxbox=1 : rem define in a config later
- if joystick z()<-500 then tmouseclick=1
+ if gxboxcontrollertype=0
+  if joystick z()<-500 then tmouseclick=1
+ endif
+ if gxboxcontrollertype=1
+  if joystick fire x(5)=1 or joystick fire x(7)=1 then tmouseclick=1
+ endif
  if joystick fire x(9)=1 then tmouseclick=2
 endif
 
@@ -25254,6 +25267,10 @@ _ai_hud_controller:
    tjtx2#=(joystick twist x()-32767.0)/(327.67*0.5)
    tjty2#=(joystick twist y()-32767.0)/327.67
   endif
+  if gxboxcontrollertype=1
+   tjtx2#=(joystick z()/10.0)
+   tjty2#=(joystick twist z()-32767.0)/327.67
+  endif
   tjtx#=tjtx1# : if abs(tjtx2#)>abs(tjtx1#) then tjtx#=tjtx2#
   tjty#=tjty1# : if abs(tjty2#)>abs(tjty1#) then tjty#=tjty2#
   if ttcontrolofmousepos=1
@@ -25263,7 +25280,12 @@ _ai_hud_controller:
     position mouse tjtx#,tjty#+1
    endif
   endif
-  if joystick z()<-500 then ttmouseclick=1
+  if gxboxcontrollertype=0
+   if joystick z()<-500 then ttmouseclick=1
+  endif
+  if gxboxcontrollertype=1
+   if joystick fire x(5)=1 or joystick fire x(7)=1 then ttmouseclick=1
+  endif
   if joystick fire a()=1 then ttmouseclick=1
   if joystick fire b()=1 then ttmouseclick=1
   if joystick fire c()=1 then ttmouseclick=1
@@ -27120,12 +27142,22 @@ if gxbox=1 : rem define in a config later
  if joystick y()>500 then plrkeyS=1
  if joystick x()<-500 then plrkeyA=1
  if joystick x()>500 then plrkeyD=1
- if joystick fire x(8)=1 then plrkeyC=1
- if joystick fire x(9)=1 then plrkeyZ=1
  if joystick fire c()=1 then plrkeyR=1
  if joystick fire a()=1 then plrkeySPACE=1
  if joystick fire d()=1  then plrkeyRETURN=1
- if joystick z()>500 then plrkeySHIFT=1
+ if gxboxcontrollertype=0
+  rem XBOX360 Controller
+  if joystick fire x(8)=1 then plrkeyC=1
+  if joystick fire x(9)=1 then plrkeyZ=1
+  if joystick z()>500 then plrkeySHIFT=1
+ endif
+ if gxboxcontrollertype=1
+  rem Dual Action
+  if joystick fire x(10)=1 then plrkeyC=1
+  if joystick fire x(11)=1 then plrkeyZ=1
+  if joystick fire x(4)=1 then plrkeySHIFT=1
+  if joystick fire x(6)=1 then plrkeySHIFT=1
+ endif
  `
 endif
 
@@ -27628,6 +27660,10 @@ if showgamemenu=0
    jtx#=(joystick twist x()-32767.0)/(327.67*0.5)
    jty#=(joystick twist y()-32767.0)/327.67
   endif
+  if gxboxcontrollertype=1
+   jtx#=(joystick z()/10.0)
+   jty#=(joystick twist z()-32767.0)/327.67
+  endif
   if gxboxinvert=1 then jty#=jty#*-1.0
   if abs(jtx#)>50.0 then cammovex#=jtx#/10.0
   if abs(jty#)>50.0 then cammovey#=jty#/10.0
@@ -28087,7 +28123,12 @@ if camerapicked>0
  `
  rem U71 - Contoller
  if gxbox=1 : rem define in a config later
-  if joystick z()>500 then camerapickeddrop=1 : camerapickedthrown=1
+  if gxboxcontrollertype=0
+   if joystick z()>500 then camerapickeddrop=1 : camerapickedthrown=1
+  endif
+  if gxboxcontrollertype=1
+   if joystick fire x(4)=1 or joystick fire x(6)=1 then camerapickeddrop=1 : camerapickedthrown=1
+  endif
  endif
  `
  rem drop
@@ -43121,8 +43162,14 @@ function control_escapekey()
  returnvalue=escapekey()
  if gxbox=1
   rem FPGC - 220210 - intercept with controller input
-  if joystick fire x(6)=1 then returnvalue=1
-  if joystick fire x(7)=1 then returnvalue=1
+  if gxboxcontrollertype=0
+   if joystick fire x(6)=1 then returnvalue=1
+   if joystick fire x(7)=1 then returnvalue=1
+  endif
+  if gxboxcontrollertype=1
+   if joystick fire x(8)=1 then returnvalue=1
+   if joystick fire x(9)=1 then returnvalue=1
+  endif
  endif
 endfunction returnvalue
 
@@ -43130,7 +43177,12 @@ function control_mouseclick()
  returnvalue=mouseclick()
  if gxbox=1
   rem FPGC - 220210 - intercept with controller input
-  if joystick z()<-500 then returnvalue=1
+  if gxboxcontrollertype=0
+   if joystick z()<-500 then returnvalue=1
+  endif
+  if gxboxcontrollertype=1
+   if joystick fire x(5)=1 or joystick fire x(7)=1 then returnvalue=1
+  endif
   if joystick fire a()=1 then returnvalue=1
   if joystick fire b()=1 then returnvalue=1
   if joystick fire c()=1 then returnvalue=1

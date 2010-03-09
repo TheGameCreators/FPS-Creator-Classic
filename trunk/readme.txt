@@ -1,7 +1,7 @@
 FAQ and TESTIMONIALS
 ====================
 
-This section has now been moved to an internal FAQ system so our main support mail system and administrators can access the information. We will eventually make the FAQ available in a more public format.
+You can find the latest FAQ at http://code.google.com/p/fpscreatorengine/wiki/FAQ
 
 History
 =======
@@ -37,7 +37,6 @@ V1.1.7
  * Added new HEADLIMBS field in FPE to control the DarkVOICES feature (specifies which limbs are the head)
  * Added new 1.6GB MEMORY cap on all build processes, to ensure excessive memory usage does not crash PC
  * Added new flag 'systemmemorycapoff=0' which controls whether above system mem cap if switched off
- 
  * Introduced latest ODE Phyics DLL (replacing old ODE module from 2005)
  * Fixed world step issue created between old 2005 ODE and new 2010 ODE modules (timer based physics)
  * Fixed character rotation issue caused by old ODE/new ODE, now all characters orient forwards
@@ -47,6 +46,8 @@ V1.1.7
  * When building final game, all WAV files are assumed to come with a .LIPSYNC (so they get copied over)
  * Fixed issues relating to rag doll jitters, and limb handling good for non-specific models (legacy)
  * Now prevents weapons such as shotguns (blast) from knocking over ragdoll based characters until dead
+ * Added code to allow Logitech Dual Action Controller to work by specifying XBOX=3 and XBOX=4 (inverted)
+ * Modified the DarkAI player position command to include players Y coordinate (new version of DarkAI)
 
 FPGC WORK AND NOTES
 -------------------
