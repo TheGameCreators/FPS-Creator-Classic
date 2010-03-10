@@ -9591,12 +9591,16 @@ if aiindex>0
     endcase
     case AICONDPLRFACING:
      tmp=aiconditionseq(seq).valuea
-     if tmp=0 then tmp=22
+     if tmp=0 then tmp=35
      tmpx#=entityelement(e).x-mex#
      tmpz#=entityelement(e).z-mez#
-     tentitya#=wrapvalue(atanfull(tmpx#,tmpz#))-camera angle y()
-     if tentitya#<0.0 then tentitya#=tentitya#+360.0
-     if tentitya#>=360.0 then tentitya#=tentitya#-360.0
+     rem FPGC - 100310 - adjust actual viewing angle with VR tracker
+     tmpcamy#=camera angle y()
+     if gvrmode<>0 then tmpcamy#=tmpcamy#-vrmodetrackery#
+     tentitya#=wrapvalue(atanfull(tmpx#,tmpz#))-tmpcamy#
+     tentitya#=wrapvalue(tentitya#)
+     `if tentitya#<0.0 then tentitya#=tentitya#+360.0
+     `if tentitya#>=360.0 then tentitya#=tentitya#-360.0
      if (tentitya#>0-tmp and tentitya#<0+tmp) or (tentitya#>360-tmp and tentitya#<360+tmp)
       rem player facing entity
      else
@@ -27272,7 +27276,10 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
  rem Movement (forward,backward,strafe)
  camerareachatrun#=0.0
  plrbasespeed#=basespeed#
- if jumpaction=0 then moveroty#=camera angle y() else moveroty#=jumpangle#
+ rem FPGC - 100310 - adjust actual viewing angle with VR tracker
+ tmpcamy#=camera angle y()
+ if gvrmode<>0 then tmpcamy#=tmpcamy#-vrmodetrackery#
+ if jumpaction=0 then moveroty#=tmpcamy# else moveroty#=jumpangle#
  if onladder=0
   if (plrkeyW)=0 and (plrkeyA)=0 and (plrkeyD)=0 and (plrkeyS)=0
    cameraspeed=0
@@ -27667,7 +27674,8 @@ if showgamemenu=0
   endif
   if gxboxinvert=1 then jty#=jty#*-1.0
   if abs(jtx#)>50.0 then cammovex#=jtx#/10.0
-  if abs(jty#)>50.0 then cammovey#=jty#/10.0
+  `if abs(jty#)>50.0 then cammovey#=jty#/10.0 FPGC - 100310 - speed it up a bit
+  if abs(jty#)>50.0 then cammovey#=jty#/7.0
  endif
  `
  if mefrozen>0 and mefrozentype=2 then cammovex#=0 : cammovey#=0
