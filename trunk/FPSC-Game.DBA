@@ -3173,10 +3173,11 @@ _main_game_core:
  tcamz#=object position z(physicsplayerborble)
  if player(1).health>0
   rem player in world - enemies bate!
-  AI Set Player Position tcamx#,tcamy#,tcamz#
+  `AI Set Player Position tcamx#,tcamy#,tcamz# (lee-100310-later DarkAI command)
+  AI Set Player Position tcamx#,tcamz#
  else
   rem player is heaven - out of reach of enemies
-  AI Set Player Position 0,150000,0
+  `AI Set Player Position 0,150000,0 (lee-100310-later DarkAI command)
  endif
  `
  Rem Hockeykid - 250210 - Dark AI Tell AI system if player crouching
