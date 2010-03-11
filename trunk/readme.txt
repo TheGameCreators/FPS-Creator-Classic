@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
 
+ * Added AIACTION condition (0 - if idle 1 - if attacking 2 - if in cover 3 - if retreating)
  * Added AIFOLLOWPLR if set to 1 this will allow AI ally entities to follow the player if set to 0 the AI ally will stop following
  * Added AIMOVERANDOM to allow AI entities to move about randomly (must be looped or entity will stop moving after a while)
  * Fixed bug causing machine gun's sounds to cut off

@@ -1290,6 +1290,8 @@ Rem Hockeykid - 250210 - Dark AI conditions
 #constant AICONDDARKAICANSHOOT 358
 #constant AICONDDARKAISTRAFELA 359
 #constant AICONDAIDUCKING 360
+#constant AICONDAIHEARDSOUND 361
+#constant AICONDAIACTION 362
 Rem End Dark AI
 #constant AICONDHEADANGLEGREATER 401
 #constant AICONDHEADANGLELESS 402
@@ -1459,6 +1461,8 @@ Rem Hockeykid - 250210 - Dark AI constants
 #constant AIACTAIMOTIVE 1069
 #constant AIACTAIACTION 1070
 #constant AIACTAIFOLLOWPLR 1071
+#constant AIACTAIMOVETOSOUND 1072
+#constant AIACTAIMOVEAWAYFROMSOUND 1073
 Rem end Dark AI constants
 #constant AIACTHUDRESET 1100
 #constant AIACTHUDX 1101
@@ -3188,7 +3192,7 @@ _main_game_core:
  endif
  `
  Rem Hockeykid - 250210 - Update AI
- ai update
+ AI Update
  `
  rem Update screen
  if gvrmode<>0
@@ -6973,6 +6977,11 @@ if entityelement(e).fireweapon=1
       tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y : tdamagez#=entityelement(e).z
       stte=e : e=entityelement(e).actualtarget-1 : tte=entityelement(e).actualtarget-1
 
+      entityelement(e).darkai.ambushed=1
+      entityelement(e).darkai.ambushx#=tdamagex#
+      entityelement(e).darkai.ambushz#=tdamagez#
+      entityelement(e).darkai.ehit=e
+
       gosub _entity_deducthealth : e=stte
       tentid=entityelement(e).bankindex
       entid=entityelement(e).bankindex
@@ -9153,6 +9162,8 @@ conword$(AICONDDARKAIMOVINGB)="movingbackwards"
 conword$(AICONDDARKAIIDLE)="idle"
 conword$(AICONDDARKAICANSHOOT)="aicanshoot"
 conword$(AICONDAIDUCKING)="ducking"
+conword$(AICONDAIHEARDSOUND)="aiheardsound"
+conword$(AICONDAIACTION)="aiaction"
 rem Dark AI end
 
 rem Set all action keywords
@@ -9353,6 +9364,8 @@ actword$(AIACTADDZOMBIE)="addzombie"
 actword$(AIACTAIMOTIVE)="aimotive"
 actword$(AIACTAIACTION)="aiaction"
 actword$(AIACTAIFOLLOWPLR)="aifollowplr"
+actword$(AIACTAIMOVETOSOUND)="aimovetosound"
+actword$(AIACTAIMOVEAWAYFROMSOUND)="aimoveawayfromsound"
 
 return
 
@@ -10297,6 +10310,20 @@ if aiindex>0
      if ai entity exist(entityelement(e).obj)
         if ai get entity is ducking(entityelement(e).obj)=1 and conda=0 then airesult=0
       if ai get entity is ducking(entityelement(e).obj)=0 and conda=1 then airesult=0
+     endif
+    endcase
+    Rem HockeyKid - 100310 - Added heard sound condition
+    case AICONDAIHEARDSOUND:
+     conda=aiconditionseq(seq).valuea
+     if ai entity exist(entityelement(e).obj)
+        if ai get entity heard sound(entityelement(e).obj)=1 and conda=0 then airesult=0
+        if ai get entity heard sound(entityelement(e).obj)=0 and conda=1 then airesult=0
+     endif
+    endcase
+    case AICONDAIACTION:
+     conda=aiconditionseq(seq).valuea
+     if ai entity exist(entityelement(e).obj)
+      if entityelement(e).darkai.state<>conda then airesult=0
      endif
     endcase
     `
@@ -12323,6 +12350,16 @@ if aiindex>0
       if ai entity exist(entityelement(e).obj)
          if aiactionseq(seq).value=1 then entityelement(e).darkai.actionmode=1
          if aiactionseq(seq).value=0 then entityelement(e).darkai.actionmode=4
+      endif
+     endcase
+     case AIACTAIMOVETOSOUND:
+      if ai entity exist(entityelement(e).obj)
+         entityelement(e).darkai.actionmode=5
+      endif
+     endcase
+     case AIACTAIMOVEAWAYFROMSOUND:
+      if ai entity exist(entityelement(e).obj)
+         entityelement(e).darkai.actionmode=6
       endif
      endcase
 Rem End Dark AI
@@ -43491,6 +43528,13 @@ if ttargetvisible=1 and entityelement(e).darkai.state=STATE_IDLE or ttargets>0 a
    endif
 endif
 Rem current unused AI action is 8
+
+Rem Hockeykid - 100310 - If not in any of these action modes and entity is set to automatic mode then turn off
+if entityelement(e).darkai.control=1
+   if entityelement(e).darkai.actionmode<>0 and entityelement(e).darkai.actionmode<>1 and entityelement(e).darkai.actionmode<>4
+      entityelement(e).darkai.control=0 : ai set entity control obj,0
+   endif
+endif
 
 rem Idle
 if tstate=STATE_IDLE
