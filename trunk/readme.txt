@@ -9,6 +9,18 @@ History
 V1.1.7
 ------
 
+ * Changed all data structure members from integer to float which fell under timer based calculations
+ * Changed character weapon fire from counter to timer based logic
+ * Changed flak movement and detonation from counter to timer based logic
+ * Changed speed of gun animations to use timer based logic
+ * Changed decal animation from counter to timer based logic
+ * HUD Fader code now using timer based logic
+ * Gun/Smoke/Flash/Brass counters now using timer based logic
+ * Hover and Spin behaviour of collectable entities now using timer based logic
+ * New improved physics system (timer based) allows sync rate zero without increasing physics speeds
+ * Permanently sey SYNC RATE to ZERO for machine independent speeds (vsync ensures smooth 60-100fps)
+ * Added code to allow Logitech Dual Action Controller to work by specifying XBOX=3 and XBOX=4 (inverted)
+ * Modified the DarkAI player position command to include players Y coordinate (new version of DarkAI)
  * Added AIACTION condition (0 - if idle 1 - if attacking 2 - if in cover 3 - if retreating)
  * Added AIFOLLOWPLR if set to 1 this will allow AI ally entities to follow the player if set to 0 the AI ally will stop following
  * Added AIMOVERANDOM to allow AI entities to move about randomly (must be looped or entity will stop moving after a while)
@@ -49,11 +61,9 @@ V1.1.7
  * When building final game, all WAV files are assumed to come with a .LIPSYNC (so they get copied over)
  * Fixed issues relating to rag doll jitters, and limb handling good for non-specific models (legacy)
  * Now prevents weapons such as shotguns (blast) from knocking over ragdoll based characters until dead
- * Added code to allow Logitech Dual Action Controller to work by specifying XBOX=3 and XBOX=4 (inverted)
- * Modified the DarkAI player position command to include players Y coordinate (new version of DarkAI)
 
-FPGC WORK AND NOTES
--------------------
+FPGC VARIANT SPECIFIC
+---------------------
 
  * Mouse Sensitivity flag in SETUP.INI (centralise SETUP.INI code)
  * Restore size of debug text if RAWTEXT changes it
