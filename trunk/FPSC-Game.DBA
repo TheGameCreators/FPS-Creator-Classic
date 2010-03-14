@@ -1299,6 +1299,8 @@ Rem Hockeykid - 250210 - Dark AI conditions
 #constant AICONDAIDUCKING 360
 #constant AICONDAIHEARDSOUND 361
 #constant AICONDAIACTION 362
+#constant AICONDAIISAI 363
+#constant AICONDAITEAM 364
 Rem End Dark AI
 #constant AICONDHEADANGLEGREATER 401
 #constant AICONDHEADANGLELESS 402
@@ -9172,6 +9174,8 @@ conword$(AICONDDARKAICANSHOOT)="aicanshoot"
 conword$(AICONDAIDUCKING)="ducking"
 conword$(AICONDAIHEARDSOUND)="aiheardsound"
 conword$(AICONDAIACTION)="aiaction"
+conword$(AICONDAIISAI)="isdarkai"
+conword$(AICONDAITEAM)="aiteam"
 rem Dark AI end
 
 rem Set all action keywords
@@ -10319,6 +10323,17 @@ if aiindex>0
         if ai get entity is ducking(entityelement(e).obj)=1 and conda=0 then airesult=0
       if ai get entity is ducking(entityelement(e).obj)=0 and conda=1 then airesult=0
      endif
+    endcase
+    case AICONDAIISAI:
+     conda=aiconditionseq(seq).valuea
+     if ai entity exist(entityelement(e).obj) and conda=0 then airesult=0
+     if ai entity exist(entityelement(e).obj)=0 and conda=1 then airesult=0
+    endcase
+    case AICONDAITEAM:
+     conda=aiconditionseq(seq).valuea
+     if ai get entity team(entityelement(e).obj)=0 and conda<>0 then airesult=0
+     if ai get entity team(entityelement(e).obj)=1 and conda<>1 then airesult=0
+     if ai get entity team(entityelement(e).obj)=2 and conda<>2 then airesult=0
     endcase
     Rem HockeyKid - 100310 - Added heard sound condition
     case AICONDAIHEARDSOUND:

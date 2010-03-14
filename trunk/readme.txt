@@ -9,6 +9,8 @@ History
 V1.1.7
 ------
 
+ * Added new FPI condition AITEAM=X 0=neutral(currently unsupported), 1=ally, 2=enemy
+ * Added new FPI condition ISDARKAI=X which is true if the entity has been loaded into the Dark AI system 
  * Changed all data structure members from integer to float which fell under timer based calculations
  * Changed character weapon fire from counter to timer based logic
  * Changed flak movement and detonation from counter to timer based logic
@@ -21,11 +23,11 @@ V1.1.7
  * Permanently sey SYNC RATE to ZERO for machine independent speeds (vsync ensures smooth 60-100fps)
  * Added code to allow Logitech Dual Action Controller to work by specifying XBOX=3 and XBOX=4 (inverted)
  * Modified the DarkAI player position command to include players Y coordinate (new version of DarkAI)
- * Added AIACTION condition (0 - if idle 1 - if attacking 2 - if in cover 3 - if retreating)
- * Added AIFOLLOWPLR if set to 1 this will allow AI ally entities to follow the player if set to 0 the AI ally will stop following
+ * Added AIACTION=X condition (0 - if idle 1 - if attacking 2 - if in cover 3 - if retreating)
+ * Added AIFOLLOWPLR=X if set to 1 this will allow AI ally entities to follow the player if set to 0 the AI ally will stop following
  * Added AIMOVERANDOM to allow AI entities to move about randomly (must be looped or entity will stop moving after a while)
  * Fixed bug causing machine gun's sounds to cut off
- * Added ETIMERSTART AND ETIMERGREATER to allow for personal entity timers
+ * Added ETIMERSTART AND ETIMERGREATER=X to allow for personal entity timers
  * Added AICONDSOUNDFINISHED to allow sequence of WAV sounds to be played inside FPI scripts
  * Added new TALK FPI command (identical to SOUND command except this one triggers DarkVOICES for compatible characters
  * Extended ENTITYELEMENT data structure with new 'soundistalking' for DarkVOICES (FPI=TALK) support
