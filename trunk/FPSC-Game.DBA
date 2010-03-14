@@ -12494,6 +12494,9 @@ if desc$<>""
      if tfile$<>""
       aifile$=tfile$ : gosub _ai_findlibindex
       aiactionseq(seq).value=libindex
+      Rem Hockeykid - 140310 - Load any scripts that are needed for runfpi
+      aidir$="scriptbank\"
+      ai$=tfile$ : gosub _ai_locateaiindex : gosub _ai_load
      endif
     endcase
     case AIACTSOUND:

@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
 
+ * Fixed bug from V1.16 that broke runfpi because of the runfpi scripts not being loaded
  * Added new FPI condition AITEAM=X 0=neutral(currently unsupported), 1=ally, 2=enemy
  * Added new FPI condition ISDARKAI=X which is true if the entity has been loaded into the Dark AI system 
  * Changed all data structure members from integer to float which fell under timer based calculations
