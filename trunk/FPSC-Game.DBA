@@ -91,6 +91,7 @@ dim loadreport$(100000)
 Rem Hockeykid - 250210 - Entity DarkAI
 type darkaitype
    `action$ as string
+   path as integer
    beenhurt as integer
    control as integer
    follow as integer
@@ -125,6 +126,15 @@ type containertype
    id as integer
 endtype
 global dim container(20) as containertype
+
+Rem Hockeykid - 160310 - Dark AI path type
+Type pathtype
+   id as integer
+   x as float
+   y as float
+   z as float
+Endtype
+dim points(0) as pathtype
 
 rem FPGC - 050909 - game memory tracker (test game creates, editor uses to show in meter)
 type gamememtabletype
@@ -1472,6 +1482,8 @@ Rem Hockeykid - 250210 - Dark AI constants
 #constant AIACTAIFOLLOWPLR 1071
 #constant AIACTAIMOVETOSOUND 1072
 #constant AIACTAIMOVEAWAYFROMSOUND 1073
+#constant AIACTAIADDPOINT 1074
+#constant AIACTAIGOTOPOINT 1075
 Rem end Dark AI constants
 #constant AIACTHUDRESET 1100
 #constant AIACTHUDX 1101
@@ -9378,6 +9390,8 @@ actword$(AIACTAIACTION)="aiaction"
 actword$(AIACTAIFOLLOWPLR)="aifollowplr"
 actword$(AIACTAIMOVETOSOUND)="aimovetosound"
 actword$(AIACTAIMOVEAWAYFROMSOUND)="aimoveawayfromsound"
+actword$(AIACTAIADDPOINT)="aiaddpoint"
+actword$(AIACTAIGOTOPOINT)="aigotopoint"
 
 return
 
@@ -12384,6 +12398,36 @@ if aiindex>0
       if ai entity exist(entityelement(e).obj)
          entityelement(e).darkai.actionmode=6
       endif
+     endcase
+     case AIACTAIADDPOINT:
+         pointfound=0
+         if array count(points())=0 then array insert at bottom points()
+         for i=1 to array count(points())
+             if points(i).id=aiactionseq(seq).value then pointi=i : pointfound=1 : exit
+         next i
+         if pointfound=0
+            array insert at bottom points()
+            xp=array count(points())
+         else
+            xp=pointi
+         endif
+         points(xp).x=entityelement(e).x
+         points(xp).y=entityelement(e).y
+         points(xp).z=entityelement(e).z
+         points(xp).id=aiactionseq(seq).value
+     endcase
+     case AIACTAIGOTOPOINT:
+         pointi=0
+         if array count(points())>0 and ai entity exist(entityelement(e).obj)
+            for i=1 to array count(points())
+               if points(i).id=aiactionseq(seq).value
+                  entityelement(e).darkai.path=i
+                  if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control entityelement(e).obj,0
+                  entityelement(e).darkai.actionmode=8
+                  exit
+               endif
+            next i
+         endif
      endcase
 Rem End Dark AI
      `
@@ -43581,7 +43625,7 @@ if ttargetvisible=1 and entityelement(e).darkai.state=STATE_IDLE or ttargets>0 a
       entityelement(e).darkai.state=STATE_ATTACKING
    endif
 endif
-Rem current unused AI action is 8
+Rem current unused AI action is 9
 
 Rem Hockeykid - 100310 - If not in any of these action modes and entity is set to automatic mode then turn off
 if entityelement(e).darkai.control=1
@@ -43601,6 +43645,12 @@ if tstate=STATE_IDLE
    endif
    if entityelement(e).darkai.actionmode=6
       ai entity move away from sound obj
+   endif
+   Rem Hockeykid - 160310 - Patrol path, this command creates a path from current point to a path point
+   if entityelement(e).darkai.actionmode=8
+      i=entityelement(e).darkai.path
+      ai entity go to position obj,points(i).x,points(i).z
+      entityelement(e).darkai.actionmode=0
    endif
     Rem Hockeykid - 020310 - Special area for allies only
    if ai get entity team(obj)=1
@@ -43718,31 +43768,20 @@ endif
 
 rem Open Attacking
 if tstate=STATE_ATTACKING
-   if entityelement(e).darkai.zombie<>1
-      if ai get entity is ducking(obj)=1 or (entityelement(e).darkai.running=1 and tmoving=1)
-         ai entity stand obj
-      endif
-         if entityelement(e).darkai.delay2<timer()
-            entityelement(e).darkai.delay2=timer()+1500
-            instrafe=1
-            if tmoving=0 then ai entity strafe target obj
-         else
-             instrafe=0
-         endif
-      endif
-   if entityelement(e).darkai.zombie=1
-      distapart#=(entityelement(e).x-camera position x())^2+(entityelement(e).z-camera position z())^2
-      if distapart#>6400
-         ai entity go to position obj,camera position x(),camera position z()
-      else
-         ai entity go to position obj,entityelement(e).x,entityelement(e).z
-      endif
+   if ai get entity is ducking(obj)=1 or (entityelement(e).darkai.running=1 and tmoving=1)
+      ai entity stand obj
+   endif
+   if entityelement(e).darkai.delay2<timer()
+      entityelement(e).darkai.delay2=timer()+1500
+      instrafe=1
+      if tmoving=0 then ai entity strafe target obj
+   else
+      instrafe=0
    endif
 endif
 
 rem Cover
 if tstate=STATE_COVER
-if entityelement(e).darkai.zombie=1 then entityelement(e).darkai.state=STATE_ATTACKING
    if entityelement(e).darkai.delay<timer()
       tscaley=object size y(obj)/2.0
       t3dvischeck=static raycast(tmyx#,tmyy#-(tscaley*0.75),tmyz#,ttargetx#,ttargety#,ttargetz#)
@@ -43787,7 +43826,6 @@ rem Apply New Actions
 `else
    ai set entity speed obj,entityelement(e).eleprof.speed/2.0
 `endif
-rem to detect dynamic objects for collision
 
 
 remstart tmyx#=entityelement(e).x-tmyx#
