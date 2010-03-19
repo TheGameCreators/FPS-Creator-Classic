@@ -2206,7 +2206,6 @@ global gfullscreen : gfullscreen=0
 global gcontrollerhint : gcontrollerhint=0
 global gcontrollerhinthudid : gcontrollerhinthudid=0
 global gcontrollerhintbase : gcontrollerhintbase=0
-global gcontrollerhintbuttontwo : gcontrollerhintbuttontwo=0
 global gvrmode : gvrmode=0
 global gvrmodemag : gvrmodemag=100
 global gmousesensitivity : gmousesensitivity=100
@@ -6238,6 +6237,10 @@ if gcontrollerhint=1 and gxbox<>0
   hud(gcontrollerhinthudid).image=gcontrollerhintbase
   if gplayercanpressenterhere=1
    hud(gcontrollerhinthudid).image=gcontrollerhintbuttontwo
+  else
+   if movement<>0
+    hud(gcontrollerhinthudid).image=gcontrollerhintbuttonwalk
+   endif
   endif
   if sprite exist(gcontrollerhinthudid)=1
    sprite gcontrollerhinthudid,-10000,-10000,hud(gcontrollerhinthudid).image
