@@ -487,6 +487,7 @@ type inputsystemtype
  tselsaveselection as integer
 endtype
 inputsys as inputsystemtype
+global gplayercanpressenterhere as integer
 
 rem UndoRedo list data structure
 type undoredotype
@@ -2202,6 +2203,10 @@ global gdisplaywidth : gdisplaywidth=1024
 global gdisplayheight : gdisplayheight=768
 global gdisplaydepth : gdisplaydepth=32
 global gfullscreen : gfullscreen=0
+global gcontrollerhint : gcontrollerhint=0
+global gcontrollerhinthudid : gcontrollerhinthudid=0
+global gcontrollerhintbase : gcontrollerhintbase=0
+global gcontrollerhintbuttontwo : gcontrollerhintbuttontwo=0
 global gvrmode : gvrmode=0
 global gvrmodemag : gvrmodemag=100
 global gmousesensitivity : gmousesensitivity=100
@@ -2384,6 +2389,7 @@ if file exist(tfile$)=1
     tryfield$="useeffectsonscene" : if field$=tryfield$ then guseeffectonscenesstate=value1
     tryfield$="useeffectsonentities" : if field$=tryfield$ then guseeffectonentitiesstate=value1
     tryfield$="dividetexturesize" : if field$=tryfield$ then gdividetexturesize=value1
+    tryfield$="controllerhint" : if field$=tryfield$ then gcontrollerhint=value1
     tryfield$="vrmode" : if field$=tryfield$ then gvrmode=value1
     tryfield$="vrmodemag" : if field$=tryfield$ then gvrmodemag=value1
     tryfield$="mousesensitivity" : if field$=tryfield$ then gmousesensitivity=value1
@@ -2634,6 +2640,16 @@ else
 endif
 global gratiox# : gratiox#=gdisplaywidth : gratiox#=gratiox#/1024.0
 global gratioy# : gratioy#=gdisplayheight : gratioy#=gratioy#/768.0
+
+rem FPGC - 150310 - special case, VRMODE=5 detects VR920 (switches OFF if not found)
+if gvrmode=5
+ vr920exist=reset left eye()
+ if vr920exist=1
+  gvrmode=4
+ else
+  gvrmode=0
+ endif
+endif
 
 rem FPGC - 121009 - moved to after resolution change to get correct save load dialog position
 gosub _saveload_savebox_init
@@ -3267,6 +3283,13 @@ _main_game_core:
   sync
  endif
  `
+ rem FPGC - 190310 - quick exit keys (for standalone game only)
+ if grealgameviewstate=1
+  if keystate(56)=1 or keystate(184)=1
+   if keystate(18)=1 then continueokay=1 : loopapp=0 : levelwon=2 : rem quit game
+  endif
+ endif
+ `
  rem Can intercept to grab screen
  if keystate(plrkeyF12)=1
   tnum=1
@@ -3290,7 +3313,7 @@ _main_game_core:
  `
  rem Exit Conditions for test game
  if grealgameviewstate=0
-   Rem Hockeykid - 260210 - Added ai reset to avoid Dark AI from creating a silent crash
+  Rem Hockeykid - 260210 - Added ai reset to avoid Dark AI from creating a silent crash
   if control_escapekey()=1 then ai reset : continueokay=1 : levelwon=2 : rem QUIT
  endif
  `
@@ -6209,6 +6232,22 @@ endif
 rem Entity Performance
 gameperftimestamplocal=perftimer()
 
+rem FPGC - 150310 - control controller hint if required
+if gcontrollerhint=1 and gxbox<>0
+ if gcontrollerhinthudid>0
+  hud(gcontrollerhinthudid).image=gcontrollerhintbase
+  if gplayercanpressenterhere=1
+   hud(gcontrollerhinthudid).image=gcontrollerhintbuttontwo
+  endif
+  if sprite exist(gcontrollerhinthudid)=1
+   sprite gcontrollerhinthudid,-10000,-10000,hud(gcontrollerhinthudid).image
+  endif
+ endif
+endif
+
+rem FPGC - 150310 - reset 'awareness' flags
+gplayercanpressenterhere=0 : rem detect if player can press USE via entity scripts
+
 rem General data for control management
 mex#=camerapositionx : mey#=camerapositiony : mez#=camerapositionz
 meheight#=(ellipsevolumesize#-0.25)*30.0
@@ -6708,7 +6747,7 @@ for e=1 to entityelementlist
       endif
      endif
      `
-rem show attachment obj
+     rem show attachment obj
      tobj=entityelement(e).attachmentobj
      if tobj>0
       if object exist(tobj)=1
@@ -9821,6 +9860,7 @@ if aiindex>0
      if tokay<>conda then airesult=0
     endcase
     case AICONDPLRUSINGACTION:
+     gplayercanpressenterhere=1
      conda=aiconditionseq(seq).valuea
      condb=player(1).usingaction
      if conda<>condb then airesult=0
@@ -15055,20 +15095,25 @@ if ggodmodestate=1 or gtestgamemodefromeditor=1
  if k$="i" then player(1).health=9999
 endif
 
-rem Mouseclick
-tmouseclick=mouseclick()
-
-rem U71 - Contoller
-if gxbox=1 : rem define in a config later
- if gxboxcontrollertype=0
-  if joystick z()<-500 then tmouseclick=1
+rem Use Action
+tdisablepickupdropthiscycle=0
+if (plrkeyRETURN)=1
+ player(plrid).usingaction=1
+else
+ player(plrid).usingaction=0
+ if fpgcgenre=0
+  rem FPGC - 150310 - game creator is non-shooting, so LEFT click is also USE(ENTER)
+  rem uses a global which instructs this code whther LEFT = USE rather than DROP
+  if control_mouseclick_mode(1)=2 and gplayercanpressenterhere=1
+   tdisablepickupdropthiscycle=1
+   player(plrid).usingaction=1
+  endif
  endif
- if gxboxcontrollertype=1
-  if joystick fire x(5)=1 or joystick fire x(7)=1 then tmouseclick=1
- endif
- if joystick fire x(9)=1 then tmouseclick=2
 endif
 
+rem Mouseclick (mode 1-ignore A,C,D buttons of controller)
+tmouseclick=control_mouseclick_mode(1)
+if tdisablepickupdropthiscycle=1 and tmouseclick=2 then tmouseclick=0
 if showgamemenu=1 then tmouseclick=0
 
 rem Mouse
@@ -15180,13 +15225,6 @@ else
   if gunzoommag#>10.0 then gunzoommag#=10.0
   plrzoominchange=1
  endif
-endif
-
-rem Use Action
-if (plrkeyRETURN)=1
- player(plrid).usingaction=1
-else
- player(plrid).usingaction=0
 endif
 
 rem Recover mode progress (RESTART PLAYER NEW LIFE)
@@ -23414,6 +23452,7 @@ _gameflow_default:
      `
      rem First action of core is to finishing loading of level
      gosub _load_game_scene
+     gosub _ai_hud_extra
      gosub _main_game_freeleveldata
      `
      rem Review FPI screens
@@ -23461,6 +23500,9 @@ _gameflow_default:
        loadsavedlevel$=""
       endif
       `
+      rem FPGC - 150310 - add any extra HUDs (controller hint overlay)
+      gosub _ai_hud_extra
+      `
       rem CORE : PLAY LEVEL
       controlSPACE=0
       controlESCAPE=2
@@ -23470,6 +23512,7 @@ _gameflow_default:
       continueokay=0
       gamewarmupcount=30.0
       gosub _ode_beginphysics
+      if gvrmode<>0 then vr920exist=reset left eye()
       while continueokay=0
        if showgamemenu=0
         gosub _main_game_core
@@ -23488,6 +23531,7 @@ _gameflow_default:
         endif
         gosub _screen_control
         if len(loadsavedlevel$)<2 then sync
+        if gvrmode<>0 then vr920exist=reset left eye()
        endif
       endwhile
       controlSPACE=1
@@ -25751,7 +25795,7 @@ _ai_hud_view:
     endif
    next thudid
    `
-   if control_mouseclick()=1
+   if control_mouseclick()<>0
     for thudid=1 to hudmax
      if hud(thudid).highlighted=1
       hudselectionmade=hud(thudid).typemode
@@ -25989,6 +26033,53 @@ _ai_gamelist_checkforfirewall:
  `
 return
 
+_ai_hud_extra:
+
+rem FPGC - 150310 - default HUD additions
+if gcontrollerhint=1 and gxbox<>0
+ `
+ rem Specify HUD
+ workhudmake$="display"
+ workhudname$="controllerhelp"
+ workhudtype=0 : rem always
+ workhudsizex=0
+ workhudsizey=0
+ workhudsizez=0
+ workhudred=255
+ workhudgreen=255
+ workhudblue=255
+ workhudimagefile$="gamecore\huds\controller\base.png"
+ addfiletocollection(workhudimagefile$)
+ timgvalue=loadinternalimagecompressquality(workhudimagefile$,5,1)
+ workhudimage=timgvalue
+ workhudfont$=""
+ workhudsize=0
+ workhudtext$=""
+ workhudhide=0
+ workhudx=gdisplaywidth-(image width(workhudimage)/2)
+ workhudy=gdisplayheight-(image height(workhudimage)/2)
+ `
+ rem Add HUD (controller base image) to game
+ gosub _ai_hud_add
+ `
+ rem Add HUD (controller OVERLAY) to game
+ workhudname$="controllerhelpoverlay"
+ workhudimagefile$="gamecore\huds\controller\base.png" : addfiletocollection(workhudimagefile$)
+ workhudimage=loadinternalimagecompressquality(workhudimagefile$,5,1)
+ gosub _ai_hud_add
+ gcontrollerhinthudid=hudid
+ gcontrollerhintbase=workhudimage
+ `
+ rem load in extra images for the controller hints
+ workhudimagefile$="gamecore\huds\controller\overlay-B.png" : addfiletocollection(workhudimagefile$)
+ gcontrollerhintbuttontwo=loadinternalimagecompressquality(workhudimagefile$,5,1)
+ workhudimagefile$="gamecore\huds\controller\overlay-N.png" : addfiletocollection(workhudimagefile$)
+ gcontrollerhintbuttonwalk=loadinternalimagecompressquality(workhudimagefile$,5,1)
+ `
+endif
+
+return
+
 _ai_hud_add:
 
 rem HUD Types based on name
@@ -26128,22 +26219,22 @@ _ai_hud_update:
  rem HUD Sprites
  set sprite 1,0,1
  sprite 1,-10000,-10000,1
- for hudid=1 to hudmax
-  if hud(hudid).image>0
-   sprite hudid,-10000,-10000,hud(hudid).image
-   if hud(hudid).sizex>0
-    size sprite hudid,hud(hudid).sizex*gratiox#,hud(hudid).sizey*gratioy#
+ for tthudid=1 to hudmax
+  if hud(tthudid).image>0
+   sprite tthudid,-10000,-10000,hud(tthudid).image
+   if hud(tthudid).sizex>0
+    size sprite tthudid,hud(tthudid).sizex*gratiox#,hud(tthudid).sizey*gratioy#
    else
-    size sprite hudid,hud(hudid).width*gratiox#,hud(hudid).height*gratioy#
+    size sprite tthudid,hud(tthudid).width*gratiox#,hud(tthudid).height*gratioy#
    endif
-   set sprite diffuse hudid,hud(hudid).red,hud(hudid).green,hud(hudid).blue
-   if hud(hudid).fadeout>0
+   set sprite diffuse tthudid,hud(tthudid).red,hud(tthudid).green,hud(tthudid).blue
+   if hud(tthudid).fadeout>0
     rem else where
    else
-    set sprite alpha hudid,255
+    set sprite alpha tthudid,255
    endif
   endif
- next hudid
+ next tthudid
  `
 return
 
@@ -26401,6 +26492,7 @@ setuparr$(i)="useeffectsonscene="+str$( guseeffectonscenesstate ) : inc i
 setuparr$(i)="useeffectsonentities="+str$( guseeffectonentitiesstate ) : inc i
 setuparr$(i)="useeffectsonessentials="+str$( guseeffectsonessentials ) : inc i
 setuparr$(i)="dividetexturesize="+str$( gdividetexturesize ) : inc i
+setuparr$(i)="controllerhint="+str$( gcontrollerhint ) : inc i
 setuparr$(i)="vrmode="+str$( gvrmode ) : inc i
 setuparr$(i)="vrmodemag="+str$( gvrmodemag ) : inc i
 setuparr$(i)="mousesensitivity="+str$( gmousesensitivity ) : inc i
@@ -27810,7 +27902,7 @@ if showgamemenu=0
   if gxboxinvert=1 then jty#=jty#*-1.0
   if abs(jtx#)>50.0 then cammovex#=jtx#/10.0
   `if abs(jty#)>50.0 then cammovey#=jty#/10.0 FPGC - 100310 - speed it up a bit
-  if abs(jty#)>50.0 then cammovey#=jty#/7.0
+  if abs(jty#)>50.0 then cammovey#=jty#/2.0
  endif
  `
  if mefrozen>0 and mefrozentype=2 then cammovex#=0 : cammovey#=0
@@ -28128,7 +28220,10 @@ rem PLR pickup/drop/throw
 if camerapickup=1
  `
  tpickupkeystate=0
- if keystate(20)=1 or mouseclick()=2 then tpickupkeystate=1
+ if keystate(20)=1 then tpickupkeystate=1
+ `
+ rem FPGC - 150310 - allow controller button B only as a possible right click
+ if control_mouseclick_mode(1)=2 then tpickupkeystate=1
  `
  rem U71 - Contoller
  if gxbox=1 : rem define in a config later
@@ -28179,7 +28274,15 @@ if camerapickup=1
      `
     endif
    else
-    camerapickeddrop=1
+    rem FPGC - 150310 - prevent the drop if FPGC mode and within range of
+    rem something that is requesting a [ENTER] key press
+    if fpgcgenre=0
+     if gplayercanpressenterhere=0
+      camerapickeddrop=1
+     endif
+    else
+     camerapickeddrop=1
+    endif
    endif
   endif
  else
@@ -28262,8 +28365,9 @@ if camerapicked>0
  ode set linear velocity camerapicked,tholdforcex#,tholdforcey#,tholdforcez#
  rem set shadow on carried object
  entityelement(camerapickede).floorposy=camerapositiony-(object size(camerapicked)*3)
- rem throw
- if mouseclick()=1 then camerapickeddrop=1 : camerapickedthrown=1
+ `
+ rem FPGC - 150310 - throw handles by controller aware function
+ if control_mouseclick_mode(1)=1 then camerapickeddrop=1 : camerapickedthrown=1
  `
  rem U71 - Contoller
  if gxbox=1 : rem define in a config later
@@ -32062,15 +32166,15 @@ _saveload_savebox_run:
   ink rgb(tyesnochoice1*255,tyesnochoice1*255,tyesnochoice1*255),0 : text tareyousurex+400,tareyousurey+22,strarr$(650)
   ink rgb(tyesnochoice2*255,tyesnochoice2*255,tyesnochoice2*255),0 : text tareyousurex+450,tareyousurey+22,strarr$(651)
   rem select one
-  if control_mouseclick()=1 and (tyesnochoice1=1 or tyesnochoice2=1)
-   saveload.areyousure=0 : while control_mouseclick()=1 : endwhile
+  if control_mouseclick()<>0 and (tyesnochoice1=1 or tyesnochoice2=1)
+   saveload.areyousure=0 : while control_mouseclick()<>0 : endwhile
    if tyesnochoice1=1 then saveload.slotselected=saveload.slothighlight
   endif
   rem Escape from confirmer box
   if control_escapekey()=1 then saveload.areyousure=0 : while control_escapekey()=1 : endwhile
  else
   rem Select slot
-  if control_mouseclick()=1 and saveload.slothighlight>0
+  if control_mouseclick()<>0 and saveload.slothighlight>0
    rem Slot X selected
    sloti=saveload.slothighlight
    if saveloadslot$(sloti)=strarr$(645)
@@ -40679,6 +40783,7 @@ if file exist(tfile$)=1
     tryfield$="useeffectsonscene" : if field$=tryfield$ then guseeffectonscenestate=value1
     tryfield$="useeffectsonentities" : if field$=tryfield$ then guseeffectonentitiesstate=value1
     tryfield$="dividetexturesize" : if field$=tryfield$ then gdividetexturesize=value1
+    tryfield$="controllerhint" : if field$=tryfield$ then gcontrollerhint=value1
     tryfield$="vrmode" : if field$=tryfield$ then gvrmode=value1
     tryfield$="vrmodemag" : if field$=tryfield$ then gvrmodemag=value1
     tryfield$="mousesensitivity" : if field$=tryfield$ then gmousesensitivity=value1
@@ -41064,6 +41169,7 @@ _interface_savebuildgame:
  setuparr$(i)="useeffectsonscene="+str$( guseeffectonscenesstate ) : inc i
  setuparr$(i)="useeffectsonentities="+str$( guseeffectonentitiesstate ) : inc i
  setuparr$(i)="dividetexturesize="+str$( gdividetexturesize ) : inc i
+ setuparr$(i)="controllerhint="+str$( gcontrollerhint ) : inc i
  setuparr$(i)="vrmode="+str$( gvrmode ) : inc i
  setuparr$(i)="vrmodemag="+str$( gvrmodemag ) : inc i
  setuparr$(i)="mousesensitivity="+str$( gmousesensitivity ) : inc i
@@ -41476,6 +41582,7 @@ setuparr$(i)="useeffectsonguns="+str$( guseeffectongunsstate ) : inc i
 setuparr$(i)="useeffectsonscene="+str$( guseeffectonscenesstate ) : inc i
 setuparr$(i)="useeffectsonentities="+str$( guseeffectonentitiesstate ) : inc i
 setuparr$(i)="dividetexturesize="+str$( gdividetexturesize ) : inc i
+setuparr$(i)="controllerhint="+str$( gcontrollerhint ) : inc i
 setuparr$(i)="vrmode="+str$( gvrmode ) : inc i
 setuparr$(i)="vrmodemag="+str$( gvrmodemag ) : inc i
 setuparr$(i)="mousesensitivity="+str$( gmousesensitivity ) : inc i
@@ -43317,7 +43424,7 @@ function control_escapekey()
  endif
 endfunction returnvalue
 
-function control_mouseclick()
+function control_mouseclick_mode(mode as integer)
  returnvalue=mouseclick()
  if gxbox=1
   rem FPGC - 220210 - intercept with controller input
@@ -43327,13 +43434,29 @@ function control_mouseclick()
   if gxboxcontrollertype=1
    if joystick fire x(5)=1 or joystick fire x(7)=1 then returnvalue=1
   endif
-  if joystick fire a()=1 then returnvalue=1
-  if joystick fire b()=1 then returnvalue=1
-  if joystick fire c()=1 then returnvalue=1
-  if joystick fire d()=1 then returnvalue=1
+  if mode=0
+   if joystick fire a()=1 then returnvalue=1
+   if joystick fire b()=1 then returnvalue=1
+   if joystick fire c()=1 then returnvalue=1
+   if joystick fire d()=1 then returnvalue=1
+  endif
+  if mode=1
+   rem FPGC - 150310 - only one main controller button for left click
+   if joystick fire b()=1 then returnvalue=1
+  endif
+ endif
+ if fpgcgenre=0
+  rem FPGC - 150310 - game creator is non-shooting, so LEFT is PICKUP/DROP, RIGHT=NULL
+  treturnvalue=returnvalue
+  if returnvalue=1 then treturnvalue=2
+  if returnvalue=2 then rreturnvalue=0
+  returnvalue=treturnvalue
  endif
 endfunction returnvalue
 
+function control_mouseclick()
+ tresult=control_mouseclick_mode(0)
+endfunction tresult
 
 rem
 rem DARKVOICES LIPSYNC SUBROUTINES

@@ -71,6 +71,12 @@ V1.1.7
 FPGC VARIANT SPECIFIC
 ---------------------
 
+ * New CONTROLLERHINT feature shows Logitech Dual Action controller which indicates what user can press
+ * Added CONTROLLERHINT flag to SETUP.INI and a new controller folder in gamecore/huds/
+ * NOTE: Do we need Button 4 (ENTER) now we have Button 2 (LEFT CLICK) on the controller for FPGC?
+ * Added code which detects if USE can be pressed, and if so, treat LEFT as USE and prevent item drop
+ * If in FPGC mode, mouse buttons reversed so LEFT=pickup/drop and also [ENTER], RIGHT=NOTHING
+ * VRMODE=5 now detects of VR920 available and switches to VRMODE=4 if YES and VRMODE=0 if NO
  * Mouse Sensitivity flag in SETUP.INI (centralise SETUP.INI code)
  * Restore size of debug text if RAWTEXT changes it
  * Add entity name to equipment entity (so wrench only activates 'broken door' and nothing else) TEST
