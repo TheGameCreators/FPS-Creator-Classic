@@ -2231,6 +2231,8 @@ global gxboxcontrollertype : gxboxcontrollertype=0
 global gshowalluniquetextures : gshowalluniquetextures=0
 global gaspectratio : gaspectratio=0
 global gnewblossershaders : gnewblossershaders=1
+global gpostprocessing : gpostprocessing=0
+global gpostprocessingnotransparency : gpostprocessingnotransparency=0
 global gsystemmemorycapoff : gsystemmemorycapoff=0
 
 rem Version Control - TEST GAME Mode
@@ -2395,6 +2397,7 @@ if file exist(tfile$)=1
     tryfield$="producelogfiles" : if field$=tryfield$ then gproducelogfiles=value1
     tryfield$="hsrmode" : if field$=tryfield$ then ghsrmode=value1
     tryfield$="newblossershaders" : if field$=tryfield$ then gnewblossershaders=value1
+    tryfield$="postprocessing" : if field$=tryfield$ then gpostprocessing=value1
     `
     tryfield$="usesky" : if field$=tryfield$ then guseskystate=value1
     tryfield$="usefloor" : if field$=tryfield$ then gusefloorstate=value1
@@ -2653,9 +2656,6 @@ endif
 rem FPGC - 121009 - moved to after resolution change to get correct save load dialog position
 gosub _saveload_savebox_init
 
-rem FPGC - 200310 - initialise FULL SCREEN EFFECTS (camera one)
-gosub _postprocess_init
-
 rem Indicate a time stamp for app start time
 timestampactivity(0,"Time Stamp Activity Started")
 
@@ -2720,6 +2720,9 @@ rem
 if trueappname$="FPSC-MapEditor"
  goto _mapeditorexecutable
 endif
+
+rem FPGC - 200310 - initialise FULL SCREEN EFFECTS (camera one)
+gosub _postprocess_init
 
 rem
 rem GAME MAIN
@@ -24128,7 +24131,7 @@ for lay=0 to layermax
          else
           rem when instance, transparent details come from origin (not for mapeditor preview though)
           if segobjusedformapeditor=0
-           if guseeffectonscenesstate=1
+           if guseeffectonscenesstate=1 and gpostprocessingnotransparency=1
             rem FPGC - 200310 - new shader system uses alpha for distance not static transparency
             set object transparency selectionbankoffset+mapselection,0
            else
@@ -24257,7 +24260,7 @@ for lay=0 to layermax
                         rem add new limb to node tree now (polycol after csg)
                         tarbvalue=segmentprofile(surrseg,surrlimb).material.index
                         if tarbvalue=0 then tarbvalue=1
-                        if guseeffectonscenesstate=1
+                        if guseeffectonscenesstate=1 and gpostprocessingnotransparency=1
                          rem FPGC - 200310 - new shader system uses alpha for distance not static transparency
                          set object transparency ttempobj2,0
                         else
@@ -24390,7 +24393,7 @@ for lay=0 to layermax
            rem set transparency for universe add
 `           set object transparency segobj,segmentprofile(seg,tlimb).transparency
 `           set object transparency segobj,1 `need alpha test active (depth-sort-via-alpha-test)
-           if guseeffectonscenesstate=1
+           if guseeffectonscenesstate=1 and gpostprocessingnotransparency=1
             rem FPGC - 200310 - new shader system uses alpha for distance not static transparency
             set object transparency segobj,0
            else
@@ -24490,7 +24493,7 @@ endif
 if csgpass=3
  if object exist(segobj)=1
   for fourcornermarkers=0 to 3
-   if guseeffectonscenesstate=1
+   if guseeffectonscenesstate=1 and gpostprocessingnotransparency=1
     rem FPGC - 200310 - new shader system uses alpha for distance not static transparency
     set object transparency segobj,0
    else
@@ -24550,7 +24553,7 @@ for e=1 to entityelementlist
 `     if gdynamicshadowsstate=1 then tshadow=2
      tarbvalue=entityprofile(tentid).materialindex
      enable object zwrite obj
-     if guseeffectonscenesstate=1
+     if guseeffectonscenesstate=1 and gpostprocessingnotransparency=1
       rem FPGC - 200310 - new shader system uses alpha for distance not static transparency
       set object transparency obj,0
      else
@@ -26535,6 +26538,7 @@ setuparr$(i)="producelogfiles="+str$( gproducelogfiles ) : inc i
 setuparr$(i)="hsrmode="+str$( ghsrmode ) : inc i
 setuparr$(i)="aspectratio="+str$( gaspectratio ) : inc i
 setuparr$(i)="newblossershaders="+str$( gnewblossershaders ) : inc i
+setuparr$(i)="postprocessing="+str$( gpostprocessing ) : inc i
 `
 setuparr$(i)="" : inc i
 setuparr$(i)="[GAMEMULTIPLAYER]" : inc i
@@ -40827,6 +40831,7 @@ if file exist(tfile$)=1
     `tryfield$="bloodonfloor" : if field$=tryfield$ then gbloodonfloor=value1
     `tryfield$="imageblockmode" : if field$=tryfield$ then gimageblockmode=value1
     tryfield$="newblossershaders" : if field$=tryfield$ then gnewblossershaders=value1
+    tryfield$="postprocessing" : if field$=tryfield$ then gpostprocessing=value1
     `
     rem arena settings
     tryfield$="gameobjectivetype" : if field$=tryfield$ then ggameobjectivetype=value1
@@ -41216,6 +41221,7 @@ _interface_savebuildgame:
  `V109 BETA8 - 060508 - leave these for main SETUP.INI to control (otherwise hidden in FPG)
  `setuparr$(i)="imageblockmode="+str$(gimageblockmode) : inc i
  setuparr$(i)="newblossershaders="+str$( gnewblossershaders ) : inc i
+ setuparr$(i)="postprocessing="+str$( gpostprocessing ) : inc i
  setuparr$(i)="" : inc i
  setuparr$(i)="multiplayergame="+str$(gmultiplayergame) : inc i
  setuparr$(i)="gameobjectivetype="+str$(ggameobjectivetype) : inc i
@@ -41626,6 +41632,7 @@ setuparr$(i)="hsrmode="+str$( ghsrmode ) : inc i
 setuparr$(i)="optimizemode=1" : inc i
 setuparr$(i)="aspectratio="+str$( gaspectratio ) : inc i
 setuparr$(i)="newblossershaders="+str$( gnewblossershaders ) : inc i
+setuparr$(i)="postprocessing="+str$( gpostprocessing ) : inc i
 `
 setuparr$(i)="" : inc i
 setuparr$(i)="[GAMEMULTIPLAYER]" : inc i
@@ -44126,16 +44133,32 @@ rem
 
 _postprocess_init:
  `
- if gpostprocessmode=0
+ rem full screen shaders
+ bloomfilescreen$="effectbank\ps_2_0\post-bloom.fx"
+ depthoffieldfilescreen$="effectbank\ps_2_0\post-depthoffield.fx"
+ depthoffieldfileobject$="effectbank\ps_2_0\post-object-depthoffield.fx"
+ addfiletocollection(bloomfilescreen$)
+ addfiletocollection(depthoffieldfilescreen$)
+ addfiletocollection(depthoffieldfileobject$)
+ `
+ rem if flagged, use post processing (camera one)
+ if gpostprocessmode=0 and gpostprocessing<>0 and segobjusedformapeditor=0
+  `
+  rem kind of post process (gpostprocessing)
+  rem 1 - bloom
+  rem 2 - depth of field
+  tshaderchoice$=bloomfilescreen$
+  if gpostprocessing=1 then tshaderchoice$=bloomfilescreen$ : gpostprocessingnotransparency=0
+  if gpostprocessing=2 then tshaderchoice$=depthoffieldfilescreen$ : gpostprocessingnotransparency=1
   `
   rem FPGC - 200310 - new camera 1 holds post-process screen quad (requires U75+)
-  make camera 1 : load effect "DepthOfField-SCREEN.fx",65535,0
+  make camera 1 : load effect tshaderchoice$,65535,0
   make object plain 65536,2,2 : set object effect 65536,65535 : set object mask 65536,%10
   set camera to image 0,65536,screen width(),screen height(),2 : texture object 65536,0,65536
   set current camera 0
   `
   rem Shader used to replace fixed-function pipeline
-  load effect "DepthOfField-OBJECT.fx",65534,0
+  load effect depthoffieldfileobject$,65534,0
   `
   rem post process mode on
   gpostprocessmode=1
@@ -44152,6 +44175,7 @@ _postprocess_free:
   delete effect 65534
   delete object 65536
   delete camera 1 : set current camera 0
+  gpostprocessingnotransparency=0
   gpostprocessmode=0
  endif
  `
@@ -44159,14 +44183,32 @@ return
 
 _postprocess_apply:
  `
- rem make sure ALL objects render only to camera zero (now we have more than one camera)
- for o=1 to 65535
-  if object exist(o)=1 then set object mask o,%1
- next o
- `
- rem make sure ALL game objects use 'depth of field'
- for o=1 to 65535
-  if object exist(o)=1 then set object effect o,65534
- next o
+ if gpostprocessmode=1
+  `
+  rem make sure ALL objects render only to camera zero (now we have more than one camera)
+  for o=1 to 65535
+   if object exist(o)=1 then set object mask o,%1
+  next o
+  `
+  rem switch all loaded effects to alpha/depth
+  for e=1 to 65534
+   if effect exist(e)=1
+    if gpostprocessingnotransparency=0 then set effect technique e,"alpha"  
+    if gpostprocessingnotransparency=1 then set effect technique e,"depth"  
+   endif
+  next e
+  `
+  rem switch universe geometry to use alpha/depth
+  if gpostprocessingnotransparency=0 then set static effect technique "alpha"  
+  if gpostprocessingnotransparency=1 then set static effect technique "depth"  
+  `
+  rem make sure ALL game objects use 'depth of field' (later; only if no shader of their own)
+  if gpostprocessing=2
+   for o=1 to 65535
+    if object exist(o)=1 then set object effect o,65534
+   next o
+  endif
+  `
+ endif
  `
 return

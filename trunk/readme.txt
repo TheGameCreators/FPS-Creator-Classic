@@ -9,7 +9,9 @@ History
 V1.1.7
 ------
  
- * Added new POST PROCESSING subroutines (U75+ only), defaults to depth of field (pulsating corridor)
+ * Added BLOOM post process shader with others in 'effectbank\ps_2_0'
+ * Added POSTPROCESSING=1 flag to SETUP.INI to switch on/off the post process feature (performance)
+ * Added new POST PROCESSING subroutines (U75+ only), typically depth of field, bloom, etc
  * Added new FPI action AIGOTOPOINT=X this will make the entity go from its current position to the point specified by x (to create a point use aiaddpoint=x) this path will avoid any obstacles
  * Added new FPI action AIADDPOINT=X x=is the points id number - this will create a point to be used with other ai point commands
  * Fixed bug from V1.16 that broke runfpi because of the runfpi scripts not being loaded
