@@ -2653,6 +2653,9 @@ endif
 rem FPGC - 121009 - moved to after resolution change to get correct save load dialog position
 gosub _saveload_savebox_init
 
+rem FPGC - 200310 - initialise FULL SCREEN EFFECTS (camera one)
+gosub _postprocess_init
+
 rem Indicate a time stamp for app start time
 timestampactivity(0,"Time Stamp Activity Started")
 
@@ -13468,6 +13471,7 @@ _common_makeeffecttextureset:
   tstr0$=left$(texdir$,len(texdir$)-4) : rem _01_D2.TGA -> _01_D2
   tstr1$=left$(texdir$,len(texdir$)-6) : rem _01_D2.TGA -> _01_
   tstr2$=right$(texdir$,4) : rem _01_D2.TGA -> .TGA
+  if len(tstr2$)<=1 then tstr2$=".dds"
   `
   rem D2 must be present to indicate existence of D, N, S, I, etc
   if upper$(right$(tstr0$,2))="D2"
@@ -23506,6 +23510,9 @@ _gameflow_default:
       rem FPGC - 150310 - add any extra HUDs (controller hint overlay)
       gosub _ai_hud_extra
       `
+      rem FPGC - 200310 - apply FULL SCREEN EFFECTS shades to all game objects
+      gosub _postprocess_apply
+      `
       rem CORE : PLAY LEVEL
       controlSPACE=0
       controlESCAPE=2
@@ -24121,7 +24128,12 @@ for lay=0 to layermax
          else
           rem when instance, transparent details come from origin (not for mapeditor preview though)
           if segobjusedformapeditor=0
-           set object transparency selectionbankoffset+mapselection,4
+           if guseeffectonscenesstate=1
+            rem FPGC - 200310 - new shader system uses alpha for distance not static transparency
+            set object transparency selectionbankoffset+mapselection,0
+           else
+            set object transparency selectionbankoffset+mapselection,4
+           endif
           endif
           instance object segobj,selectionbankoffset+mapselection
          endif
@@ -24245,7 +24257,12 @@ for lay=0 to layermax
                         rem add new limb to node tree now (polycol after csg)
                         tarbvalue=segmentprofile(surrseg,surrlimb).material.index
                         if tarbvalue=0 then tarbvalue=1
-                        set object transparency ttempobj2,4
+                        if guseeffectonscenesstate=1
+                         rem FPGC - 200310 - new shader system uses alpha for distance not static transparency
+                         set object transparency ttempobj2,0
+                        else
+                         set object transparency ttempobj2,4
+                        endif
                         `
                         rem X9 - 070208 - new field in segments for V108 so we can specify that a mesh is DEFINATELY A BLOCKER
                         `make static object ttempobj2,0,tarbvalue,tshadow,1
@@ -24373,7 +24390,12 @@ for lay=0 to layermax
            rem set transparency for universe add
 `           set object transparency segobj,segmentprofile(seg,tlimb).transparency
 `           set object transparency segobj,1 `need alpha test active (depth-sort-via-alpha-test)
-           set object transparency segobj,4
+           if guseeffectonscenesstate=1
+            rem FPGC - 200310 - new shader system uses alpha for distance not static transparency
+            set object transparency segobj,0
+           else
+            set object transparency segobj,4
+           endif
            `
            rem add mesh to universe
            tcolmode=segmentprofile(seg,tlimb).colmode
@@ -24468,7 +24490,12 @@ endif
 if csgpass=3
  if object exist(segobj)=1
   for fourcornermarkers=0 to 3
-   set object transparency segobj,4
+   if guseeffectonscenesstate=1
+    rem FPGC - 200310 - new shader system uses alpha for distance not static transparency
+    set object transparency segobj,0
+   else
+    set object transparency segobj,4
+   endif   
    make static object segobj,0,0,0,1
    hide object segobj : inc segobj
   next fourcornermarkers
@@ -24523,7 +24550,12 @@ for e=1 to entityelementlist
 `     if gdynamicshadowsstate=1 then tshadow=2
      tarbvalue=entityprofile(tentid).materialindex
      enable object zwrite obj
-     set object transparency obj,4
+     if guseeffectonscenesstate=1
+      rem FPGC - 200310 - new shader system uses alpha for distance not static transparency
+      set object transparency obj,0
+     else
+      set object transparency obj,4
+     endif
      rem handle entities that animate
      useobj=obj
      if 0
@@ -44087,3 +44119,54 @@ endif
 
 return
 
+
+rem
+rem POST PROCESS SUBROUTINES - Uses Camera One As Post Process Screen Aligned QUAD
+rem
+
+_postprocess_init:
+ `
+ if gpostprocessmode=0
+  `
+  rem FPGC - 200310 - new camera 1 holds post-process screen quad (requires U75+)
+  make camera 1 : load effect "DepthOfField-SCREEN.fx",65535,0
+  make object plain 65536,2,2 : set object effect 65536,65535 : set object mask 65536,%10
+  set camera to image 0,65536,screen width(),screen height(),2 : texture object 65536,0,65536
+  set current camera 0
+  `
+  rem Shader used to replace fixed-function pipeline
+  load effect "DepthOfField-OBJECT.fx",65534,0
+  `
+  rem post process mode on
+  gpostprocessmode=1
+  `
+ endif
+ `
+return
+
+_postprocess_free:
+ `
+ rem free any resources created by post process technique
+ if gpostprocessmode=1
+  delete effect 65535
+  delete effect 65534
+  delete object 65536
+  delete camera 1 : set current camera 0
+  gpostprocessmode=0
+ endif
+ `
+return
+
+_postprocess_apply:
+ `
+ rem make sure ALL objects render only to camera zero (now we have more than one camera)
+ for o=1 to 65535
+  if object exist(o)=1 then set object mask o,%1
+ next o
+ `
+ rem make sure ALL game objects use 'depth of field'
+ for o=1 to 65535
+  if object exist(o)=1 then set object effect o,65534
+ next o
+ `
+return
