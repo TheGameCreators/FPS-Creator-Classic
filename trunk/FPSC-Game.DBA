@@ -6674,6 +6674,8 @@ for e=1 to entityelementlist
      rem Update head if available
      if entityprofile(entid).headlimb<>-1
       if limb exist(obj,entityprofile(entid).headlimb)=1
+       `
+       rem handle regular head rotation to obey headangle
        rotate limb obj,entityprofile(entid).headlimb,curveangle(entityelement(e).ai.headangle,limb angle x(obj,entityprofile(entid).headlimb),3.0),limb angle y(obj,entityprofile(entid).headlimb),limb angle z(obj,entityprofile(entid).headlimb)
        `
        rem FPGC - DARKVOICES - 070910 - quick hack to move mouth and arm of the NEW character type
@@ -6690,12 +6692,14 @@ for e=1 to entityelementlist
            perform checklist for object limbs obj
            if checklist quantity()>=entityprofile(entid).headframefinish and entityprofile(entid).headframefinish>0
             gosub _lipsync_control
-            `for limb=58 to 80 : rem mark
+            `for limb=58 to 80 : rem mark (not sensible to use frame nums, should opt for limb names)
             `for limb=59 to 139 : rem jon
             for limb=entityprofile(entid).headframestart to entityprofile(entid).headframefinish
              set object frame obj,limb,pose,1
             next limb
-            rotate limb obj,77,-40,45+(cos(entityelement(e).ai.headangle)-30.0),(sin(entityelement(e).ai.headangle)-30.0)
+            `
+            rem FPGC - 230310 - commented this out as it seemed to be a hack to solve something..
+            `rotate limb obj,77,-40,45+(cos(entityelement(e).ai.headangle)-30.0),(sin(entityelement(e).ai.headangle)-30.0)
             `
             rem experimental arm gestures
             `armgesture#=armgesture#+0.1
