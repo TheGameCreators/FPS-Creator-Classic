@@ -552,6 +552,7 @@ dim texturebank$(100)
 global effectbankmax=0
 global effectbankoffset=1000
 dim effectbank$(100)
+dim objecteffect(65535) : rem FPGC - 250310 - used to track which objects are using effects (for post processing)
 dim soundbank$(10)
 global soundbankmax=0
 global soundbankoffset=1
@@ -3077,7 +3078,12 @@ _main_game_freeleveldata:
   `delete objects 1,endofallobjectsoffset
   delete objects 1,flakbankoffset-1
   delete objects flakelementoffset,endofallobjectsoffset
-
+  `
+  rem FPGC - 250310 - ensure objecteffect array is cleared after any object delete
+  for o=1 to 65535
+   if object exist(o)=0 then objecteffect(o)=0
+  next o
+  `
   Rem Hockeykid - 250210 - RESET DARKAI
   ai reset : darkaiplayer=0
 
@@ -10922,6 +10928,7 @@ if aiindex>0
         if entityelement(e).eleprof.tex2id<>0 then texture object obj,2,entityelement(e).eleprof.tex2id
         if entityelement(e).eleprof.tex3id<>0 then texture object obj,3,entityelement(e).eleprof.tex3id
         set object effect obj,entityelement(e).eleprof.usingeffect
+        objecteffect(obj)=entityelement(e).eleprof.usingeffect
        endif
       endif
      endcase
@@ -13836,6 +13843,15 @@ endif
 endfunction texid
 
 function loadinternaleffectunique(tfile$,makeunique)
+
+rem Redirect the FX file if a NEWBLOSSER shader exists for it
+if gnewblossershaders=1
+ rem switch key built-in shaders to new PS_2_0 versions (default behaviour from V117 onwards)
+ ifits$="bump.fx" : if right$(tfile$,len(ifits$))=ifits$ then tfile$="effectbank\ps_2_0\bump.fx"
+ ifits$="bumpent.fx" : if right$(tfile$,len(ifits$))=ifits$ then tfile$="effectbank\ps_2_0\bumpent.fx"
+ ifits$="illuminationent.fx" : if right$(tfile$,len(ifits$))=ifits$ then tfile$="effectbank\ps_2_0\illuminationent.fx"
+ ifits$="illuminationmap.fx" : if right$(tfile$,len(ifits$))=ifits$ then tfile$="effectbank\ps_2_0\illuminationmap.fx"
+endif
 
 rem Default return
 effectid=0
@@ -17099,6 +17115,7 @@ if gun(gunid).settings.brasslimb<>-1
  for o=6 to 20
   obj=hudbankoffset+o
   if object exist(obj)=1 then delete object obj
+  objecteffect(obj)=0
   instance object obj,gun(gunid).settings.brassobjmaster
   set object collision off obj
   disable object zdepth obj
@@ -17260,6 +17277,7 @@ if teffectid>0
  rem Apply effect to object
  gun(gunid).effectidused=teffectid
  set object effect currentgunobj,teffectid
+ objecteffect(currentgunobj)=teffectid
  `
 else
  `
@@ -18472,6 +18490,7 @@ else
  `
  rem Apply effect to object
  set object effect currentflakobj,teffectid
+ objecteffect(currentflakobj)=teffectid
  `
 endif
 
@@ -18572,6 +18591,7 @@ if tf<flakelementmax
  flakelement(tf).obj=flakelementoffset+tf
  tfobj=flakelement(tf).obj
  if object exist(tfobj)=1 then delete object tfobj
+ objecteffect(tfobj)=0
  instance object tfobj,flak(flakid).obj
  rem use ORIENT to get correct rotation and intertias
  if flakowner=0
@@ -18849,6 +18869,7 @@ rem Precreate elements as each is unique (UV writing)
 for f=1 to decalelementmax
  tobj=decalelementoffset+f : decalelement(f).obj=tobj
  if object exist(tobj)=1 then delete object tobj
+ objecteffect(tobj)=0
  make object plain tobj,100,100
  set object transparency tobj,2
  set object collision off tobj
@@ -20175,6 +20196,11 @@ if entidmastermax>0
   entitybank$(entid)=""
  next entid
 endif
+
+rem FPGC - 250310 - ensure objecteffect array is cleared after any object delete
+for o=1 to 65535
+ if object exist(o)=0 then objecteffect(o)=0
+next o
 
 rem Destroy profile data
 undim entityprofile()
@@ -21685,6 +21711,7 @@ if object exist(obj)=1
      if teffectid>0
       entityelement(e).eleprof.usingeffect=teffectid
       set object effect obj,entityelement(e).eleprof.usingeffect
+      objecteffect(obj)=entityelement(e).eleprof.usingeffect
      endif
      rem load correct textures
      tfullorhalfdivide=0
@@ -21718,6 +21745,7 @@ if object exist(obj)=1
   teffectid=entityelement(e).eleprof.usingeffect
   if teffectid>0
    set object effect obj,teffectid
+   objecteffect(obj)=teffectid
    rem FPGC - 250809 - apply element texture to shaded obj (fastbone for chars)
    if entityelement(e).eleprof.texdid>0
     rem V117 - 220110 - but only if have texture, otherwise you wipe out the internal object texture!
@@ -21804,6 +21832,8 @@ entityelement(e).profileobj=entitybankoffset+entid
 rem delete any existing object and create new one
 tgoaheadandsetup=0
 if object exist(obj)=1 then delete object obj
+objecteffect(obj)=0
+
 if entityelement(e).profileobj>0
  if object exist(entityelement(e).profileobj)=1
   if entityelement(e).spawn.leader=1 and entityelement(e).spawn.max>0
@@ -22145,6 +22175,7 @@ _entity_createattachment:
         ttobj=entityattachmentsoffset+entityattachmentindex
         if ttattachindex=1 then entityelement(e).attachmentbaseobj=ttobj
         if object exist(ttobj)=1 then delete object ttobj
+        objecteffect(ttobj)=0
         `
         rem V109 BETA6 - replaced X file load with optional DBO convert/load
         tfile$="gamecore\"+fpgchuds$+"\"+tweaponname$+"\vweap.x"
@@ -22768,6 +22799,11 @@ if entityattachmentindex>0
  delete objects entityattachmentsoffset+1, entityattachmentsoffset+entityattachmentindex
 endif
 
+rem FPGC - 250310 - ensure objecteffect array is cleared after any object delete
+for o=1 to 65535
+ if object exist(o)=0 then objecteffect(o)=0
+next o
+
 return
 
 _entity_scanfornewentitiesnoload:
@@ -22902,6 +22938,7 @@ _entity_delete:
  tdelobj=entitybankoffset+entid
  if tdelobj>0
   if object exist(tdelobj)=1 then delete object tdelobj
+  objecteffect(tdelobj)=0
   entityprofileheader(entid).desc$=""
   entitybank$(entid)=""
   entityprofile(entid).aiinit$=""
@@ -24147,6 +24184,21 @@ for lay=0 to layermax
           endif
          next tp
          `
+         rem FPGC - 250310 - make sure ALL static use 'depth of field' (only if no shader of their own)
+         if gpostprocessingnotransparency=1
+          rem need to use parent to set effect (not instance)
+          parentofsegobj=selectionbankoffset+mapselection
+          if object exist(parentofsegobj)=1 
+           for tlimb=0 to segmentprofileheader(seg).lastmeshmax
+            if limb exist(parentofsegobj,tlimb)=1
+             if segmentprofile(seg,tlimb).effectid=0
+              set limb effect parentofsegobj,tlimb,65533
+             endif
+            endif
+           next tlimb
+          endif
+         endif
+         `
          rem clone for manipulation of segment (clone too draining)
          if ghsrmode=1
           clone object segobj,selectionbankoffset+mapselection
@@ -24184,7 +24236,6 @@ for lay=0 to layermax
           if tmultimesh=1
            if limb visible(segobj,tlimb)=1
             if segmentprofile(seg,tlimb).multimeshstart>0
-`             r=0 : rem rnd(2) hmm why did I rem this out :)
              r=rnd(2)
              if r=0 then tlimbchange=tlimb
              if r=1 then tlimbchange=segmentprofile(seg,tlimb).multimeshstart+0
@@ -24277,6 +24328,11 @@ for lay=0 to layermax
                          if segmentprofile(surrseg,surrlimb).texnid<>0 then texture object ttempobj2,2,segmentprofile(surrseg,surrlimb).texnid
                          if segmentprofile(surrseg,surrlimb).texsid<>0 then texture object ttempobj2,3,segmentprofile(surrseg,surrlimb).texsid
                          set object effect ttempobj2,segmentprofile(surrseg,surrlimb).effectid
+                        else
+                         rem FPGC - 250310 - make sure ALL static use 'depth of field' only if no shader of their own
+                         if gpostprocessingnotransparency=1
+                          set object effect ttempobj2,65533
+                         endif
                         endif
                         `
                         rem add new limb to node tree now (polycol after csg)
@@ -24520,6 +24576,14 @@ if csgpass=3
     set object transparency segobj,0
    else
     set object transparency segobj,4
+   endif      
+   rem FPGC - 250310 - make sure ALL static use 'depth of field' (only if no shader of their own)
+   if gpostprocessingnotransparency=1
+    if object exist(segobj)=1 
+     if objecteffect(segobj)=0
+      set object effect segobj,65533
+     endif
+    endif
    endif
    make static object segobj,0,0,0,1
    hide object segobj : inc segobj
@@ -24535,6 +24599,11 @@ if gusefloorstate=1 then inc segobjstart,4
 if lastsegobj>=segobjstart then delete objects segobjstart,lastsegobj
 if gusefloorstate=1 then dec segobjstart,4
 
+rem FPGC - 250310 - ensure objecteffect array is cleared after any object delete
+for o=1 to 65535
+ if object exist(o)=0 then objecteffect(o)=0
+next o
+  
 rem FPSCV104RC7 - new lightmapper
 rem FPSCV105RC1 - added new flag 'glightmappingold'
 useoldlightmapper=glightmappingold
@@ -24585,7 +24654,7 @@ for e=1 to entityelementlist
      useobj=obj
      if 0
       rem old pre-V109 approach, V109 introduces new 1000+ collison mode to single out one solid mesh amongst non collider limbs
-      make static object useobj,tcolmode,tarbvalue,tshadow,0
+      `make static object useobj,tcolmode,tarbvalue,tshadow,0
      else
       if object exist(useobj)=1
        perform checklist for object limbs useobj
@@ -24615,6 +24684,14 @@ for e=1 to entityelementlist
           set object cull useobj,0
          else
           set object cull useobj,1
+         endif
+         rem FPGC - 250310 - make sure ALL static entities use 'depth of field' (only if no shader of their own)
+         if gpostprocessingnotransparency=1
+          if object exist(useobj)=1 
+           if objecteffect(useobj)=0
+            set object effect useobj,65533
+           endif
+          endif
          endif
          tarbvalue=entityprofile(tentid).materialindex
          tshadow=0 : tportalblocker=0
@@ -29061,6 +29138,7 @@ for debrisshapeindex=1 to 8
   bitdetails(debrisshapeindex).sizey=object size y(fragmento)
   bitdetails(debrisshapeindex).sizez=object size z(fragmento)
   delete object fragmento
+  objecteffect(fragmento)=0
   `
   rem mark start of fragment objects sequence (seeder,3xallfragments)
   bitdetails(debrisshapeindex).fragmentobjstart=fragmento
@@ -29131,6 +29209,11 @@ _part_free:
  `
  rem V106 RC3 quicker this way
  delete objects fragmentobjectoffset,fragmentobjectoffsetmax
+ `
+ rem FPGC - 250310 - ensure objecteffect array is cleared after any object delete
+ for o=1 to 65535
+  if object exist(o)=0 then objecteffect(o)=0
+ next o
  `
  rem Delete explosion objects
  gosub _part_freeexploders
@@ -29270,6 +29353,11 @@ _part_freeexploders:
  `
  rem V106 RC3 quicker this way
  delete objects explodedecalobjstart,explodedecalobjmax
+ `
+ rem FPGC - 250310 - ensure objecteffect array is cleared after any object delete
+ for o=1 to 65535
+  if object exist(o)=0 then objecteffect(o)=0
+ next o
  `
  rem Delete sounds
  for tsndid=explodesoundoffset to explodesoundmax
@@ -44180,7 +44268,8 @@ _postprocess_init:
   set current camera 0
   `
   rem Shader used to replace fixed-function pipeline
-  load effect depthoffieldfileobject$,65534,0
+  load effect depthoffieldfileobject$,65533,0 : rem static (LM+diffuse)
+  load effect depthoffieldfileobject$,65534,0 : rem dynamic (diffuse)
   `
   rem post process mode on
   gpostprocessmode=1
@@ -44194,6 +44283,7 @@ _postprocess_free:
  rem free any resources created by post process technique
  if gpostprocessmode=1
   delete effect 65535
+  delete effect 65533
   delete effect 65534
   delete object 65536
   delete camera 1 : set current camera 0
@@ -44224,10 +44314,18 @@ _postprocess_apply:
   if gpostprocessingnotransparency=0 then set static effect technique "alpha"
   if gpostprocessingnotransparency=1 then set static effect technique "depth"
   `
-  rem make sure ALL game objects use 'depth of field' (later; only if no shader of their own)
-  if gpostprocessing=2
+  rem switch the dynamic and static object renderer techniques
+  if gpostprocessingnotransparency=0 then set effect technique 65534,"alpha" : set effect technique 65533,"alphaLM"
+  if gpostprocessingnotransparency=1 then set effect technique 65534,"depth" : set effect technique 65533,"depthLM"
+  `
+  rem make sure ALL game objects use 'depth of field' (only if no shader of their own)
+  if gpostprocessingnotransparency=1
    for o=1 to 65535
-    if object exist(o)=1 then set object effect o,65534
+    if object exist(o)=1 
+     if objecteffect(o)=0
+      set object effect o,65534
+     endif
+    endif
    next o
   endif
   `
