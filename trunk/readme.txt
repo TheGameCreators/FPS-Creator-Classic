@@ -75,6 +75,8 @@ V1.1.7
 FPGC VARIANT SPECIFIC
 ---------------------
 
+ * Fixed several WW2 switches that where rotated 180 degrees (suspect new matrix calc with pivot!)
+ * Converted all LIGHT entity media to use new entitylight type (geoemtry+light source)
  * Issue of some WW2 switches being double rotated on the pivot. Corrected X models.
  * Added LIGHTOFFSETUP and LIGHTOFFSETZ to control position of light relative to entity
  * Added new ISMARKER=5 for FPE to create a special EntityLight (Entity with lightsource)
