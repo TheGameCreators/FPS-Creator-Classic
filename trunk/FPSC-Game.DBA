@@ -21656,9 +21656,7 @@ if object exist(obj)=1
  if tscale<>0 then scale object obj,tscale,tscale,tscale
  `
  if entityprofile(entid).fixnewy<>0
-  rem FPGC - 260310 - it seems for some reason the game is pivotng this angle TWICE, so just half if for now
-  `rotate object obj,0,entityprofile(entid).fixnewy,0
-  rotate object obj,0,entityprofile(entid).fixnewy/2,0
+  rotate object obj,0,entityprofile(entid).fixnewy,0
   fix object pivot obj
  endif
  `
@@ -27120,8 +27118,7 @@ _ode_setupewithphysics:
      `
      rem FPGC - 210210 - new ODE DLL requires all characters are 180 degree rotated (new internal matrix code)
      if entityprofile(entid).ischaracter=1
-      rem FPGC - 260310 - as I halved FIXNEWY (which seemed to apply twice), this is now redundant
-      `yrotate object tobj,180
+      yrotate object tobj,180
      endif
      `
      rem physics object is static or dynamic

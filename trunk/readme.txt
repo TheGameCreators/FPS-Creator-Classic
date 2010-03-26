@@ -9,7 +9,6 @@ History
 V1.1.7
 ------
 
- * Fixed issue of FIXNEWY rotating non character objects twice (WW2 switches where backwards)
  * Added 'depth' technique to new set of PS_2_0 shaders and redirected to those (newblosser flag)
  * Added new FPI condition AIONPOINT=X x=is the points id number - this will check if the entity is on the point (named by x)
  * Added BLOOM post process shader with others in 'effectbank\ps_2_0'
@@ -76,6 +75,7 @@ V1.1.7
 FPGC VARIANT SPECIFIC
 ---------------------
 
+ * Issue of some WW2 switches being double rotated on the pivot. Corrected X models.
  * Added LIGHTOFFSETUP and LIGHTOFFSETZ to control position of light relative to entity
  * Added new ISMARKER=5 for FPE to create a special EntityLight (Entity with lightsource)
  * New CONTROLLERHINT feature shows Logitech Dual Action controller which indicates what user can press
