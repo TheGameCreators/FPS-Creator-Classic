@@ -9,8 +9,8 @@ History
 V1.1.7
 ------
 
+ * Added 'depth' technique to new set of PS_2_0 shaders and redirected to those (newblosser flag)
  * Added new FPI condition AIONPOINT=X x=is the points id number - this will check if the entity is on the point (named by x)
- * NOTE: Post Process In Progress: Need to add DEPTH techniques to all shaders (and create new FF shader)
  * Added BLOOM post process shader with others in 'effectbank\ps_2_0'
  * Added POSTPROCESSING=1 flag to SETUP.INI to switch on/off the post process feature (performance)
  * Added new POST PROCESSING subroutines (U75+ only), typically depth of field, bloom, etc
