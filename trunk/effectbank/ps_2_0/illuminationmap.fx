@@ -103,8 +103,7 @@ float4 PS(
     float2 Tex3  : TEXCOORD2,
     float4 ppos  : TEXCOORD3) : COLOR
 {
-//    return (tex2D(Sampler, Tex3)+Diff+tex2D(Sampler3, Tex2)) * tex2D(Sampler2, Tex);
-    return float4(1,0.5,0,1);
+    return (tex2D(Sampler, Tex3)+Diff+tex2D(Sampler3, Tex2)) * tex2D(Sampler2, Tex);
 }
 float4 PSdepth(
     float4 Diff : COLOR0,

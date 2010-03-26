@@ -787,6 +787,8 @@ type entitylighttype
  islit as integer
  color as DWORD
  range as integer
+ offsetup as integer
+ offsetz as integer
 endtype
 type entitytriggertype
  areax1 as integer
@@ -874,6 +876,7 @@ type entityprofiletype
  quantity as integer
  ismarker as integer
  markerindex as integer
+ islightmarker as integer
  isobjective as integer
  light as entitylighttype
  trigger as entitytriggertype
@@ -19729,7 +19732,7 @@ rem FPGC - 100909 - refresh infinilight element indices once before debugger use
 if grefreshinfinilightentityindices=1
  for e=1 to entityelementlist
   entid=entityelement(e).bankindex
-  if entityprofile(entid).ismarker=2
+  if entityprofile(entid).islightmarker=1
    if entityelement(e).staticflag=0
     if gdynamiclightingstate=1
      tinfinilightindex=entityelement(e).eleprof.light.index
@@ -20952,6 +20955,10 @@ if file exist(tprofile$)=0
     if field$=tryfield$ then entityprofile(entid).light.color=value1
     tryfield$="lightrange"
     if field$=tryfield$ then entityprofile(entid).light.range=value1
+    tryfield$="lightoffsetup"
+    if field$=tryfield$ then entityprofile(entid).light.offsetup=value1
+    tryfield$="lightoffsetz"
+    if field$=tryfield$ then entityprofile(entid).light.offsetz=value1
     `
     rem trigger extras
     tryfield$="areax"
@@ -21232,7 +21239,15 @@ else
  undim tempe(0)
  `
 endif
-
+`
+rem FPGC - 260310 - new field as we now have pure lights and entity lights
+if entityprofile(entid).ismarker=2 or entityprofile(entid).ismarker=5
+ if entityprofile(entid).ismarker=5 then entityprofile(entid).ismarker=0
+ entityprofile(entid).islightmarker=1
+else
+ entityprofile(entid).islightmarker=0
+endif
+`
 rem fileexistelse
 else
  rem File not exist, provide debug information (only if file specified (old entities can be renamed and still hang around inside FPMs)
@@ -21641,7 +21656,9 @@ if object exist(obj)=1
  if tscale<>0 then scale object obj,tscale,tscale,tscale
  `
  if entityprofile(entid).fixnewy<>0
-  rotate object obj,0,entityprofile(entid).fixnewy,0
+  rem FPGC - 260310 - it seems for some reason the game is pivotng this angle TWICE, so just half if for now
+  `rotate object obj,0,entityprofile(entid).fixnewy,0
+  rotate object obj,0,entityprofile(entid).fixnewy/2,0
   fix object pivot obj
  endif
  `
@@ -24728,10 +24745,16 @@ for e=1 to entityelementlist
    endif
   endif
   rem add dynamic and static lights from entities (FPGC - 051109 - tcollisionbuildfirst - only on second pass (first is collision only))
-  if entityprofile(tentid).ismarker=2 and tcollisionbuildfirst=1
+  if entityprofile(tentid).islightmarker=1 and tcollisionbuildfirst=1
    lgx#=entityelement(e).x
    lgy#=entityelement(e).y
    lgz#=entityelement(e).z
+   if entityprofile(tentid).ismarker=0
+    rem FPGC - 260310 - new entitylight can be offset with lightoffsetup and lightoffsetz
+    lgy#=lgy#+entityprofile(tentid).light.offsetup
+    lgx#=lgx#+newxvalue(0,entityelement(e).ry,entityprofile(tentid).light.offsetz)
+    lgz#=lgz#+newzvalue(0,entityelement(e).ry,entityprofile(tentid).light.offsetz)
+   endif
    lgrange#=entityelement(e).eleprof.light.range
    lgr#=rgbr(entityelement(e).eleprof.light.color)
    lgg#=rgbg(entityelement(e).eleprof.light.color)
@@ -24964,7 +24987,7 @@ _universe_recreateinfinilights:
   entid=entityelement(e).bankindex
   tentid=entityelement(e).bankindex
   rem add dynamic and static lights from entities
-  if entityprofile(tentid).ismarker=2
+  if entityprofile(tentid).islightmarker=1
    lgx#=entityelement(e).x
    lgy#=entityelement(e).y
    lgz#=entityelement(e).z
@@ -27097,7 +27120,8 @@ _ode_setupewithphysics:
      `
      rem FPGC - 210210 - new ODE DLL requires all characters are 180 degree rotated (new internal matrix code)
      if entityprofile(entid).ischaracter=1
-      yrotate object tobj,180
+      rem FPGC - 260310 - as I halved FIXNEWY (which seemed to apply twice), this is now redundant
+      `yrotate object tobj,180
      endif
      `
      rem physics object is static or dynamic
@@ -37278,7 +37302,7 @@ if inputsys.mmx>=0 and inputsys.mmy>=0 and inputsys.mmx<maxx and inputsys.mmy<ma
       endif
       tscale#=100
      else
-      if entityprofile(showentityid).ismarker=2
+      if entityprofile(showentityid).islightmarker=1
        tscale#=(100/3.0)*2*(entityelement(tentitytoselect).eleprof.light.range/50.0)
       else
        tscale#=object size(entityelement(tentitytoselect).obj)*3.0
@@ -37305,7 +37329,7 @@ if inputsys.mmx>=0 and inputsys.mmy>=0 and inputsys.mmx<maxx and inputsys.mmy<ma
       endif
       tscale#=100
      else
-      if entityprofile(gridentity).ismarker=2
+      if entityprofile(gridentity).islightmarker=1
        tscale#=(100/3.0)*2*(grideleprof.light.range/50.0)
       else
        tscale#=object size(entitybankoffset+gridentity)*3.0
@@ -37328,7 +37352,7 @@ if inputsys.mmx>=0 and inputsys.mmy>=0 and inputsys.mmx<maxx and inputsys.mmy<ma
      tforcedynamic=1
     else
      hide object 3 : hide object 4 : show object 5
-     if entityprofile(showentityid).ismarker=2
+     if entityprofile(showentityid).islightmarker=1
       rem light range visual
       texture object 5,editorimagesoffset+18
       yrotate object 5,0
@@ -41963,42 +41987,46 @@ _interface_openpropertywindow:
    rem only allow arena mode static entity optional visuals
    tflagvis=1 : tflagai=0
   else
-   if entityprofile(gridentity).ismarker=0
-    tflagvis=1 : tflagmobile=1 : tflagobjective=1 : tflagsound=1 : tflagstats=1 : tflagspawn=1
-    if entityprofile(gridentity).ischaracter>0 then tflaglives=1 : tflagchar=1 : tflaghurtfall=1 : tflaghasweapon=1 : tflagsoundset=1 : tflagsound=0
-    if len(entityprofile(gridentity).isweapon$)>2 then tflagweap=1 : tflagammoclip=1 : tflagsound=0
-    if entityprofile(gridentity).isammo>0 then tflagammo=1 : tflagobjective=0 : tflagsound=0
+   rem FPGC - 260310 - new entitylight indicated with new flag
+   if entityprofile(gridentity).islightmarker=1
+    tflaglight=1
    else
-    if entityprofile(gridentity).ismarker=1
-     tflagai=0
-     rem FPGC - 160909 - filtered fpgcgenre=1 is shooter genre
-     if fpgcgenre=1
-      rem Shooter legacy properties for player start
-      if entityprofile(gridentity).lives>0
-       tflagstats=1 : tflaglives=1 : tflagsoundset=1 : tflaghurtfall=1 : tflaghasweapon=1 : tflagquantity=1
+    if entityprofile(gridentity).ismarker=0
+     tflagvis=1 : tflagmobile=1 : tflagobjective=1 : tflagsound=1 : tflagstats=1 : tflagspawn=1
+     if entityprofile(gridentity).ischaracter>0 then tflaglives=1 : tflagchar=1 : tflaghurtfall=1 : tflaghasweapon=1 : tflagsoundset=1 : tflagsound=0
+     if len(entityprofile(gridentity).isweapon$)>2 then tflagweap=1 : tflagammoclip=1 : tflagsound=0
+     if entityprofile(gridentity).isammo>0 then tflagammo=1 : tflagobjective=0 : tflagsound=0
+    else
+     if entityprofile(gridentity).ismarker=1
+      tflagai=0
+      rem FPGC - 160909 - filtered fpgcgenre=1 is shooter genre
+      if fpgcgenre=1
+       rem Shooter legacy properties for player start
+       if entityprofile(gridentity).lives>0
+        tflagstats=1 : tflaglives=1 : tflagsoundset=1 : tflaghurtfall=1 : tflaghasweapon=1 : tflagquantity=1
+       else
+        tflagsound=1 : tflagnosecond=1
+       endif
       else
-       tflagsound=1 : tflagnosecond=1
-      endif
-     else
-      rem Other genre's have no ammo quantity and weapon is renamed as equipment
-      if entityprofile(gridentity).lives=-1
-       rem checkpint marker is type 1
-       tflagsound=1 : tflagnosecond=1
-      else
-       tflagstats=1 : tflaglives=1 : tflagsoundset=1 : tflaghurtfall=1 : tflaghasweapon=1
+       rem Other genre's have no ammo quantity and weapon is renamed as equipment
+       if entityprofile(gridentity).lives=-1
+        rem checkpint marker is type 1
+        tflagsound=1 : tflagnosecond=1
+       else
+        tflagstats=1 : tflaglives=1 : tflagsoundset=1 : tflaghurtfall=1 : tflaghasweapon=1
+       endif
       endif
      endif
-    endif
-    if entityprofile(gridentity).ismarker=2 then tflaglight=1
-    if entityprofile(gridentity).ismarker=3 then tflagobjective=1 : tflagnosecond=1 : tflagifused=1
-    if entityprofile(gridentity).ismarker=4 then tflagtdecal=1
-    if entityprofile(gridentity).ismarker=3
-     if entityprofile(gridentity).markerindex=1
-      rem video
-      tflagvideo=1
-     else
-      rem sound
-      tflagsound=1
+     if entityprofile(gridentity).ismarker=3 then tflagobjective=1 : tflagnosecond=1 : tflagifused=1
+     if entityprofile(gridentity).ismarker=4 then tflagtdecal=1
+     if entityprofile(gridentity).ismarker=3
+      if entityprofile(gridentity).markerindex=1
+       rem video
+       tflagvideo=1
+      else
+       rem sound
+       tflagsound=1
+      endif
      endif
     endif
    endif
@@ -42014,7 +42042,7 @@ _interface_openpropertywindow:
   rem Name
   group=0 : setpropertybase(ENTITY_ADD_GROUP,strarr$(412)) : controlindex=0
   setpropertystring(group,grideleprof.name$,strarr$(413),strarr$(204)) : inc controlindex
-  if entityprofile(gridentity).ismarker=0 or entityprofile(gridentity).ismarker=2
+  if entityprofile(gridentity).ismarker=0 or entityprofile(gridentity).islightmarker=1
    if gmultiplayergame=0
     setpropertylist(group,controlindex,str$(gridentitystaticmode),strarr$(414),strarr$(205),0) : inc controlindex
    endif
@@ -42157,7 +42185,7 @@ _interface_openpropertywindow:
   `
   rem Physics Data (non-multiplayer)
   if gmultiplayergame=0
-   if entityprofile(gridentity).ismarker=0
+   if entityprofile(gridentity).ismarker=0 and entityprofile(gridentity).islightmarker=0
     propfield(group)=controlindex
     inc group : setpropertybase(ENTITY_ADD_GROUP,strarr$(596)) : controlindex=0
     if grideleprof.physics<>1 then grideleprof.physics=0

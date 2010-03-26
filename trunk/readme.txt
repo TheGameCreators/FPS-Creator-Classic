@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
 
+ * Fixed issue of FIXNEWY rotating non character objects twice (WW2 switches where backwards)
  * Added 'depth' technique to new set of PS_2_0 shaders and redirected to those (newblosser flag)
  * Added new FPI condition AIONPOINT=X x=is the points id number - this will check if the entity is on the point (named by x)
  * Added BLOOM post process shader with others in 'effectbank\ps_2_0'
@@ -75,6 +76,8 @@ V1.1.7
 FPGC VARIANT SPECIFIC
 ---------------------
 
+ * Added LIGHTOFFSETUP and LIGHTOFFSETZ to control position of light relative to entity
+ * Added new ISMARKER=5 for FPE to create a special EntityLight (Entity with lightsource)
  * New CONTROLLERHINT feature shows Logitech Dual Action controller which indicates what user can press
  * Added CONTROLLERHINT flag to SETUP.INI and a new controller folder in gamecore/huds/
  * NOTE: Do we need Button 4 (ENTER) now we have Button 2 (LEFT CLICK) on the controller for FPGC?
