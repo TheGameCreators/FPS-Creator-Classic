@@ -24203,7 +24203,7 @@ for lay=0 to layermax
          if gpostprocessingnotransparency=1
           rem need to use parent to set effect (not instance)
           parentofsegobj=selectionbankoffset+mapselection
-          if object exist(parentofsegobj)=1 
+          if object exist(parentofsegobj)=1
            for tlimb=0 to segmentprofileheader(seg).lastmeshmax
             if limb exist(parentofsegobj,tlimb)=1
              if segmentprofile(seg,tlimb).effectid=0
@@ -24591,10 +24591,10 @@ if csgpass=3
     set object transparency segobj,0
    else
     set object transparency segobj,4
-   endif      
+   endif
    rem FPGC - 250310 - make sure ALL static use 'depth of field' (only if no shader of their own)
    if gpostprocessingnotransparency=1
-    if object exist(segobj)=1 
+    if object exist(segobj)=1
      if objecteffect(segobj)=0
       set object effect segobj,65533
      endif
@@ -24618,7 +24618,7 @@ rem FPGC - 250310 - ensure objecteffect array is cleared after any object delete
 for o=1 to 65535
  if object exist(o)=0 then objecteffect(o)=0
 next o
-  
+
 rem FPSCV104RC7 - new lightmapper
 rem FPSCV105RC1 - added new flag 'glightmappingold'
 useoldlightmapper=glightmappingold
@@ -24702,7 +24702,7 @@ for e=1 to entityelementlist
          endif
          rem FPGC - 250310 - make sure ALL static entities use 'depth of field' (only if no shader of their own)
          if gpostprocessingnotransparency=1
-          if object exist(useobj)=1 
+          if object exist(useobj)=1
            if objecteffect(useobj)=0
             set object effect useobj,65533
            endif
@@ -43847,353 +43847,369 @@ Rem Hockeykid - 250210 - Dark AI create/declare constants
 Rem Hockeykid - 250210 - Dark AI control subroutine
 _control_darkai:
 
-obj=entityelement(e).obj
-if obj=0 then return
-if ai entity exist(obj)=0 then return
+ obj=entityelement(e).obj
+ if obj=0 then return
+ if ai entity exist(obj)=0 then return
 
-for y=0 to 19
-   if object position y(entityelement(e).obj) > container(y).y#-50.0 and object position y(entityelement(e).obj) < container(y).y#+50.0
-      k=y+1
-      ai set entity container obj,k : entitycontain=k : exit
-   endif
-next y
+ for y=0 to 19
+  if object position y(entityelement(e).obj) > container(y).y#-50.0 and object position y(entityelement(e).obj) < container(y).y#+50.0
+   k=y+1
+   ai set entity container obj,k : entitycontain=k : exit
+  endif
+ next y
 
-Rem reset ttarget(s)
-ttargetvisible=0
-ttargetvisibleduck=0
+ Rem reset ttarget(s)
+ ttargetvisible=0
+ ttargetvisibleduck=0
 
 
-rem Collect Sensory Information
-if ai get entity target id(obj,1)<>0
-   tobjtarget=entityelement(e).ttarget
-else
-   tobjtarget=0
-endif
-`ai get entity target id(obj,1)
-tsound=ai get entity heard sound(obj)
-ttargets=ai get entity count targets(obj)
+ rem Collect Sensory Information
+ if ai get entity target id(obj,1)<>0
+  tobjtarget=entityelement(e).ttarget
+ else
+  tobjtarget=0
+ endif
+ `ai get entity target id(obj,1)
+ tsound=ai get entity heard sound(obj)
+ ttargets=ai get entity count targets(obj)
 
-rem Collect Target Information
-if tobjtarget>0
-   if object exist(tobjtarget)=1
-      if tobjtarget=physicsplayerborble
-         ttargetx#=camera position x()
-         ttargety#=camera position y()
-         ttargetz#=camera position z()
-      else
-         ttargetx#=ai get entity target x(obj)
-         ttargety#=object position y(tobjtarget)
-         ttargetz#=ai get entity target z(obj)
-      endif
-      ttargetvisible=ai get entity can see(obj,ttargetx#,ttargetz#,1)
-      ttargetvisibleduck=ai get entity can see(obj,ttargetx#,ttargetz#,0)
-   endif
-endif
-
-print ttargets
-print ttargetvisible
-print ttargetvisibleduck
-
-tentid=entityelement(e).bankindex
-rem Collect Status Information
-tducking=ai get entity is ducking(obj)
-tmoving=ai get entity is moving(obj)
-tturning=ai get entity is turning(obj)
-tavoiding=ai get entity avoiding(obj)
-Rem Hockeykid - 250210 - Added line so Dark AI entities have footfall sounds
-if tmoving>0 then plrid=entityelement(e).fakeplayerid : Gosub _player_playfootfall
-rem collect ai motive
-motive=entityelement(e).darkai.aimotive
-
-rem Collect State Information
-tstate=entityelement(e).darkai.state
-
-rem Collect Position Information
-tmyx#=object position x(obj)
-tmyy#=object position y(obj)
-tmyz#=object position z(obj)
-
-rem Reset Actions
-ai set entity no look at point obj
-entityelement(e).darkai.running=0
-
-`Sees opponent
-if ttargetvisible=1 and entityelement(e).darkai.state=STATE_IDLE or ttargets>0 and entityelement(e).darkai.state=STATE_IDLE
-   if ttargetvisibleduck=0
-      entityelement(e).darkai.state=STATE_COVER
+ rem Collect Target Information
+ if tobjtarget>0
+  if object exist(tobjtarget)=1
+   if tobjtarget=physicsplayerborble
+    ttargetx#=camera position x()
+    ttargety#=camera position y()
+    ttargetz#=camera position z()
    else
-      entityelement(e).darkai.state=STATE_ATTACKING
+    ttargetx#=ai get entity target x(obj)
+    ttargety#=object position y(tobjtarget)
+    ttargetz#=ai get entity target z(obj)
    endif
-endif
-Rem current unused AI action is 9
+    ttargetvisible=ai get entity can see(obj,ttargetx#,ttargetz#,1)
+    ttargetvisibleduck=ai get entity can see(obj,ttargetx#,ttargetz#,0)
+  endif
+ endif
 
-Rem Hockeykid - 100310 - If not in any of these action modes and entity is set to automatic mode then turn off
-if entityelement(e).darkai.control=1
-   if entityelement(e).darkai.actionmode<>0 and entityelement(e).darkai.actionmode<>1 and entityelement(e).darkai.actionmode<>4
-      entityelement(e).darkai.control=0 : ai set entity control obj,0
-   endif
-endif
+ tentid=entityelement(e).bankindex
+ rem Collect Status Information
+ tducking=ai get entity is ducking(obj)
+ tmoving=ai get entity is moving(obj)
+ tturning=ai get entity is turning(obj)
+ tavoiding=ai get entity avoiding(obj)
+ Rem Hockeykid - 250210 - Added line so Dark AI entities have footfall sounds
+ if tmoving>0 then plrid=entityelement(e).fakeplayerid : Gosub _player_playfootfall
+ rem collect ai motive
+ motive=entityelement(e).darkai.aimotive
 
-rem Idle
-if tstate=STATE_IDLE
-   `Stand up
-   if tducking=1 then ai entity stand obj
+ rem Collect State Information
+ tstate=entityelement(e).darkai.state
 
-   Rem Hockeykid - All AI types
-   if entityelement(e).darkai.actionmode=5
-      ai entity move to closest sound obj
-   endif
-   if entityelement(e).darkai.actionmode=6
-      ai entity move away from sound obj
-   endif
-   Rem Hockeykid - 160310 - Patrol path, this command creates a path from current point to a path point
-   if entityelement(e).darkai.actionmode=8
-      i=entityelement(e).darkai.path
-      ai entity go to position obj,points(i).x,points(i).z
+ rem Collect Position Information
+ tmyx#=object position x(obj)
+ tmyy#=object position y(obj)
+ tmyz#=object position z(obj)
+
+ rem Reset Actions
+ ai set entity no look at point obj
+ entityelement(e).darkai.running=0
+
+ `Sees opponent
+ if ttargetvisible=1 and entityelement(e).darkai.state=STATE_IDLE or ttargets>0 and entityelement(e).darkai.state=STATE_IDLE
+  if ttargetvisibleduck=0
+   entityelement(e).darkai.state=STATE_COVER
+  else
+   entityelement(e).darkai.state=STATE_ATTACKING
+  endif
+ endif
+ Rem current unused AI action is 9
+
+ Rem Hockeykid - 100310 - If not in any of these action modes and entity is set to automatic mode then turn off
+ if entityelement(e).darkai.control=1
+  if entityelement(e).darkai.actionmode<>0 and entityelement(e).darkai.actionmode<>1 and entityelement(e).darkai.actionmode<>4
+   entityelement(e).darkai.control=0 : ai set entity control obj,0
+  endif
+ endif
+
+ rem Idle
+ if tstate=STATE_IDLE
+  `Stand up
+  if tducking=1 then ai entity stand obj
+
+  Rem Hockeykid - All AI types
+  if entityelement(e).darkai.actionmode=5
+   ai entity move to closest sound obj
+  endif
+  if entityelement(e).darkai.actionmode=6
+   ai entity move away from sound obj
+  endif
+  Rem Hockeykid - 160310 - Patrol path, this command creates a path from current point to a path point
+  if entityelement(e).darkai.actionmode=8
+   i=entityelement(e).darkai.path
+   ai entity go to position obj,points(i).x,points(i).z
+   entityelement(e).darkai.actionmode=0
+  endif
+  Rem Hockeykid - 020310 - Special area for allies only
+  if ai get entity team(obj)=1
+   `Follow the player
+    if entityelement(e).darkai.actionmode=1
+     if tsound=0
+      ai set entity control obj,1
+      ai entity follow player obj,60
+      entityelement(e).darkai.follow=1
+      Rem set the entities control variable to 1 so can be swtiched off later if on
+      entityelement(e).darkai.control=1
       entityelement(e).darkai.actionmode=0
+     endif
+    endif
+
+    if entityelement(e).darkai.actionmode=4 and entityelement(e).darkai.follow<>0
+     ai entity separate obj
+     Rem Hockeykid - 030310 - Reset control mode to manual
+     if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control obj,0
+     entityelement(e).darkai.follow=0
+     Rem Hockeykid - 030310 - Call actionmode 3 so entities stop right away
+     entityelement(e).darkai.actionmode=3
+     entityelement(e).darkai.follow=0
+    endif
+
+    if entityelement(e).darkai.actionmode<>4 and entityelement(e).darkai.follow<>0 and entityelement(e).darkai.actionmode<>0
+     ai entity separate obj
+     Rem Hockeykid - 030310 - Reset control mode to manual
+     if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control obj,0
+     entityelement(e).darkai.follow=0
+     ai entity go to position obj,entityelement(e).x,entityelement(e).z
+    endif
+
+
+  endif
+
+  Rem Hockeykid - 020310 -  Area for both enemies and allies
+  if ai get entity team(obj)<>0
+   `Move randomly
+   if entityelement(e).darkai.delay<timer() and entityelement(e).darkai.actionmode=2
+    entityelement(e).darkai.delay=timer()+2500
+    ai entity random move obj,300,1000
    endif
-    Rem Hockeykid - 020310 - Special area for allies only
-   if ai get entity team(obj)=1
-         `Follow the player
-      if entityelement(e).darkai.actionmode=1
-         if tsound=0
-            ai set entity control obj,1
-            ai entity follow player obj,60
-            entityelement(e).darkai.follow=1
-            Rem set the entities control variable to 1 so can be swtiched off later if on
-            entityelement(e).darkai.control=1
-            entityelement(e).darkai.actionmode=0
-         endif
-      endif
-
-      if entityelement(e).darkai.actionmode=4 and entityelement(e).darkai.follow<>0
-         ai entity separate obj
-         Rem Hockeykid - 030310 - Reset control mode to manual
-         if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control obj,0
-         entityelement(e).darkai.follow=0
-         Rem Hockeykid - 030310 - Call actionmode 3 so entities stop right away
-         entityelement(e).darkai.actionmode=3
-         entityelement(e).darkai.follow=0
-      endif
-
-      if entityelement(e).darkai.actionmode<>4 and entityelement(e).darkai.follow<>0 and entityelement(e).darkai.actionmode<>0
-         ai entity separate obj
-         Rem Hockeykid - 030310 - Reset control mode to manual
-         if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control obj,0
-         entityelement(e).darkai.follow=0
-         ai entity go to position obj,entityelement(e).x,entityelement(e).z
-      endif
-
-
+   `Survey Suroundings
+   if tturning=0 and tmoving=0 and entityelement(e).darkai.delay<timer() and entityelement(e).darkai.actionmode<>2
+    entityelement(e).darkai.delay=timer()+1000
+    ai entity look around obj,40,360
    endif
-
-   Rem Hockeykid - 020310 -  Area for both enemies and allies
-   if ai get entity team(obj)<>0
-      `Move randomly
-      if entityelement(e).darkai.delay<timer() and entityelement(e).darkai.actionmode=2
-         entityelement(e).darkai.delay=timer()+2500
-         ai entity random move obj,300,1000
-      endif
-      `Survey Suroundings
-      if tturning=0 and tmoving=0 and entityelement(e).darkai.delay<timer() and entityelement(e).darkai.actionmode<>2
-         entityelement(e).darkai.delay=timer()+1000
-         ai entity look around obj,40,360
-      endif
-      `Stop entity in its tracks
-      if entityelement(e).darkai.actionmode=3
-         Rem entity must be in manual mode
-         if entityelement(e).darkai.control=1 then ai set entity control obj,0 : entityelement(e).darkai.control=0
-         ai entity go to position obj,entityelement(e).x,entityelement(e).z
-         entityelement(e).darkai.actionmode=0
-      endif
-      `Ambushed
-      if entityelement(e).darkai.ambushed>0
-         entityelement(e).darkai.ambushed=0
-         entityelement(e).darkai.state=STATE_COVER
-         ai entity move to cover obj,entityelement(e).darkai.ambushx#,entityelement(e).darkai.ambushz#
-      endif
-
-      `Sees opponent
-      if ttargetvisible=1 or ttargets>0
-         if ttargetvisibleduck=0
-            entityelement(e).darkai.state=STATE_COVER
-         else
-            entityelement(e).darkai.state=STATE_ATTACKING
-         endif
-      endif
-
+   `Stop entity in its tracks
+   if entityelement(e).darkai.actionmode=3
+    Rem entity must be in manual mode
+    if entityelement(e).darkai.control=1 then ai set entity control obj,0 : entityelement(e).darkai.control=0
+    ai entity go to position obj,entityelement(e).x,entityelement(e).z
+    entityelement(e).darkai.actionmode=0
+   endif
+   `Ambushed
+   if entityelement(e).darkai.ambushed>0
+    entityelement(e).darkai.ambushed=0
+    entityelement(e).darkai.state=STATE_COVER
+    ai entity move to cover obj,entityelement(e).darkai.ambushx#,entityelement(e).darkai.ambushz#
+   endif
+   `Sees opponent
+   if ttargetvisible=1 or ttargets>0
+    if ttargetvisibleduck=0
+     entityelement(e).darkai.state=STATE_COVER
+    else
+     entityelement(e).darkai.state=STATE_ATTACKING
+    endif
    endif
 
+  endif
+ endif
 
-   `
-endif
+ rem Attacking
+ if tstate=STATE_ATTACKING or tstate=STATE_COVER
+  if entityelement(e).darkai.aistop=1 then ai entity stop obj
 
-rem Attacking
-if tstate=STATE_ATTACKING or tstate=STATE_COVER
-if entityelement(e).darkai.aistop=1 then ai entity stop obj
    if tobjtarget>0
-      ai entity look at position obj,ttargetx#,ttargetz#
-      if entityelement(e).darkai.state<>STATE_COVER and ttargetvisibleduck=0
-         entityelement(e).darkai.state=STATE_COVER : ai entity move to cover obj,ttargetx#,ttargetz#
-      endif
-      if entityelement(e).darkai.actionmode=7 and entityelement(e).darkai.state<>STATE_COVER and ttargetvisibleduck=0
-         entityelement(e).darkai.state=STATE_COVER
-         ai entity move to cover obj,ttargetx#,ttargetz#
-      endif
-      if ttargets>2 and tmoving=1
-         entityelement(e).darkai.running=1
-      endif
-      if entityelement(e).health<(entityelement(e).eleprof.strength*0.5)
-         if tmoving=0 then ai entity move to cover obj,ttargetx#,ttargetz# : entityelement(e).darkai.state=STATE_COVER
-         entityelement(e).darkai.running=1
+    ai entity look at position obj,ttargetx#,ttargetz#
+    if entityelement(e).darkai.state<>STATE_COVER and ttargetvisibleduck=0
+     entityelement(e).darkai.state=STATE_COVER : ai entity move to cover obj,ttargetx#,ttargetz#
+    endif
+
+    if entityelement(e).darkai.actionmode=7 and entityelement(e).darkai.state<>STATE_COVER and ttargetvisibleduck=0
+     entityelement(e).darkai.state=STATE_COVER
+     ai entity move to cover obj,ttargetx#,ttargetz#
+    endif
+
+    if ttargets>2 and tmoving=1
+     entityelement(e).darkai.running=1
+     endif
+
+     if entityelement(e).health<(entityelement(e).eleprof.strength*0.5)
+      if tmoving=0 then ai entity move to cover obj,ttargetx#,ttargetz# : entityelement(e).darkai.state=STATE_COVER
+      entityelement(e).darkai.running=1
+     else
+      if ttargetvisible=0
+       if tmoving=0 then ai entity move close obj,ttargetx#,ttargetz#,200.0
       else
-         if ttargetvisible=0
-            if tmoving=0 then ai entity move close obj,ttargetx#,ttargetz#,200.0
-         else
-           if entityelement(e).darkai.delay2>timer() and entityelement(e).darkai.state=STATE_ATTACKING then ai entity stop obj
-         endif
+       if entityelement(e).darkai.delay2>timer() and entityelement(e).darkai.state=STATE_ATTACKING then ai entity stop obj
       endif
+     endif
    else
-      ai entity search area obj
-      entityelement(e).darkai.state=STATE_IDLE
+    ai entity search area obj
+    entityelement(e).darkai.state=STATE_IDLE
    endif
+
    if entityelement(e).darkai.ambushed>0
       entityelement(e).darkai.ambushed=0
       ai entity look at position obj,entityelement(e).darkai.ambushx#,entityelement(e).darkai.ambushz#
    endif
-      if entityelement(e).darkai.state<>STATE_ATTACKING and ttargetvisibleduck>0
-         entityelement(e).darkai.state=STATE_ATTACKING
-      endif
-endif
+   if entityelement(e).darkai.state<>STATE_ATTACKING and ttargetvisibleduck>0
+    entityelement(e).darkai.state=STATE_ATTACKING
+    endif
+ endif
 
-rem Open Attacking
-if tstate=STATE_ATTACKING
-   if ai get entity is ducking(obj)=1 or (entityelement(e).darkai.running=1 and tmoving=1)
-      ai entity stand obj
-   endif
-   if entityelement(e).darkai.delay2<timer()
-      entityelement(e).darkai.delay2=timer()+1500
-      instrafe=1
-      if tmoving=0 then ai entity strafe target obj
+ rem Open Attacking
+ if tstate=STATE_ATTACKING
+  if ai get entity is ducking(obj)=1 or (entityelement(e).darkai.running=1 and tmoving=1)
+   ai entity stand obj
+  endif
+
+  if entityelement(e).darkai.delay2<timer()
+   entityelement(e).darkai.delay2=timer()+1500
+   instrafe=1
+   if tmoving=0 then ai entity strafe target obj
+  else
+   instrafe=0
+  endif
+
+ endif
+
+ rem Cover
+ if tstate=STATE_COVER
+  if entityelement(e).darkai.delay<timer()
+   tscaley=object size y(obj)/2.0
+   t3dvischeck=static raycast(tmyx#,tmyy#-(tscaley*0.75),tmyz#,ttargetx#,ttargety#,ttargetz#)
+   if t3dvischeck=0
+    ai entity stand obj
+    entityelement(e).darkai.delay=timer()+500+rnd(2000)
    else
-      instrafe=0
+    if ai get entity is ducking(obj)=1 or (entityelement(e).darkai.running=1 and tmoving=1)
+     ai entity stand obj
+     entityelement(e).darkai.delay=timer()+500+rnd(2000)
+    else
+     ai entity duck obj
+     if entityelement(e).health<(entityelement(e).eleprof.strength*0.5)
+      entityelement(e).darkai.delay=timer()+2000+rnd(5000)
+     else
+      entityelement(e).darkai.delay=timer()+1000+rnd(3000)
+     endif
+    endif
    endif
-endif
 
-rem Cover
-if tstate=STATE_COVER
-   if entityelement(e).darkai.delay<timer()
-      tscaley=object size y(obj)/2.0
-      t3dvischeck=static raycast(tmyx#,tmyy#-(tscaley*0.75),tmyz#,ttargetx#,ttargety#,ttargetz#)
-      if t3dvischeck=0
-         ai entity stand obj
-         entityelement(e).darkai.delay=timer()+500+rnd(2000)
-      else
-         if ai get entity is ducking(obj)=1 or (entityelement(e).darkai.running=1 and tmoving=1)
-            ai entity stand obj
-            entityelement(e).darkai.delay=timer()+500+rnd(2000)
-         else
-            ai entity duck obj
-            if entityelement(e).health<(entityelement(e).eleprof.strength*0.5)
-               entityelement(e).darkai.delay=timer()+2000+rnd(5000)
-            else
-               entityelement(e).darkai.delay=timer()+1000+rnd(3000)
-            endif
-         endif
-      endif
-   endif
-endif
+  endif
+ endif
 
-rem Retreat
-if tstate=STATE_RETREAT
-   `Stand up
-   if tducking=1 then ai entity stand obj
-   `Run
-   entityelement(e).darkai.running=1
-   `Move to cover
-   if tmoving=0 and ttargetvisible=1
-      ai entity move to cover obj,ttargetx#,ttargetz#
-   endif
-   `Return to idle
-   if ttargetvisible=0 and ttargetvisibleduck=0
-      entityelement(e).darkai.state=STATE_IDLE
-   endif
-endif
+ rem Retreat
+ if tstate=STATE_RETREAT
+  `Stand up
+  if tducking=1 then ai entity stand obj
+  `Run
+  entityelement(e).darkai.running=1
+  `Move to cover
+  if tmoving=0 and ttargetvisible=1
+   ai entity move to cover obj,ttargetx#,ttargetz#
+  endif
+  `Return to idle
+  if ttargetvisible=0 and ttargetvisibleduck=0
+   entityelement(e).darkai.state=STATE_IDLE
+  endif
+ endif
 
 rem Apply New Actions
 `if entityelement(e).darkai.running=1 and ai get entity is ducking(obj)=0
    `ai set entity speed obj,(entityelement(e).eleprof.speed*2.0)/2.0
 `else
-   ai set entity speed obj,entityelement(e).eleprof.speed/2.0
+ ai set entity speed obj,entityelement(e).eleprof.speed/2.0
 `endif
 
-
-remstart tmyx#=entityelement(e).x-tmyx#
-tmyz#=entityelement(e).z-tmyz#
-tda2#=atanfull(ai get entity destination x(obj),ai get entity destination z(obj))
-tdforex#=newxvalue(0,tda2#,15.0)
-tdforez#=newzvalue(0,tda2#,15.0)
-if static raycast(toldx#,toldy#+15,toldz#,entityelement(e).x+tdforex#,entityelement(e).y+15,entityelement(e).z+tdforez#)<>0
+ remstart
+ tmyx#=entityelement(e).x-tmyx#
+ tmyz#=entityelement(e).z-tmyz#
+ tda2#=atanfull(ai get entity destination x(obj),ai get entity destination z(obj))
+ tdforex#=newxvalue(0,tda2#,15.0)
+ tdforez#=newzvalue(0,tda2#,15.0)
+ if static raycast(toldx#,toldy#+15,toldz#,entityelement(e).x+tdforex#,entityelement(e).y+15,entityelement(e).z+tdforez#)<>0
   entityelement(e).x=toldx#
   entityelement(e).z=toldz#
- endif   remend
+ endif
+ remend
 
-rem Apply Direction
-tentx#=ai get entity x(obj)
-tentz#=ai get entity z(obj)
-tmovx#=ai get entity move x(obj)
-tmovz#=ai get entity move z(obj)
-entityelement(e).mover.da=ai get entity angle y(obj)
-entityelement(e).x=tentx#
-entityelement(e).z=tentz#
+ rem Apply Direction
+ tentx#=ai get entity x(obj)
+ tentz#=ai get entity z(obj)
+ tmovx#=ai get entity move x(obj)
+ tmovz#=ai get entity move z(obj)
+ entityelement(e).mover.da=ai get entity angle y(obj)
+ entityelement(e).x=tentx#
+ entityelement(e).z=tentz#
 
-rem Apply Animation
-entityelement(e).darkai.action=0
-if tmoving=1
-   moveangle#=wrapvalue(atanfull(tmovx#,tmovz#))
-    viewangle#=wrapvalue(ai get entity angle y(obj))
-    diffangle#=moveangle#-viewangle# : conda#=diffangle#
-    if conda#>180 then conda#=360-conda#
-    if conda#<-180 then conda#=conda#+360
-    entityelement(e).darkai.action=1
-    if conda#>80.0 then entityelement(e).darkai.action=4
-    if conda#<-80.0 then entityelement(e).darkai.action=3
-    if conda#<-120.0 or conda#>120.0 then entityelement(e).darkai.action=2
-endif
+ rem Apply Animation
+ entityelement(e).darkai.action=0
+ if tmoving=1
+  moveangle#=wrapvalue(atanfull(tmovx#,tmovz#))
+  viewangle#=wrapvalue(ai get entity angle y(obj))
+  diffangle#=moveangle#-viewangle# : conda#=diffangle#
+  if conda#>180 then conda#=360-conda#
+  if conda#<-180 then conda#=conda#+360
+  entityelement(e).darkai.action=1
+  if conda#>80.0 then entityelement(e).darkai.action=4
+  if conda#<-80.0 then entityelement(e).darkai.action=3
+  if conda#<-120.0 or conda#>120.0 then entityelement(e).darkai.action=2
+ endif
 
-Gosub _darkai_blood
+ Gosub _darkai_blood
 
-Rem Cross-Layer Interaction
-ttilex#=tentx#/100
-ttiley#=tenty#/100
-ttilez#=tentz#/100
+ Rem Cross-Layer Interaction
+ ttilex#=tentx#/100
+ ttiley#=tenty#/100
+ ttilez#=tentz#/100
 
-
-
-Rem Calculate Zone Info
-
+ Rem Calculate Zone Info
 
 return
 
 _darkai_finddoors:
+ return
+ for e=1 to entityelementlist
+  if entityelement(e).obj>0
+   obj=entityelement(e).obj
+   entid=entityelement(e).bankindex
+   if entityelement(e).eleprof.physics=3 and entityelement(e).eleprof.transparency=0 and entityelement(e).eleprof.isimmobile=1
+    entityelement(e).darkai.isdoor=1
+   else
 
-for e=1 to entityelementlist
-   if entityelement(e).obj>0
-      obj=entityelement(e).obj
-      tentid=entityelement(e).bankindex
-      if entityelement(e).eleprof.physics=3 and entityelement(e).eleprof.transparency=0
-         entityelement(e).darkai.isdoor=1
-      endif
+    Rem Hockeykid - 270310 - Add any non door, dynamic, immobile object as an obstacle
+    if entityprofile(entid).isweapon=0 and entityprofile(entid).isammo=0 and entityprofile(entid).ischaracter=0
+     if entityelement(e).eleprof.physics<>3 and entityelement(e).eleprof.isimmobile=1 and object size x(obj)>=4 and object size y(obj)>=4
+      if object size y(obj)>=60 then height=1 else height=0
+      Rem run check for container
+      for y=0 to 19
+       if object position y(obj) > container(y).y#-50.0 and object position y(obj) < container(y).y#+50.0
+        k=y+1
+        entitycontain=k : exit
+       endif
+      next y
+      ai add static obstacle obj,height,entitycontain
+     endif
+    endif
+
    endif
-next e
+  endif
+ next e
+ ai complete obstacles
 
 return
 
 _darkai_debug:
 for y=0 to 2000 step 100
-   k=y-100+2
-   c=y/100
-   ai debug show obstacle bounds c,k
+ k=y-100+2
+ c=y/100
+ ai debug show obstacle bounds c,k
 next y
 Rem debug view cones
 ai debug show view arcs 550
@@ -44201,63 +44217,63 @@ return
 
 _darkai_blood:
 
-if entityelement(e).darkai.ehit>1
-   tbullethitflesh=entityelement(e).darkai.ehit
-   bulletrayhit=1
-   distx#=entityelement(e).darkai.ambushx#-entityelement(e).x
-   disty#=entityelement(e).darkai.ambushy#-entityelement(e).y
-   distz#=entityelement(e).darkai.ambushy#-entityelement(e).z
-   dist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
-   bulletrayhitdist#=dist#
-    Rem Hockeykid - 270210 - Creat blood splat if hit
-   decalid=entitydecal(tentid,1)
-   if decalid>0
-      x2#=tmyx# : y2#=tmyy# : z2#=tmyz#
-      x1#=entityelement(e).darkai.ambushx# : y1#=entityelement(e).darkai.ambushy# : z1#=entityelement(e).darkai.ambushy#
-      rem direction from player to entity
-      tix#=x2#-x1# : tiy#=y2#-y1# : tiz#=z2#-z1#
-      tdd#=sqrt(abs(tix#*tix#)+abs(tiy#*tiy#)+abs(tiz#*tiz#))
-      tix#=tix#/tdd# : tiy#=tiy#/tdd# : tiz#=tiz#/tdd#
-      rem find point of impact
-      tix#=tix#*(bulletrayhitdist#-10.0)
-      tiy#=tiy#*(bulletrayhitdist#-10.0)
-      tiz#=tiz#*(bulletrayhitdist#-10.0)
-      rem create a splat decal
-      decalscalemodx=0 : rem FPSCV101 - fix
-      Rem Hockeykid - 270210 - added rnd(8) to y height so blood splay is not always at the same y
-      decalorient=0 : decalx=x1#+tix# : decaly=y1#+tiy#+rnd(8) : decalz=z1#+tiz#
-      originatore=-1 : gosub _decalelement_create
-   endif
-   if tbullethitflesh>0
+ if entityelement(e).darkai.ehit>1
+  tbullethitflesh=entityelement(e).darkai.ehit
+  bulletrayhit=1
+  distx#=entityelement(e).darkai.ambushx#-entityelement(e).x
+  disty#=entityelement(e).darkai.ambushy#-entityelement(e).y
+  distz#=entityelement(e).darkai.ambushy#-entityelement(e).z
+  dist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
+  bulletrayhitdist#=dist#
+  Rem Hockeykid - 270210 - Create blood splat if hit
+  decalid=entitydecal(tentid,1)
+  if decalid>0
+   x2#=tmyx# : y2#=tmyy# : z2#=tmyz#
+   x1#=entityelement(e).darkai.ambushx# : y1#=entityelement(e).darkai.ambushy# : z1#=entityelement(e).darkai.ambushy#
+   rem direction from player to entity
+   tix#=x2#-x1# : tiy#=y2#-y1# : tiz#=z2#-z1#
+   tdd#=sqrt(abs(tix#*tix#)+abs(tiy#*tiy#)+abs(tiz#*tiz#))
+   tix#=tix#/tdd# : tiy#=tiy#/tdd# : tiz#=tiz#/tdd#
+   rem find point of impact
+   tix#=tix#*(bulletrayhitdist#-10.0)
+   tiy#=tiy#*(bulletrayhitdist#-10.0)
+   tiz#=tiz#*(bulletrayhitdist#-10.0)
+   rem create a splat decal
+   decalscalemodx=0 : rem FPSCV101 - fix
+   Rem Hockeykid - 270210 - added rnd(8) to y height so blood splay is not always at the same y
+   decalorient=0 : decalx=x1#+tix# : decaly=y1#+tiy#+rnd(8) : decalz=z1#+tiz#
+   originatore=-1 : gosub _decalelement_create
+  endif
+  if tbullethitflesh>0
    rem blood splat
-      tscorchtype3=8+rnd(3)
-      tscorchsize3#=10.0+((tbullethitflesh/100.0)*(20.0+rnd(20)))
-      if gbloodonfloor=1
-         rem FPSC - X9 - V109 - 310308 - if flagged, blood is redirected to floor
-         if bulletrayhit>0
-            tempx#=entityelement(bulletrayhit).x
-            tempy#=entityelement(bulletrayhit).y
-            tempz#=entityelement(bulletrayhit).z
-            tempraytofloor#=static raycast(tempx#,tempy#+25,tempz#,tempx#,tempy#-125,tempz#)
-         endif
-      endif
-      add static scorch tscorchsize3#,tscorchtype3
+   tscorchtype3=8+rnd(3)
+   tscorchsize3#=10.0+((tbullethitflesh/100.0)*(20.0+rnd(20)))
+   if gbloodonfloor=1
+    rem FPSC - X9 - V109 - 310308 - if flagged, blood is redirected to floor
+    if bulletrayhit>0
+     tempx#=entityelement(bulletrayhit).x
+     tempy#=entityelement(bulletrayhit).y
+     tempz#=entityelement(bulletrayhit).z
+     tempraytofloor#=static raycast(tempx#,tempy#+25,tempz#,tempx#,tempy#-125,tempz#)
+    endif
    endif
-   entityelement(e).darkai.ehit=0
-endif
+   add static scorch tscorchsize3#,tscorchtype3
+  endif
+  entityelement(e).darkai.ehit=0
+ endif
 
 return
 
 _darkai_stop:
-   ai entity go to position entityelement(e).obj,entityelement(e).x,entityelement(e).z
+ ai entity go to position entityelement(e).obj,entityelement(e).x,entityelement(e).z
 return
 _darkai_stopfollow:
-if ai get entity team(entityelement(e).obj)=1
-   ai entity separate entityelement(e).obj
-   if entityelement(e).darkai.control=1 then ai set entity control entityelement(e).obj,0 : entityelement(e).darkai.control=0
-   ai entity go to position entityelement(e).obj,entityelement(e).x,entityelement(e).z
-   entityelement(e).darkai.follow=0
-endif
+ if ai get entity team(entityelement(e).obj)=1
+  ai entity separate entityelement(e).obj
+  if entityelement(e).darkai.control=1 then ai set entity control entityelement(e).obj,0 : entityelement(e).darkai.control=0
+  ai entity go to position entityelement(e).obj,entityelement(e).x,entityelement(e).z
+  entityelement(e).darkai.follow=0
+ endif
 
 return
 
@@ -44346,7 +44362,7 @@ _postprocess_apply:
   rem make sure ALL game objects use 'depth of field' (only if no shader of their own)
   if gpostprocessingnotransparency=1
    for o=1 to 65535
-    if object exist(o)=1 
+    if object exist(o)=1
      if objecteffect(o)=0
       set object effect o,65534
      endif
