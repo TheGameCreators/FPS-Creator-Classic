@@ -6145,7 +6145,16 @@ _entity_stealpriorityandgivetoe:
   if entityelement(e).priorityai=0
    if entityelement(lastlogicpriorityfurtheste).priorityai=1
     if entityelement(lastlogicpriorityfurtheste).priorityduration=0
-     tste=e : e=lastlogicpriorityfurtheste : gosub _entity_removeefromprioritylist
+     tste=e : e=lastlogicpriorityfurtheste
+     gosub _entity_removeefromprioritylist
+     rem FPGC - 290310 - when priority stolen from entity character, they could be MID animation, so switch back to idle
+     tttentid=entityelement(e).bankindex
+     if entityprofile(tttentid).ischaracter=1
+      entityelement(e).animset=1+1
+      entityelement(e).destanimframe=0
+      entityelement(e).animframe=0
+      entityelement(e).animtime=0
+     endif
      e=tste : entityelement(e).logiccount=0
      gosub _entity_addetoprioritylist
     endif
