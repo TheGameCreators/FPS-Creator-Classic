@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
 
+ * Fixed issue causing universe object culler to fail when camera one created
  * Added 'depth' technique to new set of PS_2_0 shaders and redirected to those (newblosser flag)
  * Added new FPI condition AIONPOINT=X x=is the points id number - this will check if the entity is on the point (named by x)
  * Added BLOOM post process shader with others in 'effectbank\ps_2_0'
