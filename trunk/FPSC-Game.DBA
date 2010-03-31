@@ -1797,8 +1797,10 @@ type decalelementtype
  originator as integer
  scalemodx as float
  scalemody as float
+ particleix as float
+ particlemirror as integer
 endtype
-global decalelementmax=100
+global decalelementmax=200
 dim decalelement(decalelementmax) as decalelementtype
 
 `
@@ -6422,7 +6424,8 @@ for e=1 to entityelementlist
     if entityelement(e).ai.libindex=entityelement(e).ai.libdestroy or entityelement(e).ai.libindex=entityelement(e).ai.libinit
      entityelement(e).logiccount=0
     endif
-    if entityprofile(entid).ismarker<>0
+    rem FPGC - 300310 - constant dynamic lighting and flame (decal mode 7)
+    if entityprofile(entid).ismarker<>0 or entityprofile(entid).islightmarker=1
      rem checkpoint, lights, triggers and emissions
      entityelement(e).logiccount=0
     endif
@@ -7760,6 +7763,7 @@ if tindex<>0
   rem 4-once face up
   rem 5-loop face up
   rem 6-character-spot-decal (at end of entity characters gun if available)
+  rem 7-spawn decal based particle (flame or fire)
   decalorient=0
   decalx=entityelement(e).x : decalz=entityelement(e).z
   if entityelement(e).decalmode>=4 and entityelement(e).decalmode<=5
@@ -7791,17 +7795,6 @@ if tindex<>0
      decalx=limb position x(tobj,tobjlimb)
      decaly=limb position y(tobj,tobjlimb)
      decalz=limb position z(tobj,tobjlimb)
-` see if close up decal position corrected
-`     tdx#=(mex#-decalx)
-`     tdy#=(mey#-decaly)
-`     tdz#=(mez#-decalz)
-`     tdd#=sqrt(abs(tdx#*tdx#)+abs(tdz#*tdz#)+abs(tdy#*tdy#))
-`     tdx#=(tdx#/tdd#)*30.0
-`     tdy#=(tdy#/tdd#)*30.0
-`     tdz#=(tdz#/tdd#)*30.0
-`     decalx=decalx+tdx#
-`     decaly=decaly+tdy#
-`     decalz=decalz+tdz#
     endif
    endif
    decalorient=3
@@ -7820,6 +7813,12 @@ if tindex<>0
     originatore=e : gosub _decalelement_continue
     entityelement(e).decalslotused=currentdecald
    endif
+  endif
+  if entityelement(e).decalmode=7
+   rem FPGC - 300310 - spawn a decal based particle fragment (for new flame and fire) (once)
+   decalorient=7
+   entityelement(e).decalindex=0
+   originatore=e : gosub _decalelement_create
   endif
  endif
 endif
@@ -19076,6 +19075,12 @@ if d<decalelementmax
  decalelement(d).frame=0
  decalelement(d).orient=decalorient
  decalelement(d).originator=originatore
+ if decalelement(d).orient=7
+  rem FPGC - 300310 - decal based particle adjust the Y pos, mirror and IX
+  decalelement(d).ypos=decalelement(d).ypos-(rnd(10)/20.0)
+  decalelement(d).particleix=(5-rnd(10))/100.0
+  decalelement(d).particlemirror=rnd(1)
+ endif
  rem prepare decal object
  tobj=decalelement(d).obj
  ty=decal(decalid).offsety
@@ -19095,6 +19100,11 @@ if d<decalelementmax
   point object tobj,camera position x(),camera position y(),camera position z()
  endif
  if decalelement(d).orient=4
+  point object tobj,camera position x(),camera position y(),camera position z()
+  move object tobj,5.0
+ endif
+ if decalelement(d).orient=7
+  rem FPGC - 300310 - spawn a decal based particle fragment (for new flame and fire) (once)
   point object tobj,camera position x(),camera position y(),camera position z()
   move object tobj,5.0
  endif
@@ -19139,8 +19149,14 @@ for f=1 to decalelementmax
  if decalelement(f).active=1
   rem update decal object
   tobj=decalelement(f).obj : tdetonate=0
-`  rem if decal not in visible screen, destroy for performance - off no code
+  rem if decal not in visible screen, destroy for performance - off no code
   if tdetonate=0
+   rem possible movement
+   if decalelement(f).orient=7
+    rem FPGC - 300310 - decal based particle moves in 3D space
+    decalelement(f).xpos=decalelement(f).xpos+(((decalelement(f).particleix/100.0)*100.0)*timeelapsed#)
+    decalelement(f).ypos=decalelement(f).ypos+(0.33*timeelapsed#)
+   endif  
    rem animation
    decalid=decalelement(f).decalid
    if decalelement(f).frame<decal(decalid).framemax-1
@@ -19169,17 +19185,37 @@ for f=1 to decalelementmax
     if decalelement(f).orient=3
      point object tobj,camera position x(),camera position y(),camera position z()
     endif
+    if decalelement(f).orient=7
+     rem FPGC - 300310 - decal based particle faces camera always and moves
+     ty=decal(decalid).offsety
+     position object tobj,decalelement(f).xpos,decalelement(f).ypos+ty,decalelement(f).zpos
+     point object tobj,camera position x(),camera position y(),camera position z()
+     rem also affect the alpha of the decal
+     pt#=decal(decalid).framemax
+     p#=(decal(decalid).framemax-decalelement(f).frame)/pt#
+     set alpha mapping on tobj,sin(p#*180)*20
+    endif
     rem animation UVs
-    tframe=decalelement(f).frame
+    if decalelement(f).orient=7
+     rem FPGC - 300310 - decal based particle only uses first animation frame
+     tframe=0
+    else
+     tframe=decalelement(f).frame
+    endif
     ty=tframe/decal(decalid).across : tx=tframe-(ty*decal(decalid).across)
-    q#=1.0/(decal(decalid).across+0.0) : tx#=tx*q# : ty#=ty*q#
+    qx#=1.0/(decal(decalid).across+0.0) : tx#=tx*qx#
+    qy#=1.0/(decal(decalid).across+0.0) : ty#=ty*qy#
+    if decalelement(f).orient=7 and decalelement(f).particlemirror=1
+     rem FPGC - 300310 - decal based particle can mirror the image
+     tx#=(tx*qx#)+qx# : qx#=qx#*-1
+    endif
     lock vertexdata for limb tobj,0,1
-    set vertexdata uv 0,tx#+q#,ty#
+    set vertexdata uv 0,tx#+qx#,ty#
     set vertexdata uv 1,tx#,ty#
-    set vertexdata uv 2,tx#+q#,ty#+q#
+    set vertexdata uv 2,tx#+qx#,ty#+qy#
     set vertexdata uv 3,tx#,ty#
-    set vertexdata uv 4,tx#,ty#+q#
-    set vertexdata uv 5,tx#+q#,ty#+q#
+    set vertexdata uv 4,tx#,ty#+qy#
+    set vertexdata uv 5,tx#+qx#,ty#+qy#
     unlock vertexdata
    endif
   endif
@@ -21284,6 +21320,8 @@ rem FPGC - 260310 - new field as we now have pure lights and entity lights
 if entityprofile(entid).ismarker=2 or entityprofile(entid).ismarker=5
  if entityprofile(entid).ismarker=5 then entityprofile(entid).ismarker=0
  entityprofile(entid).islightmarker=1
+ rem FPGC - 300310 - entitylights always active as they may control a dynamic light and possibly decal-particle(mode7)
+ entityprofile(entid).phyalways=1
 else
  entityprofile(entid).islightmarker=0
 endif
@@ -25029,6 +25067,12 @@ _universe_recreateinfinilights:
    lgx#=entityelement(e).x
    lgy#=entityelement(e).y
    lgz#=entityelement(e).z
+   if entityprofile(tentid).ismarker=0
+    rem FPGC - 260310 - new entitylight can be offset with lightoffsetup and lightoffsetz
+    lgy#=lgy#+entityprofile(tentid).light.offsetup
+    lgx#=lgx#+newxvalue(0,entityelement(e).ry,entityprofile(tentid).light.offsetz)
+    lgz#=lgz#+newzvalue(0,entityelement(e).ry,entityprofile(tentid).light.offsetz)
+   endif
    lgrange#=entityelement(e).eleprof.light.range
    lgr#=rgbr(entityelement(e).eleprof.light.color)
    lgg#=rgbg(entityelement(e).eleprof.light.color)

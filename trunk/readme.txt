@@ -76,6 +76,7 @@ V1.1.7
 FPGC VARIANT SPECIFIC
 ---------------------
 
+ * Added extra functionality to add DECAL MODE 7 (particle fragments), used for candle flame/fire/etc
  * Fixed several WW2 switches that where rotated 180 degrees (suspect new matrix calc with pivot!)
  * Converted all LIGHT entity media to use new entitylight type (geoemtry+light source)
  * Issue of some WW2 switches being double rotated on the pivot. Corrected X models.
