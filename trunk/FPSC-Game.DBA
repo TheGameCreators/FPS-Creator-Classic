@@ -6261,14 +6261,45 @@ if gcontrollerhint=1 and gxbox<>0
  if gcontrollerhinthudid>0
   hud(gcontrollerhinthudid).image=gcontrollerhintbase
   if gplayercanpressenterhere=1
-   hud(gcontrollerhinthudid).image=gcontrollerhintbuttontwo
+   hud(gcontrollerhinthudid).image=gcontrollerhintbuttonuse
   else
-   if movement<>0
-    hud(gcontrollerhinthudid).image=gcontrollerhintbuttonwalk
+   if crouchmode<>0
+    hud(gcontrollerhinthudid).image=gcontrollerhintbuttonduck
+   else
+    if jumpaction<>0
+     hud(gcontrollerhinthudid).image=gcontrollerhintbuttonjump
+    else
+     if (plrkeySHIFT)=1
+      hud(gcontrollerhinthudid).image=gcontrollerhintbuttonrun
+     else
+      if movement<>0
+       if (plrkeyA)=1 then hud(gcontrollerhinthudid).image=gcontrollerhintbuttonwalk4
+       if (plrkeyD)=1 then hud(gcontrollerhinthudid).image=gcontrollerhintbuttonwalk3
+       if (plrkeyS)=1 then hud(gcontrollerhinthudid).image=gcontrollerhintbuttonwalk2
+       if (plrkeyW)=1 then hud(gcontrollerhinthudid).image=gcontrollerhintbuttonwalk1
+      else
+       tjtx2#=0 : tjty2#=0
+       if gxboxcontrollertype=0
+        tjtx2#=(joystick twist x()-32767.0)/(327.67*0.5)
+        tjty2#=(joystick twist y()-32767.0)/327.67
+       endif
+       if gxboxcontrollertype=1
+        tjtx2#=(joystick z()/10.0)
+        tjty2#=(joystick twist z()-32767.0)/327.67
+       endif
+       if tjtx2#>20 then hud(gcontrollerhinthudid).image=gcontrollerhintbuttonlook3
+       if tjtx2#<-20 then hud(gcontrollerhinthudid).image=gcontrollerhintbuttonlook4
+       if tjty2#>20 then hud(gcontrollerhinthudid).image=gcontrollerhintbuttonlook2
+       if tjty2#<-20 then hud(gcontrollerhinthudid).image=gcontrollerhintbuttonlook1
+      endif
+     endif
+    endif
    endif
   endif
   if sprite exist(gcontrollerhinthudid)=1
-   sprite gcontrollerhinthudid,-10000,-10000,hud(gcontrollerhinthudid).image
+   if hud(gcontrollerhinthudid).image>0
+    sprite gcontrollerhinthudid,-10000,-10000,hud(gcontrollerhinthudid).image
+   endif
   endif
  endif
 endif
@@ -25610,7 +25641,7 @@ _ai_hud_controller:
  rem FPGC - 220210 - Controller
  ttmouseclick=0 : tjtx#=0 : tjty#=0
  if gxbox=1
- rem some controllers do not use TWIST like the XBOX360 (right analog)
+  rem some controllers do not use TWIST like the XBOX360 (right analog)
   tjtx1#=(joystick x()/10.0)
   tjty1#=(joystick y()/10.0)
   tjtx2#=0 : tjty2#=0
@@ -26238,10 +26269,30 @@ if gcontrollerhint=1 and gxbox<>0
  gcontrollerhintbase=workhudimage
  `
  rem load in extra images for the controller hints
- workhudimagefile$="gamecore\huds\controller\overlay-B.png" : addfiletocollection(workhudimagefile$)
- gcontrollerhintbuttontwo=loadinternalimagecompressquality(workhudimagefile$,5,1)
- workhudimagefile$="gamecore\huds\controller\overlay-N.png" : addfiletocollection(workhudimagefile$)
- gcontrollerhintbuttonwalk=loadinternalimagecompressquality(workhudimagefile$,5,1)
+ workhudimagefile$="gamecore\huds\controller\use.png" : addfiletocollection(workhudimagefile$)
+ gcontrollerhintbuttonuse=loadinternalimagecompressquality(workhudimagefile$,5,1)
+ workhudimagefile$="gamecore\huds\controller\run.png" : addfiletocollection(workhudimagefile$)
+ gcontrollerhintbuttonrun=loadinternalimagecompressquality(workhudimagefile$,5,1)
+ workhudimagefile$="gamecore\huds\controller\duck.png" : addfiletocollection(workhudimagefile$)
+ gcontrollerhintbuttonduck=loadinternalimagecompressquality(workhudimagefile$,5,1)
+ workhudimagefile$="gamecore\huds\controller\jump.png" : addfiletocollection(workhudimagefile$)
+ gcontrollerhintbuttonjump=loadinternalimagecompressquality(workhudimagefile$,5,1)
+ workhudimagefile$="gamecore\huds\controller\walk1.png" : addfiletocollection(workhudimagefile$)
+ gcontrollerhintbuttonwalk1=loadinternalimagecompressquality(workhudimagefile$,5,1)
+ workhudimagefile$="gamecore\huds\controller\walk2.png" : addfiletocollection(workhudimagefile$)
+ gcontrollerhintbuttonwalk2=loadinternalimagecompressquality(workhudimagefile$,5,1)
+ workhudimagefile$="gamecore\huds\controller\walk3.png" : addfiletocollection(workhudimagefile$)
+ gcontrollerhintbuttonwalk3=loadinternalimagecompressquality(workhudimagefile$,5,1)
+ workhudimagefile$="gamecore\huds\controller\walk4.png" : addfiletocollection(workhudimagefile$)
+ gcontrollerhintbuttonwalk4=loadinternalimagecompressquality(workhudimagefile$,5,1)
+ workhudimagefile$="gamecore\huds\controller\look1.png" : addfiletocollection(workhudimagefile$)
+ gcontrollerhintbuttonlook1=loadinternalimagecompressquality(workhudimagefile$,5,1)
+ workhudimagefile$="gamecore\huds\controller\look2.png" : addfiletocollection(workhudimagefile$)
+ gcontrollerhintbuttonlook2=loadinternalimagecompressquality(workhudimagefile$,5,1)
+ workhudimagefile$="gamecore\huds\controller\look3.png" : addfiletocollection(workhudimagefile$)
+ gcontrollerhintbuttonlook3=loadinternalimagecompressquality(workhudimagefile$,5,1)
+ workhudimagefile$="gamecore\huds\controller\look4.png" : addfiletocollection(workhudimagefile$)
+ gcontrollerhintbuttonlook4=loadinternalimagecompressquality(workhudimagefile$,5,1)
  `
 endif
 
