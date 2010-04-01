@@ -2412,11 +2412,14 @@ if file exist(tfile$)=1
     `
     tryfield$="xbox"
     if field$=tryfield$
-     if value1=0 then gxbox=0 : gxboxinvert=0 : gxboxcontrollertype=0
-     if value1=1 then gxbox=1 : gxboxinvert=0 : gxboxcontrollertype=0
-     if value1=2 then gxbox=1 : gxboxinvert=1 : gxboxcontrollertype=0
-     if value1=3 then gxbox=1 : gxboxinvert=0 : gxboxcontrollertype=1
-     if value1=4 then gxbox=1 : gxboxinvert=1 : gxboxcontrollertype=1
+     rem FPGC - 010410 - only set if 'any' controller exists
+     if joystick information(0)>0
+      if value1=0 then gxbox=0 : gxboxinvert=0 : gxboxcontrollertype=0
+      if value1=1 then gxbox=1 : gxboxinvert=0 : gxboxcontrollertype=0
+      if value1=2 then gxbox=1 : gxboxinvert=1 : gxboxcontrollertype=0
+      if value1=3 then gxbox=1 : gxboxinvert=0 : gxboxcontrollertype=1
+      if value1=4 then gxbox=1 : gxboxinvert=1 : gxboxcontrollertype=1
+     endif
     endif
     `
     tryfield$="dynamiclighting" : if field$=tryfield$ then gdynamiclightingstate=value1
@@ -2845,6 +2848,23 @@ resetfilecollection()
 
 rem FPGC - 200310 - initialise FULL SCREEN EFFECTS (camera one) (moved from above to allow file capture)
 gosub _postprocess_init
+
+rem FPGC - 010410 - add controller graphics if flagged
+if gcontrollerhint<>0
+ addfiletocollection("gamecore\huds\controller\base.png")
+ addfiletocollection("gamecore\huds\controller\duck.png")
+ addfiletocollection("gamecore\huds\controller\jump.png")
+ addfiletocollection("gamecore\huds\controller\look1.png")
+ addfiletocollection("gamecore\huds\controller\look2.png")
+ addfiletocollection("gamecore\huds\controller\look3.png")
+ addfiletocollection("gamecore\huds\controller\look4.png")
+ addfiletocollection("gamecore\huds\controller\run.png")
+ addfiletocollection("gamecore\huds\controller\use.png")
+ addfiletocollection("gamecore\huds\controller\walk1.png")
+ addfiletocollection("gamecore\huds\controller\walk2.png")
+ addfiletocollection("gamecore\huds\controller\walk3.png")
+ addfiletocollection("gamecore\huds\controller\walk4.png")
+endif
 
 rem Add localisation text to final game
 if gcompilestandaloneexe=1
