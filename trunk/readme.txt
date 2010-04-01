@@ -9,6 +9,8 @@ History
 V1.1.7
 ------
 
+ * Adapted Project Blue's accuracy system to work with weapon wielding character's accuracy system
+ * Replaced accuracy system with Project Blue's accuracy system
  * Added Weapon wielding characters now use the fire iteration specified in their weapons gunspec  
  * Fixed bug with accuracy values being ignored by weapon shooting characters 
  * Added new action AIMOVETOSOUND will tell the entity to move the most recent sound that has been played within it's hearing range (sounds include: footsteps,reloading,gunshots etc) 

@@ -3254,9 +3254,6 @@ _main_game_core:
   ai set player ducking 0
  endif
  `
- Rem Hockeykid - 10410 - Quick debug for iterations
- print iterategrab
- print accuracygrab
  Rem Hockeykid - 300310 - Update AI sound
  AIUpdateSounds()
  Rem Hockeykid - 250210 - Update AI
@@ -7002,9 +6999,9 @@ if entityelement(e).fireweapon=1
    y1#=limb position y(obj,entityprofile(entid).firespotlimb)
    z1#=limb position z(obj,entityprofile(entid).firespotlimb)
   else
-   x1#=(entityelement(e).x)
-   y1#=(entityelement(e).y+45.0)
-   z1#=(entityelement(e).z)
+   x1#=entityelement(e).x
+   y1#=entityelement(e).y+45.0
+   z1#=entityelement(e).z
   endif
   `
   rem weapon type
@@ -7036,137 +7033,131 @@ if entityelement(e).fireweapon=1
    endif
    `
    rem gun data for accuracy
-   trayaccuracy=gun(tgunid).settings.accuracy
+   Rem Hockeykid - 040110 - Swapped to a float to work better with Plystire's accuracy system
+   `trayaccuracy=gun(tgunid).settings.accuracy
+   trayaccuracy#=gun(tgunid).settings.accuracy
    Rem Hockeykid - 10410 - Added iteratations for AI
    trayiter=1+gun(tgunid).settings.iterate
-   iterategrab=1+gun(tgunid).settings.iterate
-   accuracygrab=trayaccuracy
    `
    for iterate=1 to trayiter
-   rem project gun-line-for-shot (from raw-calc or target)
-   Rem Hockeykid - 010410 - Redo calculation for x1,y1, and z1 so each iteration has a different result
-   Rem Hockeykid - 10410 - Allow entities to use players accuracy style
-   if entityprofile(entid).firespotlimb>-1
-    x1#=limb position x(obj,entityprofile(entid).firespotlimb)+(trayaccuracy/2)-rnd(trayaccuracy)
-    y1#=limb position y(obj,entityprofile(entid).firespotlimb)+(trayaccuracy/2)-rnd(trayaccuracy)
-    z1#=limb position z(obj,entityprofile(entid).firespotlimb)+(trayaccuracy/2)-rnd(trayaccuracy)
-   else
-    x1#=(entityelement(e).x)+(trayaccuracy/2)-rnd(trayaccuracy)
-    y1#=(entityelement(e).y+45.0)+(trayaccuracy/2)-rnd(trayaccuracy)
-    z1#=(entityelement(e).z)+(trayaccuracy/2)-rnd(trayaccuracy)
-   endif
-   if entityelement(e).actualtarget<>0
-    rem no accuracy drift if close
-    x2#=entityelement(e).actualtargetx
-    y2#=entityelement(e).actualtargety
-    z2#=entityelement(e).actualtargetz
-    tdx#=abs(x2#-x1#)
-    tdy#=abs(y2#-y1#)
-    tdz#=abs(z2#-z1#)
-    tdd#=sqrt((tdx#*tdx#)+(tdy#*tdy#)+(tdz#*tdz#))
-    rem greater than 200 units add drift
-    if tdd#>200.0
-     rem add a basic distance drift to enemy shooing (human error)
-     trayaccuracy=(trayaccuracy*5)+rnd((tdd#-200)*2)
-     rem Work out final trajectory of shot
-     x2#=entityelement(e).actualtargetx+trayaccuracy-rnd(trayaccuracy*2)
-     y2#=entityelement(e).actualtargety+trayaccuracy-rnd(trayaccuracy*2)
-     z2#=entityelement(e).actualtargetz+trayaccuracy-rnd(trayaccuracy*2)
-    endif
-   else
-    position object hudbankoffset+3,x1#,y1#,z1#
-    rotate object hudbankoffset+3,0,entityelement(e).mover.da,0
-    move object hudbankoffset+3,gun(tgunid).settings.range
-    disable object zdepth hudbankoffset+3
-    x2#=object position x(hudbankoffset+3)+trayaccuracy-rnd(trayaccuracy*2)
-    y2#=object position y(hudbankoffset+3)+trayaccuracy-rnd(trayaccuracy*2)
-    z2#=object position z(hudbankoffset+3)+trayaccuracy-rnd(trayaccuracy*2)
-   endif
-   `
-   rem had bulletray hit anything solid
-   tbullethit=0 : tbullethitstatic=0
-   tbullethitmaterial=0 : tbullethitflesh=0
-   entityelement(e).raycastcount=0
-   dst#=static raycast(x1#,y1#,z1#,x2#,y2#,z2#)
-   if dst#<>0
-    x#=checklist fvalue a(6) : x2#=x#
-    y#=checklist fvalue b(6) : y2#=y#
-    z#=checklist fvalue c(6) : z2#=z#
-    tbullethitstatic=1 : tbullethit=1
-    tcolmaterial=get static collision value()-1
-    `if tcolmaterial>=0 and tcolmaterial<=8 then tbullethitmaterial=tcolmaterial : rem FPSCV101 - fix
-    if tcolmaterial>=0 and tcolmaterial<=99 then tbullethitmaterial=tcolmaterial
-   endif
-   `
-   rem if it hits player before wall, hurt player
-   if entityelement(e).actualtarget=1
-    dst#=intersect object(hudbankoffset+2,x1#,y1#,z1#,x2#,y2#,z2#)
-    if dst#<>0 or tdd#<125.0
-     tbullethitstatic=0
-    endif
-   endif
-   `
-   rem where wall not hit, must be a hit
-   if tbullethitstatic=0
-    trange#=gun(tgunid).settings.range
-    tperc#=(trange#-dst#)/trange#
-    if dst#<200 then tperc#=1.0
-    bulletdamage#=gun(tgunid).settings.damage : dec bulletdamage#,rnd(bulletdamage#/5)
-    if gun(tgunid).settings.damage>5
-     rem enemy fire always one half the players effectiveness after first few points
-     tperc#=tperc#*0.5
-    endif
-    tdamage#=bulletdamage#*tperc# : tdamage=tdamage#
-    if entityelement(e).actualtarget=1
-     rem player was the target
-     if tdamage>0 then gosub _player_takedamage
-     if player(1).health<=0 and playerstartstrength>0
-      rem hear the full sound of what killed you
-      if tsndid>0
-       playinternal3dsound(tsndid,camera position x(),camera position y(),camera position z())
-      endif
+    Rem Hockeykid - 040110 - Replaced old accuracy sytem with Plystire's
+    rem project gun-line-for-shot (from raw-calc or target)
+    if entityelement(e).actualtarget<>0
+     rem no accuracy drift if close
+     x2#=entityelement(e).actualtargetx
+     y2#=entityelement(e).actualtargety
+     z2#=entityelement(e).actualtargetz
+     tdx#=abs(x2#-x1#)
+     tdy#=abs(y2#-y1#)
+     tdz#=abs(z2#-z1#)
+     tdd#=sqrt((tdx#*tdx#)+(tdy#*tdy#)+(tdz#*tdz#))
+     rem greater than 200 units add drift
+     Rem Hockeykid - 10410 - Allow entities to use players accuracy style
+     if tdd#>200.0
+      rem add a basic distance drift to enemy shooing (human error)
+      `trayaccuracy=(trayaccuracy*5)+rnd((tdd#-200)*2)
+      rem Work out final trajectory of shot
+      x2#=entityelement(e).actualtargetx`+trayaccuracy-rnd(trayaccuracy*2)
+      y2#=entityelement(e).actualtargety`+trayaccuracy-rnd(trayaccuracy*2)
+      z2#=entityelement(e).actualtargetz`+trayaccuracy-rnd(trayaccuracy*2)
      endif
     else
-     rem entity was the target (store E while leap to other entity for damage control)
-     if entityelement(e).actualtarget>1 and tdamage>0
-      tdamagesource=0 : timpacttype=1
-      tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y : tdamagez#=entityelement(e).z
-      stte=e : e=entityelement(e).actualtarget-1 : tte=entityelement(e).actualtarget-1
-
-      entityelement(e).darkai.ambushed=1
-      entityelement(e).darkai.ambushx#=tdamagex#
-      entityelement(e).darkai.ambushz#=tdamagez#
-      entityelement(e).darkai.ehit=e
-
-      gosub _entity_deducthealth : e=stte
-      tentid=entityelement(e).bankindex
-      entid=entityelement(e).bankindex
-
+     position object hudbankoffset+3,x1#,y1#,z1#
+     tca#=rnd(360000.0)/1000.0
+     tcx#=cos(tca#) : tcy#=sin(tca#)
+     tcm#=rnd(trayaccuracy#*1000.0)/1000.0 : tcx#=tcx#*tcm# : tcy#=tcy#*tcm#
+     rotate object hudbankoffset+3,tcy#,entityelement(e).mover.da+tcx#,0
+     move object hudbankoffset+3,gun(tgunid).settings.range
+     disable object zdepth hudbankoffset+3
+     x2#=object position x(hudbankoffset+3)`+trayaccuracy-rnd(trayaccuracy*2)
+     y2#=object position y(hudbankoffset+3)`+trayaccuracy-rnd(trayaccuracy*2)
+     z2#=object position z(hudbankoffset+3)`+trayaccuracy-rnd(trayaccuracy*2)
+    endif
+    `
+    rem had bulletray hit anything solid
+    tbullethit=0 : tbullethitstatic=0
+    tbullethitmaterial=0 : tbullethitflesh=0
+    entityelement(e).raycastcount=0
+    dst#=static raycast(x1#,y1#,z1#,x2#,y2#,z2#)
+    if dst#<>0
+     x#=checklist fvalue a(6) : x2#=x#
+     y#=checklist fvalue b(6) : y2#=y#
+     z#=checklist fvalue c(6) : z2#=z#
+     tbullethitstatic=1 : tbullethit=1
+     tcolmaterial=get static collision value()-1
+     `if tcolmaterial>=0 and tcolmaterial<=8 then tbullethitmaterial=tcolmaterial : rem FPSCV101 - fix
+     if tcolmaterial>=0 and tcolmaterial<=99 then tbullethitmaterial=tcolmaterial
+    endif
+    `
+    rem if it hits player before wall, hurt player
+    if entityelement(e).actualtarget=1
+     dst#=intersect object(hudbankoffset+2,x1#,y1#,z1#,x2#,y2#,z2#)
+     if dst#<>0 or tdd#<125.0
+      tbullethitstatic=0
      endif
     endif
-    tbullethitstatic=0 : tbullethit=1
-    tbullethitflesh=1
-   endif
-   `
-   rem bullet result
-   if tbullethit=1
-    rem debris where the bullet struck
-    for p=1 to 32
-     if debris(p)=0
-      rem debris where the bullet struck
-      position particles p,x#,0,z#
-      position particle emissions p,0,y#/20.0,0
-      set particle emissions p,10
-      debris(p)=40
-      exit
+    `
+    rem where wall not hit, must be a hit
+    if tbullethitstatic=0
+     trange#=gun(tgunid).settings.range
+     tperc#=(trange#-dst#)/trange#
+     if dst#<200 then tperc#=1.0
+     bulletdamage#=gun(tgunid).settings.damage : dec bulletdamage#,rnd(bulletdamage#/5)
+     if gun(tgunid).settings.damage>5
+      rem enemy fire always one half the players effectiveness after first few points
+      tperc#=tperc#*0.5
      endif
-    next p
-    rem add scorch if hit universe static polygons
-    if tbullethitstatic=1
-     tscorchtype=gun(tgunid).settings.scorchtype
-     gosub _entity_doscorch
+     tdamage#=bulletdamage#*tperc# : tdamage=tdamage#
+     if entityelement(e).actualtarget=1
+      rem player was the target
+      if tdamage>0 then gosub _player_takedamage
+      if player(1).health<=0 and playerstartstrength>0
+       rem hear the full sound of what killed you
+       if tsndid>0
+        playinternal3dsound(tsndid,camera position x(),camera position y(),camera position z())
+       endif
+      endif
+     else
+      rem entity was the target (store E while leap to other entity for damage control)
+      if entityelement(e).actualtarget>1 and tdamage>0
+       tdamagesource=0 : timpacttype=1
+       tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y : tdamagez#=entityelement(e).z
+       stte=e : e=entityelement(e).actualtarget-1 : tte=entityelement(e).actualtarget-1
+
+       entityelement(e).darkai.ambushed=1
+       entityelement(e).darkai.ambushx#=tdamagex#
+       entityelement(e).darkai.ambushz#=tdamagez#
+       entityelement(e).darkai.ehit=e
+
+       gosub _entity_deducthealth : e=stte
+       tentid=entityelement(e).bankindex
+       entid=entityelement(e).bankindex
+
+      endif
+     endif
+     tbullethitstatic=0 : tbullethit=1
+     tbullethitflesh=1
     endif
-   endif
+    `
+    rem bullet result
+    if tbullethit=1
+     rem debris where the bullet struck
+     for p=1 to 32
+      if debris(p)=0
+       rem debris where the bullet struck
+       position particles p,x#,0,z#
+       position particle emissions p,0,y#/20.0,0
+       set particle emissions p,10
+       debris(p)=40
+       exit
+      endif
+     next p
+     rem add scorch if hit universe static polygons
+     if tbullethitstatic=1
+      tscorchtype=gun(tgunid).settings.scorchtype
+      gosub _entity_doscorch
+     endif
+    endif
    next iterate
    `
   else
@@ -16586,7 +16577,9 @@ if gunshoot=1
   rem BULLET
   rem gun data controls iterations and accuracy
   trayiter=1+gun(gunid).settings.iterate
-  trayaccuracy=gun(gunid).settings.accuracy
+  Rem Hockeykid - 040110 - Swapped to a float to work better with Plystire's accuracy system
+  `trayaccuracy=gun(gunid).settings.accuracy
+  trayaccuracy#=gun(gunid).settings.accuracy
   bulletdamage=gun(gunid).settings.damage
   `
   rem Special ZOOMODE kill in multiplayer
@@ -16601,16 +16594,20 @@ if gunshoot=1
   for traycount=1 to trayiter
    `
    rem project gun-line-for-shot
-   x1#=camera position x()+(trayaccuracy/2)-rnd(trayaccuracy)
-   y1#=camera position y()+(trayaccuracy/2)-rnd(trayaccuracy)
-   z1#=camera position z()+(trayaccuracy/2)-rnd(trayaccuracy)
+   Rem Hockeykid - 040110 - Replaced old accuracy sytem with Plystire's
+   x1#=camera position x()
+   y1#=camera position y()
+   z1#=camera position z()
    position object hudbankoffset+3,x1#,y1#,z1#
-   set object to camera orientation hudbankoffset+3
+   tca#=rnd(360000.0)/1000.0
+   tcx#=cos(tca#) : tcy#=sin(tca#)
+   tcm#=rnd(trayaccuracy#*1000.0)/1000.0 : tcx#=tcx#*tcm# : tcy#=tcy#*tcm#
+   rotate object hudbankoffset+3, camera angle x(0)+tcy#,camera angle y(0)+tcx#,camera angle z(0)
    move object hudbankoffset+3,gun(gunid).settings.range
    disable object zdepth hudbankoffset+3
-   x2#=object position x(hudbankoffset+3)+trayaccuracy-rnd(trayaccuracy*2)
-   y2#=object position y(hudbankoffset+3)+trayaccuracy-rnd(trayaccuracy*2)
-   z2#=object position z(hudbankoffset+3)+trayaccuracy-rnd(trayaccuracy*2)
+   x2#=object position x(hudbankoffset+3)
+   y2#=object position y(hudbankoffset+3)
+   z2#=object position z(hudbankoffset+3)
    `
    rem reset bullethit vars
    bullethit=0 : bullethitstatic=0
