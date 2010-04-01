@@ -7033,17 +7033,16 @@ if entityelement(e).fireweapon=1
    endif
    `
    rem gun data for accuracy
-   Rem Hockeykid - 040110 - Swapped to a float to work better with Plystire's accuracy system
+   Rem Hockeykid - 010410 - Swapped to a float to work better with Plystire's accuracy system
    `trayaccuracy=gun(tgunid).settings.accuracy
    trayaccuracy#=gun(tgunid).settings.accuracy
    Rem Hockeykid - 10410 - Added iteratations for AI
    trayiter=1+gun(tgunid).settings.iterate
    `
    for iterate=1 to trayiter
-    Rem Hockeykid - 040110 - Replaced old accuracy sytem with Plystire's
+    Rem Hockeykid - 010410 - Replaced old accuracy sytem with Plystire's
     rem project gun-line-for-shot (from raw-calc or target)
     if entityelement(e).actualtarget<>0
-     rem no accuracy drift if close
      x2#=entityelement(e).actualtargetx
      y2#=entityelement(e).actualtargety
      z2#=entityelement(e).actualtargetz
@@ -7051,28 +7050,20 @@ if entityelement(e).fireweapon=1
      tdy#=abs(y2#-y1#)
      tdz#=abs(z2#-z1#)
      tdd#=sqrt((tdx#*tdx#)+(tdy#*tdy#)+(tdz#*tdz#))
-     rem greater than 200 units add drift
-     Rem Hockeykid - 10410 - Allow entities to use players accuracy style
-     if tdd#>200.0
-      rem add a basic distance drift to enemy shooing (human error)
-      `trayaccuracy=(trayaccuracy*5)+rnd((tdd#-200)*2)
-      rem Work out final trajectory of shot
-      x2#=entityelement(e).actualtargetx`+trayaccuracy-rnd(trayaccuracy*2)
-      y2#=entityelement(e).actualtargety`+trayaccuracy-rnd(trayaccuracy*2)
-      z2#=entityelement(e).actualtargetz`+trayaccuracy-rnd(trayaccuracy*2)
-     endif
+     range=tdd#+15
     else
-     position object hudbankoffset+3,x1#,y1#,z1#
-     tca#=rnd(360000.0)/1000.0
-     tcx#=cos(tca#) : tcy#=sin(tca#)
-     tcm#=rnd(trayaccuracy#*1000.0)/1000.0 : tcx#=tcx#*tcm# : tcy#=tcy#*tcm#
-     rotate object hudbankoffset+3,tcy#,entityelement(e).mover.da+tcx#,0
-     move object hudbankoffset+3,gun(tgunid).settings.range
-     disable object zdepth hudbankoffset+3
-     x2#=object position x(hudbankoffset+3)`+trayaccuracy-rnd(trayaccuracy*2)
-     y2#=object position y(hudbankoffset+3)`+trayaccuracy-rnd(trayaccuracy*2)
-     z2#=object position z(hudbankoffset+3)`+trayaccuracy-rnd(trayaccuracy*2)
+     range=gun(tgunid).settings.range
     endif
+    position object hudbankoffset+3,x1#,y1#,z1#
+    tca#=rnd(360000.0)/1000.0
+    tcx#=cos(tca#) : tcy#=sin(tca#)
+    tcm#=rnd(trayaccuracy#*1000.0)/1000.0 : tcx#=tcx#*tcm# : tcy#=tcy#*tcm#
+    rotate object hudbankoffset+3,tcy#,entityelement(e).mover.da+tcx#,0
+    move object hudbankoffset+3,range`gun(tgunid).settings.range
+    disable object zdepth hudbankoffset+3
+    x2#=object position x(hudbankoffset+3)`+trayaccuracy-rnd(trayaccuracy*2)
+    y2#=object position y(hudbankoffset+3)`+trayaccuracy-rnd(trayaccuracy*2)
+    z2#=object position z(hudbankoffset+3)`+trayaccuracy-rnd(trayaccuracy*2)
     `
     rem had bulletray hit anything solid
     tbullethit=0 : tbullethitstatic=0
@@ -16577,7 +16568,7 @@ if gunshoot=1
   rem BULLET
   rem gun data controls iterations and accuracy
   trayiter=1+gun(gunid).settings.iterate
-  Rem Hockeykid - 040110 - Swapped to a float to work better with Plystire's accuracy system
+  Rem Hockeykid - 010410 - Swapped to a float to work better with Plystire's accuracy system
   `trayaccuracy=gun(gunid).settings.accuracy
   trayaccuracy#=gun(gunid).settings.accuracy
   bulletdamage=gun(gunid).settings.damage
@@ -16594,7 +16585,7 @@ if gunshoot=1
   for traycount=1 to trayiter
    `
    rem project gun-line-for-shot
-   Rem Hockeykid - 040110 - Replaced old accuracy sytem with Plystire's
+   Rem Hockeykid - 010410 - Replaced old accuracy sytem with Plystire's
    x1#=camera position x()
    y1#=camera position y()
    z1#=camera position z()
@@ -44144,7 +44135,7 @@ _control_darkai:
    entityelement(e).darkai.control=0 : ai set entity control obj,0
   endif
  endif
- if AIHeardSound(obje)>0 then Print "AI Has Heard a sound"
+
  rem Idle
  if tstate=STATE_IDLE
   `Stand up
@@ -44607,7 +44598,6 @@ _postprocess_apply:
 return
 
 Function AIUpdateSounds()
- totalsounds=0
  arraycount=array count(aisound())
  for i=1 to arraycount
   if aisound(i).alive=1
@@ -44616,7 +44606,6 @@ Function AIUpdateSounds()
    if timer()-aisound(i).time>=300 then aisound(i).alive=0
   endif
  next i
- print "totalsounds="+str$(totalsounds)
 Endfunction
 
 Function AIHeardSound(obje)
