@@ -1779,6 +1779,20 @@ type decaltype
  offsety as float
  framemax as integer
  scale as integer
+ randomstartx as float
+ randomstarty as float
+ randomstartz as float
+ linearmotionx as float
+ linearmotiony as float
+ linearmotionz as float
+ randommotionx as float
+ randommotiony as float
+ randommotionz as float
+ mirrormode as integer
+ camerazshift as float
+ scaleonlyx as float
+ lifeincrement as float
+ alphaintensity as float 
 endtype
 global decalmax=10
 dim decal(decalmax) as decaltype
@@ -1791,13 +1805,15 @@ type decalelementtype
  xpos as float
  ypos as float
  zpos as float
- frame as integer
+ frame as float
  framedelay as float
  orient as integer
  originator as integer
  scalemodx as float
  scalemody as float
  particleix as float
+ particleiy as float
+ particleiz as float
  particlemirror as integer
 endtype
 global decalelementmax=200
@@ -2240,6 +2256,7 @@ global gaspectratio : gaspectratio=0
 global gnewblossershaders : gnewblossershaders=1
 global gpostprocessing : gpostprocessing=0
 global gpostprocessingnotransparency : gpostprocessingnotransparency=0
+global gshowaioutlines : gshowaioutlines=0
 global gsystemmemorycapoff : gsystemmemorycapoff=0
 
 rem Version Control - TEST GAME Mode
@@ -2405,6 +2422,7 @@ if file exist(tfile$)=1
     tryfield$="hsrmode" : if field$=tryfield$ then ghsrmode=value1
     tryfield$="newblossershaders" : if field$=tryfield$ then gnewblossershaders=value1
     tryfield$="postprocessing" : if field$=tryfield$ then gpostprocessing=value1
+    tryfield$="showaioutlines" : if field$=tryfield$ then gshowaioutlines=value1
     `
     tryfield$="usesky" : if field$=tryfield$ then guseskystate=value1
     tryfield$="usefloor" : if field$=tryfield$ then gusefloorstate=value1
@@ -2728,9 +2746,6 @@ if trueappname$="FPSC-MapEditor"
  goto _mapeditorexecutable
 endif
 
-rem FPGC - 200310 - initialise FULL SCREEN EFFECTS (camera one)
-gosub _postprocess_init
-
 rem
 rem GAME MAIN
 rem
@@ -2754,36 +2769,12 @@ rem Init app (lee - 140310 - sync rate was 38)
 sync on : sync rate 0 : autocam off : disable systemkeys
 hide mouse : backdrop off : disable escapekey
 
-if 0
- set cameras to stereoscopic stereoscopicmode,1,2,3,4
-endif
-
 rem If Game is NOT IN TEST MODE, default is full screen shown
 if gtestgamemodefromeditor=0 and gcompilestandaloneexe=0
  `
  rem Show window
  timestampactivity(0,"Start Fullscreen")
  gosub _main_game_showwindownow
- `
- `rem If FREEWARE PROMPT tampered, exit (EA ONLY VERSION)
- `if grealgameviewstate=1
- ` filename$="languagebank\"+language$+"\gamecore\huds\freeware.jpg"
- ` fsize=file size(filename$)
- ` if fsize=47319
- `  load image filename$,1
- `  if image exist(1)=1
- `   delete image 1
- `  else
- `   fsize=0
- `  endif
- ` endif
- ` if fsize<>47319
- `  screenprompt(img,strarr$(121))
- `  timestampactivity(0,strarr$(122))
- `  sleep 5000
- `  end
- ` endif
- `endif
  `
  rem optional splash or blank screen at Very Start of Execution
  cls 0 : sync : cls 0 : sync
@@ -2821,25 +2812,6 @@ if gtestgamemodefromeditor=0 and gcompilestandaloneexe=0
   next c
   MULTIPLAYER DISCONNECT
   `
-  rem OLD WAY
-  remstart
-  rem get IP
-  timestampactivity(0,"Getting serveripaddress$..")
-  if serveripaddress$=""
-   MULTIPLAYER CREATE TCP SERVER servername$
-   if len(glocalserveroverride$)=0
-    serveripaddress$=MULTIPLAYER GET IP ADDRESS()
-    for c=1 to len(serveripaddress$)
-     if mid$(serveripaddress$,c)=":" then serveripaddress$=left$(serveripaddress$,c-1) : exit
-    next c
-   else
-    serveripaddress$=glocalserveroverride$
-   endif
-   MULTIPLAYER DISCONNECT
-  endif
-  timestampactivity(0,"serveripaddress$="+serveripaddress$)
-  remend
-  `
   rem done with network stuff for now
   hide mouse
   `
@@ -2858,6 +2830,9 @@ endif
 
 rem Reset file collector
 resetfilecollection()
+
+rem FPGC - 200310 - initialise FULL SCREEN EFFECTS (camera one) (moved from above to allow file capture)
+gosub _postprocess_init
 
 rem Add localisation text to final game
 if gcompilestandaloneexe=1
@@ -18925,7 +18900,27 @@ next f
 return
 
 _decal_loaddata:
-
+`
+rem FPGC - 310310 - establish some defaults
+decal(decalid).across         = 4
+decal(decalid).down           = 4
+decal(decalid).offsety        = 0
+decal(decalid).scale          = 0
+decal(decalid).randomstartx   = 0
+decal(decalid).randomstarty   = 0
+decal(decalid).randomstartz   = 0
+decal(decalid).linearmotionx  = 0
+decal(decalid).linearmotiony  = 0
+decal(decalid).linearmotionz  = 0
+decal(decalid).randommotionx  = 0
+decal(decalid).randommotiony  = 0
+decal(decalid).randommotionz  = 0
+decal(decalid).mirrormode     = 0
+decal(decalid).camerazshift   = 500
+decal(decalid).scaleonlyx     = 100
+decal(decalid).lifeincrement  = 100
+decal(decalid).alphaintensity = 100
+`
 dim data$(100)
 filename$="gamecore\decals\"+decal$+"\decalspec.txt"
 addfiletocollection(filename$)
@@ -18954,6 +18949,22 @@ for l=0 to 99
    if field$="down" then decal(decalid).down=value1
    if field$="offsety" then decal(decalid).offsety=value1
    if field$="scale" then decal(decalid).scale=value1
+   `
+   rem FPGC - 310310 - additional fields for decal based particle function
+   if field$="randomstartx" then decal(decalid).randomstartx=value1
+   if field$="randomstarty" then decal(decalid).randomstarty=value1
+   if field$="randomstartz" then decal(decalid).randomstartz=value1
+   if field$="linearmotionx" then decal(decalid).linearmotionx=value1
+   if field$="linearmotiony" then decal(decalid).linearmotiony=value1
+   if field$="linearmotionz" then decal(decalid).linearmotionz=value1
+   if field$="randommotionx" then decal(decalid).randommotionx=value1
+   if field$="randommotiony" then decal(decalid).randommotiony=value1
+   if field$="randommotionz" then decal(decalid).randommotionz=value1
+   if field$="mirrormode" then decal(decalid).mirrormode=value1
+   if field$="camerazshift" then decal(decalid).camerazshift=value1
+   if field$="scaleonlyx" then decal(decalid).scaleonlyx=value1
+   if field$="lifeincrement" then decal(decalid).lifeincrement=value1
+   if field$="alphaintensity" then decal(decalid).alphaintensity=value1
    `
   endif
  endif
@@ -19077,9 +19088,15 @@ if d<decalelementmax
  decalelement(d).originator=originatore
  if decalelement(d).orient=7
   rem FPGC - 300310 - decal based particle adjust the Y pos, mirror and IX
-  decalelement(d).ypos=decalelement(d).ypos-(rnd(10)/20.0)
-  decalelement(d).particleix=(5-rnd(10))/100.0
-  decalelement(d).particlemirror=rnd(1)
+  decalelement(d).xpos=decalelement(d).xpos-(rnd(decal(decalid).randomstartx)/100.0)
+  decalelement(d).ypos=decalelement(d).ypos-(rnd(decal(decalid).randomstarty)/100.0)
+  decalelement(d).zpos=decalelement(d).zpos-(rnd(decal(decalid).randomstartz)/100.0)
+  decalelement(d).particleix=((decal(decalid).randommotionx/2)-rnd(decal(decalid).randommotionx))/100.0
+  decalelement(d).particleiy=((decal(decalid).randommotiony/2)-rnd(decal(decalid).randommotiony))/100.0
+  decalelement(d).particleiz=((decal(decalid).randommotionz/2)-rnd(decal(decalid).randommotionz))/100.0
+  if decal(decalid).mirrormode=0 then decalelement(d).particlemirror=0
+  if decal(decalid).mirrormode=1 then decalelement(d).particlemirror=1
+  if decal(decalid).mirrormode=2 then decalelement(d).particlemirror=rnd(1)
  endif
  rem prepare decal object
  tobj=decalelement(d).obj
@@ -19106,17 +19123,17 @@ if d<decalelementmax
  if decalelement(d).orient=7
   rem FPGC - 300310 - spawn a decal based particle fragment (for new flame and fire) (once)
   point object tobj,camera position x(),camera position y(),camera position z()
-  move object tobj,5.0
+  move object tobj,decal(decalid).camerazshift/100.0
  endif
  enable object zbias tobj,0.0,0.0
  rem texture for this decal type
  texture object tobj,decal(decalid).imageid
  rem scale the decal
  if decalscalemodx=0
-  decalelement(d).scalemodx=decal(decalid).scale
+  decalelement(d).scalemodx=decal(decalid).scale*(decal(decalid).scaleonlyx/100.0)
   decalelement(d).scalemody=decal(decalid).scale
  else
-  decalelement(d).scalemodx=decalscalemodx
+  decalelement(d).scalemodx=decalscalemodx*(decal(decalid).scaleonlyx/100.0)
   decalelement(d).scalemody=decalscalemody
  endif
  scale object tobj,decalelement(d).scalemodx,decalelement(d).scalemody,100
@@ -19155,7 +19172,11 @@ for f=1 to decalelementmax
    if decalelement(f).orient=7
     rem FPGC - 300310 - decal based particle moves in 3D space
     decalelement(f).xpos=decalelement(f).xpos+(((decalelement(f).particleix/100.0)*100.0)*timeelapsed#)
-    decalelement(f).ypos=decalelement(f).ypos+(0.33*timeelapsed#)
+    decalelement(f).ypos=decalelement(f).ypos+(((decalelement(f).particleiy/100.0)*100.0)*timeelapsed#)
+    decalelement(f).zpos=decalelement(f).zpos+(((decalelement(f).particleiz/100.0)*100.0)*timeelapsed#)    
+    decalelement(f).xpos=decalelement(f).xpos+((decal(decalid).linearmotionx/100.0)*timeelapsed#)
+    decalelement(f).ypos=decalelement(f).ypos+((decal(decalid).linearmotiony/100.0)*timeelapsed#)
+    decalelement(f).zpos=decalelement(f).zpos+((decal(decalid).linearmotionz/100.0)*timeelapsed#)
    endif  
    rem animation
    decalid=decalelement(f).decalid
@@ -19164,7 +19185,7 @@ for f=1 to decalelementmax
     decalelement(f).framedelay=decalelement(f).framedelay+timeelapsed#
     if decalelement(f).framedelay>=1
      decalelement(f).framedelay=0
-     decalelement(f).frame=decalelement(f).frame+1
+     decalelement(f).frame=decalelement(f).frame+(decal(decalid).lifeincrement/100.0)
     endif
    else
     rem no more animation
@@ -19193,7 +19214,7 @@ for f=1 to decalelementmax
      rem also affect the alpha of the decal
      pt#=decal(decalid).framemax
      p#=(decal(decalid).framemax-decalelement(f).frame)/pt#
-     set alpha mapping on tobj,sin(p#*180)*20
+     set alpha mapping on tobj,sin(p#*180)*decal(decalid).alphaintensity
     endif
     rem animation UVs
     if decalelement(f).orient=7
@@ -26763,6 +26784,7 @@ setuparr$(i)="hsrmode="+str$( ghsrmode ) : inc i
 setuparr$(i)="aspectratio="+str$( gaspectratio ) : inc i
 setuparr$(i)="newblossershaders="+str$( gnewblossershaders ) : inc i
 setuparr$(i)="postprocessing="+str$( gpostprocessing ) : inc i
+setuparr$(i)="showaioutlines="+str$( gshowaioutlines ) : inc i
 `
 setuparr$(i)="" : inc i
 setuparr$(i)="[GAMEMULTIPLAYER]" : inc i
@@ -41067,6 +41089,7 @@ if file exist(tfile$)=1
     `tryfield$="imageblockmode" : if field$=tryfield$ then gimageblockmode=value1
     tryfield$="newblossershaders" : if field$=tryfield$ then gnewblossershaders=value1
     tryfield$="postprocessing" : if field$=tryfield$ then gpostprocessing=value1
+    tryfield$="showaioutlines" : if field$=tryfield$ then gshowaioutlines=value1
     `
     rem arena settings
     tryfield$="gameobjectivetype" : if field$=tryfield$ then ggameobjectivetype=value1
@@ -41457,6 +41480,7 @@ _interface_savebuildgame:
  `setuparr$(i)="imageblockmode="+str$(gimageblockmode) : inc i
  setuparr$(i)="newblossershaders="+str$( gnewblossershaders ) : inc i
  setuparr$(i)="postprocessing="+str$( gpostprocessing ) : inc i
+ setuparr$(i)="showaioutlines="+str$( gshowaioutlines ) : inc i
  setuparr$(i)="" : inc i
  setuparr$(i)="multiplayergame="+str$(gmultiplayergame) : inc i
  setuparr$(i)="gameobjectivetype="+str$(ggameobjectivetype) : inc i
@@ -41868,6 +41892,7 @@ setuparr$(i)="optimizemode=1" : inc i
 setuparr$(i)="aspectratio="+str$( gaspectratio ) : inc i
 setuparr$(i)="newblossershaders="+str$( gnewblossershaders ) : inc i
 setuparr$(i)="postprocessing="+str$( gpostprocessing ) : inc i
+setuparr$(i)="showaioutlines="+str$( gshowaioutlines ) : inc i
 `
 setuparr$(i)="" : inc i
 setuparr$(i)="[GAMEMULTIPLAYER]" : inc i
@@ -44310,13 +44335,16 @@ _darkai_finddoors:
 return
 
 _darkai_debug:
-for y=0 to 2000 step 100
- k=y-100+2
- c=y/100
- ai debug show obstacle bounds c,k
-next y
-Rem debug view cones
-ai debug show view arcs 550
+ rem FPGC - 310310 - added SETUP.INI flag to control whether we see AI outlines
+ if gshowaioutlines=1
+  for y=0 to 2000 step 100
+   k=y-100+2
+   c=y/100
+   ai debug show obstacle bounds c,k
+  next y
+  Rem debug view cones
+  ai debug show view arcs 550
+ endif
 return
 
 _darkai_blood:

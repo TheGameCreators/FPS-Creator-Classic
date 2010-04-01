@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
 
+ * Added flag to SETUP.INI to control whether the AI debug guidelines show or not
  * Fixed issue causing universe object culler to fail when camera one created
  * Added 'depth' technique to new set of PS_2_0 shaders and redirected to those (newblosser flag)
  * Added new FPI condition AIONPOINT=X x=is the points id number - this will check if the entity is on the point (named by x)
@@ -76,6 +77,8 @@ V1.1.7
 FPGC VARIANT SPECIFIC
 ---------------------
 
+ * Added new level called CANDLE.FPM which demonstrates candle and alienglobe
+ * Finished off DECAL BASED PARTICLE support inside DECALSPEC.TXT (alienglobe)
  * Added extra functionality to add DECAL MODE 7 (particle fragments), used for candle flame/fire/etc
  * Fixed several WW2 switches that where rotated 180 degrees (suspect new matrix calc with pivot!)
  * Converted all LIGHT entity media to use new entitylight type (geoemtry+light source)
