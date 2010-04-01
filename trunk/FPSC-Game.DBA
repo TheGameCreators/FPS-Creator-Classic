@@ -34815,6 +34815,7 @@ rem Cursor for entity highlighting
 load image "editors\gfx\9.bmp",editorimagesoffset+7
 load image "editors\gfx\18.bmp",editorimagesoffset+18
 load image "editors\gfx\26.bmp",editorimagesoffset+26
+load image "editors\gfx\27.bmp",editorimagesoffset+27
 
 rem Load last-to-draw images for editor
 if file exist("editors\gfx\8.dds")=1
@@ -37554,8 +37555,15 @@ if inputsys.mmx>=0 and inputsys.mmy>=0 and inputsys.mmx<maxx and inputsys.mmy<ma
      hide object 3 : hide object 4 : show object 5
      if entityprofile(showentityid).islightmarker=1
       rem light range visual
-      texture object 5,editorimagesoffset+18
-      yrotate object 5,0
+      if entityprofile(showentityid).forwardfacing=1
+       rem FPGC - 010410 - with arrow
+       texture object 5,editorimagesoffset+27
+       yrotate object 5,gridentityrotatey#
+      else
+       rem blob
+       texture object 5,editorimagesoffset+18
+       yrotate object 5,0
+      endif
       if tshow=2
        modifyplaneimagestrip(5,2,0)
       else

@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
 
+ * Fixed build crash on large levels that use mixed primtypes (non-stock media)
  * Adapted Project Blue's accuracy system to work with weapon wielding character's accuracy system
  * Replaced accuracy system with Project Blue's accuracy system
  * Added Weapon wielding characters now use the fire iteration specified in their weapons gunspec  
