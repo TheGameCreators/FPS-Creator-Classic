@@ -9,6 +9,8 @@ History
 V1.1.7
 ------
 
+ * Added Weapon wielding characters now use the fire iteration specified in their weapons gunspec  
+ * Fixed bug with accuracy values being ignored by weapon shooting characters 
  * Added new action AIMOVETOSOUND will tell the entity to move the most recent sound that has been played within it's hearing range (sounds include: footsteps,reloading,gunshots etc) 
  * Added new condition AIHEARDSOUND=x will return true if a sound was heard within the entities hearing range (sounds include: footsteps,reloading,gunshots etc)
  * Added flag to SETUP.INI to control whether the AI debug guidelines show or not

@@ -1804,7 +1804,7 @@ type decaltype
  camerazshift as float
  scaleonlyx as float
  lifeincrement as float
- alphaintensity as float 
+ alphaintensity as float
 endtype
 global decalmax=10
 dim decal(decalmax) as decaltype
@@ -3254,6 +3254,9 @@ _main_game_core:
   ai set player ducking 0
  endif
  `
+ Rem Hockeykid - 10410 - Quick debug for iterations
+ print iterategrab
+ print accuracygrab
  Rem Hockeykid - 300310 - Update AI sound
  AIUpdateSounds()
  Rem Hockeykid - 250210 - Update AI
@@ -6999,9 +7002,9 @@ if entityelement(e).fireweapon=1
    y1#=limb position y(obj,entityprofile(entid).firespotlimb)
    z1#=limb position z(obj,entityprofile(entid).firespotlimb)
   else
-   x1#=entityelement(e).x
-   y1#=entityelement(e).y+45.0
-   z1#=entityelement(e).z
+   x1#=(entityelement(e).x)
+   y1#=(entityelement(e).y+45.0)
+   z1#=(entityelement(e).z)
   endif
   `
   rem weapon type
@@ -7034,8 +7037,24 @@ if entityelement(e).fireweapon=1
    `
    rem gun data for accuracy
    trayaccuracy=gun(tgunid).settings.accuracy
+   Rem Hockeykid - 10410 - Added iteratations for AI
+   trayiter=1+gun(tgunid).settings.iterate
+   iterategrab=1+gun(tgunid).settings.iterate
+   accuracygrab=trayaccuracy
    `
+   for iterate=1 to trayiter
    rem project gun-line-for-shot (from raw-calc or target)
+   Rem Hockeykid - 010410 - Redo calculation for x1,y1, and z1 so each iteration has a different result
+   Rem Hockeykid - 10410 - Allow entities to use players accuracy style
+   if entityprofile(entid).firespotlimb>-1
+    x1#=limb position x(obj,entityprofile(entid).firespotlimb)+(trayaccuracy/2)-rnd(trayaccuracy)
+    y1#=limb position y(obj,entityprofile(entid).firespotlimb)+(trayaccuracy/2)-rnd(trayaccuracy)
+    z1#=limb position z(obj,entityprofile(entid).firespotlimb)+(trayaccuracy/2)-rnd(trayaccuracy)
+   else
+    x1#=(entityelement(e).x)+(trayaccuracy/2)-rnd(trayaccuracy)
+    y1#=(entityelement(e).y+45.0)+(trayaccuracy/2)-rnd(trayaccuracy)
+    z1#=(entityelement(e).z)+(trayaccuracy/2)-rnd(trayaccuracy)
+   endif
    if entityelement(e).actualtarget<>0
     rem no accuracy drift if close
     x2#=entityelement(e).actualtargetx
@@ -7148,6 +7167,7 @@ if entityelement(e).fireweapon=1
      gosub _entity_doscorch
     endif
    endif
+   next iterate
    `
   else
    `
@@ -19242,7 +19262,7 @@ for f=1 to decalelementmax
     rem FPGC - 300310 - decal based particle moves in 3D space
     decalelement(f).xpos=decalelement(f).xpos+(((decalelement(f).particleix/100.0)*100.0)*timeelapsed#)
     decalelement(f).ypos=decalelement(f).ypos+(((decalelement(f).particleiy/100.0)*100.0)*timeelapsed#)
-    decalelement(f).zpos=decalelement(f).zpos+(((decalelement(f).particleiz/100.0)*100.0)*timeelapsed#)    
+    decalelement(f).zpos=decalelement(f).zpos+(((decalelement(f).particleiz/100.0)*100.0)*timeelapsed#)
     decalelement(f).xpos=decalelement(f).xpos+((decal(decalid).linearmotionx/100.0)*timeelapsed#)
     decalelement(f).ypos=decalelement(f).ypos+((decal(decalid).linearmotiony/100.0)*timeelapsed#)
     decalelement(f).zpos=decalelement(f).zpos+((decal(decalid).linearmotionz/100.0)*timeelapsed#)
