@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
 
+ * Changed script line cap from 150 to 350
  * Blood now works on all enemy on enemy attacks not just Dark AI vs Dark AI
  * Fixed build crash on large levels that use mixed primtypes (non-stock media)
  * Adapted Project Blue's accuracy system to work with weapon wielding character's accuracy system

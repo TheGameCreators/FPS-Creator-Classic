@@ -7139,7 +7139,7 @@ if entityelement(e).fireweapon=1
          tiz#=tiz#*(dist#-10.0)
          rem create a splat decal
          decalscalemodx=0 : rem FPSCV101 - fix
-         decalorient=0 : decalx=x1#+tix# : decaly=y1#+tiy# : decalz=z1#+tiz#
+         decalorient=0 : decalx=tdamagex#+tix# : decaly=y2#+tiy# : decalz=tdamagez#+tiz#
          originatore=-1 : gosub _decalelement_create
         endif
         rem blood splat
@@ -13289,10 +13289,10 @@ rem About to add conditions
 conindexfirst=conindexcount
 `
 rem Load AI Script Data from file
-dim data$(150)
+dim data$(350)
 load array aidir$+ai$,data$()
 addfiletocollection(aidir$+ai$)
-for l=0 to 149
+for l=0 to 349
  line$=data$(l)
  `
  rem V109 BETA8 - desc issue correction (ensure desc not empty)
@@ -44417,7 +44417,6 @@ rem Apply New Actions
   if conda#<-120.0 or conda#>120.0 then entityelement(e).darkai.action=2
  endif
  if entityelement(e).darkai.ehit=-1 then entityelement(e).darkai.ehit=0
- Gosub _darkai_blood
 
  Rem Cross-Layer Interaction
  ttilex#=tentx#/100
@@ -44471,55 +44470,6 @@ _darkai_debug:
   Rem debug view cones
   ai debug show view arcs 550
  endif
-return
-
-_darkai_blood:
- return
- if entityelement(e).darkai.ehit>1
-  tbullethitflesh=entityelement(e).darkai.ehit
-  bulletrayhit=1
-  distx#=entityelement(e).darkai.ambushx#-entityelement(e).x
-  disty#=entityelement(e).darkai.ambushy#-entityelement(e).y
-  distz#=entityelement(e).darkai.ambushy#-entityelement(e).z
-  dist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
-  bulletrayhitdist#=dist#
-  Rem Hockeykid - 270210 - Create blood splat if hit
-  decalid=entitydecal(tentid,1)
-  if decalid>0
-   x2#=tmyx# : y2#=tmyy# : z2#=tmyz#
-   x1#=entityelement(e).darkai.ambushx# : y1#=entityelement(e).darkai.ambushy# : z1#=entityelement(e).darkai.ambushy#
-   rem direction from player to entity
-   tix#=x2#-x1# : tiy#=y2#-y1# : tiz#=z2#-z1#
-   tdd#=sqrt(abs(tix#*tix#)+abs(tiy#*tiy#)+abs(tiz#*tiz#))
-   tix#=tix#/tdd# : tiy#=tiy#/tdd# : tiz#=tiz#/tdd#
-   rem find point of impact
-   tix#=tix#*(bulletrayhitdist#-10.0)
-   tiy#=tiy#*(bulletrayhitdist#-10.0)
-   tiz#=tiz#*(bulletrayhitdist#-10.0)
-   rem create a splat decal
-   decalscalemodx=0 : rem FPSCV101 - fix
-   Rem Hockeykid - 270210 - added rnd(8) to y height so blood splay is not always at the same y
-   decalorient=0 : decalx=x1#+tix# : decaly=y1#+tiy#+rnd(8) : decalz=z1#+tiz#
-   originatore=-1 : gosub _decalelement_create
-  endif
-  if tbullethitflesh>0
-   rem blood splat
-   tscorchtype3=8+rnd(3)
-   tscorchsize3#=10.0+((tbullethitflesh/100.0)*(20.0+rnd(20)))
-   if gbloodonfloor=1
-    rem FPSC - X9 - V109 - 310308 - if flagged, blood is redirected to floor
-    if bulletrayhit>0
-     tempx#=entityelement(bulletrayhit).x
-     tempy#=entityelement(bulletrayhit).y
-     tempz#=entityelement(bulletrayhit).z
-     tempraytofloor#=static raycast(tempx#,tempy#+25,tempz#,tempx#,tempy#-125,tempz#)
-    endif
-   endif
-   add static scorch tscorchsize3#,tscorchtype3
-  endif
-  entityelement(e).darkai.ehit=0
- endif
-
 return
 
 _darkai_stop:
