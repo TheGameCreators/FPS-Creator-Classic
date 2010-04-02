@@ -19200,9 +19200,9 @@ if d<decalelementmax
  decalelement(d).originator=originatore
  if decalelement(d).orient=7
   rem FPGC - 300310 - decal based particle adjust the Y pos, mirror and IX
-  decalelement(d).xpos=decalelement(d).xpos-(rnd(decal(decalid).randomstartx)/100.0)
-  decalelement(d).ypos=decalelement(d).ypos-(rnd(decal(decalid).randomstarty)/100.0)
-  decalelement(d).zpos=decalelement(d).zpos-(rnd(decal(decalid).randomstartz)/100.0)
+  decalelement(d).xpos=decalelement(d).xpos-((rnd(decal(decalid).randomstartx)-(decal(decalid).randomstartx/2))/100.0)
+  decalelement(d).ypos=decalelement(d).ypos-((rnd(decal(decalid).randomstarty)-(decal(decalid).randomstarty/2))/100.0)
+  decalelement(d).zpos=decalelement(d).zpos-((rnd(decal(decalid).randomstartz)-(decal(decalid).randomstartz/2))/100.0)
   decalelement(d).particleix=((decal(decalid).randommotionx/2)-rnd(decal(decalid).randommotionx))/100.0
   decalelement(d).particleiy=((decal(decalid).randommotiony/2)-rnd(decal(decalid).randommotiony))/100.0
   decalelement(d).particleiz=((decal(decalid).randommotionz/2)-rnd(decal(decalid).randommotionz))/100.0
