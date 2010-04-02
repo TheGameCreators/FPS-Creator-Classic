@@ -7120,6 +7120,41 @@ if entityelement(e).fireweapon=1
        entityelement(e).darkai.ambushz#=tdamagez#
        entityelement(e).darkai.ehit=e
 
+       Rem Hockeykid - 020410 - Create blood splat if hit
+       Rem Hockeykid - 020410 - Ensure that the target is alive
+       if entityelement(e).beenkilled=0
+        decalid=entitydecal(entityelement(e).bankindex,1)
+        if decalid>0
+         distx#=tdamagex#-entityelement(e).x
+         disty#=tdamagey#-entityelement(e).y
+         distz#=tdamagez#-entityelement(e).z
+         dist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
+         rem direction from player to entity
+         tix#=entityelement(e).x-tdamagex# : tiy#=entityelement(e).y-tdamagey# : tiz#=entityelement(e).z-tdamagez#
+         tdd#=sqrt(abs(tix#*tix#)+abs(tiy#*tiy#)+abs(tiz#*tiz#))
+         tix#=tix#/tdd# : tiy#=tiy#/tdd# : tiz#=tiz#/tdd#
+         rem find point of impact
+         tix#=tix#*(dist#-10.0)
+         tiy#=tiy#*(dist#-10.0)
+         tiz#=tiz#*(dist#-10.0)
+         rem create a splat decal
+         decalscalemodx=0 : rem FPSCV101 - fix
+         decalorient=0 : decalx=x1#+tix# : decaly=y1#+tiy# : decalz=z1#+tiz#
+         originatore=-1 : gosub _decalelement_create
+        endif
+        rem blood splat
+        tscorchtype3=8+rnd(3)
+        tscorchsize3#=10.0+((abs(dst#-dist#)/100.0)*(20.0+rnd(20)))
+        if gbloodonfloor=1
+        rem FPSC - X9 - V109 - 310308 - if flagged, blood is redirected to floor
+         tempx#=entityelement(e).x
+         tempy#=entityelement(e).y
+         tempz#=entityelement(e).z
+         tempraytofloor#=static raycast(tempx#,tempy#+25,tempz#,tempx#,tempy#-125,tempz#)
+        endif
+        add static scorch tscorchsize3#,tscorchtype3
+       endif
+
        gosub _entity_deducthealth : e=stte
        tentid=entityelement(e).bankindex
        entid=entityelement(e).bankindex
@@ -34815,7 +34850,6 @@ rem Cursor for entity highlighting
 load image "editors\gfx\9.bmp",editorimagesoffset+7
 load image "editors\gfx\18.bmp",editorimagesoffset+18
 load image "editors\gfx\26.bmp",editorimagesoffset+26
-load image "editors\gfx\27.bmp",editorimagesoffset+27
 
 rem Load last-to-draw images for editor
 if file exist("editors\gfx\8.dds")=1
@@ -37555,15 +37589,8 @@ if inputsys.mmx>=0 and inputsys.mmy>=0 and inputsys.mmx<maxx and inputsys.mmy<ma
      hide object 3 : hide object 4 : show object 5
      if entityprofile(showentityid).islightmarker=1
       rem light range visual
-      if entityprofile(showentityid).forwardfacing=1
-       rem FPGC - 010410 - with arrow
-       texture object 5,editorimagesoffset+27
-       yrotate object 5,gridentityrotatey#
-      else
-       rem blob
-       texture object 5,editorimagesoffset+18
-       yrotate object 5,0
-      endif
+      texture object 5,editorimagesoffset+18
+      yrotate object 5,0
       if tshow=2
        modifyplaneimagestrip(5,2,0)
       else
@@ -44447,7 +44474,7 @@ _darkai_debug:
 return
 
 _darkai_blood:
-
+ return
  if entityelement(e).darkai.ehit>1
   tbullethitflesh=entityelement(e).darkai.ehit
   bulletrayhit=1
