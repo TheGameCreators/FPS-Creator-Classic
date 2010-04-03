@@ -7139,7 +7139,7 @@ if entityelement(e).fireweapon=1
          tiz#=tiz#*(dist#-10.0)
          rem create a splat decal
          decalscalemodx=0 : rem FPSCV101 - fix
-         decalorient=0 : decalx=tdamagex#+tix# : decaly=y2#+tiy# : decalz=tdamagez#+tiz#
+         decalorient=0 : decalx=tdamagex#+tix# : decaly=((entityelement(e).y+(object size y(entityelement(e).obj)/2))-rnd(6))+tiy# : decalz=tdamagez#+tiz#
          originatore=-1 : gosub _decalelement_create
         endif
         rem blood splat
