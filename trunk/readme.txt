@@ -9,6 +9,8 @@ History
 V1.1.7
 ------
 
+ * Fixed issue of multimeshes not being applied with depthoffield shader
+ * Fixed B3D bug causing ATTACH OBJECT TO STATIC to hide ceiling entities
  * Changed script line cap from 150 to 350
  * Blood now works on all enemy on enemy attacks not just Dark AI vs Dark AI
  * Fixed build crash on large levels that use mixed primtypes (non-stock media)
