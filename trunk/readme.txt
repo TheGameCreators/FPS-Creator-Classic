@@ -16,6 +16,8 @@ V1.1.7
       to add an extra team in there you could use addaiteam=3 (this team would be enemies of both team 2 and team 1) 
      Extra note the addaiteam command does not have to be in numerical order so if you wanted to add an enemy you could even do
      addaiteam=5000000000
+ * Fixed issue of multimeshes not being applied with depthoffield shader
+ * Fixed B3D bug causing ATTACH OBJECT TO STATIC to hide ceiling entities
  * Changed script line cap from 150 to 350
  * Blood now works on all enemy on enemy attacks not just Dark AI vs Dark AI
  * Fixed build crash on large levels that use mixed primtypes (non-stock media)

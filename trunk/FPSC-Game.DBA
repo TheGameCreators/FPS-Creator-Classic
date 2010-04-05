@@ -3089,7 +3089,7 @@ _main_game_freeleveldata:
   `
   rem FREE REST OF GAME RESOURCES
   for p=1 to 65535 : if particles exist(p)=1 : delete particles p : endif : next p
-  for e=1 to 65535 : if effect exist(e)=1 : delete effect e : endif : next e
+  for e=1 to 65532 : if effect exist(e)=1 : delete effect e : endif : next e
   for s=1 to 65535
    if sound exist(s)=1
     rem V109 BETA5 - leave core materials alone
@@ -3105,7 +3105,9 @@ _main_game_freeleveldata:
   rem V115 - BETA3 - 180309 - leave any FLAK objects in tact
   `delete objects 1,endofallobjectsoffset
   delete objects 1,flakbankoffset-1
-  delete objects flakelementoffset,endofallobjectsoffset
+  rem FPGC - 050410 - skip camera one screen aligned quad
+  delete objects flakelementoffset,65535
+  delete objects 65537,endofallobjectsoffset
   `
   rem FPGC - 250310 - ensure objecteffect array is cleared after any object delete
   for o=1 to 65535
@@ -23807,7 +23809,7 @@ _gameflow_default:
       rem FPGC - 150310 - add any extra HUDs (controller hint overlay)
       gosub _ai_hud_extra
       `
-      rem FPGC - 200310 - apply FULL SCREEN EFFECTS shades to all game objects
+      rem FPGC - 200310 - apply FULL SCREEN EFFECTS shaders to all game objects
       gosub _postprocess_apply
       `
       rem CORE : PLAY LEVEL
@@ -23843,6 +23845,9 @@ _gameflow_default:
       endwhile
       controlSPACE=1
       controlESCAPE=0
+      `
+      rem FPGC - 200310 - switch FULL SCREEN EFFECTS shaders off (back to cam zero)
+      gosub _postprocess_off
       `
       rem If arena, pop up game win/lose screens (and repeat game choice)
       if gtestgamemodefromeditor<>0
@@ -24419,7 +24424,7 @@ for lay=0 to layermax
           endif
          next tp
          `
-         rem FPGC - 250310 - make sure ALL static use 'depth of field' (only if no shader of their own)
+         rem FPGC - 250310 - make sure ALL segments use 'depth of field' (only if no shader of their own)
          if gpostprocessingnotransparency=1
           rem need to use parent to set effect (not instance)
           parentofsegobj=selectionbankoffset+mapselection
@@ -24427,8 +24432,18 @@ for lay=0 to layermax
            for tlimb=0 to segmentprofileheader(seg).lastmeshmax
             if limb exist(parentofsegobj,tlimb)=1
              if segmentprofile(seg,tlimb).effectid=0
+              rem FPGC - 050410 - each limb could have multimeshes which also need effects applied
+              if segmentprofile(seg,tlimb).multimeshstart>0
+               for r=0 to 2
+                if r=0 then tlimbchange=tlimb
+                if r=1 then tlimbchange=segmentprofile(seg,tlimb).multimeshstart+0
+                if r=2 then tlimbchange=segmentprofile(seg,tlimb).multimeshstart+1
+                set limb effect parentofsegobj,tlimbchange,65533
+               next r
+              else
               set limb effect parentofsegobj,tlimb,65533
              endif
+            endif
             endif
            next tlimb
           endif
@@ -44519,8 +44534,9 @@ _postprocess_init:
   `
   rem FPGC - 200310 - new camera 1 holds post-process screen quad (requires U75+)
   make camera 1 : load effect tshaderchoice$,65535,0
-  make object plain 65536,2,2 : set object effect 65536,65535 : set object mask 65536,%10
-  set camera to image 0,65536,screen width(),screen height(),2 : texture object 65536,0,65536
+  set camera view 1,0,0,1,1
+`  make object plain 65536,2,2 : set object effect 65536,65535 : set object mask 65536,%10
+`  set camera to image 0,65536,screen width(),screen height(),2 : texture object 65536,0,65536
   set current camera 0
   `
   rem Shader used to replace fixed-function pipeline
@@ -44604,6 +44620,68 @@ _Character_Array:
 
 Return
 
+_postprocess_apply:
+ `
+ if gpostprocessmode=1
+  `
+  rem make sure ALL objects render only to camera zero (now we have more than one camera)
+  for o=1 to 65535
+   if object exist(o)=1 then set object mask o,%1
+  next o
+  `
+  rem switch all loaded effects to alpha/depth
+  for e=1 to 65534
+   if effect exist(e)=1
+    if gpostprocessingnotransparency=0 then set effect technique e,"alpha"
+    if gpostprocessingnotransparency=1 then set effect technique e,"depth"
+   endif
+  next e
+  `
+  rem switch universe geometry to use alpha/depth
+  if gpostprocessingnotransparency=0 then set static effect technique "alpha"
+  if gpostprocessingnotransparency=1 then set static effect technique "depth"
+  `
+  rem switch the dynamic and static object renderer techniques
+  if gpostprocessingnotransparency=0 then set effect technique 65534,"alpha" : set effect technique 65533,"alphaLM"
+  if gpostprocessingnotransparency=1 then set effect technique 65534,"depth" : set effect technique 65533,"depthLM"
+  `
+  rem make sure ALL game objects use 'depth of field' (only if no shader of their own)
+  if gpostprocessingnotransparency=1
+   for o=1 to 65535
+    if object exist(o)=1
+     if objecteffect(o)=0
+      set object effect o,65534
+     endif
+    endif
+   next o
+  endif
+  `
+  rem FPGC
+  if object exist(65536)=1
+   show object 65536
+  else
+   make object plain 65536,2,2 : set object effect 65536,65535 : set object mask 65536,%10
+  endif
+  set camera to image 0,65536,screen width(),screen height(),2 : texture object 65536,0,65536
+  set camera view 1,0,0,screen width(),screen height()
+  `
+ endif
+ `
+return
+
+_postprocess_off:
+ `
+ rem FPGC
+ if gpostprocessmode=1
+  `
+  if object exist(65536)=1 then hide object 65536
+  set camera view 0,0,0,screen width(),screen height()
+  set camera view 1,0,0,1,1
+  `
+ endif
+ `
+return
+
 Function AIUpdateSounds()
  arraycount=array count(aisound())
  for i=1 to arraycount
@@ -44652,4 +44730,3 @@ Add_Targets:
   ai entity add target entityelement(e).obj,physicsplayerborble
  endif
 Return
-
