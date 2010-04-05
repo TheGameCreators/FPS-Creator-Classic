@@ -127,6 +127,10 @@ type darkaitype
  waypointlast as integer
  waypointindex as integer
  waypointinc as integer
+ Rem Call Teammates
+ called as integer
+ calldelay as integer
+ calldelay2 as integer
 endtype
 
 Rem Hockeykid - 250210 - Dark AI added type for containers/layers
@@ -1344,6 +1348,7 @@ Rem Hockeykid - 250210 - Dark AI conditions
 #constant AICONDAIISAI 363
 #constant AICONDAITEAM 364
 #constant AICONDAIATPOINT 365
+#constant AICONDAICALLED 367
 Rem End Dark AI
 #constant AICONDHEADANGLEGREATER 401
 #constant AICONDHEADANGLELESS 402
@@ -1517,6 +1522,8 @@ Rem Hockeykid - 250210 - Dark AI constants
 #constant AIACTAIMOVEAWAYFROMSOUND 1073
 #constant AIACTAIADDPOINT 1074
 #constant AIACTAIGOTOPOINT 1075
+#constant AIACTAICALLTEAM 1076
+#constant AIACTAIRESPONDTOCALL 1077
 Rem end Dark AI constants
 #constant AIACTHUDRESET 1100
 #constant AIACTHUDX 1101
@@ -9312,6 +9319,7 @@ conword$(AICONDAIACTION)="aiaction"
 conword$(AICONDAIISAI)="isdarkai"
 conword$(AICONDAITEAM)="aiteam"
 conword$(AICONDAIATPOINT)="aiatpoint"
+conword$(AICONDAICALLED)="aicalled"
 rem Dark AI end
 
 rem Set all action keywords
@@ -9516,6 +9524,8 @@ actword$(AIACTAIMOVETOSOUND)="aimovetosound"
 actword$(AIACTAIMOVEAWAYFROMSOUND)="aimoveawayfromsound"
 actword$(AIACTAIADDPOINT)="aiaddpoint"
 actword$(AIACTAIGOTOPOINT)="aigotopoint"
+actword$(AIACTAICALLTEAM)="aicallteam"
+actword$(AIACTAIRESPONDTOCALL)="airespondtocall"
 
 return
 
@@ -10481,8 +10491,8 @@ if aiindex>0
         for i=1 to entityelementlist
          if entityelement(i).obj=entityelement(e).obj then obje=i : exit
         next i
-        if AIHeardSound(obje)>0 and conda=0 then airesult=0
-        if AIHeardSound(obje)=0 and conda=1 then airesult=0
+        entityelement(obje).darkai.hearingrange=conda
+        if AIHeardSound(obje)=0 then airesult=0 else airesult=1
      endif
     endcase
     case AICONDAIACTION:
@@ -10505,6 +10515,13 @@ if aiindex>0
          if entityelement(e).x>=points(i).x-5 and entityelement(e).x<=points(i).x+5 and entityelement(e).z>=points(i).z-5 and entityelement(e).z<=points(i).z+5 and condb=1 then airesult=1
          if entityelement(e).x<points(i).x-5 and condb=0 or entityelement(e).x>points(i).x+5 and condb=0 or entityelement(e).z<points(i).z-5 and condb=0 or entityelement(e).z>points(i).z+5 and condb=0 then airesult=1
          if points(i).x=0 and points(i).z=0 then airesult=0
+     endif
+    endcase
+    case AICONDAICALLED:
+     conda=aiconditionseq(seq).valuea
+     if ai entity exist(entityelement(e).obj)
+      if entityelement(e).darkai.called>0 and conda=0 then airesult=0
+      if entityelement(e).darkai.called=0 and conda=1 then airesult=0
      endif
     endcase
     `
@@ -12540,44 +12557,61 @@ if aiindex>0
      endcase
      case AIACTAIMOVETOSOUND:
       if ai entity exist(entityelement(e).obj)
-         entityelement(e).darkai.actionmode=5
+       entityelement(e).darkai.actionmode=5
       endif
      endcase
      case AIACTAIMOVEAWAYFROMSOUND:
       if ai entity exist(entityelement(e).obj)
-         entityelement(e).darkai.actionmode=6
+       entityelement(e).darkai.actionmode=6
+      endif
+     endcase
+     case AIACTAICALLTEAM:
+      if ai entity exist(entityelement(e).obj)
+       maxdist#=aiactionseq(seq).value
+       Gosub _darkai_callteam
+      endif
+     endcase
+     case AIACTAIRESPONDTOCALL:
+      if ai entity exist(entityelement(e).obj)
+       if entityelement(e).darkai.called>0
+        i=entityelement(e).darkai.called
+        if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control obj,0
+        ai entity go to position entityelement(e).obj,entityelement(i).x,entityelement(i).z : entityelement(e).darkai.called=-1
+        entityelement(e).darkai.calldelay2=timer()
+       endif
       endif
      endcase
      case AIACTAIADDPOINT:
-         pointfound=0
-         if array count(points())=0 then array insert at bottom points()
-         for i=1 to array count(points())
-             if points(i).id=aiactionseq(seq).value then pointi=i : pointfound=1 : exit
-         next i
-         if pointfound=0
-            array insert at bottom points()
-            xp=array count(points())
-         else
-            xp=pointi
-         endif
-         points(xp).x=entityelement(e).x
-         points(xp).y=entityelement(e).y
-         points(xp).z=entityelement(e).z
-         points(xp).id=aiactionseq(seq).value
+      pointfound=0
+      if array count(points())=0 then array insert at bottom points()
+      for i=1 to array count(points())
+       if points(i).id=aiactionseq(seq).value then pointi=i : pointfound=1 : exit
+      next i
+      if pointfound=0
+       array insert at bottom points()
+       xp=array count(points())
+      else
+       xp=pointi
+      endif
+      points(xp).x=entityelement(e).x
+      points(xp).y=entityelement(e).y
+      points(xp).z=entityelement(e).z
+      points(xp).id=aiactionseq(seq).value
      endcase
      case AIACTAIGOTOPOINT:
-         pointi=0
-         if array count(points())>0 and ai entity exist(entityelement(e).obj)
-            for i=1 to array count(points())
-               if points(i).id=aiactionseq(seq).value
-                  entityelement(e).darkai.path=i
-                  if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control entityelement(e).obj,0
-                  entityelement(e).darkai.actionmode=8
-                  exit
-               endif
-            next i
-         endif
+      pointi=0
+      if array count(points())>0 and ai entity exist(entityelement(e).obj)
+       for i=1 to array count(points())
+        if points(i).id=aiactionseq(seq).value
+         entityelement(e).darkai.path=i
+         if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control entityelement(e).obj,0
+         entityelement(e).darkai.actionmode=8
+         exit
+        endif
+       next i
+      endif
      endcase
+
 Rem End Dark AI
      `
      case AIACTFPGCRAWTEXTR:
@@ -27672,22 +27706,24 @@ return
 _ode_playerrelocations:
  `
  rem handle lift mechanism for player
- if meridinglift<>0
+ if meridinglift>1
   tobj=entityelement(meridinglift-1).obj
-  meridinglifty#=object position y(tobj)+60
-  tmex#=camerapositionx : tmey#=camerapositiony : tmez#=camerapositionz
-  tdstx#=object position x(tobj)-tmex#
-  tdstz#=object position z(tobj)-tmez#
-  tdstt#=sqrt(abs(tdstx#*tdstx#)+abs(tdstz#*tdstz#))
-  position camera camerapositionx,meridinglifty#,camerapositionz
-  camerapositionx=camera position x()
-  camerapositiony=camera position y()
-  camerapositionz=camera position z()
-  gosub _ode_playerborble
-  if tdstt#>90
-   meridinglift=0
+  if tobj>0
+   meridinglifty#=object position y(tobj)+60
+   tmex#=camerapositionx : tmey#=camerapositiony : tmez#=camerapositionz
+   tdstx#=object position x(tobj)-tmex#
+   tdstz#=object position z(tobj)-tmez#
+   tdstt#=sqrt(abs(tdstx#*tdstx#)+abs(tdstz#*tdstz#))
+   position camera camerapositionx,meridinglifty#,camerapositionz
+   camerapositionx=camera position x()
+   camerapositiony=camera position y()
+   camerapositionz=camera position z()
+   gosub _ode_playerborble
+   if tdstt#>90
+    meridinglift=0
+   endif
+   grav#=0 : gravlasty#=tmey#
   endif
-  grav#=0 : gravlasty#=tmey#
  endif
  `
  rem player frozen on spot for X number of seconds
@@ -44417,6 +44453,14 @@ rem Apply New Actions
  endif
  remend
 
+ Rem Hockeykid - 050410 - reset call flag if times up
+ if entityelement(e).darkai.called>0
+  if timer()-entityelement(e).darkai.calldelay>=1000 then entityelement(e).darkai.called=0
+ endif
+ if entityelement(e).darkai.called=-1
+  if timer()-entityelement(e).darkai.calldelay2>=15000 then entityelement(e).darkai.called=0
+ endif
+
  rem Apply Direction
  tentx#=ai get entity x(obj)
  tentz#=ai get entity z(obj)
@@ -44507,6 +44551,40 @@ _darkai_stopfollow:
  endif
 
 return
+
+_darkai_callteam:
+ arraycount=array count(ischaracter())
+ maxdist#=maxdist#^2
+ for i=1 to arraycount
+  y=ischaracter(i)
+  if ai entity exist(entityelement(y).obj)
+   if entityelement(y).obj<>entityelement(e).obj and entityelement(y).darkai.team=entityelement(e).darkai.team
+    dst#=(entityelement(y).x-entityelement(e).x)^2+(entityelement(y).z-entityelement(e).z)^2
+    if dst#<=maxdist#
+     if entityelement(y).darkai.called=0 then entityelement(y).darkai.called=e : entityelement(y).darkai.calldelay=timer()
+    endif
+   endif
+  endif
+ next i
+Return
+
+
+Add_Targets:
+ arraycount=array count(ischaracter())
+ for i=1 to arraycount
+  y=ischaracter(i)
+  if ai entity exist(entityelement(y).obj)
+   if entityelement(y).obj<>entityelement(e).obj and entityelement(y).darkai.team<>entityelement(e).darkai.team
+    if ai get entity can see(entityelement(e).obj,object position x(entityelement(y).obj),object position z(entityelement(y).obj),1)>0
+     ai entity add target entityelement(e).obj,entityelement(y).obj
+    endif
+   endif
+  endif
+ next i
+ if entityelement(e).darkai.team<>1 and ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position z(physicsplayerborble),1)>0
+  ai entity add target entityelement(e).obj,physicsplayerborble
+ endif
+Return
 
 rem
 rem POST PROCESS SUBROUTINES - Uses Camera One As Post Process Screen Aligned QUAD
@@ -44708,25 +44786,10 @@ Function AIHeardSound(obje)
 Endfunction output
 
 Function AIMoveToSound(obj,obje)
+ if entityelement(obje).darkai.hearingrange=0 then entityelement(obje).darkai.hearingrange=700
  sound=AIHeardSound(obje)
  if sound>0
    ai entity go to position obj,aisound(sound).x,aisound(sound).z
  endif
 Endfunction
 
-Add_Targets:
- arraycount=array count(ischaracter())
- for i=1 to arraycount
-  y=ischaracter(i)
-  if ai entity exist(entityelement(y).obj)
-   if entityelement(y).obj<>entityelement(e).obj and entityelement(y).darkai.team<>entityelement(e).darkai.team
-    if ai get entity can see(entityelement(e).obj,object position x(entityelement(y).obj),object position z(entityelement(y).obj),1)>0
-     ai entity add target entityelement(e).obj,entityelement(y).obj
-    endif
-   endif
-  endif
- next i
- if entityelement(e).darkai.team<>1 and ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position z(physicsplayerborble),1)>0
-  ai entity add target entityelement(e).obj,physicsplayerborble
- endif
-Return

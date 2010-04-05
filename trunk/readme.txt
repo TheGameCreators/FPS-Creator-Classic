@@ -9,6 +9,11 @@ History
 V1.1.7
 ------
 
+ * Added New FPI action AIRESPONDTOCALL this will cause an entity to move towards the teammate that called for help (if any called for help)
+ * Added new FPI condition AICALLED=X this will return if the entity has been called by the AICALLTEAM=X command
+ * Added new FPI action AICALLTEAM=X this will alert teammates within x distance that a team member needs help (to be used with other call commands)
+ * Altered AIHEARDSOUND=X condition x is now equal to the maximum distance away the sound can be
+ * Fixed crash caused by lifts (lift1.fpi on a trigger zone)
  * Added new FPI action ADDAITEAM=X x= the team number which can be anything you heart desiers. Team 1 is defaulted to the player
     This allows your enemies to have enemies who are all enemies of you. Meaning you can now have as many teams as you would like
      As a note team 1 is reserved for allies (so addaiteam=1 would add the character as the player's ally)
