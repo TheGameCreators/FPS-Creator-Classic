@@ -9,8 +9,13 @@ History
 V1.1.7
 ------
 
- * Fixed issue of multimeshes not being applied with depthoffield shader
- * Fixed B3D bug causing ATTACH OBJECT TO STATIC to hide ceiling entities
+ * Added new FPI action ADDAITEAM=X x= the team number which can be anything you heart desiers. Team 1 is defaulted to the player
+    This allows your enemies to have enemies who are all enemies of you. Meaning you can now have as many teams as you would like
+     As a note team 1 is reserved for allies (so addaiteam=1 would add the character as the player's ally)
+     for normal Allies versus enemies you can simply use addaiteam=1 for your allies and addaiteam=2 for enemies
+      to add an extra team in there you could use addaiteam=3 (this team would be enemies of both team 2 and team 1) 
+     Extra note the addaiteam command does not have to be in numerical order so if you wanted to add an enemy you could even do
+     addaiteam=5000000000
  * Changed script line cap from 150 to 350
  * Blood now works on all enemy on enemy attacks not just Dark AI vs Dark AI
  * Fixed build crash on large levels that use mixed primtypes (non-stock media)

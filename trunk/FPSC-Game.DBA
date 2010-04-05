@@ -119,6 +119,14 @@ type darkaitype
  adddynamic as integer
  custom as integer
  hearingrange as integer
+ team as integer
+ Rem Waypoints
+ waypointstart as integer
+ waypointfinish as integer
+ waypointcurrent as integer
+ waypointlast as integer
+ waypointindex as integer
+ waypointinc as integer
 endtype
 
 Rem Hockeykid - 250210 - Dark AI added type for containers/layers
@@ -147,6 +155,12 @@ Type aisoundtype
  team as integer
 Endtype
 dim aisound(100) as aisoundtype
+
+Rem Hockeykid - 040310 - Adding X10'a performance meter
+rem Resource meter structures
+dim resourcemeter(5)
+dim resourcemeter#(5)
+dim resourcemeterdest#(5)
 
 rem FPGC - 050909 - game memory tracker (test game creates, editor uses to show in meter)
 type gamememtabletype
@@ -594,6 +608,7 @@ rem Image order important for texture order
 global imagebankmax=0
 global muzzlebankoffset=500
 global imagebankoffset=550
+global effectmenuimagestart=400
 dim imagebank$(500)
 `
 rem Object Resource Offsets (COMMON)
@@ -1484,7 +1499,7 @@ Rem End Dark AI
 #constant AIACTLIGHTRANGE 1056
 #constant AIACTLIGHTINTENSITY 1057
 Rem Hockeykid - 250210 - Dark AI constants
-#constant AIACTADDALLY 1058
+#constant AIACTADDAITEAM 1058
 #constant AIACTAIALLYFOLLOW 1059
 #constant AIACTADDENEMY 1060
 #constant AIACTAISETTARGET 1061
@@ -2771,6 +2786,7 @@ global gamedebugviewtime : gamedebugviewtime=0
 global gamedebugviewmem : gamedebugviewmem=GET MEMORY AVAILABLE(0)
 global gamedebugviewlastmem : gamedebugviewlastmem=0
 global gamedebugview$ : debugviewactivate(1)
+global testgametabtoggle : testgametabtoggle=0
 global debugviewmode
 global debugviewtog
 
@@ -3073,7 +3089,7 @@ _main_game_freeleveldata:
   `
   rem FREE REST OF GAME RESOURCES
   for p=1 to 65535 : if particles exist(p)=1 : delete particles p : endif : next p
-  for e=1 to 65532 : if effect exist(e)=1 : delete effect e : endif : next e
+  for e=1 to 65535 : if effect exist(e)=1 : delete effect e : endif : next e
   for s=1 to 65535
    if sound exist(s)=1
     rem V109 BETA5 - leave core materials alone
@@ -3089,9 +3105,7 @@ _main_game_freeleveldata:
   rem V115 - BETA3 - 180309 - leave any FLAK objects in tact
   `delete objects 1,endofallobjectsoffset
   delete objects 1,flakbankoffset-1
-  rem FPGC - 050410 - skip camera one screen aligned quad
-  delete objects flakelementoffset,65535
-  delete objects 65537,endofallobjectsoffset
+  delete objects flakelementoffset,endofallobjectsoffset
   `
   rem FPGC - 250310 - ensure objecteffect array is cleared after any object delete
   for o=1 to 65535
@@ -3100,6 +3114,7 @@ _main_game_freeleveldata:
   `
   Rem Hockeykid - 250210 - RESET DARKAI
   ai reset : darkaiplayer=0
+
   `
   rem FREE ANY DATA
   undim undoredolist()
@@ -3468,6 +3483,8 @@ if gcompilestandaloneexe=0
  gosub _darkai_finddoors
  Rem Hockeykid - 260210 - Added subroutine for debugging Dark AI
  gosub _darkai_debug
+ Rem Hockeykid - 040410 - Added subroutine to add all .ischaracter's E to ischaracter() array
+ gosub _Character_Array
  `
  rem Starting main loop
  debugviewtext(329,strarr$(629))
@@ -5820,125 +5837,41 @@ if debugviewmode=0
  `
 else
  `
- rem Performance meter text
- sp=14 : spx=((screen width()-200)/2)-100 : spy=screen height()/2
- ink rgb(255,255,0),0
- sptop=sp+48 : spwidth=400 : spheight=400
- line spx-44,sptop+14,spx+40+spwidth,sptop+14
- line spx-44,(sptop+spheight)-4,spx+40+spwidth,(sptop+spheight)-4
- line spx-44,sptop+14,spx-44,(sptop+spheight)-4
- line spx+40+spwidth,sptop+14,spx+40+spwidth,(sptop+spheight)-4
- i=1 : text spx-40,sptop+(sp*i),strarr$(69)+str$(perf(i))
- ink rgb(255,0,0),0
- i=2 : text spx-40,sptop+(sp*i),strarr$(70)+str$(perf(i))
- ink rgb(255,255,0),0
- i=3 : text spx-40,sptop+(sp*i),strarr$(71)+str$(perf(i))
- i=4 : text spx-40,sptop+(sp*i),strarr$(72)+str$(perf(i))+"("+str$(lightingsystemdisabled)+")"
- i=5 : text spx-40,sptop+(sp*i),strarr$(73)+str$(perf(i))
- ink rgb(255,255,255),0
- i=6 : text spx-40,sptop+(sp*i),strarr$(74)+str$(perf(i))+"("+str$(entitysystemdisabled)+")"
- ink rgb(255,128,0),0
- i=7 : text spx-40,sptop+(sp*i),strarr$(75)+str$(perf(i))
- ink rgb(255,255,0),0
- i=8 : text spx-40,sptop+(sp*i),strarr$(76)+str$(perf(i))
- i=9 : text spx-40,sptop+(sp*i),strarr$(77)+str$(perf(i))
- i=10 : text spx-40,sptop+(sp*i),strarr$(78)+str$(perf(i))
- i=11 : text spx-40,sptop+(sp*i),strarr$(79)+str$(perf(i))
- i=12 : text spx-40,sptop+(sp*i),strarr$(80)+str$(int(camera position x()))+" Y:"+str$(int(camera position y()))+" Z:"+str$(int(camera position z()))+" COL:"+str$(deactivatecollision)
+endif
+
+rem Resource Meter Panel
+if testgametabtoggle=2
  `
- rem AREABOX MESH GROUP STATS
- ts1$=strarr$(81)+str$(statistic(3))+strarr$(82)+str$(statistic(4))
- ts2$=strarr$(83)+str$(statistic(1))+strarr$(84)+str$(statistic(5))
- ts3$=strarr$(85)+str$(statistic(6))+strarr$(86)+str$(statistic(7))
- i=13 : text spx-40,sptop+(sp*i),ts1$
- i=14 : text spx-40,sptop+(sp*i),ts2$
- i=15 : text spx-40,sptop+(sp*i),ts3$
- i=16 : text spx-40,sptop+(sp*i),strarr$(87)+str$(int(bcsoundstrength#))+strarr$(88)+str$(int(bcsoundx#))+" Y:"+str$(int(bcsoundy#))+" Z:"+str$(int(bcsoundz#))
- ink rgb(0,255,255),0
- i=17 : text spx-40,sptop+(sp*i),strarr$(89)+str$(wshot(wshoti,2))+strarr$(90)+str$(statistic(9))
- ink rgb(255,255,0),0
+ rem place statistics in resource meter values
+ resourcemeterdest#(0)=((perf(11)+0.0)/300000.0)*192.0 : rem syncs
+ resourcemeterdest#(1)=((perf(10)+0.0)/50000.0)*192.0 : rem physics
+ resourcemeterdest#(2)=((perf(17)+0.0)/75000.0)*192.0 : rem ai
+ resourcemeterdest#(3)=((perf(6)+0.0)/20000.0)*192.0 : rem entitylogic
+ memoryused#=entidmaster+segidmaster
+ resourcemeterdest#(4)=(memoryused#/100.0)*192.0 : rem memory
  `
- rem Extra for testgame
- if debugviewmode<>2
-  `
-  rem Memory chart of usage
-  remstart
-  center text spx-4,(sptop+spheight)+0,str$(mshotmemlargest/1024)+strarr$(91)
-  lock pixels
-  line spx-4,(sptop+spheight)+110,spx+spwidth,(sptop+spheight)+110
-  line spx-4,(sptop+spheight)+110,spx-4,(sptop+spheight)+14
-  tlinex#=spx-4
-  tliney#=(sptop+spheight)+110
-  tlinexbit#=gprogressmax
-  tlinexbit#=(spwidth+4.0)/tlinexbit#
-  toldlinex#=tlinex#
-  toldliney#=tliney#
-  msratio#=mshotmemlargest
-  msratio#=msratio#/100.0
-  toggletext=0
-  for tstep=1 to gprogressmax
-   tperc#=mshot(tstep)/msratio#
-   if mshot(tstep)>0
-    line toldlinex#,toldliney#,tlinex#,tliney#-tperc#
-    if mshot(tstep)>mshotmemlargest/4
-     toggletext=1-toggletext
-     center text tlinex#,(tliney#-tperc#)-10+(toggletext*10),str$(tstep)
-    endif
-    toldlinex#=tlinex#
-    toldliney#=tliney#-tperc#
-   endif
-   tlinex#=tlinex#+tlinexbit#
-  next tstep
-  center text screen width()/2,(sptop+spheight)+114,strarr$(92)+str$(mshotfirst-GET MEMORY AVAILABLE(0))
-  remend
-  `
-  rem Debug control keys
-  t$=strarr$(94) : t$=t$+strarr$(95)
-  center text screen width()/2,(sptop+spheight)-(sp*3),t$
-  t$=strarr$(96) : t$=t$+strarr$(97)
-  center text screen width()/2,(sptop+spheight)-(sp*2),t$
-  `
-  rem workload chart
-  center text spx-4,(sptop+spheight)+116,"50k"
-  ink rgb(0,255,0),0
-  line spx-4,((sptop+spheight)+220)-32,spx+spwidth,((sptop+spheight)+220)-32
-  ink rgb(255,255,0),0
-  line spx-4,(sptop+spheight)+220,spx+spwidth,(sptop+spheight)+220
-  line spx-4,(sptop+spheight)+220,spx-4,(sptop+spheight)+130
-  tlinex#=(spx-4)+1
-  tliney#=(sptop+spheight)+220
-  toldlinex#=tlinex#
-  toldliney#=tliney#
-  tlinexbit#=((spwidth+4.0)/400.0)*4.0
-  for tstep=0 to 400 step 4
-   tperc#=wshot(tstep,0)/500.0
-   tgap=wshoti-tstep : if tgap<0 then tgap=tgap+400
-   tgap=tgap/2 : if tgap>255 then tgap=255
-   ink rgb(255-tgap,0,0),0
-   tlinescale#=55.0/wshotmax(1)
-   line tlinex#,tliney#-1,tlinex#,(tliney#-1)-(wshot(tstep,1)*tlinescale#)
-   ink rgb(0,255,255),0
-   tlinescale#=55.0/wshotmax(2)
-   line tlinex#,tliney#-33,tlinex#,(tliney#-33)-(wshot(tstep,2)*tlinescale#)
-   ink rgb(255,128,0),0
-   tlinescale#=55.0/wshotmax(4)
-   line tlinex#,tliney#-33,tlinex#,(tliney#-33)-(wshot(tstep,4)*tlinescale#)
-   ink rgb(255,255,255),0
-   tlinescale#=55.0/wshotmax(3)
-   line tlinex#,tliney#,tlinex#,tliney#-(wshot(tstep,3)*tlinescale#)
-   ink rgb(255,255,0),0
-   line toldlinex#,toldliney#,tlinex#,tliney#-tperc#
-   toldlinex#=tlinex#
-   toldliney#=tliney#-tperc#
-   tlinex#=tlinex#+tlinexbit#
-  next tstep
-  unlock pixels
-  ink rgb(255,255,0),0
-  if perf(2)>0
-   center text screen width()/2,(sptop+spheight)+224,strarr$(93)+str$(perf(1)/perf(2))
-  endif
-  `
- endif
+ rem control resource meters
+ for rmi=0 to 4
+  resourcemeter#(rmi)=curvevalue(resourcemeterdest#(rmi),resourcemeter#(rmi),10.0)
+  if resourcemeter#(rmi)<0 then resourcemeter#(rmi)=0
+  if resourcemeter#(rmi)>192 then resourcemeter#(rmi)=192
+  resourcemeter(rmi)=resourcemeter#(rmi)
+ next rmi
+ `
+ rem draw resource meter
+ img=effectmenuimagestart+33 : rmposx=0 : rmposy=screen height()-335
+ paste sprite img+1,rmposx,rmposy
+ for rmi=0 to 4
+  paste sprite img+3+(rmi*4)+0,rmposx+19,rmposy+60+(rmi*53) : rem label
+  paste sprite img+3+(rmi*4)+1,rmposx+17,rmposy+80+(rmi*53) : rem start
+  t=resourcemeter(rmi) : if t<10 : t=10 : endif : size sprite img+3+(rmi*4)+2,t,10
+  paste sprite img+3+(rmi*4)+2,rmposx+22,rmposy+80+(rmi*53) : rem filler
+  paste sprite img+3+(rmi*4)+3,rmposx+22+t,rmposy+80+(rmi*53) : rem end
+  paste sprite img+2,rmposx+15,rmposy+78+(rmi*53) : rem glass
+ next rmi
+ `
+ rem FPS reading in resource meter panel
+ printvalue(rmposx+199,rmposy+19,screen fps())
  `
 endif
 
@@ -5973,18 +5906,56 @@ if player(1).health>0 or playerstartstrength=0
  if k$="z" then grav#=-2.0 : jumpaction=0
 endif
 
-rem Mouse control/pointer
+rem Mouse control/pointer (press TAB to toggle menu view)
 if (scancode()<>15) and debugviewtog=1 then debugviewtog=0
 if (scancode()=15 or triggerdebugview>0) and debugviewtog=0
  if triggerdebugview>0
   debugviewmode=triggerdebugview-1
   triggerdebugview=0
  else
-  debugviewmode=1-debugviewmode
+  testgametabtoggle=testgametabtoggle+1
+  if testgametabtoggle=3 then testgametabtoggle=0
+  if testgametabtoggle=0 then debugviewmode=0
+  if testgametabtoggle=1 then debugviewmode=1
+  if testgametabtoggle=2 then debugviewmode=0
   debugviewtog=1
  endif
 endif
 
+endfunction
+
+function printvalue(x,y,value)
+ `
+ rem prepare sprite for text printing
+ sid=effectmenuimagestart+4
+ sprite sid,-10000,-10000,effectmenuimagestart+31
+ set sprite diffuse sid,255,255,255
+ set sprite alpha sid,255
+ size sprite sid,10,10
+ `
+ rem print value
+ text$=str$(value)
+ tactualtextwidth=10
+ tcenterx#=(len(text$)*tactualtextwidth)/2
+ for tt=1 to len(text$)
+  ttnum=-1
+  if mid$(text$,tt)="." then ttnum=10
+  if mid$(text$,tt)="\" then ttnum=11
+  if ttnum=-1 then ttnum=asc(mid$(text$,tt))-asc("0")
+  if ttnum<>-1
+   ttnumy=ttnum/4 : ttnum=ttnum-(ttnumy*4)
+   ttbitx#=(1.0/64.0)*16 : ttbity#=(1.0/64.0)*16
+   set sprite texture coord sid,0,(ttbitx#*ttnum),(ttbity#*ttnumy)
+   set sprite texture coord sid,1,(ttbitx#*ttnum)+ttbitx#,(ttbity#*ttnumy)
+   set sprite texture coord sid,2,(ttbitx#*ttnum),(ttbity#*ttnumy)+ttbity#
+   set sprite texture coord sid,3,(ttbitx#*ttnum)+ttbitx#,(ttbity#*ttnumy)+ttbity#
+   paste sprite sid,(x-tcenterx#)+((tt-1)*tactualtextwidth),y
+  endif
+ next tt
+ `
+ rem restore sprite image
+ sprite sid,-10000,-10000,sid
+ `
 endfunction
 
 
@@ -7143,6 +7114,7 @@ if entityelement(e).fireweapon=1
          decalorient=0 : decalx=tdamagex#+tix# : decaly=((entityelement(e).y+(object size y(entityelement(e).obj)/2))-rnd(6))+tiy# : decalz=tdamagez#+tiz#
          originatore=-1 : gosub _decalelement_create
         endif
+        remstart
         rem blood splat
         tscorchtype3=8+rnd(3)
         tscorchsize3#=10.0+((abs(dst#-dist#)/100.0)*(20.0+rnd(20)))
@@ -7154,6 +7126,7 @@ if entityelement(e).fireweapon=1
          tempraytofloor#=static raycast(tempx#,tempy#+25,tempz#,tempx#,tempy#-125,tempz#)
         endif
         add static scorch tscorchsize3#,tscorchtype3
+        remend
        endif
 
        gosub _entity_deducthealth : e=stte
@@ -9523,7 +9496,7 @@ actword$(AIACTFPGCRAWTEXTOFF)="fpgcrawtextoff"
 actword$(AIACTFPGCRAWTEXT)="fpgcrawtext"
 actword$(AIACTETIMERSTART)="etimerstart"
 Rem Hockeykid - 250210 - Dark AI commands
-actword$(AIACTADDALLY)="addally"
+actword$(AIACTADDAITEAM)="addaiteam"
 actword$(AIACTAIALLYFOLLOW)="allyfollow"
 actword$(AIACTADDENEMY)="addenemy"
 actword$(AIACTAISETTARGET)="aisettarget"
@@ -10495,9 +10468,9 @@ if aiindex>0
     endcase
     case AICONDAITEAM:
      conda=aiconditionseq(seq).valuea
-     if ai get entity team(entityelement(e).obj)=0 and conda<>0 then airesult=0
-     if ai get entity team(entityelement(e).obj)=1 and conda<>1 then airesult=0
-     if ai get entity team(entityelement(e).obj)=2 and conda<>2 then airesult=0
+     if ai entity exist(entityelement(e).obj)
+      if entityelement(e).darkai.team<>conda then airesult=0
+     endif
     endcase
     Rem HockeyKid - 100310 - Added heard sound condition
     case AICONDAIHEARDSOUND:
@@ -12388,7 +12361,7 @@ if aiindex>0
       hudtimer=timer()
      endcase
     Rem Hockeykid - 250210 - Dark AI
-      case AIACTADDALLY:
+      case AIACTADDAITEAM:
          obj=entityelement(e).obj
          if ai entity exist(obj)
             ai kill entity obj
@@ -12399,7 +12372,9 @@ if aiindex>0
               tcont=y : exit
            endif
         next y
-        ai add friendly obj,0,tcont
+        entityelement(e).darkai.team=aiactionseq(seq).value
+        ai add enemy obj,0,tcont
+        AI Set Entity Can Select targets obj,0
         ai set entity view arc obj,entityelement(e).eleprof.coneangle*0.7,entityelement(e).eleprof.coneangle
         ai set entity fire arc obj,20
         ai set entity view range obj,600
@@ -12551,7 +12526,7 @@ if aiindex>0
       if ai entity exist(entityelement(e).obj)
           Rem Hockeykid - 030310 - Reset control mode to manual
          if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control obj,0
-         if ai get entity team (entityelement(e).obj)=1 and entityelement(e).darkai.follow=1 then Gosub _darkai_stopfollow
+         if entityelement(e).darkai.team=1 and entityelement(e).darkai.follow=1 then Gosub _darkai_stopfollow
           entityelement(e).darkai.actionmode=2
       endif
      endcase
@@ -14082,7 +14057,7 @@ function broadcast3dsound(x#,y#,z#,strength#,obj)
    for i=1 to arraycount
     if aisound(i).alive=0
      if obj>0
-      if ai entity exist(obj) then aisound(i).team=ai get entity team(obj)
+      if ai entity exist(obj) then aisound(i).team=entityelement(e).darkai.team
       if ai entity exist(obj)=0 then aisound(i).team=0
       aisound(i).x=bcsoundx#
       aisound(i).z=bcsoundz#
@@ -23659,6 +23634,39 @@ _gameflow_default:
   endwhile
   close file map 1
  endif
+
+ rem Load numerics for effect menu
+ tfile$="gamecore\huds\numeric1.dds" : load image tfile$,effectmenuimagestart+31 : addfiletocollection(tfile$)
+
+ rem Resource Meter Assets
+ img=effectmenuimagestart+33
+ tfile$="languagebank\"+language$+"\gamecore\huds\"
+ if file exist(tfile$+"resmeter\resource-panel.png")=1
+  load image tfile$+"resmeter\resource-panel.png",img+1
+  load image tfile$+"resmeter\glass-tube.png",img+2
+  sprite img+1,-10000,-10000,img+1
+  sprite img+2,-10000,-10000,img+2
+  size sprite img+1,238,335
+  size sprite img+2,207,14
+  imgbase=img+3
+  for rmi=0 to 4
+   if rmi=0 then t$="yellow" : n$="label-polygons.png"
+   if rmi=1 then t$="green" : n$="label-physics.png"
+   if rmi=2 then t$="blue" : n$="label-ai.png"
+   if rmi=3 then t$="red" : n$="label-entity.png"
+   if rmi=4 then t$="orange" : n$="label-memory.png"
+   load image tfile$+"resmeter\"+n$,imgbase+0,1 : sprite imgbase+0,-10000,-10000,imgbase+0
+   load image tfile$+"resmeter\bar-"+t$+"-start.png",imgbase+1,1 : sprite imgbase+1,-10000,-10000,imgbase+1
+   load image tfile$+"resmeter\bar-"+t$+".png",imgbase+2,1 : sprite imgbase+2,-10000,-10000,imgbase+2
+   load image tfile$+"resmeter\bar-"+t$+"-end.png",imgbase+3,1 : sprite imgbase+3,-10000,-10000,imgbase+3
+   size sprite imgbase+0,150,8
+   size sprite imgbase+1,5,10
+   size sprite imgbase+2,10,10
+   size sprite imgbase+3,5,10
+   inc imgbase,4
+  next rmi
+ endif
+
  `
  rem App Loop
  loopapp=1
@@ -23799,7 +23807,7 @@ _gameflow_default:
       rem FPGC - 150310 - add any extra HUDs (controller hint overlay)
       gosub _ai_hud_extra
       `
-      rem FPGC - 200310 - apply FULL SCREEN EFFECTS shaders to all game objects
+      rem FPGC - 200310 - apply FULL SCREEN EFFECTS shades to all game objects
       gosub _postprocess_apply
       `
       rem CORE : PLAY LEVEL
@@ -23835,9 +23843,6 @@ _gameflow_default:
       endwhile
       controlSPACE=1
       controlESCAPE=0
-      `
-      rem FPGC - 200310 - switch FULL SCREEN EFFECTS shaders off (back to cam zero)
-      gosub _postprocess_off
       `
       rem If arena, pop up game win/lose screens (and repeat game choice)
       if gtestgamemodefromeditor<>0
@@ -24414,7 +24419,7 @@ for lay=0 to layermax
           endif
          next tp
          `
-         rem FPGC - 250310 - make sure ALL segments use 'depth of field' (only if no shader of their own)
+         rem FPGC - 250310 - make sure ALL static use 'depth of field' (only if no shader of their own)
          if gpostprocessingnotransparency=1
           rem need to use parent to set effect (not instance)
           parentofsegobj=selectionbankoffset+mapselection
@@ -24422,17 +24427,7 @@ for lay=0 to layermax
            for tlimb=0 to segmentprofileheader(seg).lastmeshmax
             if limb exist(parentofsegobj,tlimb)=1
              if segmentprofile(seg,tlimb).effectid=0
-              rem FPGC - 050410 - each limb could have multimeshes which also need effects applied            
-              if segmentprofile(seg,tlimb).multimeshstart>0
-               for r=0 to 2
-                if r=0 then tlimbchange=tlimb
-                if r=1 then tlimbchange=segmentprofile(seg,tlimb).multimeshstart+0
-                if r=2 then tlimbchange=segmentprofile(seg,tlimb).multimeshstart+1
-                set limb effect parentofsegobj,tlimbchange,65533
-               next r
-              else
-               set limb effect parentofsegobj,tlimb,65533
-              endif
+              set limb effect parentofsegobj,tlimb,65533
              endif
             endif
            next tlimb
@@ -44116,7 +44111,7 @@ _control_darkai:
  Rem reset ttarget(s)
  ttargetvisible=0
  ttargetvisibleduck=0
-
+ Gosub Add_Targets
 
  rem Collect Sensory Information
  if ai get entity target id(obj,1)<>0
@@ -44176,7 +44171,7 @@ _control_darkai:
    entityelement(e).darkai.state=STATE_ATTACKING
   endif
  endif
- Rem current unused AI action is 9
+ Rem current unused AI action is 10
 
  Rem Hockeykid - 100310 - If not in any of these action modes and entity is set to automatic mode then turn off
  if entityelement(e).darkai.control=1
@@ -44194,6 +44189,7 @@ _control_darkai:
   if entityelement(e).darkai.actionmode=5
    `ai entity move to closest sound obj
     AIMoveToSound(obj,obje)
+    entityelement(e).darkai.actionmode=0
   endif
   if entityelement(e).darkai.actionmode=6
    ai entity move away from sound obj
@@ -44205,7 +44201,7 @@ _control_darkai:
    entityelement(e).darkai.actionmode=0
   endif
   Rem Hockeykid - 020310 - Special area for allies only
-  if ai get entity team(obj)=1
+  if entityelement(e).darkai.team=1
    `Follow the player
     if entityelement(e).darkai.actionmode=1
      if tsound=0
@@ -44240,7 +44236,6 @@ _control_darkai:
   endif
 
   Rem Hockeykid - 020310 -  Area for both enemies and allies
-  if ai get entity team(obj)<>0
    `Move randomly
    if entityelement(e).darkai.delay<timer() and entityelement(e).darkai.actionmode=2
     entityelement(e).darkai.delay=timer()+2500
@@ -44286,7 +44281,6 @@ _control_darkai:
     endif
    endif
 
-  endif
  endif
 
  rem Attacking
@@ -44490,7 +44484,7 @@ _darkai_stop:
  ai entity go to position entityelement(e).obj,entityelement(e).x,entityelement(e).z
 return
 _darkai_stopfollow:
- if ai get entity team(entityelement(e).obj)=1
+ if entityelement(e).darkai.team=1
   ai entity separate entityelement(e).obj
   if entityelement(e).darkai.control=1 then ai set entity control entityelement(e).obj,0 : entityelement(e).darkai.control=0
   ai entity go to position entityelement(e).obj,entityelement(e).x,entityelement(e).z
@@ -44498,7 +44492,6 @@ _darkai_stopfollow:
  endif
 
 return
-
 
 rem
 rem POST PROCESS SUBROUTINES - Uses Camera One As Post Process Screen Aligned QUAD
@@ -44526,9 +44519,8 @@ _postprocess_init:
   `
   rem FPGC - 200310 - new camera 1 holds post-process screen quad (requires U75+)
   make camera 1 : load effect tshaderchoice$,65535,0
-  set camera view 1,0,0,1,1
-`  make object plain 65536,2,2 : set object effect 65536,65535 : set object mask 65536,%10
-`  set camera to image 0,65536,screen width(),screen height(),2 : texture object 65536,0,65536
+  make object plain 65536,2,2 : set object effect 65536,65535 : set object mask 65536,%10
+  set camera to image 0,65536,screen width(),screen height(),2 : texture object 65536,0,65536
   set current camera 0
   `
   rem Shader used to replace fixed-function pipeline
@@ -44593,31 +44585,24 @@ _postprocess_apply:
    next o
   endif
   `
-  rem FPGC
-  if object exist(65536)=1
-   show object 65536
-  else
-   make object plain 65536,2,2 : set object effect 65536,65535 : set object mask 65536,%10
-  endif
-  set camera to image 0,65536,screen width(),screen height(),2 : texture object 65536,0,65536
-  set camera view 1,0,0,screen width(),screen height()
-  `
  endif
  `
 return
 
-_postprocess_off:
- `
- rem FPGC
- if gpostprocessmode=1
-  `
-  if object exist(65536)=1 then hide object 65536
-  set camera view 0,0,0,screen width(),screen height()
-  set camera view 1,0,0,1,1
-  `
- endif
- `
-return
+_Character_Array:
+ undim ischaracter()
+ dim ischaracter(0)
+
+ for e=1 to entityelementlist
+  entid=entityelement(e).bankindex
+  if entityprofile(entid).ischaracter=1
+   array insert at bottom ischaracter()
+   xp=array count(ischaracter())
+   ischaracter(xp)=e
+  endif
+ next e
+
+Return
 
 Function AIUpdateSounds()
  arraycount=array count(aisound())
@@ -44634,7 +44619,7 @@ Function AIHeardSound(obje)
  arraycount=array count(aisound())
  hearing=entityelement(obje).darkai.hearingrange^2
  for i=1 to arraycount
-  if aisound(i).alive=1 and aisound(i).team<>ai get entity team(entityelement(obje).obj)
+  if aisound(i).alive=1 and aisound(i).team<>entityelement(e).darkai.team
    dst#=(entityelement(obje).x-aisound(i).x)^2 + (entityelement(obje).z-aisound(i).z)^2
    if dst#<=hearing
     output=i
@@ -44650,3 +44635,21 @@ Function AIMoveToSound(obj,obje)
    ai entity go to position obj,aisound(sound).x,aisound(sound).z
  endif
 Endfunction
+
+Add_Targets:
+ arraycount=array count(ischaracter())
+ for i=1 to arraycount
+  y=ischaracter(i)
+  if ai entity exist(entityelement(y).obj)
+   if entityelement(y).obj<>entityelement(e).obj and entityelement(y).darkai.team<>entityelement(e).darkai.team
+    if ai get entity can see(entityelement(e).obj,object position x(entityelement(y).obj),object position z(entityelement(y).obj),1)>0
+     ai entity add target entityelement(e).obj,entityelement(y).obj
+    endif
+   endif
+  endif
+ next i
+ if entityelement(e).darkai.team<>1 and ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position z(physicsplayerborble),1)>0
+  ai entity add target entityelement(e).obj,physicsplayerborble
+ endif
+Return
+
