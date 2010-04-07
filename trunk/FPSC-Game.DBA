@@ -90,36 +90,28 @@ dim loadreport$(100000)
 
 Rem Hockeykid - 250210 - Entity DarkAI
 type darkaitype
- `action$ as string
- path as integer
- beenhurt as integer
+ Rem Misc
  control as integer
  follow as integer
- actionmode as integer
- statecustom as integer
- ehit as integer
  isdoor as integer
- aimotive as integer
- maxm as integer
- minm as integer
- zombie as integer
  aistop as integer
- holdpos as integer
- tactical as boolean
  state as integer
- delay as integer
- delay2 as integer
+ running as boolean
+ action as integer
+ Rem Paths
+ path as integer
+ Rem Action mode
+ actionmode as integer
+ Rem Alert flags
+ ehit as integer
  ambushed as integer
  ambushx# as float
  ambushy# as float
  ambushz# as float
- running as boolean
- reference as integer
- action as integer
- adddynamic as integer
- custom as integer
- hearingrange as integer
- team as integer
+ beenhurt as integer
+ Rem Delay Timers
+ delay as integer
+ delay2 as integer
  Rem Waypoints
  waypointstart as integer
  waypointfinish as integer
@@ -131,6 +123,14 @@ type darkaitype
  called as integer
  calldelay as integer
  calldelay2 as integer
+ Rem Safe Zones
+ issafezone as integer
+ Rem Sounds
+ hearingrange as integer
+ Rem Teams
+ team as integer
+ Rem Melee
+ meleedamage as integer
 endtype
 
 Rem Hockeykid - 250210 - Dark AI added type for containers/layers
@@ -147,7 +147,6 @@ Type pathtype
    y as float
    z as float
 Endtype
-dim points(0) as pathtype
 
 Rem Hockeykid - 300310 - Dark AI sound type
 Type aisoundtype
@@ -158,7 +157,14 @@ Type aisoundtype
  time as integer
  team as integer
 Endtype
-dim aisound(100) as aisoundtype
+
+Rem Hockeykid - 050410 - Safe Zone UDT
+Type AISafeZoneType
+ x as float
+ y as float
+ z as float
+ occupied as integer
+Endtype
 
 Rem Hockeykid - 040310 - Adding X10'a performance meter
 rem Resource meter structures
@@ -1349,6 +1355,8 @@ Rem Hockeykid - 250210 - Dark AI conditions
 #constant AICONDAITEAM 364
 #constant AICONDAIATPOINT 365
 #constant AICONDAICALLED 367
+#constant AICONDAITARGETDISTWITHIN 368
+#constant AICONDAITARGETDISTFURTHER 369
 Rem End Dark AI
 #constant AICONDHEADANGLEGREATER 401
 #constant AICONDHEADANGLELESS 402
@@ -1506,7 +1514,6 @@ Rem End Dark AI
 Rem Hockeykid - 250210 - Dark AI constants
 #constant AIACTADDAITEAM 1058
 #constant AIACTAIALLYFOLLOW 1059
-#constant AIACTADDENEMY 1060
 #constant AIACTAISETTARGET 1061
 #constant AIACTAIMOVERANDOM 1062
 #constant AIACTALLYKILL 1063
@@ -1514,8 +1521,6 @@ Rem Hockeykid - 250210 - Dark AI constants
 #constant AIACTAIMOVEMENT 1065
 #constant AIACTAIACTIVE 1066
 #constant AIACTTOGGLEACTIVE 1067
-#constant AIACTADDZOMBIE 1068
-#constant AIACTAIMOTIVE 1069
 #constant AIACTAIACTION 1070
 #constant AIACTAIFOLLOWPLR 1071
 #constant AIACTAIMOVETOSOUND 1072
@@ -1524,6 +1529,12 @@ Rem Hockeykid - 250210 - Dark AI constants
 #constant AIACTAIGOTOPOINT 1075
 #constant AIACTAICALLTEAM 1076
 #constant AIACTAIRESPONDTOCALL 1077
+#constant AIACTAIMOVETOCOVER 1078
+#constant AIACTAIMOVETOTARGET 1079
+#constant AIACTAISTOP 1080
+#constant AIACTAIUSEMELEE 1081
+#constant AIACTAISETMELEEDAMAGE 1082
+#constant AIACTAIROTATETOTARGET 1083
 Rem end Dark AI constants
 #constant AIACTHUDRESET 1100
 #constant AIACTHUDX 1101
@@ -3126,6 +3137,10 @@ _main_game_freeleveldata:
 
   `
   rem FREE ANY DATA
+  Rem AI Undim
+  undim aisafezone()
+  undim points()
+  undim aisound()
   undim undoredolist()
   undim meshbank$()
   undim texturebank$()
@@ -3279,6 +3294,8 @@ _main_game_core:
   ai set player ducking 0
  endif
  `
+ Rem Hockeykid - 050410 - Update AI Safe zones
+ Gosub _SafeZone_Update
  Rem Hockeykid - 300310 - Update AI sound
  AIUpdateSounds()
  Rem Hockeykid - 250210 - Update AI
@@ -5849,7 +5866,7 @@ else
 endif
 
 rem Resource Meter Panel
-if testgametabtoggle=2
+if testgametabtoggle=1
  `
  rem place statistics in resource meter values
  resourcemeterdest#(0)=((perf(11)+0.0)/300000.0)*192.0 : rem syncs
@@ -5923,10 +5940,10 @@ if (scancode()=15 or triggerdebugview>0) and debugviewtog=0
   triggerdebugview=0
  else
   testgametabtoggle=testgametabtoggle+1
-  if testgametabtoggle=3 then testgametabtoggle=0
+  if testgametabtoggle=2 then testgametabtoggle=0
   if testgametabtoggle=0 then debugviewmode=0
   if testgametabtoggle=1 then debugviewmode=1
-  if testgametabtoggle=2 then debugviewmode=0
+  `if testgametabtoggle=2 then debugviewmode=0
   debugviewtog=1
  endif
 endif
@@ -9320,6 +9337,8 @@ conword$(AICONDAIISAI)="isdarkai"
 conword$(AICONDAITEAM)="aiteam"
 conword$(AICONDAIATPOINT)="aiatpoint"
 conword$(AICONDAICALLED)="aicalled"
+conword$(AICONDAITARGETDISTWITHIN)="aitargetdistwithin"
+conword$(AICONDAITARGETDISTFURTHER)="aitargetdistfurther"
 rem Dark AI end
 
 rem Set all action keywords
@@ -9508,7 +9527,6 @@ actword$(AIACTETIMERSTART)="etimerstart"
 Rem Hockeykid - 250210 - Dark AI commands
 actword$(AIACTADDAITEAM)="addaiteam"
 actword$(AIACTAIALLYFOLLOW)="allyfollow"
-actword$(AIACTADDENEMY)="addenemy"
 actword$(AIACTAISETTARGET)="aisettarget"
 actword$(AIACTAIMOVERANDOM)="aimoverandom"
 actword$(AIACTALLYKILL)="killally"
@@ -9517,7 +9535,6 @@ actword$(AIACTAIMOVEMENT)="allowmove"
 actword$(AIACTAIACTIVE)="setaiactive"
 actword$(AIACTTOGGLEACTIVE)="alwaysactive"
 actword$(AIACTADDZOMBIE)="addzombie"
-actword$(AIACTAIMOTIVE)="aimotive"
 actword$(AIACTAIACTION)="aiaction"
 actword$(AIACTAIFOLLOWPLR)="aifollowplr"
 actword$(AIACTAIMOVETOSOUND)="aimovetosound"
@@ -9526,6 +9543,12 @@ actword$(AIACTAIADDPOINT)="aiaddpoint"
 actword$(AIACTAIGOTOPOINT)="aigotopoint"
 actword$(AIACTAICALLTEAM)="aicallteam"
 actword$(AIACTAIRESPONDTOCALL)="airespondtocall"
+actword$(AIACTAIMOVETOCOVER)="aimovetocover"
+actword$(AIACTAIMOVETOTARGET)="aimovetotarget"
+actword$(AIACTAISTOP)="aistop"
+actword$(AIACTAIUSEMELEE)="aiusemelee"
+actword$(AIACTAISETMELEEDAMAGE)="aisetmeleedamage"
+actword$(AIACTAIROTATETOTARGET)="airotatetotarget"
 
 return
 
@@ -10499,6 +10522,38 @@ if aiindex>0
      conda=aiconditionseq(seq).valuea
      if ai entity exist(entityelement(e).obj)
       if entityelement(e).darkai.state<>conda then airesult=0
+     endif
+    endcase
+    case AICONDAITARGETDISTWITHIN:
+     if ai entity exist(entityelement(e).obj)
+      conda=aiconditionseq(seq).valuea
+      if entityelement(e).actualtarget>0
+       tte=entityelement(e).actualtarget-1
+       if entityelement(e).actualtarget>1 then tobj=entityelement(tte).obj
+       if entityelement(e).actualtarget=1 then tobj=physicsplayerborble
+       distx#=object position x(tobj)-entityelement(e).x
+       disty#=object position y(tobj)-entityelement(e).y
+       distz#=object position z(tobj)-entityelement(e).z
+       dist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
+       if dist#>=conda then airesult=0
+      endif
+      if entityelement(e).actualtarget=0 then airesult=0
+     endif
+    endcase
+    case AICONDAITARGETDISTFURTHER:
+     if ai entity exist(entityelement(e).obj)
+      conda=aiconditionseq(seq).valuea
+      if entityelement(e).actualtarget>0
+       tte=entityelement(e).actualtarget-1
+       if entityelement(e).actualtarget>1 then tobj=entityelement(tte).obj
+       if entityelement(e).actualtarget=1 then tobj=physicsplayerborble
+       distx#=object position x(tobj)-entityelement(e).x
+       disty#=object position y(tobj)-entityelement(e).y
+       distz#=object position z(tobj)-entityelement(e).z
+       dist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
+       if dist#<=conda then airesult=0
+      endif
+      if entityelement(e).actualtarget=0 then airesult=0
      endif
     endcase
     case AICONDAIATPOINT:
@@ -12392,7 +12447,11 @@ if aiindex>0
            endif
         next y
         entityelement(e).darkai.team=aiactionseq(seq).value
-        ai add enemy obj,0,tcont
+        if entityelement(e).darkai.team<>1
+         ai add enemy obj,0,tcont
+        else
+         ai add friendly obj,0,tcont
+        endif
         AI Set Entity Can Select targets obj,0
         ai set entity view arc obj,entityelement(e).eleprof.coneangle*0.7,entityelement(e).eleprof.coneangle
         ai set entity fire arc obj,20
@@ -12412,75 +12471,8 @@ if aiindex>0
         ai set entity can duck obj,1
         ai set entity avoid distance obj,300
         ai set entity can strafe obj,1
-
-         `entityelement(e).darkai.tactical=1
-         ai set entity control obj,0
+        ai set entity control obj,0
       endcase
-      case AIACTADDENEMY:
-         obj=entityelement(e).obj
-        tcont=0
-        if ai entity exist(obj)
-           ai kill entity obj
-        endif
-        for y=1 to 20
-           if entityelement(e).y >= container(y).y#-50.0 and entityelement(e).y <= container(y).y#+50.0
-              tcont=y : exit
-           endif
-        next y
-        ai add enemy obj,0,tcont
-        ai set entity view arc obj,entityelement(e).eleprof.coneangle*0.7,entityelement(e).eleprof.coneangle
-        ai set entity fire arc obj,20
-        ai set entity view range obj,600
-        ai set entity attack distance obj,200-rnd(50)+rnd(50)
-        ai set entity aggressive obj
-        `ai set entity hearing range obj,700
-        `ai set entity hearing threshold obj,10
-        entityelement(e).darkai.hearingrange=700
-        ai set entity can roam obj,1
-        REM DAI SPEED
-        ai set entity speed obj,entityelement(e).eleprof.speed/2.0
-        ai set entity position obj,entityelement(e).x,entityelement(e).z
-        ai set entity idle position obj,entityelement(e).x,entityelement(e).z
-        ai set entity angle y obj,entityelement(e).ry
-        ai entity go to position obj,entityelement(e).x,entityelement(e).z
-        ai set entity can duck obj,1
-         ai set entity avoid distance obj,300
-         ai set entity can strafe obj,1
-         ai set entity control obj,0
-         ai entity add target obj,physicsplayerborble
-         debugtargets=obj
-      endcase
-      case AIACTADDZOMBIE:
-         obj=entityelement(e).obj
-         tcont=0
-         for y=1 to 20
-            if entityelement(e).y >= container(y).y#-50.0 and entityelement(e).y <= container(y).y#+50.0
-               tcont=y : exit
-            endif
-         next y
-         ai add enemy obj,0,tcont
-         ai set entity view arc obj,60,80
-         ai set entity fire arc obj,20
-         ai set entity view range obj,600
-         ai set entity attack distance obj,80
-         ai set entity aggressive obj
-         ai set entity hearing range obj,0
-         ai set entity hearing threshold obj,0
-         ai set entity can roam obj,1
-         REM DAI SPEED
-         ai set entity speed obj,entityelement(e).eleprof.speed/2.0
-         ai set entity position obj,entityelement(e).x,entityelement(e).z
-         ai set entity idle position obj,entityelement(e).x,entityelement(e).z
-         ai set entity angle y obj,entityelement(e).ry
-         ai entity go to position obj,entityelement(e).x,entityelement(e).z
-         ai set entity can duck obj,0
-         ai set entity avoid distance obj,40
-         ai set entity can strafe obj,0
-         ai set entity control obj,0
-         ai entity add target obj,physicsplayerborble
-         debugtargets=obj
-         entityelement(e).darkai.zombie=1
-     endcase
      case AIACTAIACTIVE:
          if ai entity exist(entityelement(e).obj)
             ai set entity active obj,aiactionseq(seq).value
@@ -12493,9 +12485,6 @@ if aiindex>0
       endcase
       case AIACTTOGGLEACTIVE:
          entityelement(e).eleprof.phyalways=aiactionseq(seq).value
-      endcase
-      case AIACTAIMOTIVE:
-         entityelement(e).darkai.aimotive=aiactionseq(seq).value
       endcase
       case AIACTAISETTARGET:
          obj=entityelement(e).obj
@@ -12543,16 +12532,16 @@ if aiindex>0
      endcase
      case AIACTAIMOVERANDOM:
       if ai entity exist(entityelement(e).obj)
-          Rem Hockeykid - 030310 - Reset control mode to manual
-         if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control obj,0
-         if entityelement(e).darkai.team=1 and entityelement(e).darkai.follow=1 then Gosub _darkai_stopfollow
-          entityelement(e).darkai.actionmode=2
+       Rem Hockeykid - 030310 - Reset control mode to manual
+       if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control obj,0
+       if entityelement(e).darkai.team=1 and entityelement(e).darkai.follow=1 then Gosub _darkai_stopfollow
+       entityelement(e).darkai.actionmode=2
       endif
      endcase
      case AIACTAIFOLLOWPLR:
       if ai entity exist(entityelement(e).obj)
-         if aiactionseq(seq).value=1 then entityelement(e).darkai.actionmode=1
-         if aiactionseq(seq).value=0 then entityelement(e).darkai.actionmode=4
+       if aiactionseq(seq).value=1 then entityelement(e).darkai.actionmode=1
+       if aiactionseq(seq).value=0 then entityelement(e).darkai.actionmode=4
       endif
      endcase
      case AIACTAIMOVETOSOUND:
@@ -12569,6 +12558,25 @@ if aiindex>0
       if ai entity exist(entityelement(e).obj)
        maxdist#=aiactionseq(seq).value
        Gosub _darkai_callteam
+      endif
+     endcase
+     case AIACTAIMOVETOCOVER:
+      if ai entity exist(entityelement(e).obj)
+       Rem if =0 move to cover based on a targets X Z
+       Rem if no target move to safe zone
+       if aiactionseq(seq).value=0 then entityelement(e).darkai.actionmode=9
+       Rem Move to save zone right off the bat
+       if aiactionseq(seq).value=1 then entityelement(e).darkai.actionmode=10
+      endif
+     endcase
+     case AIACTAIMOVETOTARGET:
+      if ai entity exist(entityelement(e).obj) and entityelement(e).actualtarget>0
+       tte=entityelement(e).actualtarget-1
+       if entityelement(e).actualtarget=1 `then tobj=physicsplayerborble else tobj=entityelement(tte).obj
+        ai entity go to position obj,object position x(physicsplayerborble),object position z(physicsplayerborble)
+       else
+        ai entity go to position obj,entityelement(tte).x,entityelement(tte).z
+       endif
       endif
      endcase
      case AIACTAIRESPONDTOCALL:
@@ -12611,7 +12619,70 @@ if aiindex>0
        next i
       endif
      endcase
+     case AIACTAISTOP:
+      if ai entity exist(entityelement(e).obj)
+       if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control obj,0
+       ai entity go to position entityelement(e).obj,entityelement(e).x,entityelement(e).z
+      endif
+     endcase
+     case AIACTAIUSEMELEE:
+      if ai entity exist(entityelement(e).obj)
+       blood=aiactionseq(seq).value
+       if entityelement(e).actualtarget>1
+        tte=entityelement(e).actualtarget-1
+        Rem do damage
+        tdamagesource=0 : timpacttype=1 : tdamage=entityelement(e).darkai.meleedamage
+        tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y  : tdamagex#=entityelement(e).y
+        stte=e : e=tte
+        gosub _entity_deducthealth
+        e=stte
+         Rem Create Blood
+        if blood=1
+         decalid=entitydecal(entityelement(e).bankindex,1)
+         if decalid>0
+          distx#=entityelement(tte).x-entityelement(e).x
+          disty#=entityelement(tte).y-entityelement(e).y
+          distz#=entityelement(tte).z-entityelement(e).z
+          dist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
+          rem direction from player to entity
+          tix#=entityelement(e).x-entityelement(tte).x : tiy#=entityelement(e).y-entityelement(tte).y : tiz#=entityelement(e).z-entityelement(tte).z
+          tdd#=sqrt(abs(tix#*tix#)+abs(tiy#*tiy#)+abs(tiz#*tiz#))
+          tix#=tix#/tdd# : tiy#=tiy#/tdd# : tiz#=tiz#/tdd#
+          rem find point of impact
+          tix#=tix#*(dist#-10.0)
+          tiy#=tiy#*(dist#-10.0)
+          tiz#=tiz#*(dist#-10.0)
+          rem create a splat decal
+          decalscalemodx=0 : rem FPSCV101 - fix
+          decalorient=0 : decalx=entityelement(e).x+tix# : decaly=((entityelement(tte).y+(object size y(entityelement(tte).obj)/2))+rnd(6))+tiy# : decalz=entityelement(e).z+tiz#
+          originatore=-1 : gosub _decalelement_create
+         endif
+        endif
 
+       endif
+       if entityelement(e).actualtarget=1
+        tdamage=entityelement(e).darkai.meleedamage
+        gosub _player_takedamage
+       endif
+      endif
+     endcase
+     case AIACTAISETMELEEDAMAGE:
+      if ai entity exist(entityelement(e).obj)
+       entityelement(e).darkai.meleedamage=aiactionseq(seq).value
+      endif
+     endcase
+     case AIACTAIROTATETOTARGET:
+      if ai entity exist(entityelement(e).obj)
+       if entityelement(e).actualtarget>0
+        if entityelement(e).actualtarget=1
+         ai entity look at position entityelement(e).obj,object position x(physicsplayerborble),object position z(physicsplayerborble)
+        else
+         tte=entityelement(e).actualtarget-1
+         ai entity look at position entityelement(e).obj,object position x(entityelement(tte).obj),object position z(entityelement(tte).obj)
+        endif
+       endif
+      endif
+     endcase
 Rem End Dark AI
      `
      case AIACTFPGCRAWTEXTR:
@@ -14083,12 +14154,8 @@ function managebroadcastsound()
 endfunction
 
 function broadcast3dsound(x#,y#,z#,strength#,obj)
- if strength#>bcsoundstrength#
-  bcsoundstrength#=strength#
-  bcsoundx#=x# : bcsoundy#=y# : bcsoundz#=z#
   Rem Send sound and data to AI array
   arraycount=array count(aisound())
-
   if obj<>0
    for i=1 to arraycount
     if aisound(i).alive=0
@@ -14112,7 +14179,9 @@ function broadcast3dsound(x#,y#,z#,strength#,obj)
     endif
    next i
   endif
-
+ if strength#>bcsoundstrength#
+  bcsoundstrength#=strength#
+  bcsoundx#=x# : bcsoundy#=y# : bcsoundz#=z#
  endif
 endfunction
 
@@ -14965,6 +15034,8 @@ if colmaterialtype>=0
     if manuallycontrolledfootfallframe<>playermovementstep(plrid) or leapedlanded=1
      playermovementstep(plrid)=manuallycontrolledfootfallframe : leapedlanded=0
      playinternal3dsoundfactor(sndid,entityelement(e).x,entityelement(e).y,entityelement(e).z,10.0)
+     Rem Hockeykid - 050410 - Play fake sound for Dark AI
+     broadcast3dsound(entityelement(e).x,entityelement(e).y,entityelement(e).z,0,entityelement(e).obj)
     endif
    else
     rem default timer based footfall
@@ -14987,6 +15058,8 @@ if colmaterialtype>=0
       ffdd#=sqrt(abs(ffdx#*ffdx#)+abs(ffdz#*ffdz#))
       if ffdd#<500
        playinternal3dsoundfactor(sndid,entityelement(e).x,entityelement(e).y,entityelement(e).z,10.0)
+       Rem Hockeykid - 050410 - Play fake sound for Dark AI
+       broadcast3dsound(entityelement(e).x,entityelement(e).y,entityelement(e).z,0,entityelement(e).obj)
       endif
      else
       rem FPGC - 280809 - tone player footfalls RIGHT DOWN as they are halllmark annoyances from FPSC!!)
@@ -22952,6 +23025,7 @@ next e
 
 rem Load any soundsets not belonging to characters or players
 debugviewtext(306,strarr$(105))
+dim aisafezone(0) as AISafeZoneType
 for e=1 to entityelementlist
  entityelement(e).soundset=0
  entid=entityelement(e).bankindex
@@ -22980,6 +23054,14 @@ for e=1 to entityelementlist
     addfiletocollection(tfile$)
     entityelement(e).soundset1=loadinternalsoundcore(tfile$,t3d)
    endif
+  endif
+  Rem Hockeykid - 050410 - Check for safe zone
+  if lower$(left$(entityelement(e).eleprof.name$,9))="safe zone"
+   array insert at bottom aisafezone()
+   xp=array count(aisafezone())
+   aisafezone(xp).x=entityelement(e).x
+   aisafezone(xp).y=entityelement(e).y
+   aisafezone(xp).z=entityelement(e).z
   endif
  endif
 next e
@@ -23672,7 +23754,7 @@ _gameflow_default:
  endif
 
  rem Load numerics for effect menu
- tfile$="gamecore\huds\numeric1.dds" : load image tfile$,effectmenuimagestart+31 : addfiletocollection(tfile$)
+ tfile$="languagebank\"+language$+"\gamecore\huds\numeric3.png" : load image tfile$,effectmenuimagestart+31 : addfiletocollection(tfile$)
 
  rem Resource Meter Assets
  img=effectmenuimagestart+33
@@ -44199,8 +44281,6 @@ _control_darkai:
  tavoiding=ai get entity avoiding(obj)
  Rem Hockeykid - 250210 - Added line so Dark AI entities have footfall sounds
  if tmoving>0 then plrid=entityelement(e).fakeplayerid : Gosub _player_playfootfall
- rem collect ai motive
- motive=entityelement(e).darkai.aimotive
 
  rem Collect State Information
  tstate=entityelement(e).darkai.state
@@ -44222,7 +44302,7 @@ _control_darkai:
    entityelement(e).darkai.state=STATE_ATTACKING
   endif
  endif
- Rem current unused AI action is 10
+ Rem current unused AI action is 11
 
  Rem Hockeykid - 100310 - If not in any of these action modes and entity is set to automatic mode then turn off
  if entityelement(e).darkai.control=1
@@ -44230,6 +44310,32 @@ _control_darkai:
    entityelement(e).darkai.control=0 : ai set entity control obj,0
   endif
  endif
+
+  Rem Hockeykid - 050410 - Move to cover based on enemy X Z
+  if entityelement(e).darkai.actionmode=9
+   if ai get entity count targets(obj)>0
+    toppri=ai get entity target id(obj,1)
+    ai entity move to cover obj,object position x(toppri),object position z(toppri)
+   else
+    Gosub _darkai_find_safezone
+    if tbesti>0
+     i=tbesti
+     ai entity go to position obj,aisafezone(i).x,aisafezone(i).z
+     aisafezone(i).occupied=1
+    endif
+   endif
+   entityelement(e).darkai.actionmode=0
+  endif
+  Rem Hockeykid - 050410 - Move to cover based on safe zone
+  if entityelement(e).darkai.actionmode=10
+   Gosub _darkai_find_safezone
+   if tbesti>0
+    i=tbesti
+    ai entity go to position obj,aisafezone(i).x,aisafezone(i).z
+    aisafezone(i).occupied=1
+   endif
+   entityelement(e).darkai.actionmode=0
+  endif
 
  rem Idle
  if tstate=STATE_IDLE
@@ -44239,8 +44345,8 @@ _control_darkai:
   Rem Hockeykid - All AI types
   if entityelement(e).darkai.actionmode=5
    `ai entity move to closest sound obj
-    AIMoveToSound(obj,obje)
-    entityelement(e).darkai.actionmode=0
+   AIMoveToSound(obj,obje)
+   entityelement(e).darkai.actionmode=0
   endif
   if entityelement(e).darkai.actionmode=6
    ai entity move away from sound obj
@@ -44255,14 +44361,12 @@ _control_darkai:
   if entityelement(e).darkai.team=1
    `Follow the player
     if entityelement(e).darkai.actionmode=1
-     if tsound=0
-      ai set entity control obj,1
-      ai entity follow player obj,60
-      entityelement(e).darkai.follow=1
-      Rem set the entities control variable to 1 so can be swtiched off later if on
-      entityelement(e).darkai.control=1
-      entityelement(e).darkai.actionmode=0
-     endif
+     ai set entity control obj,1
+     ai entity follow player obj,60
+     entityelement(e).darkai.follow=1
+     Rem set the entities control variable to 1 so can be swtiched off later if on
+     entityelement(e).darkai.control=1
+     entityelement(e).darkai.actionmode=0
     endif
 
     if entityelement(e).darkai.actionmode=4 and entityelement(e).darkai.follow<>0
@@ -44293,10 +44397,10 @@ _control_darkai:
     ai entity random move obj,300,1000
    endif
    `Survey Suroundings
-   if tturning=0 and tmoving=0 and entityelement(e).darkai.delay<timer() and entityelement(e).darkai.actionmode<>2
-    entityelement(e).darkai.delay=timer()+1000
-    ai entity look around obj,40,360
-   endif
+   `if tturning=0 and tmoving=0 and entityelement(e).darkai.delay<timer() and entityelement(e).darkai.actionmode<>2
+   ` entityelement(e).darkai.delay=timer()+1000
+    `ai entity look around obj,40,360
+  ` endif
    `Stop entity in its tracks
    if entityelement(e).darkai.actionmode=3
     Rem entity must be in manual mode
@@ -44339,7 +44443,7 @@ _control_darkai:
   if entityelement(e).darkai.aistop=1 then ai entity stop obj
 
    if tobjtarget>0
-    ai entity look at position obj,ttargetx#,ttargetz#
+    `ai entity look at position obj,ttargetx#,ttargetz#
     if entityelement(e).darkai.state<>STATE_COVER and ttargetvisibleduck=0
      entityelement(e).darkai.state=STATE_COVER : ai entity move to cover obj,ttargetx#,ttargetz#
     endif
@@ -44568,6 +44672,43 @@ _darkai_callteam:
  next i
 Return
 
+_darkai_find_safezone:
+ arraycount=array count(aisafezone())
+ cloestdist#=999999
+ tbesti=0
+ for i=1 to arraycount
+  distx#=aisafezone(i).x-entityelement(e).x
+  disty#=aisafezone(i).y-entityelement(e).y
+  distz#=aisafezone(i).z-entityelement(e).z
+  dist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
+  if aisafezone(i).occupied=0
+   if dist#<cloestdist#
+    cloestdist#=dist#
+    tbesti=i
+   endif
+  endif
+ next i
+Return
+
+_SafeZone_Update:
+ arraycount2=array count(ischaracter())
+ arraycount=array count(aisafezone())
+ if arraycount=0 or arraycount2=0 then return
+ for i=1 to arraycount
+  aisafezone(i).occupied=0
+ next i
+ for x=1 to arraycount2
+  for i=1 to arraycount
+   distx#=aisafezone(i).x-entityelement(x).x
+   disty#=aisafezone(i).y-entityelement(x).y
+   distz#=aisafezone(i).z-entityelement(x).z
+   dist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
+   if dist#<=100
+    aisafezone(i).occupied=1
+   endif
+  next i
+ next x
+Return
 
 Add_Targets:
  arraycount=array count(ischaracter())
@@ -44578,6 +44719,17 @@ Add_Targets:
     if ai get entity can see(entityelement(e).obj,object position x(entityelement(y).obj),object position z(entityelement(y).obj),1)>0
      ai entity add target entityelement(e).obj,entityelement(y).obj
     endif
+   endif
+   Rem If entityelement(y).actualtarget>0 and the target no longer exist on the list reset flag
+   tokay=0
+   if ai get entity count targets(entityelement(y).obj)=0 then entityelement(y).actualtarget=0
+   if entityelement(y).actualtarget>1 and ai get entity count targets(entityelement(y).obj)>0
+    tcount=ai get entity count targets(entityelement(y).obj)
+    for x=1 to tcount
+     c=entityelement(y).actualtarget-1
+     if entityelement(c).obj=ai get entity target id(entityelement(y).obj,x) then tokay=1 : exit
+    next x
+    if tokay=0 then entityelement(y).actualtarget=0
    endif
   endif
  next i
@@ -44686,6 +44838,10 @@ return
 _Character_Array:
  undim ischaracter()
  dim ischaracter(0)
+ Rem Also dim path array
+ dim points(0) as pathtype
+ Rem Dim sounds
+ dim aisound(100) as aisoundtype
 
  for e=1 to entityelementlist
   entid=entityelement(e).bankindex
@@ -44775,7 +44931,7 @@ Function AIHeardSound(obje)
  arraycount=array count(aisound())
  hearing=entityelement(obje).darkai.hearingrange^2
  for i=1 to arraycount
-  if aisound(i).alive=1 and aisound(i).team<>entityelement(e).darkai.team
+  if aisound(i).alive=1 and aisound(i).team<>entityelement(obje).darkai.team
    dst#=(entityelement(obje).x-aisound(i).x)^2 + (entityelement(obje).z-aisound(i).z)^2
    if dst#<=hearing
     output=i

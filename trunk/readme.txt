@@ -9,7 +9,14 @@ History
 V1.1.7
 ------
 
- * Added New FPI action AIRESPONDTOCALL this will cause an entity to move towards the teammate that called for help (if any called for help)
+ * Added new FPI action AIROTATETOTARGET this will rotate the entity to its target.This command works just like rotatetotarget but uses the ai system to rotate
+ * Added new FPI action AISETMELEEDAMAGE=X this will X is the amount of damage the entity will do with AIUSEMELEE=X
+ * Added new FPI action AIUSEMELEE=X this will take away the amount of health specified by AISETMELEEDAMAGE=X from the entity's target. If X=1 then blood splats will be enabled for that hit
+ * Added new FPI condition AITARGETDISTFURTHER=X this will check if the entities target is further then X distance (if the entity has no target this will return false)
+ * Added new FPI condition AITARGETDISTWITHIN=X this will check if the entities target is within X distance (if the entity has no target this will return false)
+ * Added new FPI action AIMOVETOCOVER=X if x is equal to 1 the entity will move to the closest unoccupied safe zone, if x is 0 the entity will move to cover based on its #1 targets X and z positions if the entity has no target it will move to a safe zone instead 
+   Note: To make a safe zone name a trigger zone "safe zone" (without the quotes). Hopefully in the future we will be able to supply a zone in the Markers bank specially for safe zones for easier setup
+ * Added new FPI action AIRESPONDTOCALL this will cause an entity to move towards the teammate that called for help (if any called for help)
  * Added new FPI condition AICALLED=X this will return if the entity has been called by the AICALLTEAM=X command
  * Added new FPI action AICALLTEAM=X this will alert teammates within x distance that a team member needs help (to be used with other call commands)
  * Altered AIHEARDSOUND=X condition x is now equal to the maximum distance away the sound can be
@@ -42,7 +49,7 @@ V1.1.7
  * Added new FPI action AIGOTOPOINT=X this will make the entity go from its current position to the point specified by x (to create a point use aiaddpoint=x) this path will avoid any obstacles
  * Added new FPI action AIADDPOINT=X x=is the points id number - this will create a point to be used with other ai point commands
  * Fixed bug from V1.16 that broke runfpi because of the runfpi scripts not being loaded
- * Added new FPI condition AITEAM=X 0=neutral(currently unsupported), 1=ally, 2=enemy
+ * Added new FPI condition AITEAM=X x is the teams number
  * Added new FPI condition ISDARKAI=X which is true if the entity has been loaded into the Dark AI system 
  * Changed all data structure members from integer to float which fell under timer based calculations
  * Changed character weapon fire from counter to timer based logic
