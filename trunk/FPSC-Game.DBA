@@ -44968,7 +44968,7 @@ _postprocess_renderdepthcamera:
    if light exist(l)=1 then hide light l
   next l
   fog on
-  fog color 255,0,0
+  fog color 255,128,128
   fog distance 0,500
   `
   rem entities that use fastbone need some constants overriding (for FOG)
@@ -45006,6 +45006,7 @@ _postprocess_renderdepthcamera:
    if light exist(l)=1 then show light l
   next l
   fog off
+  fog color 0,0,0
   `
  endif
  `

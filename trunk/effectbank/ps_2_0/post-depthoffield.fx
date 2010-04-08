@@ -23,7 +23,7 @@ float blurSize
 	float UIMax = 5.0;
 	float UIMin = 0.1;
 	float UIStep = 0.001;
-> = 1.500000;
+> = 1.000000;
 
 float focalDistance
 <
