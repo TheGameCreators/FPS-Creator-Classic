@@ -23,7 +23,7 @@ float blurSize
 	float UIMax = 5.0;
 	float UIMin = 0.1;
 	float UIStep = 0.001;
-> = 1.500000;
+> = 2.500000;
 
 float focalDistance
 <
@@ -33,14 +33,24 @@ float focalDistance
 	float UIStep = 0.001;
 > = 0.25;
 
-//scene image
+// main scene camera
 texture frame
 < 
 	string ResourceName = "";
 >;
-
 sampler2D frameSamp = sampler_state {
     Texture = < frame >;
+    MinFilter = Linear; MagFilter = Linear; MipFilter = Linear;
+    AddressU = Clamp; AddressV = Clamp;
+};
+
+// depth camera image (created using FOG)
+texture framedepth
+< 
+	string ResourceName = "";
+>;
+sampler2D framedepthSamp = sampler_state {
+    Texture = < framedepth >;
     MinFilter = Linear; MagFilter = Linear; MipFilter = Linear;
     AddressU = Clamp; AddressV = Clamp;
 };
@@ -104,35 +114,40 @@ output VS( input IN )
 }
 
 //downsample used to blur the image
-float4 PSDownsample( output IN, uniform sampler2D srcTex, uniform float reduceRatio ) : COLOR
+float4 PSDownsample( output IN, uniform sampler2D srcTex, uniform sampler2D srcDepthTex, uniform float reduceRatio ) : COLOR
 {
+    // displacement effect
+    float4 depthinfo = tex2D( srcDepthTex, IN.uv );
+    float2 displacement = float2(depthinfo.y-0.5,depthinfo.z-0.5);
+    displacement *= (1-depthinfo.x);
+    displacement /= 64.0;
+
     float4 color = 0;
     float2 scale = (reduceRatio*blurSize)/ViewSize;
-    float4 center = tex2D( srcTex, IN.uv );
 
-    // get the depth from the alpha channel (it has been divided by two and inverted)
-    float a_depth = 1.0 - min(center.a * 2.0, 1);
+    // get the depth from the depth camera image
+    float a_depth = depthinfo.x;
 
     // work out how close it is to the focal point
     float alpha1 = (abs ( a_depth - focalDistance ) * 2);
 
-    // also increase blur exponentially the closer to the camera you get
-    float close = pow(max((1-a_depth)-0.75,0),3)*50;
-    alpha1 += close;
+    // (optional) increase blur exponentially the closer to the camera you get
+    // float close = pow(max((1-a_depth)-0.75,0),3)*50;
+    // alpha1 += close;
 
     // blur the original color with the surrounding texels
     for (int i = 0; i < 9; i++)
     {
         //convert pixel offsets into texel offsets via the inverse view values.
-        float4 newColor = tex2D( srcTex, IN.uv + PixelOffsets[i].xy*scale*alpha1 );
+        float4 newColor = tex2D( srcTex, IN.uv + displacement + PixelOffsets[i].xy*scale*alpha1 );
         color += newColor;
     }
 
     // output blurred final pixel but forward original alpha value
-    return float4(color.xyz/9,center.a);
+    return float4(color.xyz/9,depthinfo.x);
 
     // useful alternative output for debugging focal point distance
-    //return float4(alpha1,alpha1,alpha1,center.a);
+    //return float4(alpha1,color.y,color.z,depthinfo.x);
 }
 
 //copy the low res downsample into a high res screen quad using bilinear filtering
@@ -154,7 +169,7 @@ technique Blur
 	{
 		ZEnable = False;
 		VertexShader = compile vs_1_1 VS();
-		PixelShader = compile ps_2_a PSDownsample( frameSamp, 1.0 );
+		PixelShader = compile ps_2_a PSDownsample( frameSamp, framedepthSamp, 1.0 );
 	}
 	
 	pass Downsample2
@@ -164,7 +179,7 @@ technique Blur
 	{
 		ZEnable = False;
 		VertexShader = compile vs_1_1 VS();
-		PixelShader = compile ps_2_a PSDownsample( Downsample1Samp, 1.0 );
+		PixelShader = compile ps_2_a PSDownsample( Downsample1Samp, framedepthSamp, 1.0 );
 	}
 
 	pass Present

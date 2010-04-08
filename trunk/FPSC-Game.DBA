@@ -2301,6 +2301,7 @@ global gaspectratio : gaspectratio=0
 global gnewblossershaders : gnewblossershaders=1
 global gpostprocessing : gpostprocessing=0
 global gpostprocessingnotransparency : gpostprocessingnotransparency=0
+global gdepthcameraid : gdepthcameraid=0
 global gshowaioutlines : gshowaioutlines=0
 global gsystemmemorycapoff : gsystemmemorycapoff=0
 
@@ -3298,6 +3299,7 @@ _main_game_core:
  Gosub _SafeZone_Update
  Rem Hockeykid - 300310 - Update AI sound
  AIUpdateSounds()
+ `
  Rem Hockeykid - 250210 - Update AI
  AI Update
  `
@@ -3348,6 +3350,7 @@ _main_game_core:
   rotate camera camangx#,camangy#,0
   `
  else
+  gosub _postprocess_renderdepthcamera
   sync
  endif
  `
@@ -3578,8 +3581,8 @@ _main_game_showwindownow:
   else
    rem test game to front
    rem FPGC - 010909 - TEST GAME needs this to keep window to the very front always (though not when debuggin)
-   window to front "__topmost__"+"FPSC Game"
-   `window to front "FPSC Game"
+   `window to front "__topmost__"+"FPSC Game"
+   window to front "FPSC Game"
   endif
  endif
 return
@@ -44738,111 +44741,15 @@ Add_Targets:
  endif
 Return
 
-rem
-rem POST PROCESS SUBROUTINES - Uses Camera One As Post Process Screen Aligned QUAD
-rem
-
-_postprocess_init:
- `
- rem full screen shaders
- bloomfilescreen$="effectbank\ps_2_0\post-bloom.fx"
- depthoffieldfilescreen$="effectbank\ps_2_0\post-depthoffield.fx"
- depthoffieldfileobject$="effectbank\ps_2_0\post-object-depthoffield.fx"
- addfiletocollection(bloomfilescreen$)
- addfiletocollection(depthoffieldfilescreen$)
- addfiletocollection(depthoffieldfileobject$)
- `
- rem if flagged, use post processing (camera one)
- if gpostprocessmode=0 and gpostprocessing<>0 and segobjusedformapeditor=0
-  `
-  rem kind of post process (gpostprocessing)
-  rem 1 - bloom
-  rem 2 - depth of field
-  tshaderchoice$=bloomfilescreen$
-  if gpostprocessing=1 then tshaderchoice$=bloomfilescreen$ : gpostprocessingnotransparency=0
-  if gpostprocessing=2 then tshaderchoice$=depthoffieldfilescreen$ : gpostprocessingnotransparency=1
-  `
-  rem FPGC - 200310 - new camera 1 holds post-process screen quad (requires U75+)
-  make camera 1 : load effect tshaderchoice$,65535,0
-  set camera view 1,0,0,1,1
-`  make object plain 65536,2,2 : set object effect 65536,65535 : set object mask 65536,%10
-`  set camera to image 0,65536,screen width(),screen height(),2 : texture object 65536,0,65536
-  set current camera 0
-  `
-  rem Shader used to replace fixed-function pipeline
-  load effect depthoffieldfileobject$,65533,0 : rem static (LM+diffuse)
-  load effect depthoffieldfileobject$,65534,0 : rem dynamic (diffuse)
-  `
-  rem post process mode on
-  gpostprocessmode=1
-  `
- endif
- `
-return
-
-_postprocess_free:
- `
- rem free any resources created by post process technique
- if gpostprocessmode=1
-  delete effect 65535
-  delete effect 65533
-  delete effect 65534
-  delete object 65536
-  delete camera 1 : set current camera 0
-  gpostprocessingnotransparency=0
-  gpostprocessmode=0
- endif
- `
-return
-
-_postprocess_apply:
- `
- if gpostprocessmode=1
-  `
-  rem make sure ALL objects render only to camera zero (now we have more than one camera)
-  for o=1 to 65535
-   if object exist(o)=1 then set object mask o,%1
-  next o
-  `
-  rem switch all loaded effects to alpha/depth
-  for e=1 to 65534
-   if effect exist(e)=1
-    if gpostprocessingnotransparency=0 then set effect technique e,"alpha"
-    if gpostprocessingnotransparency=1 then set effect technique e,"depth"
-   endif
-  next e
-  `
-  rem switch universe geometry to use alpha/depth
-  if gpostprocessingnotransparency=0 then set static effect technique "alpha"
-  if gpostprocessingnotransparency=1 then set static effect technique "depth"
-  `
-  rem switch the dynamic and static object renderer techniques
-  if gpostprocessingnotransparency=0 then set effect technique 65534,"alpha" : set effect technique 65533,"alphaLM"
-  if gpostprocessingnotransparency=1 then set effect technique 65534,"depth" : set effect technique 65533,"depthLM"
-  `
-  rem make sure ALL game objects use 'depth of field' (only if no shader of their own)
-  if gpostprocessingnotransparency=1
-   for o=1 to 65535
-    if object exist(o)=1
-     if objecteffect(o)=0
-      set object effect o,65534
-     endif
-    endif
-   next o
-  endif
-  `
- endif
- `
-return
-
 _Character_Array:
+ `
  undim ischaracter()
  dim ischaracter(0)
  Rem Also dim path array
  dim points(0) as pathtype
  Rem Dim sounds
  dim aisound(100) as aisoundtype
-
+ `
  for e=1 to entityelementlist
   entid=entityelement(e).bankindex
   if entityprofile(entid).ischaracter=1
@@ -44851,70 +44758,8 @@ _Character_Array:
    ischaracter(xp)=e
   endif
  next e
-
+ `
 Return
-
-_postprocess_apply:
- `
- if gpostprocessmode=1
-  `
-  rem make sure ALL objects render only to camera zero (now we have more than one camera)
-  for o=1 to 65535
-   if object exist(o)=1 then set object mask o,%1
-  next o
-  `
-  rem switch all loaded effects to alpha/depth
-  for e=1 to 65534
-   if effect exist(e)=1
-    if gpostprocessingnotransparency=0 then set effect technique e,"alpha"
-    if gpostprocessingnotransparency=1 then set effect technique e,"depth"
-   endif
-  next e
-  `
-  rem switch universe geometry to use alpha/depth
-  if gpostprocessingnotransparency=0 then set static effect technique "alpha"
-  if gpostprocessingnotransparency=1 then set static effect technique "depth"
-  `
-  rem switch the dynamic and static object renderer techniques
-  if gpostprocessingnotransparency=0 then set effect technique 65534,"alpha" : set effect technique 65533,"alphaLM"
-  if gpostprocessingnotransparency=1 then set effect technique 65534,"depth" : set effect technique 65533,"depthLM"
-  `
-  rem make sure ALL game objects use 'depth of field' (only if no shader of their own)
-  if gpostprocessingnotransparency=1
-   for o=1 to 65535
-    if object exist(o)=1
-     if objecteffect(o)=0
-      set object effect o,65534
-     endif
-    endif
-   next o
-  endif
-  `
-  rem FPGC
-  if object exist(65536)=1
-   show object 65536
-  else
-   make object plain 65536,2,2 : set object effect 65536,65535 : set object mask 65536,%10
-  endif
-  set camera to image 0,65536,screen width(),screen height(),2 : texture object 65536,0,65536
-  set camera view 1,0,0,screen width(),screen height()
-  `
- endif
- `
-return
-
-_postprocess_off:
- `
- rem FPGC
- if gpostprocessmode=1
-  `
-  if object exist(65536)=1 then hide object 65536
-  set camera view 0,0,0,screen width(),screen height()
-  set camera view 1,0,0,1,1
-  `
- endif
- `
-return
 
 Function AIUpdateSounds()
  arraycount=array count(aisound())
@@ -44949,3 +44794,186 @@ Function AIMoveToSound(obj,obje)
  endif
 Endfunction
 
+rem
+rem POST PROCESS SUBROUTINES - Uses Camera One As Post Process Screen Aligned QUAD
+rem
+
+_postprocess_init:
+ `
+ rem full screen shaders
+ bloomfilescreen$="effectbank\ps_2_0\post-bloom.fx"
+ depthoffieldfilescreen$="effectbank\ps_2_0\post-depthoffield.fx"
+ `depthoffieldfileobject$="effectbank\ps_2_0\post-object-depthoffield.fx"
+ addfiletocollection(bloomfilescreen$)
+ addfiletocollection(depthoffieldfilescreen$)
+ `addfiletocollection(depthoffieldfileobject$)
+ `
+ rem if flagged, use post processing (camera one)
+ if gpostprocessmode=0 and gpostprocessing<>0 and segobjusedformapeditor=0
+  `
+  rem kind of post process (gpostprocessing)
+  rem 1 - bloom
+  rem 2 - depth of field
+  tshaderchoice$=bloomfilescreen$
+  if gpostprocessing=1 then tshaderchoice$=bloomfilescreen$ : gpostprocessingnotransparency=0 : gdepthcameraid=0
+  `if gpostprocessing=2 then tshaderchoice$=depthoffieldfilescreen$ : gpostprocessingnotransparency=1
+  if gpostprocessing=2 then tshaderchoice$=depthoffieldfilescreen$ : gpostprocessingnotransparency=0 : gdepthcameraid=2
+  `
+  rem FPGC - 200310 - new camera 1 holds post-process screen quad (requires U75+)
+  make camera 1 : load effect tshaderchoice$,65535,0
+  set camera view 1,0,0,1,1
+  set current camera 0
+  `
+  rem FPGC - 070410 - make a depth camera and assign it to image X
+  if gdepthcameraid>0
+   make camera gdepthcameraid
+   set camera view gdepthcameraid,0,0,1,1
+   color backdrop gdepthcameraid,rgb(255,128,128)
+   set current camera 0
+  endif
+  `
+  rem Shader used to replace fixed-function pipeline
+  `load effect depthoffieldfileobject$,65533,0 : rem static (LM+diffuse)
+  `load effect depthoffieldfileobject$,65534,0 : rem dynamic (diffuse)
+  `
+  rem post process mode on
+  gpostprocessmode=1
+  `
+ endif
+ `
+return
+
+_postprocess_free:
+ `
+ rem free any resources created by post process technique
+ if gpostprocessmode=1
+  delete effect 65535
+  `delete effect 65533
+  `delete effect 65534
+  delete object 65536
+  delete camera 1 : set current camera 0
+  if gdepthcameraid<>0 then delete camera gdepthcameraid : set current camera 0 : gdepthcameraid=0
+  gpostprocessingnotransparency=0
+  gpostprocessmode=0
+ endif
+ `
+return
+
+_postprocess_apply:
+ `
+ if gpostprocessmode=1
+  `
+  rem make sure ALL objects render only to camera zero (now we have more than one camera)
+  for o=1 to 65535
+   if object exist(o)=1
+    if gdepthcameraid>0
+     set object mask o,%1+(1<<gdepthcameraid)
+    else
+     set object mask o,%1
+    endif
+   endif
+  next o
+  `
+  rem switch all loaded effects to alpha/depth
+  `for e=1 to 65534
+  ` if effect exist(e)=1
+  `  if gpostprocessingnotransparency=0 then set effect technique e,"alpha"
+  `  if gpostprocessingnotransparency=1 then set effect technique e,"depth"
+  ` endif
+  `next e
+  `
+  rem switch universe geometry to use alpha/depth
+  `if gpostprocessingnotransparency=0 then set static effect technique "alpha"
+  `if gpostprocessingnotransparency=1 then set static effect technique "depth"
+  `
+  rem switch the dynamic and static object renderer techniques
+  `if gpostprocessingnotransparency=0 then set effect technique 65534,"alpha" : set effect technique 65533,"alphaLM"
+  `if gpostprocessingnotransparency=1 then set effect technique 65534,"depth" : set effect technique 65533,"depthLM"
+  `
+  rem make sure ALL game objects use 'depth of field' (only if no shader of their own)
+  `if gpostprocessingnotransparency=1
+  ` for o=1 to 65535
+  `  if object exist(o)=1
+  `   if objecteffect(o)=0
+  `    set object effect o,65534
+  `   endif
+  `  endif
+  ` next o
+  `endif
+  `
+  rem create and prepare resources for full screen final render
+  if object exist(65536)=1
+   show object 65536
+  else
+   make object plain 65536,2,2 : set object effect 65536,65535 : set object mask 65536,%10
+  endif
+  set camera to image 0,65536,screen width(),screen height(),2
+  texture object 65536,0,65536
+  if gdepthcameraid>0
+   set camera to image gdepthcameraid,65537,screen width(),screen height(),2
+   texture object 65536,1,65537
+  endif
+  set camera view 1,0,0,screen width(),screen height()
+  `
+ endif
+ `
+return
+
+_postprocess_renderdepthcamera:
+ `
+ rem FPGC - 070410 - set the scene to remove all RED by using only ambient lighting add RED FOG to simulate distance
+ if gdepthcameraid>0
+  `
+  rem set lighting for depth render
+  set current camera gdepthcameraid
+  position camera gdepthcameraid,camera position x(0),camera position y(0),camera position z(0)
+  rotate camera gdepthcameraid,camera angle x(0),camera angle y(0),camera angle z(0)
+  storeambientlight=ambient light()
+  color backdrop gdepthcameraid,rgb(255,0,0),rgb(0,128,128)
+  for l=0 to 7
+   if light exist(l)=1 then hide light l
+  next l
+  fog on
+  fog color 255,0,0
+  fog distance 0,500
+  `
+  rem apply 'immune to fore wipe color' mask to objects (for things like heat haze/refractions/distortions)
+  for o=1 to 65535
+   if object exist(o)=1
+    set object mask o,%1+(1<<gdepthcameraid),0,0,1
+    `set object mask o,%0+(1<<gdepthcameraid),0,0,1
+   endif
+  next o
+  `
+  rem render the depth scene
+  sync mask (1 << gdepthcameraid)
+  fastsync
+  sync mask %11111111 - (1 << gdepthcameraid)
+  set sprite 1,0,1
+  sprite 1,0,0,65537
+  size sprite 1,320,240
+  `
+  rem restore general lighting
+  color backdrop gdepthcameraid,rgb(0,64,0),0
+  set current camera 0
+  for l=0 to 7
+   if light exist(l)=1 then show light l
+  next l
+  fog off
+  `
+ endif
+ `
+return
+
+_postprocess_off:
+ `
+ rem FPGC
+ if gpostprocessmode=1
+  `
+  if object exist(65536)=1 then hide object 65536
+  set camera view 0,0,0,screen width(),screen height()
+  set camera view 1,0,0,1,1
+  `
+ endif
+ `
+return
