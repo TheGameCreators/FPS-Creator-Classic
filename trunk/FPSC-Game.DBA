@@ -13756,78 +13756,73 @@ _common_makeeffecttextureset:
   if upper$(right$(tstr0$,2))="D2"
    `
    rem The system used by FPSC is D.I.N.S for 0,1,2,3
-   if guseeffectsonessentials=1
-    rem no EA essential mode in V1
+   hardcodedtexturestages=0
+   `
+   rem related to scene universe (lightmap stage present)
+   ttt$="illuminationmap.fx" : if lower$(right$(tfile$,len(ttt$)))=ttt$ then hardcodedtexturestages=1
+   ttt$="bump.fx" : if lower$(right$(tfile$,len(ttt$)))=ttt$ then hardcodedtexturestages=2
+   `
+   rem related to entities (lightmap stage NOT present)
+   ttt$="illuminationent.fx" : if lower$(right$(tfile$,len(ttt$)))=ttt$ then hardcodedtexturestages=11
+   ttt$="bumpent.fx" : if lower$(right$(tfile$,len(ttt$)))=ttt$ then hardcodedtexturestages=12
+   ttt$="bumpbone.fx" : if lower$(right$(tfile$,len(ttt$)))=ttt$ then hardcodedtexturestages=13
+   `
+   if hardcodedtexturestages>0
+    if hardcodedtexturestages=1
+     rem [LM]+[DIFF+ILLU]
+     ensureclearlayermax=2
+     texdir1$=tstr1$+"D2"+tstr2$
+     texdir2$=tstr1$+"D2"+tstr2$
+     texdir3$=tstr1$+"I"+tstr2$
+    endif
+    if hardcodedtexturestages=2
+     rem [LM]+[DIFF+NORM]
+     ensureclearlayermax=2
+     texdir1$=tstr1$+texturingtoken$+tstr2$
+     texdir2$=tstr1$+texturingtoken$+tstr2$
+     texdir3$=tstr1$+"N"+tstr2$
+     rem Absolutely must have a NORMAL MAP, or fail this effect
+     absolutelyrequirethistexture=3
+    endif
+    if hardcodedtexturestages=11
+     rem [DIFF+ILLU]
+     ensureclearlayermax=1
+     texdir1$=tstr1$+"D2"+tstr2$
+     texdir2$=tstr1$+"I"+tstr2$
+    endif
+    if hardcodedtexturestages=12
+     rem [DIFF+NORM]
+     ensureclearlayermax=1
+     texdir1$=tstr1$+texturingtoken$+tstr2$
+     texdir2$=tstr1$+"N"+tstr2$
+     rem Absolutely must have a NORMAL MAP, or fail this effect
+     absolutelyrequirethistexture=2
+    endif
+    if hardcodedtexturestages=13
+     rem [DIFF+NORM+SPEC]
+     ensureclearlayermax=2
+     texdir1$=tstr1$+texturingtoken$+tstr2$
+     texdir2$=tstr1$+"N"+tstr2$
+     texdir3$=tstr1$+"S"+tstr2$
+     rem Absolutely must have a NORMAL MAP, or fail this effect
+     absolutelyrequirethistexture=2
+    endif
    else
-    rem we will deal with shaders more thoroughly in V1
-    hardcodedtexturestages=0
-    `
-    rem related to scene universe (lightmap stage present)
-    ttt$="illuminationmap.fx" : if lower$(right$(tfile$,len(ttt$)))=ttt$ then hardcodedtexturestages=1
-    ttt$="bump.fx" : if lower$(right$(tfile$,len(ttt$)))=ttt$ then hardcodedtexturestages=2
-    `
-    rem related to entities (lightmap stage NOT present)
-    ttt$="illuminationent.fx" : if lower$(right$(tfile$,len(ttt$)))=ttt$ then hardcodedtexturestages=11
-    ttt$="bumpent.fx" : if lower$(right$(tfile$,len(ttt$)))=ttt$ then hardcodedtexturestages=12
-    ttt$="bumpbone.fx" : if lower$(right$(tfile$,len(ttt$)))=ttt$ then hardcodedtexturestages=13
-    `
-    if hardcodedtexturestages>0
-     if hardcodedtexturestages=1
-      rem [LM]+[DIFF+ILLU]
-      ensureclearlayermax=2
-      texdir1$=tstr1$+"D2"+tstr2$
-      texdir2$=tstr1$+"D2"+tstr2$
-      texdir3$=tstr1$+"I"+tstr2$
-     endif
-     if hardcodedtexturestages=2
-      rem [LM]+[DIFF+NORM]
-      ensureclearlayermax=2
-      texdir1$=tstr1$+texturingtoken$+tstr2$
-      texdir2$=tstr1$+texturingtoken$+tstr2$
-      texdir3$=tstr1$+"N"+tstr2$
-      rem Absolutely must have a NORMAL MAP, or fail this effect
-      absolutelyrequirethistexture=3
-     endif
-     if hardcodedtexturestages=11
-      rem [DIFF+ILLU]
-      ensureclearlayermax=1
-      texdir1$=tstr1$+"D2"+tstr2$
-      texdir2$=tstr1$+"I"+tstr2$
-     endif
-     if hardcodedtexturestages=12
-      rem [DIFF+NORM]
-      ensureclearlayermax=1
-      texdir1$=tstr1$+texturingtoken$+tstr2$
-      texdir2$=tstr1$+"N"+tstr2$
-      rem Absolutely must have a NORMAL MAP, or fail this effect
-      absolutelyrequirethistexture=2
-     endif
-     if hardcodedtexturestages=13
-      rem [DIFF+NORM+SPEC]
-      ensureclearlayermax=2
-      texdir1$=tstr1$+texturingtoken$+tstr2$
-      texdir2$=tstr1$+"N"+tstr2$
-      texdir3$=tstr1$+"S"+tstr2$
-      rem Absolutely must have a NORMAL MAP, or fail this effect
-      absolutelyrequirethistexture=2
-     endif
+    rem Standard DINS system
+    if teffectuseslightmapstage=1
+     rem [LM]+[DIFF+ILLU+NORM+SPEC+BRIH]
+     texdir1$=tstr1$+texturingtoken$+tstr2$
+     texdir2$=tstr1$+texturingtoken$+tstr2$
+     texdir3$=tstr1$+"I"+tstr2$
+     texdir4$=tstr1$+"N"+tstr2$
+     texdir5$=tstr1$+"S"+tstr2$
     else
-     rem Standard DINS system
-     if teffectuseslightmapstage=1
-      rem [LM]+[DIFF+ILLU+NORM+SPEC+BRIH]
-      texdir1$=tstr1$+texturingtoken$+tstr2$
-      texdir2$=tstr1$+texturingtoken$+tstr2$
-      texdir3$=tstr1$+"I"+tstr2$
-      texdir4$=tstr1$+"N"+tstr2$
-      texdir5$=tstr1$+"S"+tstr2$
-     else
-      rem [DIFF+ILLU+NORM+SPEC+BRIH]
-      texdir1$=tstr1$+texturingtoken$+tstr2$
-      texdir2$=tstr1$+"I"+tstr2$
-      texdir3$=tstr1$+"N"+tstr2$
-      texdir4$=tstr1$+"S"+tstr2$
-      texdir5$=tstr1$+"B"+tstr2$
-     endif
+     rem [DIFF+ILLU+NORM+SPEC+BRIH]
+     texdir1$=tstr1$+texturingtoken$+tstr2$
+     texdir2$=tstr1$+"I"+tstr2$
+     texdir3$=tstr1$+"N"+tstr2$
+     texdir4$=tstr1$+"S"+tstr2$
+     texdir5$=tstr1$+"B"+tstr2$
     endif
    endif
    `
@@ -14098,6 +14093,7 @@ if gnewblossershaders=1
  ifits$="bumpent.fx" : if right$(tfile$,len(ifits$))=ifits$ then tfile$="effectbank\ps_2_0\bumpent.fx"
  ifits$="illuminationent.fx" : if right$(tfile$,len(ifits$))=ifits$ then tfile$="effectbank\ps_2_0\illuminationent.fx"
  ifits$="illuminationmap.fx" : if right$(tfile$,len(ifits$))=ifits$ then tfile$="effectbank\ps_2_0\illuminationmap.fx"
+ ifits$="bumpbone.fx" : if right$(tfile$,len(ifits$))=ifits$ then tfile$="effectbank\ps_2_0\bumpbone.fx"
 endif
 
 rem Default return
@@ -20814,6 +20810,7 @@ if tfile$<>""
  if tfile$<>"" and guseeffectonentitiesstate=1 and segobjusedformapeditor=0
   `
   rem Load and apply MAIN texture directly
+  if gproducelogfiles=1 then timestampactivity(0,"Entity "+str$(entid)+" using "+tfile$)
   for tlayer=0 to 4
    if tlayer=0 then texfiletouse$=texdir1$
    if tlayer=1 then texfiletouse$=texdir2$
@@ -20840,6 +20837,8 @@ if tfile$<>""
      if tlayer>0
       if upper$(right$(texfiletouse$,5))="N.TGA" then texfiletouse$=left$(tstr1$,len(tstr1$)-2)+"N"+tstr2$
       if upper$(right$(texfiletouse$,5))="S.TGA" then texfiletouse$=left$(tstr1$,len(tstr1$)-2)+"S"+tstr2$
+      if upper$(right$(texfiletouse$,5))="N.DDS" then texfiletouse$=left$(tstr1$,len(tstr1$)-2)+"N"+tstr2$
+      if upper$(right$(texfiletouse$,5))="S.DDS" then texfiletouse$=left$(tstr1$,len(tstr1$)-2)+"S"+tstr2$
       if entityprofile(entid).transparency=0
        texuseid=loadinternalimagecompressquality(texfiletouse$,1,tfullorhalfdivide)
       else
@@ -20870,6 +20869,7 @@ if tfile$<>""
     if tstage=4 then entityprofile(entid).tex4id=texuseid
     inc tstage
    endif
+   if gproducelogfiles=1 then timestampactivity(0,"Texture "+str$(tlayer)+": texuseid="+str$(texuseid)+" texfiletouse$="+texfiletouse$)  
   next tlayer
   if tstage<3
    for tst=tstage to 3
@@ -27102,7 +27102,6 @@ setuparr$(i)="useeffects="+str$( guseeffectstate ) : inc i
 setuparr$(i)="useeffectsonguns="+str$( guseeffectongunsstate ) : inc i
 setuparr$(i)="useeffectsonscene="+str$( guseeffectonscenesstate ) : inc i
 setuparr$(i)="useeffectsonentities="+str$( guseeffectonentitiesstate ) : inc i
-setuparr$(i)="useeffectsonessentials="+str$( guseeffectsonessentials ) : inc i
 setuparr$(i)="dividetexturesize="+str$( gdividetexturesize ) : inc i
 setuparr$(i)="controllerhint="+str$( gcontrollerhint ) : inc i
 setuparr$(i)="vrmode="+str$( gvrmode ) : inc i
