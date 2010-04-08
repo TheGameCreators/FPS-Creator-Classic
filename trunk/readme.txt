@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
 
+ * Added COREDLLS and SCRIPTBANK to keep the files rapidly modified in the SVN
  * Added all new depth of field (using FF fog and passing in depth camera frame)
  * Added new FPI action AIROTATETOTARGET this will rotate the entity to its target.This command works just like rotatetotarget but uses the ai system to rotate
  * Added new FPI action AISETMELEEDAMAGE=X this will X is the amount of damage the entity will do with AIUSEMELEE=X
