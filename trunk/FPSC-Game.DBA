@@ -44858,7 +44858,8 @@ _postprocess_apply:
   for o=1 to 65535
    if object exist(o)=1
     if gdepthcameraid>0
-     if rnd(3)=1
+     if 0
+      rem FPGC - 080410 - displacement technology. set this to move an object to the depth camera
       set object mask o,%0+(1<<gdepthcameraid),0,0,1
      else
       set object mask o,%1+(1<<gdepthcameraid),0,0,0
