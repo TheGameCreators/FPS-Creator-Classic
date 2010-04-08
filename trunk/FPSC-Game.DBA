@@ -44974,9 +44974,13 @@ _postprocess_renderdepthcamera:
   rem entities that use fastbone need some constants overriding (for FOG)
   if gfastboneeffectshaderid>0
    r=make vector4(1)
-   set vector4 1,1,0,0,1
+   set vector4 1,0,0,0,0
+   set effect constant vector gfastboneeffectshaderid,"AmbiColor",1
+   set vector4 1,0,0,0,0
+   set effect constant vector gfastboneeffectshaderid,"SurfColor",1
+   set vector4 1,1,0.0,0.0,1.0/500.0
    set effect constant vector gfastboneeffectshaderid,"FogColor",1
-   set vector4 1,0.5,0.5,0.5,1.0
+   set vector4 1,0.0,0.5,0.5,1.0
    set effect constant vector gfastboneeffectshaderid,"FillerColor",1
    r=delete vector4(1)
   endif
@@ -44992,6 +44996,8 @@ _postprocess_renderdepthcamera:
   rem entities that use fastbone need some constants overriding (for FOG)
   if gfastboneeffectshaderid>0
    r=make vector4(1)
+   set vector4 1,1,1,1,1
+   set effect constant vector gfastboneeffectshaderid,"SurfColor",1
    set vector4 1,0,0,0,0.000001
    set effect constant vector gfastboneeffectshaderid,"FogColor",1
    set vector4 1,0,0,0,0
