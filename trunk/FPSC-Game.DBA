@@ -589,6 +589,7 @@ global effectbankmax=0
 global effectbankoffset=1000
 dim effectbank$(100)
 dim objecteffect(65535) : rem FPGC - 250310 - used to track which objects are using effects (for post processing)
+global gfastboneeffectshaderid : gfastboneeffectshaderid=0
 dim soundbank$(10)
 global soundbankmax=0
 global soundbankoffset=1
@@ -14066,6 +14067,12 @@ if t>effectbankmax
  endif
 endif
 
+rem FPGC - 080410 - store effect ID for FASTBONE (so we can filter entities using it in depth camera)
+ifits$="fastbone.fx"
+if right$(tfile$,len(ifits$))=ifits$
+ gfastboneeffectshaderid=effectid
+endif
+
 endfunction effectid
 
 function loadinternaleffect(tfile$)
@@ -19380,15 +19387,15 @@ for f=1 to decalelementmax
    endif
    rem animation
    decalid=decalelement(f).decalid
-   if decalelement(f).frame<decal(decalid).framemax-1
-    rem next frame
-    decalelement(f).framedelay=decalelement(f).framedelay+timeelapsed#
-    if decalelement(f).framedelay>=1
-     decalelement(f).framedelay=0
-     decalelement(f).frame=decalelement(f).frame+(decal(decalid).lifeincrement/100.0)
-    endif
-   else
+   rem next frame
+   decalelement(f).framedelay=decalelement(f).framedelay+timeelapsed#
+   if decalelement(f).framedelay>=1
+    decalelement(f).framedelay=0
+    decalelement(f).frame=decalelement(f).frame+(decal(decalid).lifeincrement/100.0)
+   endif
+   if decalelement(f).frame>=decal(decalid).framemax
     rem no more animation
+    decalelement(f).frame=decal(decalid).framemax-0.1
     tdetonate=1
    endif
    rem write UV for correct anim frame
@@ -44854,13 +44861,15 @@ _postprocess_apply:
  `
  if gpostprocessmode=1
   `
-  rem make sure ALL objects render only to camera zero (now we have more than one camera)
+  rem make sure ALL objects render only to required cameras (now we have more than one camera)
   for o=1 to 65535
    if object exist(o)=1
     if gdepthcameraid>0
-     if 0
+     if objecteffect(o)=gfastboneeffectshaderid
       rem FPGC - 080410 - displacement technology. set this to move an object to the depth camera
-      set object mask o,%0+(1<<gdepthcameraid),0,0,1
+      rem NOTE: entities using fastbone need to go here as the shader animates the geometry (to align with real game render)
+      rem NOTE: new fields for DECAL and ENTITYPROFILE, and provide both texture and shaders to depth camera render objects!
+      set object mask o,%1+(1<<gdepthcameraid),0,0,1
      else
       set object mask o,%1+(1<<gdepthcameraid),0,0,0
      endif
@@ -44905,12 +44914,32 @@ _postprocess_renderdepthcamera:
   fog color 255,0,0
   fog distance 0,500
   `
+  rem entities that use fastbone need some constants overriding (for FOG)
+  if gfastboneeffectshaderid>0
+   r=make vector4(1)
+   set vector4 1,1,0,0,1
+   set effect constant vector gfastboneeffectshaderid,"FogColor",1
+   set vector4 1,0.5,0.5,0.5,1.0
+   set effect constant vector gfastboneeffectshaderid,"FillerColor",1
+   r=delete vector4(1)
+  endif
+  `
   rem render the depth scene
   sync mask (1 << gdepthcameraid)
   fastsync
   sync mask %11111111 - (1 << gdepthcameraid)
   if gshowdebugtextingamestate=1
    set sprite 1,0,1 : sprite 1,0,0,65537 : size sprite 1,160,120
+  endif
+  `
+  rem entities that use fastbone need some constants overriding (for FOG)
+  if gfastboneeffectshaderid>0
+   r=make vector4(1)
+   set vector4 1,0,0,0,0.000001
+   set effect constant vector gfastboneeffectshaderid,"FogColor",1
+   set vector4 1,0,0,0,0
+   set effect constant vector gfastboneeffectshaderid,"FillerColor",1
+   r=delete vector4(1)
   endif
   `
   rem restore general lighting
