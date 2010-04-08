@@ -3588,8 +3588,8 @@ _main_game_showwindownow:
   else
    rem test game to front
    rem FPGC - 010909 - TEST GAME needs this to keep window to the very front always (though not when debuggin)
-   `window to front "__topmost__"+"FPSC Game"
-   window to front "FPSC Game"
+   window to front "__topmost__"+"FPSC Game"
+   `window to front "FPSC Game"
   endif
  endif
 return
