@@ -674,6 +674,7 @@ rem Segment Profile Data Structure
 type segmentprofileheadertype
  partmax as integer
  lastmeshmax as integer
+ preventai as integer
 endtype
 rem V110 - 160508 - added flag to control portal generation
 `type segmentprofilevistype overlay f r wb wr wf wl owb owr owf owl ctl ctr cbr cbl octl octr ocbr ocbl endtype
@@ -3500,6 +3501,7 @@ debugviewtext(314,strarr$(144)) : gosub _decal_loadonlyactivedecals
 rem Entities can intropduce fake players, init all
 debugviewtext(318,strarr$(145)) : gosub _player_init : gosub _player_resetobjectives
 debugviewtext(320,strarr$(146)) : gosub _entity_startentitiesoff
+Gosub _darkai_createlevel
 
 rem Okay for start of game, can skip for exe construction
 if gcompilestandaloneexe=0
@@ -3939,6 +3941,7 @@ gosub _lighting_postdefaults
 rem Use mapdata to build viscolmap data
 gosub _entity_fillviscolmap
 
+remstart
 rem dark ai
 load object universefile$,darkaiuni+1000
 
@@ -3955,6 +3958,7 @@ for y=0 to 19
 next y
 ai complete obstacles
 delete object darkaiuni+1000
+remend
 
 rem setup scorch texture
 if guseweaponsstate=1
@@ -12463,7 +12467,7 @@ if aiindex>0
             ai kill entity obj
          endif
         tcont=0
-        for y=1 to 20
+        for y=0 to 19
            if entityelement(e).y >= container(y).y#-50.0 and entityelement(e).y <= container(y).y#+50.0
               tcont=y : exit
            endif
@@ -28756,7 +28760,7 @@ endif
 Rem Hockeykid - 250210 - DarkAI Set Player Container
 for y=0 to 19
    if finalcamy# > container(y).y#-50.0 and finalcamy# < container(y).y#+50.0
-      k=y+1
+      k=y
       ai set player container k : pcontainer=k : playercontain=k : exit
    endif
 next y
@@ -33701,6 +33705,662 @@ _saveload_retrievesavedata:
   endif
   `
  next thudid
+ `
+return
+
+rem
+rem OBSMAP GENERATION SUBROUTINES
+rem
+_darkai_createlevel:
+
+ for y=0 to 19
+  if y<>0 then container(y).y# = (y*100)+50 else container(y).y# = 50
+   container(y).id = y
+   if ai container exist(container(y).id) and y>0 then ai remove container container(y).id
+   if y>0 then ai add container container(y).id
+ next y
+
+ rem constructing fully, so generate OBS data
+ choiceoflayer=0 : choiceoflayerend=19
+ gosub _obs_generate
+ gosub _obs_processobstacles
+ rem generate obstacles for AI
+ obsgeneratenow=1 : gosub _obs_generateobstacles : obsgeneratenow=0
+ rem save data after obstacle construction
+ `gosub _obs_save
+
+Return
+
+_obs_generate_pertile:
+ `
+ gosub _obs_getmapvalues
+ if ismapanoverlay=0
+    rem BASE SEGMENT
+    if mapid=0
+     rem void
+     maplines(l,x,y,0)=0
+    else
+     rem something
+     maplines(l,x,y,0)=1
+     rem no-floor flag
+     if mapsymbol=1 then maplines(l,x,y,0)=0
+     rem CSG for doors must be considered!!
+     rem walls
+     if maptile=00 then maplines(l,x,y,OBS_NN)=0
+     if maptile=01 then maplines(l,x,y,OBS_NN)=1 : maplines(l,x,y,OBS_EE)=1 : maplines(l,x,y,OBS_SS)=1 : maplines(l,x,y,OBS_WW)=1
+     if maptile=02 then maplines(l,x,y,OBS_NN)=1 : maplines(l,x,y,OBS_EE)=0 : maplines(l,x,y,OBS_SS)=1 : maplines(l,x,y,OBS_WW)=1
+     if maptile=03 then maplines(l,x,y,OBS_NN)=1 : maplines(l,x,y,OBS_EE)=0 : maplines(l,x,y,OBS_SS)=0 : maplines(l,x,y,OBS_WW)=1
+     if maptile=04 then maplines(l,x,y,OBS_NN)=1 : maplines(l,x,y,OBS_EE)=0 : maplines(l,x,y,OBS_SS)=1 : maplines(l,x,y,OBS_WW)=0
+     if maptile=05 then maplines(l,x,y,OBS_NN)=1 : maplines(l,x,y,OBS_EE)=0 : maplines(l,x,y,OBS_SS)=0 : maplines(l,x,y,OBS_WW)=0
+     if maptile=06 then maplines(l,x,y,OBS_NN)=0
+     if maptile=07 then maplines(l,x,y,OBS_NN)=0
+     if maptile=08 then maplines(l,x,y,OBS_NN)=0
+     if maptile=09 then maplines(l,x,y,OBS_NN)=0
+     if maptile=10 then maplines(l,x,y,OBS_NN)=0
+     if maptile=11 then maplines(l,x,y,OBS_NN)=0
+     if maptile=12 then maplines(l,x,y,OBS_NN)=1 : maplines(l,x,y,OBS_EE)=0 : maplines(l,x,y,OBS_SS)=0 : maplines(l,x,y,OBS_WW)=0
+     if maptile=13 then maplines(l,x,y,OBS_NN)=1 : maplines(l,x,y,OBS_EE)=0 : maplines(l,x,y,OBS_SS)=0 : maplines(l,x,y,OBS_WW)=0
+     if maptile=14 then maplines(l,x,y,OBS_NN)=1 : maplines(l,x,y,OBS_EE)=0 : maplines(l,x,y,OBS_SS)=0 : maplines(l,x,y,OBS_WW)=0
+     if maptile=15 then maplines(l,x,y,OBS_NN)=1 : maplines(l,x,y,OBS_EE)=0 : maplines(l,x,y,OBS_SS)=0 : maplines(l,x,y,OBS_WW)=1
+     rem 280807 - switch off walls if the segment associated with the tile does not have any walls
+     if segmentswhichchangeobsdatanowalls(mapselection)=1
+      maplines(l,x,y,OBS_NN)=0 : maplines(l,x,y,OBS_EE)=0
+      maplines(l,x,y,OBS_SS)=0 : maplines(l,x,y,OBS_WW)=0
+     endif
+     if maprotate>0
+      rem rotate lines data
+      while maprotate>0
+       rem rotate once
+       ssNN=maplines(l,x,y,OBS_NN)
+       ssEE=maplines(l,x,y,OBS_EE)
+       ssSS=maplines(l,x,y,OBS_SS)
+       ssWW=maplines(l,x,y,OBS_WW)
+       maplines(l,x,y,OBS_NN)=ssWW
+       maplines(l,x,y,OBS_EE)=ssNN
+       maplines(l,x,y,OBS_SS)=ssEE
+       maplines(l,x,y,OBS_WW)=ssSS
+       dec maprotate
+      endwhile
+     endif
+    endif
+ endif
+ if ismapanoverlay=1
+    rem OVERLAY SEGMENT
+    if mapid<>0
+     rem something, so fill space so AI can walk on it (platforms, corridors)
+     maplines(l,x,y,0)=1
+    endif
+ endif
+ if ismapanoverlay=2
+    rem OVERLAY SEGMENT FOR DOORS / PUNCH WALLS OUT
+    if mapid<>0
+     if mapselection>0
+      if segmentswhichchangeobsdata(mapselection)=1
+       rem doors punch out walls!
+       if maporient=0 then maplines(l,x,y,OBS_NN)=0
+       if maporient=1 then maplines(l,x,y,OBS_EE)=0
+       if maporient=2 then maplines(l,x,y,OBS_SS)=0
+       if maporient=3 then maplines(l,x,y,OBS_WW)=0
+       if maporient=0 and y>0 then maplines(l,x,y-1,OBS_SS)=0
+       if maporient=1 and x<39 then maplines(l,x+1,y,OBS_WW)=0
+       if maporient=2 and y<39 then maplines(l,x,y+1,OBS_NN)=0
+       if maporient=3 and x>0 then maplines(l,x-1,y,OBS_EE)=0
+       rem add door posts
+       maplines(l,x,y,OBS_DR)=1+maporient
+      endif
+      if segmentswhichchangeobsdata(mapselection)=2
+       rem window has no effect here
+      endif
+      if segmentswhichchangeobsdata(mapselection)=4
+       rem these segments are entire blocks (stairs, teleporters, large central blocking things)
+       maplines(l,x,y,OBS_CC)=1
+      endif
+      if segmentswhichchangeobsdata(mapselection)>=5 and segmentswhichchangeobsdata(mapselection)<=9
+       rem add walls based on corridor symbols (segment blueprint MODE)
+       rem 3=straight (5)
+       if segmentswhichchangeobsdata(mapselection)=5
+        if maporient=0 then maplines(l,x,y,OBS_EE)=1 : maplines(l,x,y,OBS_WW)=1
+        if maporient=1 then maplines(l,x,y,OBS_NN)=1 : maplines(l,x,y,OBS_SS)=1
+        if maporient=2 then maplines(l,x,y,OBS_EE)=1 : maplines(l,x,y,OBS_WW)=1
+        if maporient=3 then maplines(l,x,y,OBS_NN)=1 : maplines(l,x,y,OBS_SS)=1
+       endif
+       rem 4=corner (6)
+       if segmentswhichchangeobsdata(mapselection)=6
+        if maporient=0 then maplines(l,x,y,OBS_CC)=2
+        if maporient=1 then maplines(l,x,y,OBS_CC)=3
+        if maporient=2 then maplines(l,x,y,OBS_CC)=4
+        if maporient=3 then maplines(l,x,y,OBS_CC)=5
+       endif
+       rem 5=tjunction (7)
+       if segmentswhichchangeobsdata(mapselection)=7
+        if maporient=0 then maplines(l,x,y,OBS_NN)=1
+        if maporient=1 then maplines(l,x,y,OBS_EE)=1
+        if maporient=2 then maplines(l,x,y,OBS_SS)=1
+        if maporient=3 then maplines(l,x,y,OBS_WW)=1
+       endif
+       rem 6=cross (8)
+       if segmentswhichchangeobsdata(mapselection)=8
+        rem no walls
+       endif
+       rem 7=deadend (9)
+       if segmentswhichchangeobsdata(mapselection)=9
+        if maporient=0 then maplines(l,x,y,OBS_WW)=1 : maplines(l,x,y,OBS_NN)=1 : maplines(l,x,y,OBS_EE)=1
+        if maporient=1 then maplines(l,x,y,OBS_NN)=1 : maplines(l,x,y,OBS_EE)=1 : maplines(l,x,y,OBS_SS)=1
+        if maporient=2 then maplines(l,x,y,OBS_WW)=1 : maplines(l,x,y,OBS_EE)=1 : maplines(l,x,y,OBS_SS)=1
+        if maporient=3 then maplines(l,x,y,OBS_WW)=1 : maplines(l,x,y,OBS_NN)=1 : maplines(l,x,y,OBS_SS)=1
+       endif
+      endif
+     endif
+    endif
+ endif
+ `
+return
+
+_obs_generate:
+ `
+ rem OBSMAP Structures and Arrays
+ OBS_NN=1 : OBS_EE=2 : OBS_SS=3 : OBS_WW=4 : OBS_CC=5 : OBS_DR=6
+ dim maplines(layermax,maxx,maxy,OBS_DR)
+ dim obs(1,5) : obsindex=0
+ `
+ rem mark which segments are doors (as they punch through obs walls)
+ dim segmentswhichchangeobsdata(segidmaster)
+ dim segmentswhichchangeobsdatanowalls(segidmaster)
+ for segid=1 to segidmaster
+  `
+  rem find DOORS
+  segmentswhichchangeobsdata(segid)=0
+  for tp=0 to segmentprofileheader(segid).partmax
+   rem look for segments with CSG punch
+   if segmentprofile(segid,tp).partmode=1
+    tmeshname$=lower$(segmentprofile(segid,tp).meshname$)
+    for n=len(tmeshname$) to 1 step -1
+     if mid$(tmeshname$,n)="\" or mid$(tmeshname$,n)="/"
+      tmeshname$=right$(tmeshname$,len(tmeshname$)-n)
+      if left$(tmeshname$,4)="door"
+       rem ALL FPSC DOORS must have 'door' as the first four characters
+       rem in order for the maker to punch the doors out of the walls
+       if segmentprofileheader(segid).preventai=1
+        rem an exception to this is FAKE doors, and crawlspace doors
+        rem which have been flagged as not allowing entities to enter
+        segmentswhichchangeobsdata(segid)=2
+       else
+        segmentswhichchangeobsdata(segid)=1
+       endif
+      else
+       if right$(tmeshname$,7)="punch.x"
+        rem any other type of CSG punch should not cause a blocking
+        rem fill in the obs map (like windows, portholes)
+        segmentswhichchangeobsdata(segid)=2
+       endif
+      endif
+     endif
+    next n
+   endif
+  next tp
+  rem find STRAIGHT,CORNERS,TJUNC,CROSS,DEADEND
+  if segmentprofile(segid).blueprint.mode>=3 and segmentprofile(segid).blueprint.mode<=7
+   rem 3=straight (5)
+   rem 4=corner (6)
+   rem 5=tjunction (7)
+   rem 6=cross (8)
+   rem 7=deadend (9)
+   if segmentprofile(segid).blueprint.mode=3 then segmentswhichchangeobsdata(segid)=5
+   if segmentprofile(segid).blueprint.mode=4 then segmentswhichchangeobsdata(segid)=6
+   if segmentprofile(segid).blueprint.mode=5 then segmentswhichchangeobsdata(segid)=7
+   if segmentprofile(segid).blueprint.mode=6 then segmentswhichchangeobsdata(segid)=8
+   if segmentprofile(segid).blueprint.mode=7 then segmentswhichchangeobsdata(segid)=9
+  endif
+  rem find full BLOCKERS (not covered by above)
+  if segmentswhichchangeobsdata(segid)=0
+   rem ALL FPSC overlays that are simply large blocking onstructions to
+   rem the current layer such as stairs, teleporters, etc
+   segmentswhichchangeobsdata(segid)=4
+  endif
+  `
+  rem No Walls Check (floors)
+  `if segmentprofile(seg).vis.f<>-1 then show limb obj,segmentprofile(seg).vis.f
+  `if segmentprofile(seg).vis.r<>-1 then show limb obj,segmentprofile(seg).vis.r
+  tnowalls=1
+  if segmentprofile(segid).vis.ctl<>-1 then tnowalls=0
+  if segmentprofile(segid).vis.ctr<>-1 then tnowalls=0
+  if segmentprofile(segid).vis.cbr<>-1 then tnowalls=0
+  if segmentprofile(segid).vis.cbl<>-1 then tnowalls=0
+  if segmentprofile(segid).vis.octl<>-1 then tnowalls=0
+  if segmentprofile(segid).vis.octr<>-1 then tnowalls=0
+  if segmentprofile(segid).vis.ocbr<>-1 then tnowalls=0
+  if segmentprofile(segid).vis.ocbl<>-1 then tnowalls=0
+  segmentswhichchangeobsdatanowalls(segid)=tnowalls
+  `
+ next segid
+ `
+ rem go through entire level map
+ for l=choiceoflayer to choiceoflayerend
+  for y=0 to 39
+   for x=0 to 39
+    for olay=0 to 1
+     if olay=0 then tolaymax=0
+     if olay=1
+      tolaymax=0 : olayindex=mapolay(l,x,y)
+      while olaylist(olayindex,tolaymax)>0 and tolaymax<50 : inc tolaymax : endwhile
+      dec tolaymax
+     endif
+     if tolaymax>=0
+      for olayti=0 to tolaymax
+       if olay=0 then mapid=map(l,x,y) : ismapanoverlay=0
+       if olay=1 then mapid=olaylist(olayindex,olayti) : ismapanoverlay=1
+       if mapid<>0
+        gosub _obs_generate_pertile
+       endif
+      next olayti
+     endif
+    next olay
+   next x
+  next y
+ next l
+ `
+ rem go through level again for door punching / make blockers / etc
+ for l=choiceoflayer to choiceoflayerend
+  for y=0 to 39
+   for x=0 to 39
+    olay=1
+    tolaymax=0 : olayindex=mapolay(l,x,y)
+    while olaylist(olayindex,tolaymax)>0 and tolaymax<50 : inc tolaymax : endwhile
+    dec tolaymax
+    if tolaymax>=0
+     for olayti=0 to tolaymax
+      mapid=olaylist(olayindex,olayti) : ismapanoverlay=2
+      if mapid<>0
+       gosub _obs_generate_pertile
+      endif
+     next olayti
+    endif
+   next x
+  next y
+ next l
+ `
+ rem create natural universe lines to confine all AI
+ rem only where there are segments on the border (non-voids)
+ for l=0 to layermax-1
+  for x=0 to maxx-1
+   if maplines(l,x,0,0)=1 then maplines(l,x,0,OBS_NN)=1
+   if maplines(l,x,39,0)=1 then maplines(l,x,39,OBS_SS)=1
+  next x
+  for y=0 to maxy-1
+   if maplines(l,0,y,0)=1 then maplines(l,0,y,OBS_WW)=1
+   if maplines(l,39,y,0)=1 then maplines(l,39,y,OBS_EE)=1
+  next y
+ next l
+ `
+return
+
+_obs_processobstacles:
+ `
+ rem find gaps, and eat them to make obstacle blocks
+ for l=choiceoflayer to choiceoflayerend
+  for y=0 to 39
+   for x=0 to 39
+    if maplines(l,x,y,0)=0
+     rem found a gap
+     startx=x
+     starty=y
+     endx=x
+     endy=y
+     rem expand X and expand Y
+     for scanx=startx to 39
+      if maplines(l,scanx,y,0)<>0 then exit
+     next scanx
+     endx=scanx-1
+     for scany=starty to 39
+      texit=0
+      for scanx=startx to endx
+       if maplines(l,scanx,scany,0)<>0 then texit=1 : exit
+      next scanx
+      if texit=1 then exit
+     next scany
+     endy=scany-1
+     rem fill in
+     for scany=starty to endy
+      for scanx=startx to endx
+       maplines(l,scanx,scany,0)=2
+      next scanx
+     next scany
+     rem convert to obstacle block
+     inc obsindex : dim obs(obsindex,5)
+     obs(obsindex,0)=1
+     obs(obsindex,1)=startx*100
+     obs(obsindex,2)=starty*100
+     obs(obsindex,3)=(endx+1)*100
+     obs(obsindex,4)=(endy+1)*100
+     obs(obsindex,5)=l
+     rem cancel maplines
+     if 1
+      for scany=starty to endy
+       for scanx=startx to endx
+        if scany<39 then maplines(l,scanx,scany+1,OBS_NN)=0
+        if scany>0 then maplines(l,scanx,scany-1,OBS_SS)=0
+        if scanx>0 then maplines(l,scanx-1,scany,OBS_EE)=0
+        if scany<39 then maplines(l,scanx+1,scany,OBS_WW)=0
+       next scanx
+      next scany
+     endif
+    endif
+   next x
+  next y
+ next l
+ `
+ rem find connecting lines and create obstacle strips from them
+ for l=choiceoflayer to choiceoflayerend
+  for y=0 to 39
+   for x=0 to 39
+    for sides=OBS_NN to OBS_WW
+     if maplines(l,x,y,sides)=1
+      rem found a line
+      startx=x
+      starty=y
+      endx=x
+      endy=y
+      rem expand along line
+      if sides=OBS_NN or sides=OBS_SS
+       for scanx=startx to 39
+        if maplines(l,scanx,y,sides)=0 then exit
+       next scanx
+       endx=scanx-1
+      endif
+      if sides=OBS_EE or sides=OBS_WW
+       for scany=starty to 39
+        if maplines(l,x,scany,sides)=0 then exit
+       next scany
+       endy=scany-1
+      endif
+      rem cancel maplines and convert to obstacle strip
+      for scany=starty to endy
+       for scanx=startx to endx
+        maplines(l,scanx,scany,sides)=2
+       next scanx
+      next scany
+     inc obsindex : dim obs(obsindex,5)
+      obs(obsindex,0)=1
+      if sides=OBS_NN
+       obs(obsindex,1)=(startx*100)
+       obs(obsindex,2)=(starty*100)
+       obs(obsindex,3)=(endx+1)*100
+       obs(obsindex,4)=(endy*100)+20
+      endif
+      if sides=OBS_SS
+       obs(obsindex,1)=(startx*100)
+       obs(obsindex,2)=(starty+1)*100
+       obs(obsindex,3)=(endx+1)*100
+       obs(obsindex,4)=((endy+1)*100)+20
+      endif
+      if sides=OBS_EE
+       obs(obsindex,1)=((startx+1)*100)
+       obs(obsindex,2)=(starty*100)
+       obs(obsindex,3)=((endx+1)*100)+20
+       obs(obsindex,4)=(endy+1)*100
+      endif
+      if sides=OBS_WW
+       obs(obsindex,1)=(startx*100)
+       obs(obsindex,2)=(starty*100)
+       obs(obsindex,3)=(endx*100)+20
+       obs(obsindex,4)=(endy+1)*100
+      endif
+      obs(obsindex,5)=l
+     endif
+    next sides
+   next x
+  next y
+ next l
+ `
+ rem find corners and create obstacle triangles
+ for l=choiceoflayer to choiceoflayerend
+  for y=0 to 39
+   for x=0 to 39
+    if maplines(l,x,y,OBS_CC)>=2
+     inc obsindex : dim obs(obsindex,5)
+     obs(obsindex,0)=maplines(l,x,y,OBS_CC)
+     obs(obsindex,1)=(x*100)
+     obs(obsindex,2)=(y*100)
+     obs(obsindex,3)=(x+1)*100
+     obs(obsindex,4)=(y+1)*100
+     obs(obsindex,5)=l
+    endif
+   next x
+  next y
+ next l
+ `
+ rem find corners and create obstacle blocks
+ for l=choiceoflayer to choiceoflayerend
+  for y=0 to 39
+   for x=0 to 39
+    if maplines(l,x,y,OBS_CC)=1
+     inc obsindex : dim obs(obsindex,5)
+     obs(obsindex,0)=maplines(l,x,y,OBS_CC)
+     obs(obsindex,1)=(x*100)
+     obs(obsindex,2)=(y*100)
+     obs(obsindex,3)=(x+1)*100
+     obs(obsindex,4)=(y+1)*100
+     obs(obsindex,5)=l
+    endif
+   next x
+  next y
+ next l
+ `
+ rem find all doors and create posts
+ for l=choiceoflayer to choiceoflayerend
+  for y=0 to 39
+   for x=0 to 39
+    if maplines(l,x,y,OBS_DR)>0
+     if maplines(l,x,y,OBS_DR)=1
+      rem north
+      inc obsindex : dim obs(obsindex,5)
+      obs(obsindex,0)=1
+      obs(obsindex,1)=(x*100)+0
+      obs(obsindex,2)=(y*100)+0
+      obs(obsindex,3)=(x*100)+20
+      obs(obsindex,4)=(y*100)+20
+      obs(obsindex,5)=l
+      inc obsindex : dim obs(obsindex,5)
+      obs(obsindex,0)=1
+      obs(obsindex,1)=(x*100)+80
+      obs(obsindex,2)=(y*100)+0
+      obs(obsindex,3)=(x*100)+100
+      obs(obsindex,4)=(y*100)+20
+      obs(obsindex,5)=l
+     endif
+     if maplines(l,x,y,OBS_DR)=2
+      rem east
+      inc obsindex : dim obs(obsindex,5)
+      obs(obsindex,0)=1
+      obs(obsindex,1)=(x*100)+80
+      obs(obsindex,2)=(y*100)+0
+      obs(obsindex,3)=(x*100)+100
+      obs(obsindex,4)=(y*100)+20
+      obs(obsindex,5)=l
+      inc obsindex : dim obs(obsindex,5)
+      obs(obsindex,0)=1
+      obs(obsindex,1)=(x*100)+80
+      obs(obsindex,2)=(y*100)+80
+      obs(obsindex,3)=(x*100)+100
+      obs(obsindex,4)=(y*100)+100
+      obs(obsindex,5)=l
+     endif
+     if maplines(l,x,y,OBS_DR)=3
+      rem south
+      inc obsindex : dim obs(obsindex,5)
+      obs(obsindex,0)=1
+      obs(obsindex,1)=(x*100)+0
+      obs(obsindex,2)=(y*100)+80
+      obs(obsindex,3)=(x*100)+20
+      obs(obsindex,4)=(y*100)+100
+      obs(obsindex,5)=l
+      inc obsindex : dim obs(obsindex,5)
+      obs(obsindex,0)=1
+      obs(obsindex,1)=(x*100)+80
+      obs(obsindex,2)=(y*100)+80
+      obs(obsindex,3)=(x*100)+100
+      obs(obsindex,4)=(y*100)+100
+      obs(obsindex,5)=l
+     endif
+     if maplines(l,x,y,OBS_DR)=4
+      rem west
+      inc obsindex : dim obs(obsindex,5)
+      obs(obsindex,0)=1
+      obs(obsindex,1)=(x*100)+0
+      obs(obsindex,2)=(y*100)+0
+      obs(obsindex,3)=(x*100)+20
+      obs(obsindex,4)=(y*100)+20
+      obs(obsindex,5)=l
+      inc obsindex : dim obs(obsindex,5)
+      obs(obsindex,0)=1
+      obs(obsindex,1)=(x*100)+0
+      obs(obsindex,2)=(y*100)+80
+      obs(obsindex,3)=(x*100)+20
+      obs(obsindex,4)=(y*100)+100
+      obs(obsindex,5)=l
+     endif
+    endif
+   next x
+  next y
+ next l
+ `
+return
+
+_obs_getmapvalues:
+ `
+ rem mapid in
+ mapselection    = ( mapid && %11111111111100000000000000000000 ) >> 20
+ mapscaler       = ( mapid && %00000000000011110000000000000000 ) >> 16
+ mapground       = ( mapid && %00000000000000001100000000000000 ) >> 14
+ maprotate       = ( mapid && %00000000000000000011000000000000 ) >> 12
+ maporient       = ( mapid && %00000000000000000000110000000000 ) >> 10
+ mapsymbol       = ( mapid && %00000000000000000000001111110000 ) >> 4
+ maptile         = ( mapid && %00000000000000000000000000001111 )
+ `
+return
+
+_obs_save:
+ `
+ if 1
+  for t=0 to 19
+   tfile$=myownrootdir$+"levelbank\testlevel\map"+str$(t)+".obs"
+   if file exist(tfile$)=1 then delete file tfile$
+   `AI SAVE OBSTACLE DATA t,tfile$
+   addfiletocollection(tfile$)
+  next t
+ else
+  tfile$=myownrootdir$+"levelbank\testlevel\map.obs"
+  if file exist(tfile$)=1 then delete file tfile$
+  if file exist(tfile$+"h")=1 then delete file tfile$+"h"
+  save array tfile$,obs()
+  open to write 1,tfile$+"h"
+   write file 1,obsindex
+   write string 1,str$(obsindex)
+  close file 1
+  gtotalobstaclecount=obsindex
+  addfiletocollection(tfile$)
+ endif
+ `
+return
+
+_obs_load:
+ `
+ rem load OBS data
+ `if 1
+  for t=0 to 19
+   tfile$=myownrootdir$+"levelbank\testlevel\map"+str$(t)+".obs"
+   `AI LOAD OBSTACLE DATA t,tfile$
+   addfiletocollection(tfile$)
+  next t
+ `else
+  `tfile$=myownrootdir$+"levelbank\testlevel\map.obs"
+  `open to read 1,tfile$+"h"
+  ` read file 1,obsindex
+  `close file 1
+  `dim obs(obsindex,5)
+  `load array tfile$,obs()
+  `gtotalobstaclecount=obsindex
+ `endif
+ `
+return
+
+_obs_generateobstacles:
+ `
+ rem debug
+ if obsgeneratenow=0
+  set cursor 16,10
+  print "OBSTACLE = "+str$(obsindex)
+  if inkey$()="0" then viewobslevel=0
+  if inkey$()="1" then viewobslevel=1
+  if inkey$()="2" then viewobslevel=2
+  if inkey$()="3" then viewobslevel=3
+  if inkey$()="4" then viewobslevel=4
+  if inkey$()="5" then viewobslevel=5
+  if inkey$()="6" then viewobslevel=6
+  if inkey$()="7" then viewobslevel=7
+ endif
+ `
+ rem create all AI obstacles
+ if obsindex>0
+  if obsgeneratenow=0 then randomize 42
+  for o=1 to obsindex
+   if obs(o,0)=1
+    if obsgeneratenow=1
+     rem create an obstacle to block this hole so entity can avoid it
+     ax1#=obs(o,1) : az1#=obs(o,2)*-1 : ax2#=obs(o,3) : az2#=obs(o,4)*-1
+     rem it is important to create the obstacle poly in an anti-clockwise direction
+     if ax1#>ax2# then sax1#=ax1# : ax1#=ax2# : ax2#=sax1#
+     if az1#>az2# then saz1#=az1# : az1#=az2# : az2#=saz1#
+     AI Start New Obstacle
+     AI Add Obstacle Vertex ax1#,az1#
+     AI Add Obstacle Vertex ax1#,az2#
+     AI Add Obstacle Vertex ax2#,az2#
+     AI Add Obstacle Vertex ax2#,az1#
+     AI End New Obstacle obs(o,5),0,0
+    else
+     if obs(o,5)=viewobslevel
+      ink rgb(rnd(255),rnd(255),rnd(255)),0
+      bxx=16 : byy=32
+      xx1=bxx+(obs(o,1)/5)
+      yy1=byy+(obs(o,2)/5)
+      xx2=bxx+(obs(o,3)/5)
+      yy2=byy+(obs(o,4)/5)
+      box xx1/5,yy1/5,xx2/5,yy2/5
+      ink rgb(255,255,255),0
+     endif
+    endif
+   endif
+   if obs(o,0)>=2 and obs(o,0)<=5
+    xx1=obs(o,1) : yy1=obs(o,2)*-1 : xx2=obs(o,3) : yy2=obs(o,4)*-1
+    if obs(o,0)=2 then xxa=xx1 : yya=yy1 : xxb=xx2 : yyb=yy1 : xxc=xx1 : yyc=yy2
+    if obs(o,0)=3 then xxa=xx1 : yya=yy1 : xxb=xx2 : yyb=yy1 : xxc=xx2 : yyc=yy2
+    if obs(o,0)=4 then xxa=xx2 : yya=yy1 : xxb=xx2 : yyb=yy2 : xxc=xx1 : yyc=yy2
+    if obs(o,0)=5 then xxa=xx1 : yya=yy1 : xxb=xx2 : yyb=yy2 : xxc=xx1 : yyc=yy2
+    if obsgeneratenow=1
+     rem it is important to create the obstacle poly in an anti-clockwise direction
+     AI Start New Obstacle
+     AI Add Obstacle Vertex xxa,yya
+     AI Add Obstacle Vertex xxb,yyb
+     AI Add Obstacle Vertex xxc,yyc
+     AI End New Obstacle obs(o,5),0,0
+    else
+     if obs(o,5)=viewobslevel
+      ink rgb(rnd(255),rnd(255),rnd(255)),0
+      bxx=16 : byy=32
+      xx1=bxx+(obs(o,1)/5)
+      yy1=byy+(obs(o,2)/5)
+      xx2=bxx+(obs(o,3)/5)
+      yy2=byy+(obs(o,4)/5)
+      line xxa,yya,xxb,yyb
+      line xxb,yyb,xxc,yyc
+      line xxc,yyc,xxa,yya
+      ink rgb(255,255,255),0
+     endif
+    endif
+   endif
+  next o
+ endif
+ AI Complete Obstacles
  `
 return
 
@@ -44312,7 +44972,7 @@ _control_darkai:
 
  for y=0 to 19
   if object position y(entityelement(e).obj) > container(y).y#-50.0 and object position y(entityelement(e).obj) < container(y).y#+50.0
-   k=y+1
+   k=y
    ai set entity container obj,k : entitycontain=k : exit
   endif
  next y
@@ -44677,7 +45337,7 @@ _darkai_finddoors:
       Rem run check for container
       for y=0 to 19
        if object position y(obj) > container(y).y#-50.0 and object position y(obj) < container(y).y#+50.0
-        k=y+1
+        k=y
         entitycontain=k : exit
        endif
       next y
@@ -44695,11 +45355,15 @@ return
 _darkai_debug:
  rem FPGC - 310310 - added SETUP.INI flag to control whether we see AI outlines
  if gshowaioutlines=1
-  for y=0 to 2000 step 100
-   k=y-100+2
-   c=y/100
-   ai debug show obstacle bounds c,k
-  next y
+  `for y=0 to 1900 step 100
+  ` k=y-100+2
+   `c=y/100
+   `ai debug show obstacle bounds c,k
+  `next y
+   for layer=0 to 19
+    AI Debug Show Obstacle Bounds layer,6+(layer*100)
+    `AI Debug Show Waypoints layer,15+(layer*100)
+   next layer
   Rem debug view cones
   ai debug show view arcs 550
  endif
