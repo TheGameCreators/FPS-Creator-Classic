@@ -131,6 +131,10 @@ type darkaitype
  team as integer
  Rem Melee
  meleedamage as integer
+ Rem Cover
+ movingtocover as integer
+ coverx as float
+ coverz as float
 endtype
 
 Rem Hockeykid - 250210 - Dark AI added type for containers/layers
@@ -1358,6 +1362,7 @@ Rem Hockeykid - 250210 - Dark AI conditions
 #constant AICONDAICALLED 367
 #constant AICONDAITARGETDISTWITHIN 368
 #constant AICONDAITARGETDISTFURTHER 369
+#constant AICONDAIATCOVER 370
 Rem End Dark AI
 #constant AICONDHEADANGLEGREATER 401
 #constant AICONDHEADANGLELESS 402
@@ -1536,6 +1541,7 @@ Rem Hockeykid - 250210 - Dark AI constants
 #constant AIACTAIUSEMELEE 1081
 #constant AIACTAISETMELEEDAMAGE 1082
 #constant AIACTAIROTATETOTARGET 1083
+#constant AIACTAIROTATETOSOUND 1084
 Rem end Dark AI constants
 #constant AIACTHUDRESET 1100
 #constant AIACTHUDX 1101
@@ -8119,7 +8125,7 @@ _entity_controlmovements:
  `
  rem uses MOVER IX IY IZ and STEPCOUNT to move entity around the scene
  tstep#=entityelement(e).mover.stepcount
-! if entityelement(e).eleprof.isimmobile=0
+!! if entityelement(e).eleprof.isimmobile=0
   `
   rem server controlled entities never have motion
   if entityelement(e).servercontrolled=1
@@ -9343,6 +9349,7 @@ conword$(AICONDAIATPOINT)="aiatpoint"
 conword$(AICONDAICALLED)="aicalled"
 conword$(AICONDAITARGETDISTWITHIN)="aitargetdistwithin"
 conword$(AICONDAITARGETDISTFURTHER)="aitargetdistfurther"
+conword$(AICONDAIATCOVER)="aiatcover"
 rem Dark AI end
 
 rem Set all action keywords
@@ -9553,6 +9560,7 @@ actword$(AIACTAISTOP)="aistop"
 actword$(AIACTAIUSEMELEE)="aiusemelee"
 actword$(AIACTAISETMELEEDAMAGE)="aisetmeleedamage"
 actword$(AIACTAIROTATETOTARGET)="airotatetotarget"
+actword$(AIACTAIROTATETOSOUND)="airotatetosound"
 
 return
 
@@ -10581,6 +10589,16 @@ if aiindex>0
      if ai entity exist(entityelement(e).obj)
       if entityelement(e).darkai.called>0 and conda=0 then airesult=0
       if entityelement(e).darkai.called=0 and conda=1 then airesult=0
+     endif
+    endcase
+    case AICONDAIATCOVER:
+     conda=aiconditionseq(seq).valuea
+     if ai entity exist(entityelement(e).obj)
+      if entityelement(e).x>=entityelement(e).darkai.coverx-3 and entityelement(e).x<=entityelement(e).darkai.coverx+3 and entityelement(e).z>=entityelement(e).darkai.coverz-3 and entityelement(e).z<=entityelement(e).darkai.coverz+3
+       if conda=0 then airesult=0
+      else
+       if conda=1 then airesult=0
+      endif
      endif
     endcase
     `
@@ -12571,7 +12589,43 @@ if aiindex>0
        if aiactionseq(seq).value=0 then entityelement(e).darkai.actionmode=9
        Rem Move to save zone right off the bat
        if aiactionseq(seq).value=1 then entityelement(e).darkai.actionmode=10
-      endif
+       Rem Hockeykid - 050410 - Move to cover based on enemy X Z
+       if entityelement(e).darkai.actionmode=9
+        if ai get entity count targets(obj)>0
+         toppri=ai get entity target id(obj,1)
+         ai entity move to cover obj,object position x(toppri),object position z(toppri)
+         entityelement(e).darkai.movingtocover=1
+         entityelement(e).darkai.coverx=object position x(toppri)
+         entityelement(e).darkai.coverz=object position z(toppri)
+        else
+         Gosub _darkai_find_safezone
+         if tbesti>0
+          i=tbesti
+          ai entity go to position obj,aisafezone(i).x,aisafezone(i).z
+          aisafezone(i).occupied=1
+          entityelement(e).darkai.movingtocover=1
+          entityelement(e).darkai.coverx=aisafezone(i).x
+          entityelement(e).darkai.coverz=aisafezone(i).z
+         endif
+        endif
+        entityelement(e).darkai.actionmode=0
+        `entityelement(e).darkai.state=STATE_COVER
+       endif
+       Rem Hockeykid - 050410 - Move to cover based on safe zone
+       if entityelement(e).darkai.actionmode=10
+        Gosub _darkai_find_safezone
+        if tbesti>0
+         i=tbesti
+         ai entity go to position obj,aisafezone(i).x,aisafezone(i).z
+         aisafezone(i).occupied=1
+         entityelement(e).darkai.movingtocover=1
+         entityelement(e).darkai.coverx=aisafezone(i).x
+         entityelement(e).darkai.coverz=aisafezone(i).z
+        endif
+        entityelement(e).darkai.actionmode=0
+        `entityelement(e).darkai.state=STATE_COVER
+        endif
+       endif
      endcase
      case AIACTAIMOVETOTARGET:
       if ai entity exist(entityelement(e).obj) and entityelement(e).actualtarget>0
@@ -12684,6 +12738,19 @@ if aiindex>0
          tte=entityelement(e).actualtarget-1
          ai entity look at position entityelement(e).obj,object position x(entityelement(tte).obj),object position z(entityelement(tte).obj)
         endif
+       endif
+      endif
+     endcase
+     case AIACTAIROTATETOSOUND:
+      if ai entity exist(entityelement(e).obj)
+       arraycount=array count(ischaracter())
+       for i=1 to arraycount
+        tte=ischaracter(i)
+        if entityelement(e).obj=entityelement(tte).obj then ttte=tte : exit
+       next i
+       sound=AIHeardSound(ttte)
+       if sound>0
+        ai entity look at position entityelement(e).obj,aisound(sound).x,aisound(sound).z
        endif
       endif
      endcase
@@ -44321,32 +44388,6 @@ _control_darkai:
   endif
  endif
 
-  Rem Hockeykid - 050410 - Move to cover based on enemy X Z
-  if entityelement(e).darkai.actionmode=9
-   if ai get entity count targets(obj)>0
-    toppri=ai get entity target id(obj,1)
-    ai entity move to cover obj,object position x(toppri),object position z(toppri)
-   else
-    Gosub _darkai_find_safezone
-    if tbesti>0
-     i=tbesti
-     ai entity go to position obj,aisafezone(i).x,aisafezone(i).z
-     aisafezone(i).occupied=1
-    endif
-   endif
-   entityelement(e).darkai.actionmode=0
-  endif
-  Rem Hockeykid - 050410 - Move to cover based on safe zone
-  if entityelement(e).darkai.actionmode=10
-   Gosub _darkai_find_safezone
-   if tbesti>0
-    i=tbesti
-    ai entity go to position obj,aisafezone(i).x,aisafezone(i).z
-    aisafezone(i).occupied=1
-   endif
-   entityelement(e).darkai.actionmode=0
-  endif
-
  rem Idle
  if tstate=STATE_IDLE
   `Stand up
@@ -44547,6 +44588,18 @@ _control_darkai:
    entityelement(e).darkai.state=STATE_IDLE
   endif
  endif
+  Rem Any State
+
+ Rem check if entity is at cover
+ if entityelement(e).darkai.movingtocover=1
+  if entityelement(e).darkai.actionmode<>0 then entityelement(e).darkai.movingtocover=0
+  if ai get entity x(obj)>=ai get entity destination x(obj)-3 and ai get entity x(obj)<=ai get entity destination x(obj)+3 and ai get entity x(obj)>=ai get entity destination z(obj)-3 and ai get entity x(obj)<=ai get entity destination z(obj)+3
+   entityelement(e).darkai.movingtocover=0
+   entityelement(e).darkai.state=STATE_COVER
+  else
+   ai entity go to position obj,ai get entity destination x(obj),ai get entity destination z(obj)
+  endif
+ endif
 
 rem Apply New Actions
 `if entityelement(e).darkai.running=1 and ai get entity is ducking(obj)=0
@@ -44686,6 +44739,7 @@ _darkai_find_safezone:
  arraycount=array count(aisafezone())
  cloestdist#=999999
  tbesti=0
+ if arraycount=0 then return
  for i=1 to arraycount
   distx#=aisafezone(i).x-entityelement(e).x
   disty#=aisafezone(i).y-entityelement(e).y
@@ -44748,6 +44802,7 @@ Add_Targets:
  endif
 Return
 
+
 _Character_Array:
  `
  undim ischaracter()
@@ -44756,6 +44811,7 @@ _Character_Array:
  dim points(0) as pathtype
  Rem Dim sounds
  dim aisound(100) as aisoundtype
+
  `
  for e=1 to entityelementlist
   entid=entityelement(e).bankindex
@@ -44765,6 +44821,7 @@ _Character_Array:
    ischaracter(xp)=e
   endif
  next e
+
  `
 Return
 
@@ -44780,14 +44837,14 @@ Function AIUpdateSounds()
 Endfunction
 
 Function AIHeardSound(obje)
+ tclosestdist#=99999.0
  arraycount=array count(aisound())
  hearing=entityelement(obje).darkai.hearingrange^2
  for i=1 to arraycount
   if aisound(i).alive=1 and aisound(i).team<>entityelement(obje).darkai.team
    dst#=(entityelement(obje).x-aisound(i).x)^2 + (entityelement(obje).z-aisound(i).z)^2
-   if dst#<=hearing
-    output=i
-    exit
+   if dst#<=hearing and dst#<tclosestdist#
+    output=i : tclosestdist#=dst#
    endif
   endif
  next i

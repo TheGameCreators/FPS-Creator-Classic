@@ -9,6 +9,8 @@ History
 V1.1.7
 ------
 
+ * Added new FPI condition AIATCOVER this will return true if the entity is at the cover that the entity was instructed to move to by AIMOVETOTARGET=X
+ * Added new FPI action AIROTATETOSOUND this will make the AI entity rotate to the closet sound that has been heard
  * Added new FOG constants to FASTBONE.FX (for correct depth camera rendering)
  * Fixed decal loop glitch which caused decal plate to disappear sometimes
  * Added COREDLLS and SCRIPTBANK to keep the files rapidly modified in the SVN
