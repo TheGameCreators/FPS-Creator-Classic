@@ -105,18 +105,6 @@ float4 PS(
 {
     return (tex2D(Sampler, Tex3)+Diff+tex2D(Sampler3, Tex2)) * tex2D(Sampler2, Tex);
 }
-float4 PSdepth(
-    float4 Diff : COLOR0,
-    float2 Tex  : TEXCOORD0,
-    float2 Tex2  : TEXCOORD1,
-    float2 Tex3  : TEXCOORD2,
-    float4 ppos  : TEXCOORD3) : COLOR
-{
-    float4 result = (tex2D(Sampler, Tex3)+Diff+tex2D(Sampler3, Tex2)) * tex2D(Sampler2, Tex);
-    float a_depth = 1.0 - ( (depthScale/10.0f) * (ppos.z / ppos.w) );
-    result.w = a_depth / 2.0f;
-    return result;
-}
 
 technique alpha
 {
@@ -129,18 +117,5 @@ technique alpha
         Sampler[2] = (Sampler3);
         VertexShader = compile vs_1_0 VS();
         PixelShader  = compile ps_2_0 PS();
-    }
-}
-technique depth
-{
-    pass P0
-    {
-        Lighting       = FALSE;
-        FogEnable      = FALSE;
-        Sampler[0] = (Sampler);
-        Sampler[1] = (Sampler2);
-        Sampler[2] = (Sampler3);
-        VertexShader = compile vs_1_0 VS();
-        PixelShader  = compile ps_2_0 PSdepth();
     }
 }

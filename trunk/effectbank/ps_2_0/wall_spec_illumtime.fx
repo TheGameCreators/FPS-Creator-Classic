@@ -187,28 +187,6 @@ float4 mainPS(vertexOutput IN) : COLOR
     return result;
 }
 
-float4 mainPSdepth(vertexOutput IN) : COLOR
-{
-    float4 LM = tex2D(LightmapSampler,IN.TexCoordLM);         //sample lightmap texture
-    float4 diffuse = tex2D(DiffuseSampler,IN.TexCoord.xy);    //sample diffuse texture    
-    float4 effectmap = tex2D(EffectSampler,IN.TexCoord.xy);   //sample specular map texture 
-    float3 Ln = (IN.LightVec);
-    float3 Nn = normalize(IN.WorldNormal);
-    float3 V  = normalize(eyePos - IN.WPos);                  //create normalized view vector for constant forward "hero" spec
-    float3 Hn = normalize(V+Ln);                              //half vector
-    float dis = distance(IN.WPos,eyePos);
-    float atten = (1/(dis*(dis*.01)))* 2000 ;                 //last value is multiplier, inverse square faloff
-    atten = clamp(atten,0,1.5);                               //second value controls how bright to let the highlights become
-    float fadetime = 0.5 * (sin(3 * time) +1.1);              //calculate the sin(time) and scale result, don't allow lower limit to reach 0
-    float herospec = pow(max(dot(Nn,Hn),0),48);               //specular highlights 
-    float4 specular = (herospec)*(effectmap+0.1)*5*(LM+0.1)*diffuse * atten; //multiply spec texture, lightmap, and diffuse texture
-    float4 LMfinal = (LM + AmbiColor)*diffuse;
-    float4 result =   LMfinal + specular + (effectmap.w * fadetime * diffuse)  ;
-    float a_depth = 1.0 - ( (depthScale/10.0f) * (IN.ppos.z / IN.ppos.w) ); // we invert the depth value so transparency fades out over distance (inverted again at post)
-    result.w = a_depth / 2.0f;                                // finally divide alpha value by two (so when transparency used it looks see-through)
-    return result;
-}
-
 /****** technique ********************************/
 
 technique alpha
@@ -222,13 +200,3 @@ technique alpha
     }
 }
 
-technique depth
-{
-    pass P0
-    {
-        Lighting       = FALSE;
-        FogEnable      = FALSE;
-        VertexShader = compile vs_2_0 mainVS();
-        PixelShader  = compile ps_2_0 mainPSdepth();
-    }
-}

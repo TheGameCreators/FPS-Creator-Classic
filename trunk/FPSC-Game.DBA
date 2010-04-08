@@ -44803,10 +44803,8 @@ _postprocess_init:
  rem full screen shaders
  bloomfilescreen$="effectbank\ps_2_0\post-bloom.fx"
  depthoffieldfilescreen$="effectbank\ps_2_0\post-depthoffield.fx"
- `depthoffieldfileobject$="effectbank\ps_2_0\post-object-depthoffield.fx"
  addfiletocollection(bloomfilescreen$)
  addfiletocollection(depthoffieldfilescreen$)
- `addfiletocollection(depthoffieldfileobject$)
  `
  rem if flagged, use post processing (camera one)
  if gpostprocessmode=0 and gpostprocessing<>0 and segobjusedformapeditor=0
@@ -44816,7 +44814,6 @@ _postprocess_init:
   rem 2 - depth of field
   tshaderchoice$=bloomfilescreen$
   if gpostprocessing=1 then tshaderchoice$=bloomfilescreen$ : gpostprocessingnotransparency=0 : gdepthcameraid=0
-  `if gpostprocessing=2 then tshaderchoice$=depthoffieldfilescreen$ : gpostprocessingnotransparency=1
   if gpostprocessing=2 then tshaderchoice$=depthoffieldfilescreen$ : gpostprocessingnotransparency=0 : gdepthcameraid=2
   `
   rem FPGC - 200310 - new camera 1 holds post-process screen quad (requires U75+)
@@ -44832,10 +44829,6 @@ _postprocess_init:
    set current camera 0
   endif
   `
-  rem Shader used to replace fixed-function pipeline
-  `load effect depthoffieldfileobject$,65533,0 : rem static (LM+diffuse)
-  `load effect depthoffieldfileobject$,65534,0 : rem dynamic (diffuse)
-  `
   rem post process mode on
   gpostprocessmode=1
   `
@@ -44848,8 +44841,6 @@ _postprocess_free:
  rem free any resources created by post process technique
  if gpostprocessmode=1
   delete effect 65535
-  `delete effect 65533
-  `delete effect 65534
   delete object 65536
   delete camera 1 : set current camera 0
   if gdepthcameraid<>0 then delete camera gdepthcameraid : set current camera 0 : gdepthcameraid=0
@@ -44867,39 +44858,16 @@ _postprocess_apply:
   for o=1 to 65535
    if object exist(o)=1
     if gdepthcameraid>0
-     set object mask o,%1+(1<<gdepthcameraid)
+     if rnd(3)=1
+      set object mask o,%0+(1<<gdepthcameraid),0,0,1
+     else
+      set object mask o,%1+(1<<gdepthcameraid),0,0,0
+     endif
     else
-     set object mask o,%1
+     set object mask o,%1,0,0,0
     endif
    endif
   next o
-  `
-  rem switch all loaded effects to alpha/depth
-  `for e=1 to 65534
-  ` if effect exist(e)=1
-  `  if gpostprocessingnotransparency=0 then set effect technique e,"alpha"
-  `  if gpostprocessingnotransparency=1 then set effect technique e,"depth"
-  ` endif
-  `next e
-  `
-  rem switch universe geometry to use alpha/depth
-  `if gpostprocessingnotransparency=0 then set static effect technique "alpha"
-  `if gpostprocessingnotransparency=1 then set static effect technique "depth"
-  `
-  rem switch the dynamic and static object renderer techniques
-  `if gpostprocessingnotransparency=0 then set effect technique 65534,"alpha" : set effect technique 65533,"alphaLM"
-  `if gpostprocessingnotransparency=1 then set effect technique 65534,"depth" : set effect technique 65533,"depthLM"
-  `
-  rem make sure ALL game objects use 'depth of field' (only if no shader of their own)
-  `if gpostprocessingnotransparency=1
-  ` for o=1 to 65535
-  `  if object exist(o)=1
-  `   if objecteffect(o)=0
-  `    set object effect o,65534
-  `   endif
-  `  endif
-  ` next o
-  `endif
   `
   rem create and prepare resources for full screen final render
   if object exist(65536)=1
@@ -44928,7 +44896,6 @@ _postprocess_renderdepthcamera:
   set current camera gdepthcameraid
   position camera gdepthcameraid,camera position x(0),camera position y(0),camera position z(0)
   rotate camera gdepthcameraid,camera angle x(0),camera angle y(0),camera angle z(0)
-  storeambientlight=ambient light()
   color backdrop gdepthcameraid,rgb(255,0,0),rgb(0,128,128)
   for l=0 to 7
    if light exist(l)=1 then hide light l
@@ -44937,21 +44904,13 @@ _postprocess_renderdepthcamera:
   fog color 255,0,0
   fog distance 0,500
   `
-  rem apply 'immune to fore wipe color' mask to objects (for things like heat haze/refractions/distortions)
-  for o=1 to 65535
-   if object exist(o)=1
-    set object mask o,%1+(1<<gdepthcameraid),0,0,1
-    `set object mask o,%0+(1<<gdepthcameraid),0,0,1
-   endif
-  next o
-  `
   rem render the depth scene
   sync mask (1 << gdepthcameraid)
   fastsync
   sync mask %11111111 - (1 << gdepthcameraid)
-  set sprite 1,0,1
-  sprite 1,0,0,65537
-  size sprite 1,320,240
+  if gshowdebugtextingamestate=1
+   set sprite 1,0,1 : sprite 1,0,0,65537 : size sprite 1,160,120
+  endif
   `
   rem restore general lighting
   color backdrop gdepthcameraid,rgb(0,64,0),0

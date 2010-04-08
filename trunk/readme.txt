@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
 
+ * Added all new depth of field (using FF fog and passing in depth camera frame)
  * Added new FPI action AIROTATETOTARGET this will rotate the entity to its target.This command works just like rotatetotarget but uses the ai system to rotate
  * Added new FPI action AISETMELEEDAMAGE=X this will X is the amount of damage the entity will do with AIUSEMELEE=X
  * Added new FPI action AIUSEMELEE=X this will take away the amount of health specified by AISETMELEEDAMAGE=X from the entity's target. If X=1 then blood splats will be enabled for that hit
