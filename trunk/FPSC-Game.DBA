@@ -143,6 +143,7 @@ type containertype
    id as integer
 endtype
 global dim container(20) as containertype
+gosub _obs_init
 
 Rem Hockeykid - 160310 - Dark AI path type
 Type pathtype
@@ -3517,8 +3518,6 @@ if gcompilestandaloneexe=0
   gosub _multi_restartprepare
   multiplayerinitialised=0
  endif
- Rem Hockeykid - 260210 - Added gosub for finding doors (for Dark AI system)
- gosub _darkai_finddoors
  Rem Hockeykid - 260210 - Added subroutine for debugging Dark AI
  gosub _darkai_debug
  Rem Hockeykid - 040410 - Added subroutine to add all .ischaracter's E to ischaracter() array
@@ -25170,6 +25169,21 @@ for e=1 to entityelementlist
        next tlimb
       endif
      endif
+     `
+     rem FPGC - 180410 - create an AI obstacle from the static entity (+sizey ensures if sunk into floor they still work)
+     taddtocontainer=(object position y(useobj)+object size y(useobj))/100.0
+     if taddtocontainer<0 then taddtocontainer=0
+     if taddtocontainer>19 then taddtocontainer=19
+     AI ADD STATIC OBSTACLE useobj,1,taddtocontainer
+     taddtocontainer2=(object position y(useobj)+5)/100.0
+     if taddtocontainer<>taddtocontainer2 and object size y(useobj)>10
+      rem ensure we add OBS data for large ceiling items not already covered by above
+      if taddtocontainer2<0 then taddtocontainer2=0
+      if taddtocontainer2>19 then taddtocontainer2=19
+      AI ADD STATIC OBSTACLE useobj,1,taddtocontainer2
+     endif
+     `
+     rem then delete the un-needed static entity
      delete object useobj
     endif
    endif
@@ -33711,15 +33725,20 @@ return
 rem
 rem OBSMAP GENERATION SUBROUTINES
 rem
-_darkai_createlevel:
 
+_darkai_createlevel:
+ `
+ rem Call comprehensive OBSTACLE initialisation for level
+ gosub _obs_level
+ `
+ remstart
+ you can delete this at your convenience :) 9dont worry cnotainers created during init, needed earlier now)
  for y=0 to 19
   if y<>0 then container(y).y# = (y*100)+50 else container(y).y# = 50
    container(y).id = y
    if ai container exist(container(y).id) and y>0 then ai remove container container(y).id
    if y>0 then ai add container container(y).id
  next y
-
  rem constructing fully, so generate OBS data
  choiceoflayer=0 : choiceoflayerend=19
  gosub _obs_generate
@@ -33728,8 +33747,79 @@ _darkai_createlevel:
  obsgeneratenow=1 : gosub _obs_generateobstacles : obsgeneratenow=0
  rem save data after obstacle construction
  `gosub _obs_save
+ remend
 
 Return
+
+_obs_init:
+ `
+ rem Universe containers (required for static entities) (must be done before static entities added, in fact, at start)
+ for layer=0 to 19
+  if layer>0 then AI Add Container layer
+  container(layer).y# = (layer*100)+50
+  container(layer).id = layer
+ next layer
+ `
+return
+
+_obs_level:
+ `
+ rem Take current universe level, and create AI visibility and containers
+ `phyunimesh$=myownrootdir$+"levelbank\testlevel\universephy.dbo"
+ `load object phyunimesh$,physicsuniverseobj
+ `rem all level for 3D raycasting
+ `AI Add Alternate Visibility Object physicsuniverseobj,0
+ `delete object physicsuniverseobj
+ `
+ rem Perform OBSMAP generation (or quick reload) (or a full compile where level changes with each pass)
+ if tperformuniverseconstruction=1 or gcompilestandaloneexe=1
+  rem constructing fully, so generate OBS data
+  choiceoflayer=0 : choiceoflayerend=19
+  gosub _obs_generate
+  gosub _obs_processobstacles
+  rem generate obstacles for AI
+  obsgeneratenow=1 : gosub _obs_generateobstacles : obsgeneratenow=0
+  rem save data after obstacle construction
+  gosub _obs_save
+ else
+  rem use OBS data from last construction
+  gosub _obs_load
+  rem call this to complete obstacle creation (from loaded data)
+  AI Complete Obstacles
+ endif
+ `
+ rem Connect containers with a container bridge using waypoint data
+ `for w=1 to waypointmax
+ ` if waypoint(w).count>0
+ `  for wpci=waypoint(w).start to waypoint(w).finish-1
+ `   wpy#=waypointcoord(wpci).y : clyr=(wpy#+5)/100
+ `   nextwpy#=waypointcoord(wpci+1).y : nextclyr=(nextwpy#+5)/100
+ `   if nextclyr=clyr-1 or nextclyr=clyr+1
+ `    rem waypoint path spans containers, a useful gate
+ `    wpx#=waypointcoord(wpci).x
+ `    wpz#=waypointcoord(wpci).z
+ `    nextwpx#=waypointcoord(wpci+1).x
+ `    nextwpz#=waypointcoord(wpci+1).z
+ `    result = AI connect Containers(clyr, wpx#, wpz#, nextclyr, nextwpx#, nextwpz#)
+ `   endif
+ `  next wpci
+ ` endif
+ `next w
+ `
+ rem Create regular AI waypoints (path index matches waypoint index)
+ for w=1 to waypointmax
+  if waypoint(w).count>0
+   AI Make Path w
+   for wpci=waypoint(w).start to waypoint(w).finish
+    wpx#=waypointcoord(wpci).x
+    wpy#=waypointcoord(wpci).y : clyr=(wpy#+5)/100
+    wpz#=waypointcoord(wpci).z
+    AI Path Add Point w,wpx#,wpz#
+   next wpxi
+  endif
+ next w
+ `
+return
 
 _obs_generate_pertile:
  `
@@ -45320,6 +45410,8 @@ rem Apply New Actions
 
 return
 
+remstart
+no longer need right, you can delete this now.
 _darkai_finddoors:
  return
  for e=1 to entityelementlist
@@ -45351,6 +45443,7 @@ _darkai_finddoors:
  ai complete obstacles
 
 return
+remend
 
 _darkai_debug:
  rem FPGC - 310310 - added SETUP.INI flag to control whether we see AI outlines

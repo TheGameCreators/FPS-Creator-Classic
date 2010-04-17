@@ -9,6 +9,8 @@ History
 V1.1.7
 ------
 
+ * Cleaned up some of the OBSTACLE container code and included new X10 modules (for later inclusion)
+ * Added additional X10 inspired DarkAI code to include static entity obstacles
  * Added new FPI condition AIATCOVER this will return true if the entity is at the cover that the entity was instructed to move to by AIMOVETOTARGET=X
  * Added new FPI action AIROTATETOSOUND this will make the AI entity rotate to the closet sound that has been heard
  * Added new FOG constants to FASTBONE.FX (for correct depth camera rendering)
