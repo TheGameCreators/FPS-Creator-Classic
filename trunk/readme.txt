@@ -115,7 +115,7 @@ V1.1.7
 FPGC VARIANT SPECIFIC
 ---------------------
 
- * Ensured pointer does not move irratically if no controller is plugged in
+ * Ensure pointer does not move irratically if no controller is plugged in
  * Added code to include PS2.0 and CONTROLLER HINT files to a final build
  * Added new level called CANDLE.FPM which demonstrates candle and alienglobe
  * Finished off DECAL BASED PARTICLE support inside DECALSPEC.TXT (alienglobe)
