@@ -9,9 +9,11 @@ History
 V1.1.7
 ------
 
+ * Added new FPI action AIMOVETOTARGET this will cause the entity to move to its target if it has one
+ * Added new FPI action AISTOP this will stop the AI entity right away
+ * Added new FPI condition AIATCOVER this will return true if the entity is at the cover that the entity was instructed to move to by AIMOVETOCOVER=X
  * Cleaned up some of the OBSTACLE container code and included new X10 modules (for later inclusion)
  * Added additional X10 inspired DarkAI code to include static entity obstacles
- * Added new FPI condition AIATCOVER this will return true if the entity is at the cover that the entity was instructed to move to by AIMOVETOTARGET=X
  * Added new FPI action AIROTATETOSOUND this will make the AI entity rotate to the closet sound that has been heard
  * Added new FOG constants to FASTBONE.FX (for correct depth camera rendering)
  * Fixed decal loop glitch which caused decal plate to disappear sometimes
