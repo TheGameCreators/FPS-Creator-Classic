@@ -33940,6 +33940,17 @@ _obs_generate_pertile:
         if maporient=3 then maplines(l,x,y,OBS_WW)=1 : maplines(l,x,y,OBS_NN)=1 : maplines(l,x,y,OBS_SS)=1
        endif
       endif
+      rem FPGC - 190410 - some segment overlays create a single directional wall (instead of a solid block, i.e. [4])
+      if segmentswhichchangeobsdata(mapselection)>=21 and segmentswhichchangeobsdata(mapselection)<=22
+       if maporient=0 then maplines(l,x,y,OBS_NN)=3
+       if maporient=1 then maplines(l,x,y,OBS_EE)=3
+       if maporient=2 then maplines(l,x,y,OBS_SS)=3
+       if maporient=3 then maplines(l,x,y,OBS_WW)=3
+       if maporient=0 and y>0 then maplines(l,x,y-1,OBS_SS)=3
+       if maporient=1 and x<39 then maplines(l,x+1,y,OBS_WW)=3
+       if maporient=2 and y<39 then maplines(l,x,y+1,OBS_NN)=3
+       if maporient=3 and x>0 then maplines(l,x-1,y,OBS_EE)=3
+      endif      
      endif
     endif
  endif
@@ -33951,7 +33962,7 @@ _obs_generate:
  rem OBSMAP Structures and Arrays
  OBS_NN=1 : OBS_EE=2 : OBS_SS=3 : OBS_WW=4 : OBS_CC=5 : OBS_DR=6
  dim maplines(layermax,maxx,maxy,OBS_DR)
- dim obs(1,5) : obsindex=0
+ dim obs(1,6) : obsindex=0
  `
  rem mark which segments are doors (as they punch through obs walls)
  dim segmentswhichchangeobsdata(segidmaster)
@@ -34005,12 +34016,17 @@ _obs_generate:
   if segmentswhichchangeobsdata(segid)=0
    rem ALL FPSC overlays that are simply large blocking onstructions to
    rem the current layer such as stairs, teleporters, etc
-   segmentswhichchangeobsdata(segid)=4
+   tdirectionalwall=0
+   if lower$(right$(selectionbank$(segid),14))="wall large.fps" then tdirectionalwall=2
+   if lower$(right$(selectionbank$(segid),14))="wall small.fps" then tdirectionalwall=1
+   if tdirectionalwall>0
+    segmentswhichchangeobsdata(segid)=20+tdirectionalwall : rem directional wall
+   else
+    segmentswhichchangeobsdata(segid)=4 : rem solid blocker
+   endif
   endif
   `
   rem No Walls Check (floors)
-  `if segmentprofile(seg).vis.f<>-1 then show limb obj,segmentprofile(seg).vis.f
-  `if segmentprofile(seg).vis.r<>-1 then show limb obj,segmentprofile(seg).vis.r
   tnowalls=1
   if segmentprofile(segid).vis.ctl<>-1 then tnowalls=0
   if segmentprofile(segid).vis.ctr<>-1 then tnowalls=0
@@ -34116,24 +34132,23 @@ _obs_processobstacles:
       next scanx
      next scany
      rem convert to obstacle block
-     inc obsindex : dim obs(obsindex,5)
+     inc obsindex : dim obs(obsindex,6)
      obs(obsindex,0)=1
      obs(obsindex,1)=startx*100
      obs(obsindex,2)=starty*100
      obs(obsindex,3)=(endx+1)*100
      obs(obsindex,4)=(endy+1)*100
      obs(obsindex,5)=l
+     obs(obsindex,6)=0
      rem cancel maplines
-     if 1
-      for scany=starty to endy
-       for scanx=startx to endx
-        if scany<39 then maplines(l,scanx,scany+1,OBS_NN)=0
-        if scany>0 then maplines(l,scanx,scany-1,OBS_SS)=0
-        if scanx>0 then maplines(l,scanx-1,scany,OBS_EE)=0
-        if scany<39 then maplines(l,scanx+1,scany,OBS_WW)=0
-       next scanx
-      next scany
-     endif
+     for scany=starty to endy
+      for scanx=startx to endx
+       if scany<39 then maplines(l,scanx,scany+1,OBS_NN)=0
+       if scany>0 then maplines(l,scanx,scany-1,OBS_SS)=0
+       if scanx>0 then maplines(l,scanx-1,scany,OBS_EE)=0
+       if scany<39 then maplines(l,scanx+1,scany,OBS_WW)=0
+      next scanx
+     next scany
     endif
    next x
   next y
@@ -34144,59 +34159,64 @@ _obs_processobstacles:
   for y=0 to 39
    for x=0 to 39
     for sides=OBS_NN to OBS_WW
-     if maplines(l,x,y,sides)=1
-      rem found a line
-      startx=x
-      starty=y
-      endx=x
-      endy=y
-      rem expand along line
-      if sides=OBS_NN or sides=OBS_SS
-       for scanx=startx to 39
-        if maplines(l,scanx,y,sides)=0 then exit
-       next scanx
-       endx=scanx-1
-      endif
-      if sides=OBS_EE or sides=OBS_WW
-       for scany=starty to 39
-        if maplines(l,x,scany,sides)=0 then exit
+     for halfheight=0 to 1
+      if halfheight=0 then twallmode=1 : rem full wall
+      if halfheight=1 then twallmode=3 : rem half wall
+      if maplines(l,x,y,sides)=twallmode
+       rem found a line
+       startx=x
+       starty=y
+       endx=x
+       endy=y
+       rem expand along line
+       if sides=OBS_NN or sides=OBS_SS
+        for scanx=startx to 39
+         if maplines(l,scanx,y,sides)=0 then exit
+        next scanx
+        endx=scanx-1
+       endif
+       if sides=OBS_EE or sides=OBS_WW
+        for scany=starty to 39
+         if maplines(l,x,scany,sides)=0 then exit
+        next scany
+        endy=scany-1
+       endif
+       rem cancel maplines and convert to obstacle strip
+       for scany=starty to endy
+        for scanx=startx to endx
+         maplines(l,scanx,scany,sides)=2
+        next scanx
        next scany
-       endy=scany-1
+       inc obsindex : dim obs(obsindex,6)
+       obs(obsindex,0)=1
+       if sides=OBS_NN
+        obs(obsindex,1)=(startx*100)
+        obs(obsindex,2)=(starty*100)
+        obs(obsindex,3)=(endx+1)*100
+        obs(obsindex,4)=(endy*100)+20
+       endif
+       if sides=OBS_SS
+        obs(obsindex,1)=(startx*100)
+        obs(obsindex,2)=(starty+1)*100
+        obs(obsindex,3)=(endx+1)*100
+        obs(obsindex,4)=((endy+1)*100)+20
+       endif
+       if sides=OBS_EE
+        obs(obsindex,1)=((startx+1)*100)
+        obs(obsindex,2)=(starty*100)
+        obs(obsindex,3)=((endx+1)*100)+20
+        obs(obsindex,4)=(endy+1)*100
+       endif
+       if sides=OBS_WW
+        obs(obsindex,1)=(startx*100)
+        obs(obsindex,2)=(starty*100)
+        obs(obsindex,3)=(endx*100)+20
+        obs(obsindex,4)=(endy+1)*100
+       endif
+       obs(obsindex,5)=l
+       obs(obsindex,6)=halfheight
       endif
-      rem cancel maplines and convert to obstacle strip
-      for scany=starty to endy
-       for scanx=startx to endx
-        maplines(l,scanx,scany,sides)=2
-       next scanx
-      next scany
-     inc obsindex : dim obs(obsindex,5)
-      obs(obsindex,0)=1
-      if sides=OBS_NN
-       obs(obsindex,1)=(startx*100)
-       obs(obsindex,2)=(starty*100)
-       obs(obsindex,3)=(endx+1)*100
-       obs(obsindex,4)=(endy*100)+20
-      endif
-      if sides=OBS_SS
-       obs(obsindex,1)=(startx*100)
-       obs(obsindex,2)=(starty+1)*100
-       obs(obsindex,3)=(endx+1)*100
-       obs(obsindex,4)=((endy+1)*100)+20
-      endif
-      if sides=OBS_EE
-       obs(obsindex,1)=((startx+1)*100)
-       obs(obsindex,2)=(starty*100)
-       obs(obsindex,3)=((endx+1)*100)+20
-       obs(obsindex,4)=(endy+1)*100
-      endif
-      if sides=OBS_WW
-       obs(obsindex,1)=(startx*100)
-       obs(obsindex,2)=(starty*100)
-       obs(obsindex,3)=(endx*100)+20
-       obs(obsindex,4)=(endy+1)*100
-      endif
-      obs(obsindex,5)=l
-     endif
+     next halfheight
     next sides
    next x
   next y
@@ -34207,13 +34227,14 @@ _obs_processobstacles:
   for y=0 to 39
    for x=0 to 39
     if maplines(l,x,y,OBS_CC)>=2
-     inc obsindex : dim obs(obsindex,5)
+     inc obsindex : dim obs(obsindex,6)
      obs(obsindex,0)=maplines(l,x,y,OBS_CC)
      obs(obsindex,1)=(x*100)
      obs(obsindex,2)=(y*100)
      obs(obsindex,3)=(x+1)*100
      obs(obsindex,4)=(y+1)*100
      obs(obsindex,5)=l
+     obs(obsindex,6)=0
     endif
    next x
   next y
@@ -34224,13 +34245,14 @@ _obs_processobstacles:
   for y=0 to 39
    for x=0 to 39
     if maplines(l,x,y,OBS_CC)=1
-     inc obsindex : dim obs(obsindex,5)
+     inc obsindex : dim obs(obsindex,6)
      obs(obsindex,0)=maplines(l,x,y,OBS_CC)
      obs(obsindex,1)=(x*100)
      obs(obsindex,2)=(y*100)
      obs(obsindex,3)=(x+1)*100
      obs(obsindex,4)=(y+1)*100
      obs(obsindex,5)=l
+     obs(obsindex,6)=0
     endif
    next x
   next y
@@ -34243,71 +34265,79 @@ _obs_processobstacles:
     if maplines(l,x,y,OBS_DR)>0
      if maplines(l,x,y,OBS_DR)=1
       rem north
-      inc obsindex : dim obs(obsindex,5)
+      inc obsindex : dim obs(obsindex,6)
       obs(obsindex,0)=1
       obs(obsindex,1)=(x*100)+0
       obs(obsindex,2)=(y*100)+0
       obs(obsindex,3)=(x*100)+20
       obs(obsindex,4)=(y*100)+20
       obs(obsindex,5)=l
-      inc obsindex : dim obs(obsindex,5)
+      obs(obsindex,6)=0
+      inc obsindex : dim obs(obsindex,6)
       obs(obsindex,0)=1
       obs(obsindex,1)=(x*100)+80
       obs(obsindex,2)=(y*100)+0
       obs(obsindex,3)=(x*100)+100
       obs(obsindex,4)=(y*100)+20
       obs(obsindex,5)=l
+      obs(obsindex,6)=0
      endif
      if maplines(l,x,y,OBS_DR)=2
       rem east
-      inc obsindex : dim obs(obsindex,5)
+      inc obsindex : dim obs(obsindex,6)
       obs(obsindex,0)=1
       obs(obsindex,1)=(x*100)+80
       obs(obsindex,2)=(y*100)+0
       obs(obsindex,3)=(x*100)+100
       obs(obsindex,4)=(y*100)+20
       obs(obsindex,5)=l
-      inc obsindex : dim obs(obsindex,5)
+      obs(obsindex,6)=0
+      inc obsindex : dim obs(obsindex,6)
       obs(obsindex,0)=1
       obs(obsindex,1)=(x*100)+80
       obs(obsindex,2)=(y*100)+80
       obs(obsindex,3)=(x*100)+100
       obs(obsindex,4)=(y*100)+100
       obs(obsindex,5)=l
+      obs(obsindex,6)=0
      endif
      if maplines(l,x,y,OBS_DR)=3
       rem south
-      inc obsindex : dim obs(obsindex,5)
+      inc obsindex : dim obs(obsindex,6)
       obs(obsindex,0)=1
       obs(obsindex,1)=(x*100)+0
       obs(obsindex,2)=(y*100)+80
       obs(obsindex,3)=(x*100)+20
       obs(obsindex,4)=(y*100)+100
       obs(obsindex,5)=l
-      inc obsindex : dim obs(obsindex,5)
+      obs(obsindex,6)=0
+      inc obsindex : dim obs(obsindex,6)
       obs(obsindex,0)=1
       obs(obsindex,1)=(x*100)+80
       obs(obsindex,2)=(y*100)+80
       obs(obsindex,3)=(x*100)+100
       obs(obsindex,4)=(y*100)+100
       obs(obsindex,5)=l
+      obs(obsindex,6)=0
      endif
      if maplines(l,x,y,OBS_DR)=4
       rem west
-      inc obsindex : dim obs(obsindex,5)
+      inc obsindex : dim obs(obsindex,6)
       obs(obsindex,0)=1
       obs(obsindex,1)=(x*100)+0
       obs(obsindex,2)=(y*100)+0
       obs(obsindex,3)=(x*100)+20
       obs(obsindex,4)=(y*100)+20
       obs(obsindex,5)=l
-      inc obsindex : dim obs(obsindex,5)
+      obs(obsindex,6)=0
+      inc obsindex : dim obs(obsindex,6)
       obs(obsindex,0)=1
       obs(obsindex,1)=(x*100)+0
       obs(obsindex,2)=(y*100)+80
       obs(obsindex,3)=(x*100)+20
       obs(obsindex,4)=(y*100)+100
       obs(obsindex,5)=l
+      obs(obsindex,6)=0
      endif
     endif
    next x
@@ -34367,7 +34397,7 @@ _obs_load:
   `open to read 1,tfile$+"h"
   ` read file 1,obsindex
   `close file 1
-  `dim obs(obsindex,5)
+  `dim obs(obsindex,6)
   `load array tfile$,obs()
   `gtotalobstaclecount=obsindex
  `endif
@@ -34406,7 +34436,7 @@ _obs_generateobstacles:
      AI Add Obstacle Vertex ax1#,az2#
      AI Add Obstacle Vertex ax2#,az2#
      AI Add Obstacle Vertex ax2#,az1#
-     AI End New Obstacle obs(o,5),0,0
+     AI End New Obstacle obs(o,5),1-obs(o,6),0
     else
      if obs(o,5)=viewobslevel
       ink rgb(rnd(255),rnd(255),rnd(255)),0
@@ -34432,7 +34462,7 @@ _obs_generateobstacles:
      AI Add Obstacle Vertex xxa,yya
      AI Add Obstacle Vertex xxb,yyb
      AI Add Obstacle Vertex xxc,yyc
-     AI End New Obstacle obs(o,5),0,0
+     AI End New Obstacle obs(o,5),1-obs(o,6),0
     else
      if obs(o,5)=viewobslevel
       ink rgb(rnd(255),rnd(255),rnd(255)),0

@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
 
+ * Added new feature to AI obstacle code to detect Wall Large and Wall Small (creating full/half walls)
  * Added new FPI action AIMOVETOTARGET this will cause the entity to move to its target if it has one
  * Added new FPI action AISTOP this will stop the AI entity right away
  * Added new FPI condition AIATCOVER this will return true if the entity is at the cover that the entity was instructed to move to by AIMOVETOCOVER=X
