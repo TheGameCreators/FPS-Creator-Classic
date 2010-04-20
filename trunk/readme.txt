@@ -9,6 +9,8 @@ History
 V1.1.7
 ------
 
+ * Improved ACTTALK action to allow $0 and $1 to work with externally called associated LIPSYNC file
+ * Added code to prevent outright crash when meshes incorrectly specified (now default to mesh sphere)
  * Added new feature to AI obstacle code to detect Wall Large and Wall Small (creating full/half walls)
  * Added new FPI action AIMOVETOTARGET this will cause the entity to move to its target if it has one
  * Added new FPI action AISTOP this will stop the AI entity right away

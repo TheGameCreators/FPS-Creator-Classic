@@ -660,6 +660,7 @@ global entitybankoffset=30000
 global gamehudimagesoffset=64500
 global editorimagesoffset=65000
 global editordrawlastimagesoffset=75000
+global temporarymeshobject=65500
 global physicsuniverseobj=65533
 global physicsplayerborble=65534
 rem Universe Builing Object Resources for entire universe
@@ -4460,10 +4461,15 @@ if segpartmax<>-1
   segmeshpartmax=segmentprofileheader(segid).lastmeshmax
   tpstart=0 : tpend=segmeshpartmax
   for p=tpstart to tpend
+   ttthemeshtouse=segmentprofile(segid,p).meshid
+   if ttthemeshtouse=0
+    if object exist(temporarymeshobject)=0 then make object sphere temporarymeshobject,5 : make mesh from object temporarymeshobject,temporarymeshobject
+    ttthemeshtouse=temporarymeshobject
+   endif
    if object exist(segobj)=0
-    make object segobj,segmentprofile(segid,p).meshid,0
+    make object segobj,ttthemeshtouse,0
    else
-    add limb segobj,p,segmentprofile(segid,p).meshid
+    add limb segobj,p,ttthemeshtouse
    endif
    offset limb segobj,p,segmentprofile(segid,p).offx,segmentprofile(segid,p).offy,segmentprofile(segid,p).offz
    rotate limb segobj,p,0,segmentprofile(segid,p).roty,0
@@ -4479,7 +4485,12 @@ if segpartmax<>-1
      tfile$=tmeshname$
      debugfilename(tfile$,"mesh:"+seg$)
      segmentprofile(segid,tp).meshid=loadinternalmesh(tfile$)
-     add limb segobj,p,segmentprofile(segid,tp).meshid
+     ttthemeshtouse=segmentprofile(segid,tp).meshid
+     if ttthemeshtouse=0
+      if object exist(temporarymeshobject)=0 then make object sphere temporarymeshobject,5 : make mesh from object temporarymeshobject,temporarymeshobject
+      ttthemeshtouse=temporarymeshobject
+     endif     
+     add limb segobj,p,ttthemeshtouse
      offset limb segobj,p,segmentprofile(segid,tp).offx,segmentprofile(segid,tp).offy,segmentprofile(segid,tp).offz
      rotate limb segobj,p,0,segmentprofile(segid,tp).roty,0
      color limb segobj,p,rgb(0,255,0)
@@ -11063,19 +11074,21 @@ if aiindex>0
       if aiactionseq(seq).value=-1
        playinternal3dsound(entityelement(e).soundset,tmpx#,tmpy#,tmpz#)
        entityelement(e).soundlooping=entityelement(e).soundset
+       currentsoundfile$=entityelement(e).eleprof.soundset$
       else
        if aiactionseq(seq).value=-2
         playinternal3dsound(entityelement(e).soundset1,tmpx#,tmpy#,tmpz#)
         entityelement(e).soundlooping=entityelement(e).soundset1
+        currentsoundfile$=entityelement(e).eleprof.soundset1$
        else
         playinternal3dsound(aiactionseq(seq).value,tmpx#,tmpy#,tmpz#)
         entityelement(e).soundlooping=aiactionseq(seq).value
+        currentsoundfile$=aiactionseq(seq).filename
        endif
       endif
       broadcast3dsound(tmpx#,tmpy#,tmpz#,100.0,0)
       entityelement(e).soundistalking=1
       soundid=entityelement(e).soundlooping
-      currentsoundfile$=aiactionseq(seq).filename
       gosub _lipsync_playspeech
       `armgesture#=0 : rem experimental
      endcase
@@ -23110,16 +23123,18 @@ for e=1 to entityelementlist
  entityelement(e).soundset=0
  entid=entityelement(e).bankindex
  tokay=0
+ rem FPGC - 190410 - characters can now load the second soundsset ($1 in scripts)
+ if entityprofile(entid).ischaracter=1 and entityprofile(entid).ismarker=0 then tokay=2
  if entityprofile(entid).ischaracter=0 and entityprofile(entid).ismarker=0 then tokay=1
  if entityprofile(entid).ismarker=1 and entityprofile(entid).lives=0 then tokay=1
  if entityprofile(entid).ismarker=3 or entityprofile(entid).ismarker=4 then tokay=1
- if tokay=1
+ if tokay<>0
   `
   rem V109BETA4 - 240408 - use 2D mode if MUSIC ZONE is the name
   if lower$(left$(entityelement(e).eleprof.name$,10))="music zone" then t3d=0 else t3d=1
   `
   rem Load sound sets
-  if entityelement(e).eleprof.soundset$<>""
+  if entityelement(e).eleprof.soundset$<>"" and tokay=1
    rem load as 3D sound ready for playing or looping in game (generator)
    tfile$=entityelement(e).eleprof.soundset$
    if file exist(tfile$)=1
@@ -23127,8 +23142,8 @@ for e=1 to entityelementlist
     entityelement(e).soundset=loadinternalsoundcore(tfile$,t3d)
    endif
   endif
-  if entityelement(e).eleprof.soundset1$<>""
-   rem load as 3D sound ready for playing or looping in game (generator)
+  if entityelement(e).eleprof.soundset1$<>"" and tokay<>0
+   rem load as 3D sound ready for playing or looping in game (generator) ($1 speech of character)
    tfile$=entityelement(e).eleprof.soundset1$
    if file exist(tfile$)=1
     addfiletocollection(tfile$)
@@ -23136,7 +23151,7 @@ for e=1 to entityelementlist
    endif
   endif
   Rem Hockeykid - 050410 - Check for safe zone
-  if lower$(left$(entityelement(e).eleprof.name$,9))="safe zone"
+  if lower$(left$(entityelement(e).eleprof.name$,9))="safe zone" and tokay=1
    array insert at bottom aisafezone()
    xp=array count(aisafezone())
    aisafezone(xp).x=entityelement(e).x
