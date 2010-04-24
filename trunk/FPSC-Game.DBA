@@ -3941,25 +3941,6 @@ gosub _lighting_postdefaults
 rem Use mapdata to build viscolmap data
 gosub _entity_fillviscolmap
 
-remstart
-rem dark ai
-load object universefile$,darkaiuni+1000
-
-for y=0 to 19
- debugviewtext(280+int(y/4),"Constructing Obstacles ["+str$(y)+"/20]")
- if y<>0 then container(y).y# = (y*100)+50 else container(y).y# = 50
-   container(y).id = y+1
-   if ai container exist(container(y).id) then ai remove container container(y).id
-   ai add container container(y).id
-   ai add obstacle from level darkaiuni+1000,container(y).id,1,container(y).y#+10,4,4,0
-   ai complete obstacles container(y).id
-   ai add obstacle from level darkaiuni+1000,container(y).id,0,container(y).y#-40.0,0,2,0
-   ai complete obstacles container(y).id
-next y
-ai complete obstacles
-delete object darkaiuni+1000
-remend
-
 rem setup scorch texture
 if guseweaponsstate=1
  debugviewtext(280,strarr$(119))
@@ -12714,12 +12695,12 @@ if aiindex>0
         if blood=1
          decalid=entitydecal(entityelement(e).bankindex,1)
          if decalid>0
-          distx#=entityelement(tte).x-entityelement(e).x
-          disty#=entityelement(tte).y-entityelement(e).y
-          distz#=entityelement(tte).z-entityelement(e).z
+          distx#=tdamagex#-entityelement(e).x
+          disty#=tdamagey#-entityelement(e).y
+          distz#=tdamagez#-entityelement(e).z
           dist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
           rem direction from player to entity
-          tix#=entityelement(e).x-entityelement(tte).x : tiy#=entityelement(e).y-entityelement(tte).y : tiz#=entityelement(e).z-entityelement(tte).z
+          tix#=entityelement(e).x-tdamagex# : tiy#=entityelement(e).y-tdamagey# : tiz#=entityelement(e).z-tdamagez#
           tdd#=sqrt(abs(tix#*tix#)+abs(tiy#*tiy#)+abs(tiz#*tiz#))
           tix#=tix#/tdd# : tiy#=tiy#/tdd# : tiz#=tiz#/tdd#
           rem find point of impact
@@ -12728,7 +12709,7 @@ if aiindex>0
           tiz#=tiz#*(dist#-10.0)
           rem create a splat decal
           decalscalemodx=0 : rem FPSCV101 - fix
-          decalorient=0 : decalx=entityelement(e).x+tix# : decaly=((entityelement(tte).y+(object size y(entityelement(tte).obj)/2))+rnd(6))+tiy# : decalz=entityelement(e).z+tiz#
+          decalorient=0 : decalx=tdamagex#+tix# : decaly=((entityelement(e).y+(object size y(entityelement(e).obj)/2))-rnd(6))+tiy# : decalz=tdamagez#+tiz#
           originatore=-1 : gosub _decalelement_create
          endif
         endif
@@ -14249,17 +14230,22 @@ function broadcast3dsound(x#,y#,z#,strength#,obj)
    for i=1 to arraycount
     if aisound(i).alive=0
      if obj>0
-      if ai entity exist(obj) then aisound(i).team=entityelement(e).darkai.team
+      array2=array count(ischaracter())
+      for i=1 to array2
+       tte=ischaracter(i)
+       if obj=entityelement(tte).obj then obje=tte : exit
+      next i
+      if ai entity exist(obj) then aisound(i).team=entityelement(obje).darkai.team
       if ai entity exist(obj)=0 then aisound(i).team=0
-      aisound(i).x=bcsoundx#
-      aisound(i).z=bcsoundz#
+      aisound(i).x=x#
+      aisound(i).z=z#
       aisound(i).time=timer()
       aisound(i).alive=1
      else
       if obj=-1
        aisound(i).team=1
-       aisound(i).x=bcsoundx#
-       aisound(i).z=bcsoundz#
+       aisound(i).x=x#
+       aisound(i).z=z#
        aisound(i).time=timer()
        aisound(i).alive=1
       endif
@@ -15123,8 +15109,6 @@ if colmaterialtype>=0
     if manuallycontrolledfootfallframe<>playermovementstep(plrid) or leapedlanded=1
      playermovementstep(plrid)=manuallycontrolledfootfallframe : leapedlanded=0
      playinternal3dsoundfactor(sndid,entityelement(e).x,entityelement(e).y,entityelement(e).z,10.0)
-     Rem Hockeykid - 050410 - Play fake sound for Dark AI
-     broadcast3dsound(entityelement(e).x,entityelement(e).y,entityelement(e).z,0,entityelement(e).obj)
     endif
    else
     rem default timer based footfall
@@ -15147,8 +15131,6 @@ if colmaterialtype>=0
       ffdd#=sqrt(abs(ffdx#*ffdx#)+abs(ffdz#*ffdz#))
       if ffdd#<500
        playinternal3dsoundfactor(sndid,entityelement(e).x,entityelement(e).y,entityelement(e).z,10.0)
-       Rem Hockeykid - 050410 - Play fake sound for Dark AI
-       broadcast3dsound(entityelement(e).x,entityelement(e).y,entityelement(e).z,0,entityelement(e).obj)
       endif
      else
       rem FPGC - 280809 - tone player footfalls RIGHT DOWN as they are halllmark annoyances from FPSC!!)
@@ -20885,7 +20867,7 @@ if tfile$<>""
     if tstage=4 then entityprofile(entid).tex4id=texuseid
     inc tstage
    endif
-   if gproducelogfiles=1 then timestampactivity(0,"Texture "+str$(tlayer)+": texuseid="+str$(texuseid)+" texfiletouse$="+texfiletouse$)  
+   if gproducelogfiles=1 then timestampactivity(0,"Texture "+str$(tlayer)+": texuseid="+str$(texuseid)+" texfiletouse$="+texfiletouse$)
   next tlayer
   if tstage<3
    for tst=tstage to 3
@@ -33746,24 +33728,6 @@ _darkai_createlevel:
  rem Call comprehensive OBSTACLE initialisation for level
  gosub _obs_level
  `
- remstart
- you can delete this at your convenience :) 9dont worry cnotainers created during init, needed earlier now)
- for y=0 to 19
-  if y<>0 then container(y).y# = (y*100)+50 else container(y).y# = 50
-   container(y).id = y
-   if ai container exist(container(y).id) and y>0 then ai remove container container(y).id
-   if y>0 then ai add container container(y).id
- next y
- rem constructing fully, so generate OBS data
- choiceoflayer=0 : choiceoflayerend=19
- gosub _obs_generate
- gosub _obs_processobstacles
- rem generate obstacles for AI
- obsgeneratenow=1 : gosub _obs_generateobstacles : obsgeneratenow=0
- rem save data after obstacle construction
- `gosub _obs_save
- remend
-
 Return
 
 _obs_init:
@@ -33965,7 +33929,7 @@ _obs_generate_pertile:
        if maporient=1 and x<39 then maplines(l,x+1,y,OBS_WW)=3
        if maporient=2 and y<39 then maplines(l,x,y+1,OBS_NN)=3
        if maporient=3 and x>0 then maplines(l,x-1,y,OBS_EE)=3
-      endif      
+      endif
      endif
     endif
  endif
@@ -45151,7 +45115,11 @@ _control_darkai:
  tturning=ai get entity is turning(obj)
  tavoiding=ai get entity avoiding(obj)
  Rem Hockeykid - 250210 - Added line so Dark AI entities have footfall sounds
- if tmoving>0 then plrid=entityelement(e).fakeplayerid : Gosub _player_playfootfall
+ if tmoving>0
+  Rem Hockeykid - 050410 - Play fake sound for Dark AI
+  broadcast3dsound(entityelement(e).x,entityelement(e).y,entityelement(e).z,0,entityelement(e).obj)
+  plrid=entityelement(e).fakeplayerid : Gosub _player_playfootfall
+ endif
 
  rem Collect State Information
  tstate=entityelement(e).darkai.state
@@ -45455,41 +45423,6 @@ rem Apply New Actions
 
 return
 
-remstart
-no longer need right, you can delete this now.
-_darkai_finddoors:
- return
- for e=1 to entityelementlist
-  if entityelement(e).obj>0
-   obj=entityelement(e).obj
-   entid=entityelement(e).bankindex
-   if entityelement(e).eleprof.physics=3 and entityelement(e).eleprof.transparency=0 and entityelement(e).eleprof.isimmobile=1
-    entityelement(e).darkai.isdoor=1
-   else
-
-    Rem Hockeykid - 270310 - Add any non door, dynamic, immobile object as an obstacle
-    if entityprofile(entid).isweapon=0 and entityprofile(entid).isammo=0 and entityprofile(entid).ischaracter=0
-     if entityelement(e).eleprof.physics<>3 and entityelement(e).eleprof.isimmobile=1 and object size x(obj)>=4 and object size y(obj)>=4
-      if object size y(obj)>=60 then height=1 else height=0
-      Rem run check for container
-      for y=0 to 19
-       if object position y(obj) > container(y).y#-50.0 and object position y(obj) < container(y).y#+50.0
-        k=y
-        entitycontain=k : exit
-       endif
-      next y
-      ai add static obstacle obj,height,entitycontain
-     endif
-    endif
-
-   endif
-  endif
- next e
- ai complete obstacles
-
-return
-remend
-
 _darkai_debug:
  rem FPGC - 310310 - added SETUP.INI flag to control whether we see AI outlines
  if gshowaioutlines=1
@@ -45639,6 +45572,7 @@ Endfunction
 
 Function AIHeardSound(obje)
  tclosestdist#=99999.0
+ output=0
  arraycount=array count(aisound())
  hearing=entityelement(obje).darkai.hearingrange^2
  for i=1 to arraycount
