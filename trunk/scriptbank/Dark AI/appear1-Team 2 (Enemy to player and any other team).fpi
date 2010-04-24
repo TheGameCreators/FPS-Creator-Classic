@@ -1,0 +1,11 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = addenemy
+
+;Triggers
+
+:state=0:setalphafade=100,addaiteam=2,runfpidefault=1
+
+;End of Script
