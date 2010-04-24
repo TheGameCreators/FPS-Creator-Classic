@@ -21,17 +21,20 @@ desc          = DarkAI generic shoot and melee with ally command
 
 ;//Common behavior triggers---------------------------------------------------------------------------------
 
+;//:state=1,varequal=0,aicanshoot=1,aitargetdistfurther=700,random=5:aimovetotarget
+
 ;//local var flags escort behavior. 0=default, 1=Ally escort, 2=Ally hold (not implemented)
 :always:localvar=1
 :state=0:setvar=0
 :state=1:localvar=1
 
 ;//Respond to any sounds
-:state=1,varequal=1,aicanshoot=0,aiheardsound=1000:aistop,state=30
-:state=1,varequal=0,aicanshoot=0,aiheardsound=1000:aistop,state=30
+:state=1,varequal=1,aicanshoot=0,aiheardsound=3000:aistop,state=30
+:state=1,varequal=0,aicanshoot=0,aiheardsound=3000:aistop,state=30
 :state=30:aisettarget,airotatetotarget
-:state=30,aiheardsound=1500:airotatetosound
-:state=30,aiheardsound=1000:aimovetosound
+:state=30,aiheardsound=3500:airotatetosound
+:state=30,aiheardsound=2000:aimovetosound
+:state=30,ifweapon=0:state=10
 :state=30,aicanshoot=1:aistop,state=1
 
 ;//Injured
@@ -41,14 +44,12 @@ desc          = DarkAI generic shoot and melee with ally command
 :state=2,ifweapon=1,aicanshoot=1,rateoffire,random=1:aisettarget,useweapon,rundecal=6
 
 ;//Set target and shoot any present enemies
-:state=1:aisettarget,airotatetotarget
+;//:state=1,random=20:aisettarget,airotatetotarget
 :state=1,ifweapon=1,aicanshoot=1,aitargetdistfurther=70,random=1:aisettarget,useweapon,rundecal=6
 
 ;//reloading-------------------------------------------------------------------------
 :state=1,ifweapon=0,aitargetdistwithin=120:state=5
 :state=1,ifweapon=0,aitargetdistfurther=120:state=10
-
-:aicanshoot=1,aitargetdistfurther=700:aimovetotarget
 
 ;//assess situation
 :state=10,aitargetdistwithin=100:state=5
@@ -123,6 +124,7 @@ desc          = DarkAI generic shoot and melee with ally command
 ;//Enemy team2 behavior------------------------------------------
 
 ;//Enemy idle- move about randomly
+:aiteam=2,aiaction=0,random=30:aimoverandom
 
 ;//Ally team1 behavior------------------------------------------
 
@@ -136,9 +138,14 @@ desc          = DarkAI generic shoot and melee with ally command
 :aiteam=1,varequal=2,aicanshoot=0:aifollowplr=1,setvar=1
 ;//-----------------------------------------------------------
 
+:shotdamage=1:aicallteam=2000
+
+;//free teammate respond to call
+:varequal=0,aiaction=0,aicalled=2000:airespondtocall,setvar=911
+:varequal=911:aisettarget
+:varequal=911,ifweapon=1,aicanshoot=1:aisettarget,useweapon,rundecal=6
+:varequal=911,aiaction=0:setvar=0
+
 :state=0:floorlogic,setaiactive=1,alwaysactive=1,reloadweapon,state=1
 
 ;//End
-
-
-
