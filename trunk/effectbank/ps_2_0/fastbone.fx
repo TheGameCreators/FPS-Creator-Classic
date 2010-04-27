@@ -23,11 +23,6 @@ float4 LightPos : Position
     string Space = "World";
 > = {100.0f, 100.0f, -100.0f, 0.0f};
 
-float4 LightColor
-<
-	string UIType = "Color";
-> = {0.75f, 0.75f, 0.75f, 1.0f};
-
 float4 AmbiColor : Ambient
 <
     string UIName =  "Ambient Light Color";
@@ -38,6 +33,18 @@ float4 SurfColor : Diffuse
     string UIName =  "Surface Color";
     string UIType = "Color";
 > = {1.0f, 1.0f, 1.0f, 1.0f};
+
+float4 FogColor : Diffuse
+<
+    string UIName =  "Fog Color";
+    string UIType = "Color";
+> = {1.0f, 0.0f, 0.0f, 0.000001f};
+
+float4 FillerColor : Diffuse
+<
+    string UIName =  "Filler Color";
+    string UIType = "Color";
+> = {0.0f, 0.0f, 0.0f, 0.0f};
 
 /************* TEXTURES **************/
 
@@ -70,7 +77,7 @@ struct vertexOutput {
     float4 HPosition	: POSITION;
     float4 TexCoord	: TEXCOORD0;
     float4 Col		: COLOR;
-    float Fog		: FOG;
+    float3 Fog		: TEXCOORD1;
 };
 
 /*********** vertex shader ******/
@@ -104,16 +111,18 @@ vertexOutput mainVS(appdata IN)
     OUT.Col = gogo;
 
     float4 cameraPos = mul( float4(worldSpacePos,1), View );
-    OUT.Fog = (1000-cameraPos.z)/(1000-0);
+    float fogstrength = cameraPos.z * FogColor.w;
+    OUT.Fog = FogColor.xyz * fogstrength;
 
     return OUT;
 }
 
 float4 PS(
     float4 Diff : COLOR0,
-    float2 Tex  : TEXCOORD0) : COLOR
+    float2 Tex  : TEXCOORD0,
+    float3 Fog  : TEXCOORD1 ) : COLOR
 {
-    return tex2D(colorSampler, Tex) * Diff;
+    return (tex2D(colorSampler, Tex) * Diff) + FillerColor + float4(Fog,1.0);
 }
 
 /****** technique *******/

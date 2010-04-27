@@ -2314,6 +2314,7 @@ global gpostprocessingnotransparency : gpostprocessingnotransparency=0
 global gdepthcameraid : gdepthcameraid=0
 global gshowaioutlines : gshowaioutlines=0
 global gsystemmemorycapoff : gsystemmemorycapoff=0
+global gentitytogglingoff : gentitytogglingoff=0
 
 rem Version Control - TEST GAME Mode
 global gtestgamemodefromeditor : gtestgamemodefromeditor=0
@@ -2453,6 +2454,7 @@ if file exist(tfile$)=1
     tryfield$="imageblockmode" : if field$=tryfield$ then gimageblockmode=value1
     tryfield$="showalluniquetextures" : if field$=tryfield$ then gshowalluniquetextures=value1
     tryfield$="systemmemorycapoff" : if field$=tryfield$ then gsystemmemorycapoff=value1
+    tryfield$="entitytogglingoff" : if field$=tryfield$ then gentitytogglingoff=value1
     `
     tryfield$="xbox"
     if field$=tryfield$
@@ -3324,7 +3326,17 @@ _main_game_core:
    rotate camera camangx#,camangy#,0
   endif
   if gvrmode>=2
-   pitch camera up vrmodetrackerx#
+   if gvrmode=4
+    rem FPGC - 260410 - mode 4 diminishes X if Y large
+    rem Harder to look up if looking left/right too
+    tdiminishfactor#=abs(vrmodetrackery#)
+    if tdiminishfactor#>90.0 then tdiminishfactor#=90.0
+    tdiminishfactor#=1.0-(tdiminishfactor#/90.0)
+    vrmodetrackerxdiminished#=vrmodetrackerx#*tdiminishfactor#
+    pitch camera up vrmodetrackerxdiminished#
+   else
+    pitch camera up vrmodetrackerx#
+   endif
    if gvrmode=2 or gvrmode=3
     rem VRMODE 2 - head turn causes player to turn
     cappedvrmodetrackery#=vrmodetrackery#
@@ -3336,9 +3348,18 @@ _main_game_core:
    endif
    if gvrmode=4
     rem VRMODE 4 - head turn, player angle stays put
-    turn camera left vrmodetrackery#
+    rem FPGC - 260410 - mode 4 diminishes Y if X large
+    rem Harder to look left/right if looking up/down too
+    tdiminishfactor#=abs(vrmodetrackerx#)
+    if tdiminishfactor#>90.0 then tdiminishfactor#=90.0
+    tdiminishfactor#=1.0-(tdiminishfactor#/90.0)
+    vrmodetrackerydiminished#=vrmodetrackery#*tdiminishfactor#
+    turn camera left vrmodetrackerydiminished#
    endif
-   roll camera right vrmodetrackerz#
+   if gvrmode<>4
+    rem FPGC - 260410 - mode 4 (mode 5 autoswtch) uses only X and Y
+    roll camera right vrmodetrackerz#
+   endif
   else
    precama#=camangy#
   endif
@@ -20895,6 +20916,7 @@ if tfile$<>""
    texid=loadinternalimagecompressquality(texdir$,5,tfullorhalfdivide)
   endif
   entityprofile(entid).texdid=texid
+  if gproducelogfiles=1 then timestampactivity(0,"Base Texture texuseid="+str$(texid)+" texfiletouse$="+texdir$)
   if entobj>0
    texture object entobj,texid
   endif
@@ -21774,6 +21796,12 @@ open to write 1,elementsfilename$
     rem FPSCV104RC8 - forgot to save infinilight index (dynamic lights in final build never worked)
     a=entityelement(e).eleprof.light.index : write file 1,a
    endif
+   if versionnumbersave>=199
+    rem X10 specific version - any new save data must be higher than 200
+   endif
+   if versionnumbersave>=200
+    rem X10 specific version - any new save data must be higher than 200
+   endif
   next e
  endif
 close file 1
@@ -21801,7 +21829,8 @@ if elementsfilename$="" then elementsfilename$="mapbank\testmap\map.ele"
 
 rem load entity element list
 dw as DWORD
-versionnumbersupported=107
+failedtoload=0
+versionnumbersupported=200
 if file exist(elementsfilename$)=1
  `
  open to read 1,elementsfilename$
@@ -21940,6 +21969,35 @@ if file exist(elementsfilename$)=1
       rem FPSCV104RC8 - forgot to save infinilight index (dynamic lights in final build never worked)
       read file 1,a : entityelement(e).eleprof.light.index=a
      endif
+     if versionnumberload>=199
+      rem X10 EXTRAS - Ignored in X9
+      read file 1,a : `entityelement(e).eleprof.ex.alignment=a
+      read file 1,a : `entityelement(e).eleprof.ex.initmode=a
+      read file 1,a : `entityelement(e).eleprof.ex.seemode=a
+      read file 1,a : `entityelement(e).eleprof.ex.trigmode=a
+      read file 1,a : `entityelement(e).eleprof.ex.hurtmode=a
+      read file 1,a : `entityelement(e).eleprof.ex.hurtvalue=a
+      read file 1,a : `entityelement(e).eleprof.ex.canstrafe=a
+      read file 1,a : `entityelement(e).eleprof.ex.canduck=a
+      read file 1,a : `entityelement(e).eleprof.ex.canhear=a
+      read file 1,a : `entityelement(e).eleprof.ex.loadedweapon=a
+      read file 1,a : `entityelement(e).eleprof.ex.attackrange=a
+      read file 1,a : `entityelement(e).eleprof.ex.viewrange=a
+      read file 1,a : `entityelement(e).eleprof.ex.maxrange=a
+      read file 1,a : `entityelement(e).eleprof.ex.texturearray=a
+      read file 1,a : `entityelement(e).eleprof.ex.showhealthbar=a
+      read file 1,a : `entityelement(e).eleprof.ex.lungcapacity=a
+      read file 1,a : `entityelement(e).eleprof.ex.glassstyle=a
+     endif
+     if versionnumberload>=200
+      rem X10 EXTRAS 190707 - Ignored in X9
+      read file 1,a : `entityelement(e).eleprof.ex.score=a
+      read file 1,a : `entityelement(e).eleprof.ex.showallyicon=a
+      read file 1,a : `entityelement(e).eleprof.ex.factor=a
+      read file 1,a : `entityelement(e).eleprof.ex.impactforce=a
+      read file 1,a : `entityelement(e).eleprof.ex.decaytime=a
+      read file 1,a : `entityelement(e).eleprof.ex.jumpheight=a
+     endif     
      `
      rem fill in the blanks if load older version
      ttentid=entityelement(e).bankindex
@@ -21978,20 +22036,27 @@ if file exist(elementsfilename$)=1
    endif
   else
    debugstring(strarr$(101),"")
+   failedtoload=1
   endif
  close file 1
  `
 endif
 
 rem and erase any elements that DO NOT have a valid profile (file moved/deleted)
-for e=1 to entityelementlist
- entid=entityelement(e).bankindex
- if entid>0
-  if len(entitybank$(entid))=0
-   entityelement(e).bankindex=0
+if failedtoload=1
+ rem FPGC - 270410 - if entity binary from X10 (or just not supported), ensure NO entities!
+ entityelementlist=0
+ entityelementmax=0
+else
+ for e=1 to entityelementlist
+  entid=entityelement(e).bankindex
+  if entid>0
+   if len(entitybank$(entid))=0
+    entityelement(e).bankindex=0
+   endif
   endif
- endif
-next e
+ next e
+endif
 
 return
 
@@ -22059,8 +22124,12 @@ if object exist(obj)=1
       rem and MUST have animation to bone animate
       if object exist(obj)=1
        if get maximum vertex shader version()>=2.0
-        teffectid=0
-        teffectid=loadinternaleffectunique("effectbank\fastbone\fastbone.fx",1)
+        if gnewblossershaders=1
+         teffectid=loadinternaleffectunique("effectbank\ps_2_0\fastbone.fx",1)
+        else
+         teffectid=loadinternaleffectunique("effectbank\fastbone\fastbone.fx",1)
+        endif
+        if gproducelogfiles=1 then timestampactivity(0,"Base Effect effectid="+str$(teffectid)+"  file=effectbank\fastbone\fastbone.fx")
         if teffectid>0
          entityelement(e).eleprof.usingeffect=teffectid
          entityelement(e).eleprof.uniqueelement=1
@@ -23574,6 +23643,46 @@ _mapfile_loadmap:
     read file 1,temp
     read file 1,temp
     read file 1,temp
+   close file 1
+  endif
+  if file size(filename$)>32
+   rem X10 versioning
+   open to read 1,filename$
+    rem version number
+    read file 1,x10headerversion
+    rem standard
+    read file 1,layermax
+    read file 1,maxx
+    read file 1,maxy
+    read file 1,olaylistmax
+    read file 1,gmultiplayergame
+    read file 1,temp
+    read file 1,temp
+    read file 1,temp
+    rem extra data
+    if x10headerversion>=1
+     rem x10 effects and volume values
+     rem strings
+     read string 1,res$ 
+     read string 1,res$
+     read string 1,res$
+     read string 1,res$
+     read string 1,res$
+     rem x10effects
+     for t=0 to 19
+      read file 1,a : `x10effectmenu(t)=a
+     next t
+     rem volumes
+     for t=0 to 4
+      read file 1,a : `volumemeter(t)=a
+     next t
+     rem reserved
+     read file 1,a : `waterlevel#=a : usewaterlevelfromprevioussession#=waterlevel#
+     read file 1,a
+     read file 1,a
+     read file 1,a
+     read file 1,a
+    endif
    close file 1
   endif
  else
@@ -35423,7 +35532,15 @@ if interfacestatusbarupdate>30
  endif
  if grideditselect=3 then statusbar$=strarr$(342)
  if grideditselect=4 then statusbar$=strarr$(343)
- if grideditselect=5 then statusbar$=strarr$(344)
+ if grideditselect=5
+  statusbar$=strarr$(344)
+  rem FPGC - 270410 - extra info; static or dynamic entity
+  if gridentitystaticmode=1
+   statusbar$=statusbar$+"  Static Placement Mode"
+  else
+   statusbar$=statusbar$+"  Dynamic Placement Mode"
+  endif
+ endif
  rem only update infrequently
  interfacestatusbarupdate=0
 endif
@@ -35521,7 +35638,7 @@ if inputsys.keycontrol=0
    inputsys.keypress=1 : gridentitygridlock=gridentitygridlock+1
    if gridentitygridlock>2 then gridentitygridlock=0
   endif
-  if inputsys.k$="y" and inputsys.keypress=0 then inputsys.keypress=1 : gridentitystaticmode=1-gridentitystaticmode
+  if inputsys.k$="y" and inputsys.keypress=0 and gentitytogglingoff=0 then inputsys.keypress=1 : gridentitystaticmode=1-gridentitystaticmode
   if inputsys.k$="u" and inputsys.keypress=0 then inputsys.keypress=1 : gridentitydroptoground=1
   if inputsys.k$="i" and inputsys.keypress=0 then inputsys.keypress=1 : gridentitydroptoground=2
   if inputsys.k$="[" and inputsys.keypress=0 then gridentitymodifyelement=1 : inputsys.keypress=1
@@ -43025,6 +43142,7 @@ setuparr$(i)="bloodonfloor="+str$(gbloodonfloor) : inc i
 setuparr$(i)="imageblockmode="+str$(gimageblockmode) : inc i
 setuparr$(i)="showalluniquetextures="+str$(gshowalluniquetextures) : inc i
 setuparr$(i)="systemmemorycapoff="+str$(gsystemmemorycapoff) : inc i
+setuparr$(i)="entitytogglingoff="+str$(gentitytogglingoff) : inc i
 `
 setuparr$(i)="" : inc i
 setuparr$(i)="[GAMEDEBUG]" : inc i
@@ -43265,7 +43383,9 @@ _interface_openpropertywindow:
   setpropertystring(group,grideleprof.name$,strarr$(413),strarr$(204)) : inc controlindex
   if entityprofile(gridentity).ismarker=0 or entityprofile(gridentity).islightmarker=1
    if gmultiplayergame=0
-    setpropertylist(group,controlindex,str$(gridentitystaticmode),strarr$(414),strarr$(205),0) : inc controlindex
+    if gentitytogglingoff=0
+     setpropertylist(group,controlindex,str$(gridentitystaticmode),strarr$(414),strarr$(205),0) : inc controlindex
+    endif
    endif
   endif
   `
@@ -44064,9 +44184,9 @@ _interface_savefpi:
   fpifile$(i)=":state=0:hudreset,hudx=50,hudy=50,hudsizex=1024,hudsizey=768,hudimage="+fsarr(13)+",hudhide=1,hudtype=3,hudmake=internal" : inc i
   fpifile$(i)=":state=0:hudreset,hudx=50,hudy=50,hudred=128,hudgreen=0,hudblue=0,hudsizex=1024,hudsizey=768,hudimage="+fsarr(14)+",hudhide=1,hudtype=2,hudmake=internal" : inc i
   fpifile$(i)=":state=0:hudreset,hudx=50,hudy=50,hudred=128,hudgreen=128,hudblue=128,hudsizex=1024,hudsizey=768,hudimage="+fsarr(15)+",hudhide=1,hudtype=4,hudmake=internal" : inc i
-  fpifile$(i)=":state=0:hudreset,hudx="+fsarr(53)+",hudy="+fsarr(54)+",hudimage="+fsarr(16)+",hudmake=display" : inc i
+  fpifile$(i)=":state=0:hudreset,hudx="+fsarr(53)+",hudy="+fsarr(54)+",hudimage="+fsarr(16)+",hudtype=1,hudmake=display" : inc i
   fpifile$(i)=":state=0:hudreset,hudx="+fsarr(55)+",hudy="+fsarr(56)+",hudsizex=16,hudsizey=16,hudimage="+fsarr(17)+",hudtype=1,hudmake=numeric" : inc i
-  fpifile$(i)=":state=0:hudreset,hudx="+fsarr(57)+",hudy="+fsarr(58)+",hudimage="+fsarr(18)+",hudmake=display" : inc i
+  fpifile$(i)=":state=0:hudreset,hudx="+fsarr(57)+",hudy="+fsarr(58)+",hudimage="+fsarr(18)+",hudtype=2,hudmake=display" : inc i
   fpifile$(i)=":state=0:hudreset,hudx="+fsarr(59)+",hudy="+fsarr(60)+",hudsizex=16,hudsizey=16,hudimage="+fsarr(19)+",hudtype=2,hudmake=numeric" : inc i
   fpifile$(i)=":state=0:hudreset,hudx="+fsarr(61)+",hudy="+fsarr(62)+",hudimage="+fsarr(20)+",hudtype=3,hudmake=status" : inc i
   fpifile$(i)=":state=0:hudreset,hudx="+fsarr(63)+",hudy="+fsarr(64)+",hudsizex=16,hudsizey=16,hudimage="+fsarr(21)+",hudtype=3,hudmake=numeric" : inc i

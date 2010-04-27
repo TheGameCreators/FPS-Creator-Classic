@@ -9,6 +9,10 @@ History
 V1.1.7
 ------
 
+ * Added new 'entitytogglingoff' field in SETUP.INI, set to 1 to disable entity static mode toggling
+ * Added extra status bar info as to whether we are in Static or Dynamic Entity Editing Mode
+ * New game projects (FPG) include HUDTYPE 1 and 2 for lives,health display in setup script (to hide)
+ * X9 can now load X10 levels (upto version V111) for limited forward compatibility
  * Removed PREVIEW button to the right of TEST GAME, reserving the space for future buttons
  * Re-arranged PREFAB internal order to place it last (so it can be excluded by interface flag)
  * Prevented .LOG files from being created with no meaningful filename associated with it
@@ -123,6 +127,7 @@ V1.1.7
 FPGC VARIANT SPECIFIC
 ---------------------
 
+ * Modified VRMODE 5(4) to eliminate Z axis track, and use X Y diminishing to simplify left/right up/down
  * New [COMMENTS] DisablePrefab field in languagebank\english\textfiles\fpsci-120.ini (defaults to NO)
  * No need to have entity/segment/marker/prefab view during library selection so now removes it
  * Renamed all DOOR and WINDOW segment entity pointers to point to now hidden entity bank folders
