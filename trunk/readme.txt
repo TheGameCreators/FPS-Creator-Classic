@@ -9,6 +9,9 @@ History
 V1.1.7
 ------
 
+ * Removed PREVIEW button to the right of TEST GAME, reserving the space for future buttons
+ * Re-arranged PREFAB internal order to place it last (so it can be excluded by interface flag)
+ * Prevented .LOG files from being created with no meaningful filename associated with it
  * Improved ACTTALK action to allow $0 and $1 to work with externally called associated LIPSYNC file
  * Added code to prevent outright crash when meshes incorrectly specified (now default to mesh sphere)
  * Added new feature to AI obstacle code to detect Wall Large and Wall Small (creating full/half walls)
@@ -120,6 +123,10 @@ V1.1.7
 FPGC VARIANT SPECIFIC
 ---------------------
 
+ * New [COMMENTS] DisablePrefab field in languagebank\english\textfiles\fpsci-120.ini (defaults to NO)
+ * No need to have entity/segment/marker/prefab view during library selection so now removes it
+ * Renamed all DOOR and WINDOW segment entity pointers to point to now hidden entity bank folders
+ * Added underscores to DOOR and WINDOW entitybank library, and removed thumbnails (less confusion to user)
  * Ensure pointer does not move irratically if no controller is plugged in
  * Added code to include PS2.0 and CONTROLLER HINT files to a final build
  * Added new level called CANDLE.FPM which demonstrates candle and alienglobe

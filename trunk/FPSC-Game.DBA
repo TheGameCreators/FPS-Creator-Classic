@@ -35283,6 +35283,9 @@ if 1
  if get file map dword( 1, 516 )>0
   set file map dword 1, 516, 0
   clickedonworkspace = get file map dword( 1, 520 )
+  rem FPGC - 260410 - marks change of internal position of PREFAB (now tab 3 - last in order)
+  clickedonworkspace = clickedonworkspace + 1
+  if clickedonworkspace=4 then clickedonworkspace=0
   clickeditemonworkspace = get file map dword( 1, 524 )
   if clickeditemonworkspace<>-1
    `
@@ -35959,23 +35962,24 @@ for tabs=0 to 3
 next tabs
 
 rem And create default NEW icons
-for tadd=1 to 3
- if tadd=1 then t1$=strarr$(345) : t2$="files\editors\host\res\newpre.bmp"
- if tadd=2 then t1$=strarr$(346) : t2$="files\editors\host\res\newseg.bmp"
- if tadd=3 then t1$=strarr$(347) : t2$="files\editors\host\res\newent.bmp"
- if tadd=4 then t1$=strarr$(348) : t2$="files\editors\host\res\newent.bmp"
- set file map dword 1, 508, tadd-1
- set file map string$ 1, 1000, t2$
- set file map string$ 1, 1256, t1$
- set file map dword 1, 500, 1
- wait for file map event 1
- while get file map dword(1, 500)=1
+for tadd=1 to 4
+ if tadd<>3
+  if tadd=1 then t1$=strarr$(346) : t2$="files\editors\host\res\newseg.bmp"
+  if tadd=2 then t1$=strarr$(347) : t2$="files\editors\host\res\newent.bmp"
+  if tadd=4 then t1$=strarr$(345) : t2$="files\editors\host\res\newpre.bmp"
+  set file map dword 1, 508, tadd-1
+  set file map string$ 1, 1000, t2$
+  set file map string$ 1, 1256, t1$
+  set file map dword 1, 500, 1
   wait for file map event 1
- endwhile
+  while get file map dword(1, 500)=1
+   wait for file map event 1
+  endwhile
+ endif
 next tadd
 
 rem Default markers
-tadd=4
+tadd=3
 for tt=0 to 14
  if tt=0 then t1$=strarr$(349) : t2$="files\entitybank\_markers\player start.bmp"
  if tt=1 then t1$=strarr$(350) : t2$="files\entitybank\_markers\player checkpoint.bmp"
@@ -36043,28 +36047,6 @@ rem Store place before adds
 wait for file map event 1
 tstoredtabindex=get file map dword( 1, 520 )
 
-rem Ensure prefab list is up to date in library
-while locallibrarypreidmaster<preidmaster
- inc locallibrarypreidmaster
- if prefabbanklocal$(locallibrarypreidmaster)=""
-  t2$=getfile(prefabbank$(locallibrarypreidmaster))
- else
-  t2$=prefabbanklocal$(locallibrarypreidmaster)
- endif
- ttext$=prefabbank$(locallibrarypreidmaster)
- tbitmap$="files\prefabs\"+ttext$
- t1$=left$(tbitmap$,len(tbitmap$)-4)+".bmp"
- if file exist("..\"+t1$)=0 then t1$="files\editors\host\res\newpre.bmp"
- set file map dword 1, 508, 0
- set file map string$ 1, 1000, left$(t1$,254)
- set file map string$ 1, 1256, left$(t2$,254)
- set file map dword 1, 500, 1
- wait for file map event 1
- while get file map dword(1, 500)=1
-  wait for file map event 1
- endwhile
-endwhile
-
 rem Ensure segment list is up to date in library (ignore first one)
 while locallibrarysegidmaster<segidmaster
  inc locallibrarysegidmaster
@@ -36084,7 +36066,7 @@ while locallibrarysegidmaster<segidmaster
  tbitmap$="files\segments\"+ttext$
  t1$=left$(tbitmap$,len(tbitmap$)-4)+".bmp"
  if file exist("..\"+t1$)=0 then t1$="files\editors\host\res\newseg.bmp"
- set file map dword 1, 508, 1
+ set file map dword 1, 508, 0
  set file map string$ 1, 1000, left$(t1$,254)
  set file map string$ 1, 1256, left$(t2$,254)
  set file map dword 1, 500, 1
@@ -36106,7 +36088,7 @@ while locallibraryentidmaster<entidmaster
   tbitmap$="files\entitybank\"+ttext$
   t1$=left$(tbitmap$,len(tbitmap$)-4)+".bmp"
   if file exist("..\"+t1$)=0 then t1$="files\editors\host\res\newent.bmp"
-  set file map dword 1, 508, 2
+  set file map dword 1, 508, 1
   set file map string$ 1, 1000, left$(t1$,254)
   set file map string$ 1, 1256, left$(t2$,254)
   set file map dword 1, 500, 1
@@ -36119,6 +36101,28 @@ while locallibraryentidmaster<entidmaster
   dim locallibraryent(locallibraryentindex)
   locallibraryent(locallibraryentindex)=locallibraryentidmaster
  endif
+endwhile
+
+rem Ensure prefab list is up to date in library
+while locallibrarypreidmaster<preidmaster
+ inc locallibrarypreidmaster
+ if prefabbanklocal$(locallibrarypreidmaster)=""
+  t2$=getfile(prefabbank$(locallibrarypreidmaster))
+ else
+  t2$=prefabbanklocal$(locallibrarypreidmaster)
+ endif
+ ttext$=prefabbank$(locallibrarypreidmaster)
+ tbitmap$="files\prefabs\"+ttext$
+ t1$=left$(tbitmap$,len(tbitmap$)-4)+".bmp"
+ if file exist("..\"+t1$)=0 then t1$="files\editors\host\res\newpre.bmp"
+ set file map dword 1, 508, 3
+ set file map string$ 1, 1000, left$(t1$,254)
+ set file map string$ 1, 1256, left$(t2$,254)
+ set file map dword 1, 500, 1
+ wait for file map event 1
+ while get file map dword(1, 500)=1
+  wait for file map event 1
+ endwhile
 endwhile
 
 rem Restore place after adds
@@ -39240,8 +39244,10 @@ if timestampactivityflagged=1
  if array count(missingmedia$())>=0
   tmblogfile$=left$(projectfilename$,len(projectfilename$)-4)+".log"
   if file exist(tmblogfile$)=1 then delete file tmblogfile$
-  missingmedia$(0)="MISSING MEDIA:"
-  save array tmblogfile$,missingmedia$()
+  if len(tmblogfile$)>4
+   missingmedia$(0)="MISSING MEDIA:"
+   save array tmblogfile$,missingmedia$()
+  endif
  endif
 endif
 if array count(missingmedia$())>=0
@@ -44700,11 +44706,13 @@ function timestampactivity(i,desc$)
   dim timestampactivity$(timestampactivitymax)
   timestampactivity$(i)=str$(timer())+" : "+desc$
   file$="..\"+trueappname$+".log" : if file exist(file$)=1 then delete file file$
-  open to write 1,file$
-   for t=1 to timestampactivitymax
-    write string 1,timestampactivity$(t)
-   next t
-  close file 1
+  if len(trueappname$)>0
+   open to write 1,file$
+    for t=1 to timestampactivitymax
+     write string 1,timestampactivity$(t)
+    next t
+   close file 1
+  endif
  endif
 endfunction
 
