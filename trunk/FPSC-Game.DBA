@@ -12616,10 +12616,14 @@ if aiindex>0
        if entityelement(e).darkai.actionmode=9
         if ai get entity count targets(obj)>0
          toppri=ai get entity target id(obj,1)
-         ai entity move to cover obj,object position x(toppri),object position z(toppri)
-         entityelement(e).darkai.movingtocover=1
-         entityelement(e).darkai.coverx=object position x(toppri)
-         entityelement(e).darkai.coverz=object position z(toppri)
+         if toppri>0 and toppri<65535
+          if object exist(toppri)=1
+           ai entity move to cover obj,object position x(toppri),object position z(toppri)
+           entityelement(e).darkai.movingtocover=1
+           entityelement(e).darkai.coverx=object position x(toppri)
+           entityelement(e).darkai.coverz=object position z(toppri)
+          endif
+         endif
         else
          Gosub _darkai_find_safezone
          if tbesti>0
@@ -23861,6 +23865,10 @@ _mapfile_save_fpl:
  add file to block 1, "header.dat"
  add file to block 1, "map.ent"
  add file to block 1, "map.way"
+ rem FPGC - 280410 - include obstacle data in level file
+ for o=0 to 19
+  add file to block 1, "map"+str$(o)+".obs"
+ next o
  add file to block 1, "map.fpmb"
  add file to block 1, "universe.eff"
  add file to block 1, "universe.dbo"
@@ -33857,12 +33865,11 @@ return
 
 _obs_level:
  `
- rem Take current universe level, and create AI visibility and containers
- `phyunimesh$=myownrootdir$+"levelbank\testlevel\universephy.dbo"
- `load object phyunimesh$,physicsuniverseobj
- `rem all level for 3D raycasting
- `AI Add Alternate Visibility Object physicsuniverseobj,0
- `delete object physicsuniverseobj
+ rem Take current universe level, and create AI visibility and containers (all level for 3D raycasting)
+ phyunimesh$=myownrootdir$+"levelbank\testlevel\universephy.dbo"
+ load object phyunimesh$,physicsuniverseobj
+ AI Add Alternate Visibility Object physicsuniverseobj,0
+ delete object physicsuniverseobj
  `
  rem Perform OBSMAP generation (or quick reload) (or a full compile where level changes with each pass)
  if tperformuniverseconstruction=1 or gcompilestandaloneexe=1
@@ -33882,22 +33889,27 @@ _obs_level:
  endif
  `
  rem Connect containers with a container bridge using waypoint data
- `for w=1 to waypointmax
- ` if waypoint(w).count>0
- `  for wpci=waypoint(w).start to waypoint(w).finish-1
- `   wpy#=waypointcoord(wpci).y : clyr=(wpy#+5)/100
- `   nextwpy#=waypointcoord(wpci+1).y : nextclyr=(nextwpy#+5)/100
- `   if nextclyr=clyr-1 or nextclyr=clyr+1
- `    rem waypoint path spans containers, a useful gate
- `    wpx#=waypointcoord(wpci).x
- `    wpz#=waypointcoord(wpci).z
- `    nextwpx#=waypointcoord(wpci+1).x
- `    nextwpz#=waypointcoord(wpci+1).z
- `    result = AI connect Containers(clyr, wpx#, wpz#, nextclyr, nextwpx#, nextwpz#)
- `   endif
- `  next wpci
- ` endif
- `next w
+ for w=1 to waypointmax
+  if waypoint(w).count>0
+   for wpci=waypoint(w).start to waypoint(w).finish-1
+    wpy#=waypointcoord(wpci).y : clyr=(wpy#+5)/100
+    nextwpy#=waypointcoord(wpci+1).y : nextclyr=(nextwpy#+5)/100
+    if nextclyr=clyr-1 or nextclyr=clyr+1
+     rem waypoint path spans containers, a useful gate
+     wpx#=waypointcoord(wpci).x
+     wpz#=waypointcoord(wpci).z
+     nextwpx#=waypointcoord(wpci+1).x
+     nextwpz#=waypointcoord(wpci+1).z
+     result = AI connect Containers(clyr, wpx#, wpz#, nextclyr, nextwpx#, nextwpz#)
+     if result<>0
+      rem leelee
+      exit prompt "AI gate inside obstacle F="+str$(wpx#)+","+str$(wpz#)+" T="+str$(nextwpx#)+","+str$(nextwpz#)+" N="+str$(tdirectionx#)+","+str$(tdirectionz#),"w:"+str$(w)+" result="+str$(result)
+      end
+     endif     
+    endif
+   next wpci
+  endif
+ next w
  `
  rem Create regular AI waypoints (path index matches waypoint index)
  for w=1 to waypointmax
@@ -34454,64 +34466,28 @@ return
 
 _obs_save:
  `
- if 1
-  for t=0 to 19
-   tfile$=myownrootdir$+"levelbank\testlevel\map"+str$(t)+".obs"
-   if file exist(tfile$)=1 then delete file tfile$
-   `AI SAVE OBSTACLE DATA t,tfile$
-   addfiletocollection(tfile$)
-  next t
- else
-  tfile$=myownrootdir$+"levelbank\testlevel\map.obs"
+ rem FPGC - 280410 - save obstacle data (no need to generate each time)
+ for t=0 to 19
+  tfile$=myownrootdir$+"levelbank\testlevel\map"+str$(t)+".obs"
   if file exist(tfile$)=1 then delete file tfile$
-  if file exist(tfile$+"h")=1 then delete file tfile$+"h"
-  save array tfile$,obs()
-  open to write 1,tfile$+"h"
-   write file 1,obsindex
-   write string 1,str$(obsindex)
-  close file 1
-  gtotalobstaclecount=obsindex
+  AI SAVE OBSTACLE DATA t,tfile$
   addfiletocollection(tfile$)
- endif
+ next t
  `
 return
 
 _obs_load:
  `
- rem load OBS data
- `if 1
-  for t=0 to 19
-   tfile$=myownrootdir$+"levelbank\testlevel\map"+str$(t)+".obs"
-   `AI LOAD OBSTACLE DATA t,tfile$
-   addfiletocollection(tfile$)
-  next t
- `else
-  `tfile$=myownrootdir$+"levelbank\testlevel\map.obs"
-  `open to read 1,tfile$+"h"
-  ` read file 1,obsindex
-  `close file 1
-  `dim obs(obsindex,6)
-  `load array tfile$,obs()
-  `gtotalobstaclecount=obsindex
- `endif
+ rem FPGC - 280410 - load obstacle data (no need to generate each time)
+ for t=0 to 19
+  tfile$=myownrootdir$+"levelbank\testlevel\map"+str$(t)+".obs"
+  AI LOAD OBSTACLE DATA t,tfile$
+  addfiletocollection(tfile$)
+ next t
  `
 return
 
 _obs_generateobstacles:
- `
- rem debug
- if obsgeneratenow=0
-  set cursor 16,10
-  print "OBSTACLE = "+str$(obsindex)
-  if inkey$()="0" then viewobslevel=0
-  if inkey$()="1" then viewobslevel=1
-  if inkey$()="2" then viewobslevel=2
-  if inkey$()="3" then viewobslevel=3
-  if inkey$()="4" then viewobslevel=4
-  if inkey$()="5" then viewobslevel=5
-  if inkey$()="6" then viewobslevel=6
-  if inkey$()="7" then viewobslevel=7
- endif
  `
  rem create all AI obstacles
  if obsindex>0
@@ -45372,7 +45348,12 @@ _control_darkai:
     else
      tobjtarget=entityelement(entityelement(e).darkai.ehit).obj
     endif
-    ttargety#=entityelement(e).y+50 : if object exist(tobjtarget)=1 then ttargety#=object position y(tobjtarget)
+    ttargety#=entityelement(e).y+50
+    if tobjtarget>0 and tobjtarget<65535
+     if object exist(tobjtarget)=1 
+      ttargety#=object position y(tobjtarget)
+     endif
+    endif
     ttargetvisible=ai get entity can see(obj,ttargetx#,ttargety#,ttargetz#,1)
     ttargetvisibleduck=ai get entity can see(obj,ttargetx#,ttargety#,ttargetz#,0)
     ttargets=ai get entity count targets(obj)
@@ -45552,28 +45533,47 @@ rem Apply New Actions
   if conda#<-120.0 or conda#>120.0 then entityelement(e).darkai.action=2
  endif
  if entityelement(e).darkai.ehit=-1 then entityelement(e).darkai.ehit=0
-
+ `
  Rem Cross-Layer Interaction
  ttilex#=tentx#/100
  ttiley#=tenty#/100
  ttilez#=tentz#/100
-
+ `
  Rem Calculate Zone Info
-
+ `
+ rem V117 - 280410 - find floor for this entity (as climb/decent ramp/stairs between containers)
+ if AI GET ENTITY CHANGING CONTAINERS(obj)<>0
+  tmvszy#=(object size y(obj)/2)
+  tfloorstarty#=entityelement(e).y+20
+  tfloory#=AI RAY CAST(entityelement(e).x,tfloorstarty#,entityelement(e).z,entityelement(e).x,tfloorstarty#-30,entityelement(e).z)
+  if tfloory#<>-1
+   rem floor contours of floor instantly (step size above)
+   entityelement(e).y = tfloorstarty#-(tfloory#*30.0)
+  else
+   rem artificial gravity to decent ramps and staircases
+   toldcontainer=(entityelement(e).y+5)/100
+   entityelement(e).y = entityelement(e).y - 8
+   rem if fall creates a container transition, do it
+   tnewcontainer=(entityelement(e).y+5)/100
+   if tnewcontainer<>toldcontainer
+    rem entity has dropped into new container
+    if tnewcontainer<0 then tnewcontainer=0
+    if tnewcontainer>19 then tnewcontainer=19    
+    AI Set Entity Container obj,tnewcontainer
+   endif
+  endif
+  AI Set Entity Y Position obj,entityelement(e).y
+ endif
+ `
 return
 
 _darkai_debug:
  rem FPGC - 310310 - added SETUP.INI flag to control whether we see AI outlines
  if gshowaioutlines=1
-  `for y=0 to 1900 step 100
-  ` k=y-100+2
-   `c=y/100
-   `ai debug show obstacle bounds c,k
-  `next y
-   for layer=0 to 19
-    AI Debug Show Obstacle Bounds layer,6+(layer*100)
-    `AI Debug Show Waypoints layer,15+(layer*100)
-   next layer
+  for layer=0 to 19
+   AI Debug Show Obstacle Bounds layer,6+(layer*100)
+   AI Debug Show Waypoints layer,15+(layer*100)
+  next layer
   Rem debug view cones
   ai debug show view arcs 550
  endif

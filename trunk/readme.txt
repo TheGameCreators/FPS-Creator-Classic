@@ -9,6 +9,8 @@ History
 V1.1.7
 ------
 
+ * Wrapped a few AI code calls in error trapping to ensure target object values not result in crash
+ * Added saving and loading of obstacle data (.OBS) so standalone exes now have DarkAI Obstacles
  * Updated some existing DarkAI commands to use additional Y and CONTAINER parameters
  * Switched to latest DarkAI module (new commands, inc. cross-container and obstacle saving)
  * Added new 'entitytogglingoff' field in SETUP.INI, set to 1 to disable entity static mode toggling
