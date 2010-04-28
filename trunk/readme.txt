@@ -9,6 +9,8 @@ History
 V1.1.7
 ------
 
+ * Updated some existing DarkAI commands to use additional Y and CONTAINER parameters
+ * Switched to latest DarkAI module (new commands, inc. cross-container and obstacle saving)
  * Added new 'entitytogglingoff' field in SETUP.INI, set to 1 to disable entity static mode toggling
  * Added extra status bar info as to whether we are in Static or Dynamic Entity Editing Mode
  * New game projects (FPG) include HUDTYPE 1 and 2 for lives,health display in setup script (to hide)

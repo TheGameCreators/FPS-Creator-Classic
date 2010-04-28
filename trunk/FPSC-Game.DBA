@@ -3293,8 +3293,8 @@ _main_game_core:
  tcamz#=object position z(physicsplayerborble)
  if player(1).health>0
   rem player in world - enemies bate!
-  `AI Set Player Position tcamx#,tcamy#,tcamz# (lee-100310-later DarkAI command)
-  AI Set Player Position tcamx#,tcamz#
+  AI Set Player Position tcamx#,tcamy#,tcamz#
+  `AI Set Player Position tcamx#,tcamz# `280410 - old DarkAI
  else
   rem player is heaven - out of reach of enemies
   `AI Set Player Position 0,150000,0 (lee-100310-later DarkAI command)
@@ -12504,8 +12504,13 @@ if aiindex>0
         ai set entity can roam obj,1
         REM DAI SPEED
         ai set entity speed obj,entityelement(e).eleprof.speed/2.0
-        ai set entity position obj,entityelement(e).x,entityelement(e).z
-        ai set entity idle position obj,entityelement(e).x,entityelement(e).z
+        `ai set entity position obj,entityelement(e).x,entityelement(e).z `280410 - old DarkAI
+        ai set entity position obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
+        `ai set entity idle position obj,entityelement(e).x,entityelement(e).z `280410 - old DarkAI
+        tcontainerid=entityelement(e).y+50
+        if tcontainerid<0 then tcontainerid=0
+        if tcontainerid>19 then tcontainerid=19
+        ai set entity idle position obj,entityelement(e).x,entityelement(e).z,tcontainerid
         ai set entity angle y obj,entityelement(e).ry
         ai entity go to position obj,entityelement(e).x,entityelement(e).z
         ai set entity can duck obj,1
@@ -45219,8 +45224,8 @@ _control_darkai:
  tsound=ai get entity heard sound(obj)
  ttargets=ai get entity count targets(obj)
 
- rem Collect Target Information
- if tobjtarget>0
+ rem Collect Target Information (280410 - added tobjtarget<65535 to prevent crash)
+ if tobjtarget>0 and tobjtarget<65535
   if object exist(tobjtarget)=1
    if tobjtarget=physicsplayerborble
     ttargetx#=camera position x()
@@ -45231,13 +45236,15 @@ _control_darkai:
     ttargety#=object position y(tobjtarget)
     ttargetz#=ai get entity target z(obj)
    endif
-    ttargetvisible=ai get entity can see(obj,ttargetx#,ttargetz#,1)
-    ttargetvisibleduck=ai get entity can see(obj,ttargetx#,ttargetz#,0)
+   `ttargetvisible=ai get entity can see(obj,ttargetx#,ttargetz#,1) `280410 - old DarkAI
+   `ttargetvisibleduck=ai get entity can see(obj,ttargetx#,ttargetz#,0) `280410 - old DarkAI
+   ttargetvisible=ai get entity can see(obj,ttargetx#,ttargety#,ttargetz#,1)
+   ttargetvisibleduck=ai get entity can see(obj,ttargetx#,ttargety#,ttargetz#,0)
   endif
  endif
-
- tentid=entityelement(e).bankindex
+ `
  rem Collect Status Information
+ tentid=entityelement(e).bankindex
  tducking=ai get entity is ducking(obj)
  tmoving=ai get entity is moving(obj)
  tturning=ai get entity is turning(obj)
@@ -45248,7 +45255,7 @@ _control_darkai:
   broadcast3dsound(entityelement(e).x,entityelement(e).y,entityelement(e).z,0,entityelement(e).obj)
   plrid=entityelement(e).fakeplayerid : Gosub _player_playfootfall
  endif
-
+ `
  rem Collect State Information
  tstate=entityelement(e).darkai.state
 
@@ -45355,16 +45362,20 @@ _control_darkai:
     ai entity stop obj
     entityelement(e).darkai.ambushed=0
     entityelement(e).darkai.state=STATE_COVER
-    ttargetx#=entityelement(e).darkai.ambushx# : ttargetz#=entityelement(e).darkai.ambushz#
+    ttargetx#=entityelement(e).darkai.ambushx#
+    ttargetz#=entityelement(e).darkai.ambushz#
     Rem Establish attacker as a target
-    ttargetvisible=ai get entity can see(obj,ttargetx#,ttargetz#,1)
-    ttargetvisibleduck=ai get entity can see(obj,ttargetx#,ttargetz#,0)
-    ttargets=ai get entity count targets(obj)
+    `ttargetvisible=ai get entity can see(obj,ttargetx#,ttargetz#,1) `280410 - old DarkAI
+    `ttargetvisibleduck=ai get entity can see(obj,ttargetx#,ttargetz#,0) `280410 - old DarkAI
     if entityelement(e).darkai.ehit=-1
      tobjtarget=physicsplayerborble
     else
      tobjtarget=entityelement(entityelement(e).darkai.ehit).obj
     endif
+    ttargety#=entityelement(e).y+50 : if object exist(tobjtarget)=1 then ttargety#=object position y(tobjtarget)
+    ttargetvisible=ai get entity can see(obj,ttargetx#,ttargety#,ttargetz#,1)
+    ttargetvisibleduck=ai get entity can see(obj,ttargetx#,ttargety#,ttargetz#,0)
+    ttargets=ai get entity count targets(obj)
     ai entity look at position obj,ttargetx#,ttargetz#
     ai entity move to cover obj,ttargetx#,ttargetz#
    endif
@@ -45640,26 +45651,30 @@ Add_Targets:
  arraycount=array count(ischaracter())
  for i=1 to arraycount
   y=ischaracter(i)
-  if ai entity exist(entityelement(y).obj)
-   if entityelement(y).obj<>entityelement(e).obj and entityelement(y).darkai.team<>entityelement(e).darkai.team
-    if ai get entity can see(entityelement(e).obj,object position x(entityelement(y).obj),object position z(entityelement(y).obj),1)>0
-     ai entity add target entityelement(e).obj,entityelement(y).obj
+  if entityelement(y).obj>0
+   if ai entity exist(entityelement(y).obj)
+    if entityelement(y).obj<>entityelement(e).obj and entityelement(y).darkai.team<>entityelement(e).darkai.team
+     `if ai get entity can see(entityelement(e).obj,object position x(entityelement(y).obj),object position z(entityelement(y).obj),1)>0 `280410 - old DarkAI
+     if ai get entity can see(entityelement(e).obj,object position x(entityelement(y).obj),object position y(entityelement(y).obj),object position z(entityelement(y).obj),1)>0
+      ai entity add target entityelement(e).obj,entityelement(y).obj
+     endif
     endif
-   endif
-   Rem If entityelement(y).actualtarget>0 and the target no longer exist on the list reset flag
-   tokay=0
-   if ai get entity count targets(entityelement(y).obj)=0 then entityelement(y).actualtarget=0
-   if entityelement(y).actualtarget>1 and ai get entity count targets(entityelement(y).obj)>0
-    tcount=ai get entity count targets(entityelement(y).obj)
-    for x=1 to tcount
-     c=entityelement(y).actualtarget-1
-     if entityelement(c).obj=ai get entity target id(entityelement(y).obj,x) then tokay=1 : exit
-    next x
-    if tokay=0 then entityelement(y).actualtarget=0
+    Rem If entityelement(y).actualtarget>0 and the target no longer exist on the list reset flag
+    tokay=0
+    if ai get entity count targets(entityelement(y).obj)=0 then entityelement(y).actualtarget=0
+    if entityelement(y).actualtarget>1 and ai get entity count targets(entityelement(y).obj)>0
+     tcount=ai get entity count targets(entityelement(y).obj)
+     for x=1 to tcount
+      c=entityelement(y).actualtarget-1
+      if entityelement(c).obj=ai get entity target id(entityelement(y).obj,x) then tokay=1 : exit
+     next x
+     if tokay=0 then entityelement(y).actualtarget=0
+    endif
    endif
   endif
  next i
- if entityelement(e).darkai.team<>1 and ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position z(physicsplayerborble),1)>0
+ `if entityelement(e).darkai.team<>1 and ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position z(physicsplayerborble),1)>0 `280410 - old DarkAI
+ if entityelement(e).darkai.team<>1 and ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position y(physicsplayerborble),object position z(physicsplayerborble),1)>0
   ai entity add target entityelement(e).obj,physicsplayerborble
  endif
 Return
