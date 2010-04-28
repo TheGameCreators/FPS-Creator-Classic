@@ -9,6 +9,8 @@ History
 V1.1.7
 ------
 
+ * Added ability for TALK action to use the sound from any entity (use entity name instead of WAV in $1)
+ * No longer crashes when TALK used with WAV that has no LIPSYNC file associated with it
  * Wrapped a few AI code calls in error trapping to ensure target object values not result in crash
  * Added saving and loading of obstacle data (.OBS) so standalone exes now have DarkAI Obstacles
  * Updated some existing DarkAI commands to use additional Y and CONTAINER parameters
@@ -131,6 +133,7 @@ V1.1.7
 FPGC VARIANT SPECIFIC
 ---------------------
 
+ * Added new BEHAVIOUR script called TOURGUIDE which can use zones to narrate a sequence using waypoints
  * Modified VRMODE 5(4) to eliminate Z axis track, and use X Y diminishing to simplify left/right up/down
  * New [COMMENTS] DisablePrefab field in languagebank\english\textfiles\fpsci-120.ini (defaults to NO)
  * No need to have entity/segment/marker/prefab view during library selection so now removes it

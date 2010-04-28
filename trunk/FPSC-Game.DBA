@@ -11073,19 +11073,69 @@ if aiindex>0
       tmpx#=camera position x()
       tmpy#=camera position y()
       tmpz#=camera position z()
+      rem Determine if final string used refers to a SOUND ZONE or not
       if aiactionseq(seq).value=-1
-       playinternal3dsound(entityelement(e).soundset,tmpx#,tmpy#,tmpz#)
-       entityelement(e).soundlooping=entityelement(e).soundset
        currentsoundfile$=entityelement(e).eleprof.soundset$
       else
        if aiactionseq(seq).value=-2
-        playinternal3dsound(entityelement(e).soundset1,tmpx#,tmpy#,tmpz#)
-        entityelement(e).soundlooping=entityelement(e).soundset1
         currentsoundfile$=entityelement(e).eleprof.soundset1$
        else
-        playinternal3dsound(aiactionseq(seq).value,tmpx#,tmpy#,tmpz#)
-        entityelement(e).soundlooping=aiactionseq(seq).value
         currentsoundfile$=aiactionseq(seq).filename
+       endif
+      endif
+      tsoundzoneinstead=0
+      for te=1 to entityelementlist
+       if te<>e and entityelement(te).active=1
+        rem Talker inside zone
+        if left$(lower$(currentsoundfile$),6)="inzone"
+         tentid=entityelement(te).bankindex
+         if entityprofile(tentid).ismarker=3
+          condx1=(entityelement(te).x+(entityelement(te).eleprof.trigger.areax1*100))-50.0
+          condy1=(entityelement(te).y-27+(entityelement(te).eleprof.trigger.areay1*100))
+          condz1=(entityelement(te).z-(entityelement(te).eleprof.trigger.areaz1*100))+50.0
+          condx2=(entityelement(te).x+(entityelement(te).eleprof.trigger.areax2*100))+50.0
+          condy2=(entityelement(te).y-27+(entityelement(te).eleprof.trigger.areay2*100))+100.0
+          condz2=(entityelement(te).z-(entityelement(te).eleprof.trigger.areaz2*100))-50.0
+          tokay=1
+          if entityelement(e).x<condx1 then tokay=0
+          if entityelement(e).y<condy1 then tokay=0
+          if entityelement(e).z>condz1 then tokay=0
+          if entityelement(e).x>condx2 then tokay=0
+          if entityelement(e).y>condy2 then tokay=0
+          if entityelement(e).z<condz2 then tokay=0
+          if tokay=1 and te<>lastsoundzoneusedfortalk
+           rem we ensure that the zone cannot be used TWICE in succession (double waypoint trigger issue)
+           lastsoundzoneusedfortalk=te
+           tsoundzoneinstead=te
+          endif
+         endif
+        else
+         rem A specific zone
+         if lower$(entityelement(te).eleprof.name$)=lower$(currentsoundfile$)
+          tsoundzoneinstead=te : exit
+         endif
+        endif
+       endif
+      next te
+      if tsoundzoneinstead>0
+       rem Use sound and sound file of matching sound zone (soundset $1 NOT $0)
+       tsoundindexfromsoundzone=entityelement(tsoundzoneinstead).soundset1
+       playinternal3dsound(tsoundindexfromsoundzone,tmpx#,tmpy#,tmpz#)
+       entityelement(e).soundlooping=tsoundindexfromsoundzone
+       currentsoundfile$=entityelement(tsoundzoneinstead).eleprof.soundset1$
+      else
+       rem Traditionally use soundset or direct file specified
+       if aiactionseq(seq).value=-1
+        playinternal3dsound(entityelement(e).soundset,tmpx#,tmpy#,tmpz#)
+        entityelement(e).soundlooping=entityelement(e).soundset
+       else
+        if aiactionseq(seq).value=-2
+         playinternal3dsound(entityelement(e).soundset1,tmpx#,tmpy#,tmpz#)
+         entityelement(e).soundlooping=entityelement(e).soundset1
+        else
+         playinternal3dsound(aiactionseq(seq).value,tmpx#,tmpy#,tmpz#)
+         entityelement(e).soundlooping=aiactionseq(seq).value
+        endif
        endif
       endif
       broadcast3dsound(tmpx#,tmpy#,tmpz#,100.0,0)
@@ -11400,8 +11450,18 @@ if aiindex>0
       entityelement(e).mover.da=wrapvalue(tdiffangle#)
      endcase
      case AIACTLOOKATTARGET:
-      tdistx#=entityelement(e).actualtargetx-entityelement(e).x
-      tdistz#=entityelement(e).actualtargetz-entityelement(e).z
+      rem FPGC - 280410 - if player is target, head tracks current player position (good for talking)
+      tokay=0
+      if entityelement(e).actualtarget=1 and (player(1).health>0 or playerstartstrength=0) then tokay=1
+      if tokay=1
+       rem current player ccoordinate used
+       tdistx#=mex#-entityelement(e).x
+       tdistz#=mez#-entityelement(e).z
+      else
+       rem last known target coordinate
+       tdistx#=entityelement(e).actualtargetx-entityelement(e).x
+       tdistz#=entityelement(e).actualtargetz-entityelement(e).z
+      endif
       tdiffangle#=wrapvalue(atanfull(tdistx#,tdistz#))-wrapvalue(entityelement(e).mover.da)
       if tdiffangle#>180 then tdiffangle#=tdiffangle#-360
       if abs(tdiffangle#)>aiactionseq(seq).value then tdiffangle#=0
@@ -11495,13 +11555,7 @@ if aiindex>0
       tdistz#=mez#-entityelement(e).z
       tdiffangle#=wrapvalue(atanfull(tdistx#,tdistz#))-wrapvalue(entityelement(e).mover.da)
       if tdiffangle#>180 then tdiffangle#=tdiffangle#-360
-      if abs(tdiffangle#)>aiactionseq(seq).value
-       if tdiffangle#>=0
-        tdiffangle#=aiactionseq(seq).value
-       else
-        tdiffangle#=aiactionseq(seq).value*-1
-       endif
-      endif
+      if abs(tdiffangle#)>aiactionseq(seq).value then tdiffangle#=0
       entityelement(e).ai.headdestangle=tdiffangle#
      endcase
      case AIACTSETTARGETNAME:
@@ -33901,11 +33955,6 @@ _obs_level:
      nextwpx#=waypointcoord(wpci+1).x
      nextwpz#=waypointcoord(wpci+1).z
      result = AI connect Containers(clyr, wpx#, wpz#, nextclyr, nextwpx#, nextwpz#)
-     if result<>0
-      rem leelee
-      exit prompt "AI gate inside obstacle F="+str$(wpx#)+","+str$(wpz#)+" T="+str$(nextwpx#)+","+str$(nextwpz#)+" N="+str$(tdirectionx#)+","+str$(tdirectionz#),"w:"+str$(w)+" result="+str$(result)
-      end
-     endif     
     endif
    next wpci
   endif
@@ -35804,7 +35853,13 @@ if grideditselect=4 or grideditselect=5
 endif
 
 rem Create a waypoint when instructed to
-if inputsys.kscancode=62 and inputsys.keypress=0 then inputsys.keypress=1 : inputsys.domodewaypoint=1 : grideditselect=6 : mx#=inputsys.localx# : mz#=inputsys.localy# : gosub _waypoint_createnew
+if inputsys.kscancode=62 and inputsys.keypress=0 
+ inputsys.keypress=1 : inputsys.domodewaypoint=1 : grideditselect=6 : 
+ rem FPGC - 280410 - new waypoint created in center of view
+ `mx#=inputsys.localx# : mz#=inputsys.localy#
+ mx#=cx# : mz#=cy#*-1
+ gosub _waypoint_createnew
+endif
 
 return
 
@@ -45033,7 +45088,12 @@ for t=0 to 24999
  lipsync$(t)=""
 next t
 timelineptr=0
-load array lipsyncfile$,lipsync$()
+if file exist(lipsyncfile$)=1
+ load array lipsyncfile$,lipsync$()
+else
+ rem lipsync missing, but allow to carry on
+ if gproducelogfiles=1 then timestampactivity(0,"Missing LIPSYNC file="+lipsyncfile$)
+endif
 for l=1 to 24999
  `
  rem cut up phm
