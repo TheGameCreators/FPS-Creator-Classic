@@ -3524,13 +3524,13 @@ debugviewtext(314,strarr$(144)) : gosub _decal_loadonlyactivedecals
 rem Entities can intropduce fake players, init all
 debugviewtext(318,strarr$(145)) : gosub _player_init : gosub _player_resetobjectives
 debugviewtext(320,strarr$(146)) : gosub _entity_startentitiesoff
-Gosub _darkai_createlevel
+debugviewtext(321,"Initialising AI...") : gosub _darkai_createlevel
 
 rem Okay for start of game, can skip for exe construction
 if gcompilestandaloneexe=0
  `
  rem Physics init of universe and entities (321,322,323)
- debugviewtext(321,strarr$(627)) : gosub _ode_init
+ debugviewtext(322,strarr$(627)) : gosub _ode_init
  `
  rem Setup camera (player)
  debugviewtext(324,strarr$(628)) : gosub _player_setup
@@ -3540,10 +3540,11 @@ if gcompilestandaloneexe=0
   gosub _multi_restartprepare
   multiplayerinitialised=0
  endif
+ `
  Rem Hockeykid - 260210 - Added subroutine for debugging Dark AI
- gosub _darkai_debug
+ debugviewtext(321,"Preparing AI Data...") : gosub _darkai_debug
  Rem Hockeykid - 040410 - Added subroutine to add all .ischaracter's E to ischaracter() array
- gosub _Character_Array
+ debugviewtext(321,"Preparing AI Arrays...") : gosub _Character_Array
  `
  rem Starting main loop
  debugviewtext(329,strarr$(629))

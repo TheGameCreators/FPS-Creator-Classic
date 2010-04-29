@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
 
+ * Updated Game Creator Store DLL to allow more artists
  * Added ability for TALK action to use the sound from any entity (use entity name instead of WAV in $1)
  * No longer crashes when TALK used with WAV that has no LIPSYNC file associated with it
  * Wrapped a few AI code calls in error trapping to ensure target object values not result in crash
