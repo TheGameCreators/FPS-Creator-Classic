@@ -55,10 +55,12 @@ else
  endif
 endif
 
-Rem Hockeykid - 250210 - Dark AI start dark ai and set properties
-ai start
-ai set radius 20
-ai set avoid mode 1
+Rem Hockeykid - 250210 - Dark AI added type for containers/layers
+type containertype
+   y# as float
+   id as integer
+endtype
+global dim container(20) as containertype
 
 Rem Hockeykid - 250210 - Dark AI global Variables
 Global darkaiuni = 200000
@@ -136,14 +138,6 @@ type darkaitype
  coverx as float
  coverz as float
 endtype
-
-Rem Hockeykid - 250210 - Dark AI added type for containers/layers
-type containertype
-   y# as float
-   id as integer
-endtype
-global dim container(20) as containertype
-gosub _obs_init
 
 Rem Hockeykid - 160310 - Dark AI path type
 Type pathtype
@@ -2315,6 +2309,7 @@ global gdepthcameraid : gdepthcameraid=0
 global gshowaioutlines : gshowaioutlines=0
 global gsystemmemorycapoff : gsystemmemorycapoff=0
 global gentitytogglingoff : gentitytogglingoff=0
+global gextracollisionbuilddisabled : gextracollisionbuilddisabled=1
 
 rem Version Control - TEST GAME Mode
 global gtestgamemodefromeditor : gtestgamemodefromeditor=0
@@ -2455,6 +2450,7 @@ if file exist(tfile$)=1
     tryfield$="showalluniquetextures" : if field$=tryfield$ then gshowalluniquetextures=value1
     tryfield$="systemmemorycapoff" : if field$=tryfield$ then gsystemmemorycapoff=value1
     tryfield$="entitytogglingoff" : if field$=tryfield$ then gentitytogglingoff=value1
+    tryfield$="extracollisionbuilddisabled" : if field$=tryfield$ then gextracollisionbuilddisabled=value1
     `
     tryfield$="xbox"
     if field$=tryfield$
@@ -3096,6 +3092,9 @@ _main_game_freeleveldata:
  rem only for final game run ( not test game ) - uses leavegamedataalone in last part
  if grealgameviewstate=1 or gcompilestandaloneexe=1
   `
+  rem free AI resouces
+  gosub _darkai_free
+  `
   rem Free multiplayer resources
   gosub _multi_free
   `
@@ -3502,6 +3501,9 @@ rem Load individual-elements
 debugviewtext(180,strarr$(137)) : gosub _entity_loadelementsdata
 debugviewtext(185,strarr$(137)) : gosub _entity_switchtostaticformultiplayer
 
+rem DarkAI called before each level starts (and before static entities created)
+debugviewtext(190,"Initialise AI...") : gosub _darkai_init
+
 rem Load map (with any segment entitiy-elements)
 debugviewtext(200,strarr$(138)) : gosub _game_loadmap
 
@@ -3524,10 +3526,12 @@ debugviewtext(314,strarr$(144)) : gosub _decal_loadonlyactivedecals
 rem Entities can intropduce fake players, init all
 debugviewtext(318,strarr$(145)) : gosub _player_init : gosub _player_resetobjectives
 debugviewtext(320,strarr$(146)) : gosub _entity_startentitiesoff
-debugviewtext(321,"Initialising AI...") : gosub _darkai_createlevel
 
 rem Okay for start of game, can skip for exe construction
 if gcompilestandaloneexe=0
+ `
+ rem FPGC - 290410 - create obstacles per level (but not when building exe - done earlier)
+ debugviewtext(321,"Generating Obstacles...") : gosub _darkai_createlevel
  `
  rem Physics init of universe and entities (321,322,323)
  debugviewtext(322,strarr$(627)) : gosub _ode_init
@@ -3542,9 +3546,9 @@ if gcompilestandaloneexe=0
  endif
  `
  Rem Hockeykid - 260210 - Added subroutine for debugging Dark AI
- debugviewtext(321,"Preparing AI Data...") : gosub _darkai_debug
+ debugviewtext(327,"Preparing AI Data...") : gosub _darkai_debug
  Rem Hockeykid - 040410 - Added subroutine to add all .ischaracter's E to ischaracter() array
- debugviewtext(321,"Preparing AI Arrays...") : gosub _Character_Array
+ debugviewtext(327,"Preparing AI Arrays...") : gosub _Character_Array
  `
  rem Starting main loop
  debugviewtext(329,strarr$(629))
@@ -20980,7 +20984,7 @@ if tfile$<>""
    texid=loadinternalimagecompressquality(texdir$,5,tfullorhalfdivide)
   endif
   entityprofile(entid).texdid=texid
-  if gproducelogfiles=1 then timestampactivity(0,"Base Texture texuseid="+str$(texid)+" texfiletouse$="+texdir$)
+  `if gproducelogfiles=1 then timestampactivity(0,"Base Texture texuseid="+str$(texid)+" texfiletouse$="+texdir$)
   if entobj>0
    texture object entobj,texid
   endif
@@ -24665,7 +24669,8 @@ return
 _universe_construct:
 
 rem FPGC - 180909 - builds universe twice (one for physics collision, once for visual geometry)
-for tcollisionbuildfirst=0 to 1
+rem FPGC - 280410 - switched gextracollisionbuilddisabled via flag to speed up build time, reduce memory
+for tcollisionbuildfirst=gextracollisionbuilddisabled to 1
  gosub _universe_construct_child
 next tcollisionbuildfirst
 
@@ -25481,7 +25486,7 @@ if grealgameviewstate=0 and segobjusedformapeditor=0 and goptimizemode=1
  save static objects universefile$
  `
  rem FPSCV104RC9 - pregenerate physics universe (faster loading)
- if tcollisionbuildfirst=0
+ if tcollisionbuildfirst=0 or gextracollisionbuilddisabled=1
   rem FPGC - 140909 - only generate physics universe on first pass (with static entity boxes)
   phyunimesh$="levelbank\testlevel\universephy.dbo" : if file exist(phyunimesh$)=1 then delete file phyunimesh$
   universeobj=universebuildobjstartoffset-1
@@ -25570,6 +25575,9 @@ if grealgameviewstate=0 and segobjusedformapeditor=0 and goptimizemode=1
  `
  rem Only perform these saves if BUILDING EXE
  if gcompilestandaloneexe=1
+  `
+  rem FPGC - 290410 - standalone requires OBS data to be calculated soon
+  gosub _darkai_createlevel : gosub _darkai_free
   `
   rem Version control on EXE Building
   gosub _version_universe_construct
@@ -33906,17 +33914,6 @@ _darkai_createlevel:
  gosub _obs_level
  `
 Return
-
-_obs_init:
- `
- rem Universe containers (required for static entities) (must be done before static entities added, in fact, at start)
- for layer=0 to 19
-  if layer>0 then AI Add Container layer
-  container(layer).y# = (layer*100)+50
-  container(layer).id = layer
- next layer
- `
-return
 
 _obs_level:
  `
@@ -43180,6 +43177,7 @@ setuparr$(i)="imageblockmode="+str$(gimageblockmode) : inc i
 setuparr$(i)="showalluniquetextures="+str$(gshowalluniquetextures) : inc i
 setuparr$(i)="systemmemorycapoff="+str$(gsystemmemorycapoff) : inc i
 setuparr$(i)="entitytogglingoff="+str$(gentitytogglingoff) : inc i
+setuparr$(i)="extracollisionbuilddisabled="+str$(gextracollisionbuilddisabled) : inc i
 `
 setuparr$(i)="" : inc i
 setuparr$(i)="[GAMEDEBUG]" : inc i
@@ -45231,6 +45229,37 @@ Rem Hockeykid - 250210 - Dark AI create/declare constants
 #constant STATE_RETREAT 3
 #constant STATE_CUSTOM 4
 
+_darkai_init:
+ `
+ rem clears the AI system of all data
+ AI Start : AI Reset
+ `
+ rem N-CORE threading (if available)
+ AI SET THREAD MODE 1
+ AI SET THREAD COUNT 4
+ `
+ rem X10 Set common entity radius and avoidance model (22)
+ `AI Set Radius 20 : AI Set Avoid Mode 5 : rem 5 - avoidance grid system
+ `AI SET BLOCKING THRESHOLD 3 : rem number of corpses before grid is marked solid
+ rem Hockeykid entity radius and avoidance model
+ ai set radius 20 : ai set avoid mode 1
+ `
+ rem Universe containers (required for static entities)
+ for layer=0 to 19
+  if layer>0 then AI Add Container layer
+  container(layer).y# = (layer*100)+50
+  container(layer).id = layer
+ next layer
+ `
+return
+
+_darkai_free:
+ `
+ rem after each level, reset AI so a new level can be loaded
+ rem it also frees the OBS file loaded for the obstacle data
+ AI Reset
+ `
+return
 
 Rem Hockeykid - 250210 - Dark AI control subroutine
 _control_darkai:

@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
 
+ * Added AI code to allow multiple levels to be built/played (resets AI for each level)
  * Updated Game Creator Store DLL to allow more artists
  * Added ability for TALK action to use the sound from any entity (use entity name instead of WAV in $1)
  * No longer crashes when TALK used with WAV that has no LIPSYNC file associated with it
