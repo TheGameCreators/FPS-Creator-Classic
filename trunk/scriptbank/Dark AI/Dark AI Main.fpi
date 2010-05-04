@@ -168,12 +168,13 @@ desc          = DarkAI generic shoot and melee with ally command
 
 ;//Ally team1 behavior------------------------------------------
 
-;//Ally idle- start escort/follow when 'F' is pressed and switch to escort behavior
+;//Ally idle- start escort/follow when 'G' is pressed and switch to escort behavior
+;//Ally Following stop when 'H' is pressed
 
-:aiteam=1,varequal=0,plrdistwithin=70,plrfacing=10:fpgcrawtextsize=18,fpgcrawtextfont=arial,fpgcrawtextr=200,fpgcrawtextg=200,fpgcrawtextb=200,fpgcrawtextx=50,fpgcrawtexty=10,fpgcrawtext=Press [F] To Recruit Ally
-:aiteam=1,varequal=0,plrdistwithin=70,plrfacing=10,etimergreater=200,scancodekeypressed=33 1:etimerstart,setvar=1,sound=audiobank\switches\click.wav,aifollowplr=1
-:aiteam=1,varequal=1,plrdistwithin=70,plrfacing=10:fpgcrawtextsize=18,fpgcrawtextfont=arial,fpgcrawtextr=200,fpgcrawtextg=200,fpgcrawtextb=200,fpgcrawtextx=50,fpgcrawtexty=10,fpgcrawtext=Press [F] To Leave Ally
-:aiteam=1,varequal=1,plrdistwithin=70,plrfacing=10,etimergreater=200,scancodekeypressed=33 1:etimerstart,setvar=0,sound=audiobank\switches\click.wav,aifollowplr=0
+:aiteam=1,varequal=0,plrdistwithin=70,plrfacing=10:fpgcrawtextsize=18,fpgcrawtextfont=arial,fpgcrawtextr=200,fpgcrawtextg=200,fpgcrawtextb=200,fpgcrawtextx=50,fpgcrawtexty=10,fpgcrawtext=Press [G] To Recruit Ally
+:aiteam=1,varequal=0,plrdistwithin=70,plrfacing=10,etimergreater=200,scancodekeypressed=34 1:etimerstart,setvar=1,sound=audiobank\switches\click.wav,aifollowplr=1
+:aiteam=1,varequal=1,plrdistwithin=70,plrfacing=10:fpgcrawtextsize=18,fpgcrawtextfont=arial,fpgcrawtextr=200,fpgcrawtextg=200,fpgcrawtextb=200,fpgcrawtextx=50,fpgcrawtexty=10,fpgcrawtext=Press [H] To Leave Ally
+:aiteam=1,varequal=1,plrdistwithin=70,plrfacing=10,etimergreater=200,scancodekeypressed=35 1:etimerstart,setvar=0,sound=audiobank\switches\click.wav,aifollowplr=0
 
 :aiteam=1,varequal=1,plrdistfurther=200:aifollowplr=1
 :state=1,aiteam=1,varequal=1,idle=1,plrdistwithin=100,aicanshoot=0:aimoverandom
