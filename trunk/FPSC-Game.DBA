@@ -6477,7 +6477,7 @@ for e=1 to entityelementlist
    endif
 
    Rem Hockeykid - 250210 - Dark AI main control subroutine call
-   gosub _control_darkai
+   gosub _darkai_control
    `
    rem logic timeslice
    tlogic#=entityelement(e).logiccount-timeelapsed#
@@ -12607,6 +12607,11 @@ if aiindex>0
         endif
         AI Set Entity Can Select targets obj,0
         ai set entity view arc obj,entityelement(e).eleprof.coneangle*0.7,entityelement(e).eleprof.coneangle
+        `
+        rem FPGC - 060510 - height measures characters EYE from FEET (for alternative visibility raycast)
+        AI Set Entity Height obj,entityelement(e).eleprof.coneheight
+        AI Set Entity Turn Speed obj,entityelement(e).eleprof.speed*2
+        `
         ai set entity fire arc obj,20
         ai set entity view range obj,600
         ai set entity attack distance obj,200-rnd(50)+rnd(50)
@@ -12784,6 +12789,7 @@ if aiindex>0
         if targetcontainer<0 then targetcontainer=0
         if targetcontainer>19 then targetcontainer=19
         ai entity go to position obj,object position x(physicsplayerborble),object position z(physicsplayerborble),targetcontainer      
+        `entityelement(e).darkai.state=987 `test to block other interfering activities to test 'pure' move to target
        else
         targetcontainer=(entityelement(tte).y+25)/100
         if targetcontainer<0 then targetcontainer=0
@@ -45359,18 +45365,19 @@ _darkai_free:
 return
 
 Rem Hockeykid - 250210 - Dark AI control subroutine
-_control_darkai:
+_darkai_control:
 
  obj=entityelement(e).obj
  if obj=0 then return
  if ai entity exist(obj)=0 then return
 
- for y=0 to 19
-  if object position y(entityelement(e).obj) > container(y).y#-50.0 and object position y(entityelement(e).obj) < container(y).y#+50.0
-   k=y
-   ai set entity container obj,k : entitycontain=k : exit
-  endif
- next y
+` leenote - 060510 - entity know which container they are in at all times, no need to force this!
+` for y=0 to 19
+`  if object position y(entityelement(e).obj) > container(y).y#-50.0 and object position y(entityelement(e).obj) < container(y).y#+50.0
+`   k=y
+`   ai set entity container obj,k : entitycontain=k : exit
+`  endif
+` next y
 
  Rem reset ttarget(s)
  ttargetvisible=0
@@ -45689,18 +45696,6 @@ rem Apply New Actions
  ai set entity speed obj,entityelement(e).eleprof.speed/2.0
 `endif
 
- remstart
- tmyx#=entityelement(e).x-tmyx#
- tmyz#=entityelement(e).z-tmyz#
- tda2#=atanfull(ai get entity destination x(obj),ai get entity destination z(obj))
- tdforex#=newxvalue(0,tda2#,15.0)
- tdforez#=newzvalue(0,tda2#,15.0)
- if static raycast(toldx#,toldy#+15,toldz#,entityelement(e).x+tdforex#,entityelement(e).y+15,entityelement(e).z+tdforez#)<>0
-  entityelement(e).x=toldx#
-  entityelement(e).z=toldz#
- endif
- remend
-
  Rem Hockeykid - 050410 - reset call flag if times up
  if entityelement(e).darkai.called>0
   if timer()-entityelement(e).darkai.calldelay>=1000 then entityelement(e).darkai.called=0
@@ -45763,6 +45758,9 @@ rem Apply New Actions
   endif
   AI Set Entity Y Position obj,entityelement(e).y
  endif
+ `
+ rem FPGC - 060510 - feedback internal AI state to debug string
+ entitydebug$(e)="Internal State:"+AI Get Entity State$(obj)+"  STATE:"+str$(entityelement(e).darkai.state)+"  ACTIONMODE:"+str$(entityelement(e).darkai.actionmode)+"  CAN SEE:"+str$(ttargetvisible)
  `
 return
 

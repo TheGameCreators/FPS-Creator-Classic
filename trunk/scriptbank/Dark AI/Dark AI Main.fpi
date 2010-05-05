@@ -188,6 +188,6 @@ desc          = DarkAI generic shoot and melee with ally command
 :varequal=911,shotdamage=1:setvar=0
 ;//-----------------------------------------------------------
 
-:state=0:floorlogic,setaiactive=1,alwaysactive=1,reloadweapon,state=1
+:state=0:setaiactive=1,alwaysactive=1,reloadweapon,state=1
 
 ;//End

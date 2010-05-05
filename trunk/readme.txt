@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
 
+ * Made a few code fixes (and a new DarkAI DLL) to solve the cross-container navigation and firing!
  * Tied the memory resource readout in the TAB mode of the test game to reflect new Virtual Size limit
  * NOTE: Even though some systems can have 4-24GB of system memory, only 2GB is usable for 32bit apps
  * Increased system memory cap to 1.85GB (turns out build process fragments virtual memory addresses!)
