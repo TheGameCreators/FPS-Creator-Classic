@@ -2310,6 +2310,7 @@ global gshowaioutlines : gshowaioutlines=0
 global gsystemmemorycapoff : gsystemmemorycapoff=0
 global gentitytogglingoff : gentitytogglingoff=0
 global gextracollisionbuilddisabled : gextracollisionbuilddisabled=1
+global galwaysconfirmsave : galwaysconfirmsave=0
 
 rem Version Control - TEST GAME Mode
 global gtestgamemodefromeditor : gtestgamemodefromeditor=0
@@ -2451,6 +2452,7 @@ if file exist(tfile$)=1
     tryfield$="systemmemorycapoff" : if field$=tryfield$ then gsystemmemorycapoff=value1
     tryfield$="entitytogglingoff" : if field$=tryfield$ then gentitytogglingoff=value1
     tryfield$="extracollisionbuilddisabled" : if field$=tryfield$ then gextracollisionbuilddisabled=value1
+    tryfield$="alwaysconfirmsave" : if field$=tryfield$ then galwaysconfirmsave=value1
     `
     tryfield$="xbox"
     if field$=tryfield$
@@ -3550,6 +3552,9 @@ if gcompilestandaloneexe=0
  Rem Hockeykid - 040410 - Added subroutine to add all .ischaracter's E to ischaracter() array
  debugviewtext(327,"Preparing AI Arrays...") : gosub _Character_Array
  `
+ rem FPGC - 050510 - at end of generation phase, load sounds in (if room)
+ debugviewtext(328,strarr$(105)) : gosub _entity_createelements_loadsoundlast
+ `
  rem Starting main loop
  debugviewtext(329,strarr$(629))
  `
@@ -3564,7 +3569,10 @@ if gtestgamemodefromeditor=1
  rem Activate OK button
  open file map 1, "FPSTESTGAMEDIALOG"
  set file map dword 1, 12, 1
- set file map string$ 1, 1000, strarr$(147)
+ rem FPGC - 050510 - report size of the test game (useful)
+ `set file map string$ 1, 1000, strarr$(147)
+ vmsize=(system smem available(2)/1024)
+ set file map string$ 1, 1000, strarr$(147)+". This level uses "+str$(vmsize)+"MB."
  set file map dword 1, 8, 100
  wait for file map event 1
  close file map 1
@@ -3616,8 +3624,11 @@ _main_game_showwindownow:
   else
    rem test game to front
    rem FPGC - 010909 - TEST GAME needs this to keep window to the very front always (though not when debuggin)
-   window to front "__topmost__"+"FPSC Game"
-   `window to front "FPSC Game"
+   if gloadreportstate=1
+    window to front "FPSC Game"
+   else
+    window to front "__topmost__"+"FPSC Game"
+   endif
   endif
  endif
 return
@@ -3974,6 +3985,30 @@ if guseweaponsstate=1
  debugviewtext(290,strarr$(120))
  set static scorch tbullethole,4,4
 endif
+
+rem FPGC - now universe constructed, can remove all STATIC ENTITY resources
+debugviewtext(291,"Removing static entities...")
+eleobj=entityobjectoffset
+for e=1 to entityelementlist
+ entid=entityelement(e).bankindex
+ if entid>0 and entityelement(e).staticflag=1 and entityprofile(entid).ismarker=0
+  tokay=1
+  for te=1 to entityelementlist
+   if e<>te
+    if entid=entityelement(te).bankindex and entityelement(te).staticflag=0 then tokay=0
+   endif
+  next te
+  if tokay=1
+   obj=entityelement(e).profileobj
+   if obj>0
+    if object exist(obj)=1
+     delete object obj
+    endif
+    entityelement(e).profileobj=0
+   endif
+  endif
+ endif
+next e
 
 return
 
@@ -5591,7 +5626,7 @@ function debugviewtext(progress,gamedebugviewtext$)
   mshoti=progress
   rem FPGC - 111209 - more info to indicate potential reason for a sudden crash (too much memory?)
   `gamedebugviewtext$="["+right$(str$(1000+mshoti),3)+"] "+gamedebugviewtext$
-  gamedebugviewtext$="["+right$(str$(1000+mshoti),3)+"] "+gamedebugviewtext$+"  ("+str$(system smem available(1)/1024)+"MB used)"
+  gamedebugviewtext$="["+right$(str$(1000+mshoti),3)+"] "+gamedebugviewtext$+"  ("+str$(system smem available(2)/1024)+"MB used)"
   mshotmem=GET MEMORY AVAILABLE(0)
   if lastmshotmem=0 then lastmshotmem=mshotmem : mshotfirst=GET MEMORY AVAILABLE(0)
   mshot(mshoti)=lastmshotmem-mshotmem
@@ -5731,7 +5766,6 @@ function debugviewtext(progress,gamedebugviewtext$)
  `
  rem debug view text
  if gdebugreportmodestate=1 and gmapeditmode=0
-  `
   thetime=timer()-gamedebugviewtime
   thetime$=right$(str$(1000000+thetime),6)
   themem=gamedebugviewmem-GET MEMORY AVAILABLE(0)
@@ -5747,8 +5781,26 @@ function debugviewtext(progress,gamedebugviewtext$)
    rem step through debugging
    wait key
   endif
-  `
  endif
+ `
+ rem FPGC - 110210 - some systems having issues with builds exceeding 1.5GB, so provide a graceful cap
+ rem FPGC - 050510 - turns out virtual memory address fragmentation crashes apps exceeding 2GB
+ if gsystemmemorycapoff=0
+  vmsize=(system smem available(2)/1024)
+  if vmsize>1850
+   if thisisaonetimeglobalbeforethisbuildends=0
+    do
+     rem use a global to ensure this function does not call itself (recursively)
+     thisisaonetimeglobalbeforethisbuildends=1
+     debugviewtext(-1,"Build process has exceed 1.85GB of virtual memory, using "+str$(vmsize)+"MB. Press CANCEL to abort this build!")
+     sleep 10
+    loop
+    end
+   endif
+  endif
+ endif
+ `
+ rem early exit
  exitfunction
  `
  _gamemain_writetexttodebugview:
@@ -5904,7 +5956,9 @@ if testgametabtoggle=1
  resourcemeterdest#(1)=((perf(10)+0.0)/50000.0)*192.0 : rem physics
  resourcemeterdest#(2)=((perf(17)+0.0)/75000.0)*192.0 : rem ai
  resourcemeterdest#(3)=((perf(6)+0.0)/20000.0)*192.0 : rem entitylogic
- memoryused#=entidmaster+segidmaster
+ rem FPGC - 050510 - memory meter reflects virtual address usage (true max before crash)
+ `memoryused#=entidmaster+segidmaster
+ memoryused#=system smem available(2)/1024/18
  resourcemeterdest#(4)=(memoryused#/100.0)*192.0 : rem memory
  `
  rem control resource meters
@@ -23235,51 +23289,59 @@ for e=1 to entityelementlist
  endif
 next e
 
-rem Load any soundsets not belonging to characters or players
-debugviewtext(306,strarr$(105))
+Rem Hockeykid - 050410 - Check for safe zone
+debugviewtext(305,"Generating AI Safezones...")
 dim aisafezone(0) as AISafeZoneType
 for e=1 to entityelementlist
- entityelement(e).soundset=0
- entid=entityelement(e).bankindex
- tokay=0
- rem FPGC - 190410 - characters can now load the second soundsset ($1 in scripts)
- if entityprofile(entid).ischaracter=1 and entityprofile(entid).ismarker=0 then tokay=2
- if entityprofile(entid).ischaracter=0 and entityprofile(entid).ismarker=0 then tokay=1
- if entityprofile(entid).ismarker=1 and entityprofile(entid).lives=0 then tokay=1
- if entityprofile(entid).ismarker=3 or entityprofile(entid).ismarker=4 then tokay=1
- if tokay<>0
-  `
-  rem V109BETA4 - 240408 - use 2D mode if MUSIC ZONE is the name
-  if lower$(left$(entityelement(e).eleprof.name$,10))="music zone" then t3d=0 else t3d=1
-  `
-  rem Load sound sets
-  if entityelement(e).eleprof.soundset$<>"" and tokay=1
-   rem load as 3D sound ready for playing or looping in game (generator)
-   tfile$=entityelement(e).eleprof.soundset$
-   if file exist(tfile$)=1
-    addfiletocollection(tfile$)
-    entityelement(e).soundset=loadinternalsoundcore(tfile$,t3d)
-   endif
-  endif
-  if entityelement(e).eleprof.soundset1$<>"" and tokay<>0
-   rem load as 3D sound ready for playing or looping in game (generator) ($1 speech of character)
-   tfile$=entityelement(e).eleprof.soundset1$
-   if file exist(tfile$)=1
-    addfiletocollection(tfile$)
-    entityelement(e).soundset1=loadinternalsoundcore(tfile$,t3d)
-   endif
-  endif
-  Rem Hockeykid - 050410 - Check for safe zone
-  if lower$(left$(entityelement(e).eleprof.name$,9))="safe zone" and tokay=1
-   array insert at bottom aisafezone()
-   xp=array count(aisafezone())
-   aisafezone(xp).x=entityelement(e).x
-   aisafezone(xp).y=entityelement(e).y
-   aisafezone(xp).z=entityelement(e).z
-  endif
+ if lower$(left$(entityelement(e).eleprof.name$,9))="safe zone"
+  array insert at bottom aisafezone()
+  xp=array count(aisafezone())
+  aisafezone(xp).x=entityelement(e).x
+  aisafezone(xp).y=entityelement(e).y
+  aisafezone(xp).z=entityelement(e).z
  endif
 next e
 
+return
+
+_entity_createelements_loadsoundlast:
+ `
+ rem Load any soundsets not belonging to characters or players
+ for e=1 to entityelementlist
+  entityelement(e).soundset=0
+  entid=entityelement(e).bankindex
+  tokay=0
+  rem FPGC - 190410 - characters can now load the second soundsset ($1 in scripts)
+  if entityprofile(entid).ischaracter=1 and entityprofile(entid).ismarker=0 then tokay=2
+  if entityprofile(entid).ischaracter=0 and entityprofile(entid).ismarker=0 then tokay=1
+  if entityprofile(entid).ismarker=1 and entityprofile(entid).lives=0 then tokay=1
+  if entityprofile(entid).ismarker=3 or entityprofile(entid).ismarker=4 then tokay=1
+  if tokay<>0
+   `
+   rem V109BETA4 - 240408 - use 2D mode if MUSIC ZONE is the name
+   if lower$(left$(entityelement(e).eleprof.name$,10))="music zone" then t3d=0 else t3d=1
+   `
+   rem Load sound sets
+   if entityelement(e).eleprof.soundset$<>"" and tokay=1
+    rem load as 3D sound ready for playing or looping in game (generator)
+    tfile$=entityelement(e).eleprof.soundset$
+    if file exist(tfile$)=1
+     addfiletocollection(tfile$)
+     entityelement(e).soundset=loadinternalsoundcore(tfile$,t3d)
+    endif
+   endif
+   if entityelement(e).eleprof.soundset1$<>"" and tokay<>0
+    rem load as 3D sound ready for playing or looping in game (generator) ($1 speech of character)
+    tfile$=entityelement(e).eleprof.soundset1$
+    if file exist(tfile$)=1
+     addfiletocollection(tfile$)
+     entityelement(e).soundset1=loadinternalsoundcore(tfile$,t3d)
+    endif
+   endif
+   `
+  endif
+ next e
+ `
 return
 
 _entity_attachelementstogame:
@@ -25480,12 +25542,13 @@ if grealgameviewstate=0 and segobjusedformapeditor=0 and goptimizemode=1
  close file 1
  `
  rem Builds final universe reload file (even when test game)
- debugviewtext(275,strarr$(170))
+ debugviewtext(274,strarr$(170))
  universefile$="levelbank\testlevel\universe.dbu" : if file exist(universefile$)=1 then delete file universefile$
  universefile$="levelbank\testlevel\universe.dbo" : if file exist(universefile$)=1 then delete file universefile$
  save static objects universefile$
  `
  rem FPSCV104RC9 - pregenerate physics universe (faster loading)
+ debugviewtext(275,"Pregenerate physics universe...")
  if tcollisionbuildfirst=0 or gextracollisionbuilddisabled=1
   rem FPGC - 140909 - only generate physics universe on first pass (with static entity boxes)
   phyunimesh$="levelbank\testlevel\universephy.dbo" : if file exist(phyunimesh$)=1 then delete file phyunimesh$
@@ -25501,6 +25564,7 @@ if grealgameviewstate=0 and segobjusedformapeditor=0 and goptimizemode=1
  endif
  `
  rem If DarkLIGHT lightmapper used (FPGC - 051109 - only on second build pass, not collision pass)
+ debugviewtext(276,"Begin universe lighting...")
  if activatelightmapping=1 and staticlightcount>0 and usedarklightmapper=1 and tcollisionbuildfirst=1
   `
   rem load and lightmap static universe
@@ -25526,17 +25590,6 @@ if grealgameviewstate=0 and segobjusedformapeditor=0 and goptimizemode=1
   rem settings
   LM Boost Curved Surface Quality glightmaxsize,(glightboost*1.0)
   `
-  rem FPGC - 110210 - some systems having issues with builds exceeding 1.5GB, so provide a graceful cap
-  if gsystemmemorycapoff=0
-   if (system smem available(1)/1024)>1600
-    do
-     debugviewtext(270,"Build process has exceed 1.6GB of system memory. Press CANCEL to abort!")
-     sleep 10
-    loop
-    end
-   endif
-  endif
-  `
   rem start the light mapping thread
   lm set light map name ""
   lm set light map file format 1 : rem DDS
@@ -25544,13 +25597,13 @@ if grealgameviewstate=0 and segobjusedformapeditor=0 and goptimizemode=1
   quality#=glightquality/100.0
   if glightthreadmax=-2
    rem FPSCV105 - 090307 - new mode, to revert to non-thread approach (for some users stability)
-   debugviewtext(270,strarr$(168))
+   debugviewtext(277,strarr$(168))
    LM Build Light Maps glighttexsize,quality#,glightblurmode
   else
    LM Build Light Maps Thread glighttexsize,quality#,glightblurmode,glightthreadmax
    load dll "Kernel32.dll",1
    while LM Get Complete()=0
-    debugviewtext(276,LM Get Status( )+"  "+str$(int(LM Get Percent()))+"%")
+    debugviewtext(277,LM Get Status( )+"  "+str$(int(LM Get Percent()))+"%")
     call dll 1,"Sleep",1
    endwhile
    delete dll 1
@@ -25565,6 +25618,7 @@ if grealgameviewstate=0 and segobjusedformapeditor=0 and goptimizemode=1
   set light mapping on universeobj,0,1
   save object universefile$,universeobj
   delete object universeobj
+  `
   rem load static universe back in
   load static objects universefile$,gdividetexturesize
   `
@@ -27108,7 +27162,7 @@ return
 _version_universe_saveELEandLGT:
  `
  rem FPGC - 111209 - right after lightmapping build so know if exited that loop
- debugviewtext(277,"Saving ELE and LGT files..")
+ debugviewtext(278,"Saving ELE and LGT files..")
  `
  rem Save newer elements list (that includes scene dynamic entities)
  rem V106 also contains light indexes saved when universe is constructed
@@ -34496,6 +34550,9 @@ _obs_processobstacles:
   next y
  next l
  `
+ rem FPGC - 050510 - release MAPLINES array to save a little virtual memory
+ undim maplines()
+ `
 return
 
 _obs_getmapvalues:
@@ -34596,6 +34653,11 @@ _obs_generateobstacles:
    endif
   next o
  endif
+ `
+ rem FPGC - 050510 - release OBS array to save a little virtual memory
+ undim obs()
+ `
+ rem Generate completed DarkAI obstacles
  AI Complete Obstacles
  `
 return
@@ -36974,7 +37036,13 @@ endif
 
 rem Load and Save
 if inputsys.doload=1 then gosub _gridedit_load_map
-if inputsys.dosave=1 then gosub _gridedit_save_map_ask
+if inputsys.dosave=1 
+ if galwaysconfirmsave=1
+  gosub _gridedit_saveas_map
+ else
+  gosub _gridedit_save_map_ask
+ endif
+endif
 if inputsys.doopen=1 then gosub _gridedit_open_map_ask
 if inputsys.donew=1 or inputsys.donewarena=1 then gosub _gridedit_new_map_ask
 if inputsys.dosaveas=1 then gosub _gridedit_saveas_map
@@ -37505,7 +37573,7 @@ endif
 rem Update Camera
 gosub _editor_camera
 
-rem FPGC - 030909 - update resource monitor
+rem FPGC - 030909 - update resource bar indicating memory used
 if fpgcgenre<>1
  inc editorresourcecounterpacer
  if editorresourcecounterpacer>50
@@ -37520,12 +37588,12 @@ if fpgcgenre<>1
   next e
  endif
  gamememactuallyusedrt=curvevalue(gamememactuallyused,gamememactuallyusedrt,10)
- scale object 7,2,gamememactuallyusedrt/500,2
- if gamememactuallyused>102400*2.5
-  rem 250MB exceeds min spec suggestion
+ scale object 7,2,gamememactuallyusedrt/1500,2
+ if gamememactuallyused>102400*8
+  rem MB exceeds min spec suggestion
   texture object 7,editordrawlastimagesoffset+2
  else
-  rem under 250MB per level is a decent size
+  rem under MB per level is a decent size
   texture object 7,editordrawlastimagesoffset+1
  endif
 endif
@@ -42355,7 +42423,7 @@ if file exist(tfile$)=1
  if glightmappingstate=1 and glightshadowsstate=1 then set_radio_state(1,0) : set_radio_state(2,0) : set_radio_state(3,1)
  if gdividetexturesize=0 then set_radio_state(4,0) : set_radio_state(5,0) : set_radio_state(6,1)
  if gdividetexturesize=2 then set_radio_state(4,0) : set_radio_state(5,1) : set_radio_state(6,0)
- if gdividetexturesize=4 then set_radio_state(4,1) : set_radio_state(5,0) : set_radio_state(6,0)
+ if gdividetexturesize=16 then set_radio_state(4,1) : set_radio_state(5,0) : set_radio_state(6,0)
  if guseeffectstate=0 then set_radio_state(10,1) : set_radio_state(11,0)
  if guseeffectstate=1 then set_radio_state(10,0) : set_radio_state(11,1)
  `a=ghsrmode : set_radio_state(13,a)
@@ -42613,7 +42681,7 @@ _interface_savebuildgame:
  if get_radio_state(1)=1 then glightmappingstate=0 : glightshadowsstate=0
  if get_radio_state(2)=1 then glightmappingstate=1 : glightshadowsstate=0
  if get_radio_state(3)=1 then glightmappingstate=1 : glightshadowsstate=1
- if get_radio_state(4)=1 then gdividetexturesize=4
+ if get_radio_state(4)=1 then gdividetexturesize=16
  if get_radio_state(5)=1 then gdividetexturesize=2
  if get_radio_state(6)=1 then gdividetexturesize=0
  if get_radio_state(10)=1 then guseeffectstate=0
@@ -43096,7 +43164,7 @@ _interface_openprefs:
  if guseeffectstate=1 then set_radio_state(6,0) : set_radio_state(7,1)
  if gdividetexturesize=0 then set_radio_state(9,0) : set_radio_state(10,0) : set_radio_state(11,1)
  if gdividetexturesize=2 then set_radio_state(9,0) : set_radio_state(10,1) : set_radio_state(11,0)
- if gdividetexturesize=4 then set_radio_state(9,1) : set_radio_state(10,0) : set_radio_state(11,0)
+ if gdividetexturesize=16 then set_radio_state(9,1) : set_radio_state(10,0) : set_radio_state(11,0)
  `a=ghsrmode : set_radio_state(12,a)
  a=gshowentitygameinfostate : set_radio_state(13,a)
  a=gshowdebugtextingamestate : set_radio_state(14,a)
@@ -43178,6 +43246,7 @@ setuparr$(i)="showalluniquetextures="+str$(gshowalluniquetextures) : inc i
 setuparr$(i)="systemmemorycapoff="+str$(gsystemmemorycapoff) : inc i
 setuparr$(i)="entitytogglingoff="+str$(gentitytogglingoff) : inc i
 setuparr$(i)="extracollisionbuilddisabled="+str$(gextracollisionbuilddisabled) : inc i
+setuparr$(i)="alwaysconfirmsave="+str$(galwaysconfirmsave) : inc i
 `
 setuparr$(i)="" : inc i
 setuparr$(i)="[GAMEDEBUG]" : inc i
@@ -43281,7 +43350,9 @@ else
  guseeffectonscenesstate=0
  guseeffectonentitiesstate=0
 endif
-if get_radio_state(9)=1 then gdividetexturesize=4
+rem FPGC - 040510 - more severe reducer for very low (good for large level testing)
+`if get_radio_state(9)=1 then gdividetexturesize=4
+if get_radio_state(9)=1 then gdividetexturesize=16
 if get_radio_state(10)=1 then gdividetexturesize=2
 if get_radio_state(11)=1 then gdividetexturesize=0
 `a=get_radio_state(12) : ghsrmode=a

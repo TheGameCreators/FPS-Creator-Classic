@@ -9,6 +9,11 @@ History
 V1.1.7
 ------
 
+ * Tied the memory resource readout in the TAB mode of the test game to reflect new Virtual Size limit
+ * NOTE: Even though some systems can have 4-24GB of system memory, only 2GB is usable for 32bit apps
+ * Increased system memory cap to 1.85GB (turns out build process fragments virtual memory addresses!)
+ * Replaced USED and SYSTEM CAP code to use Virtual Memory Size (instead of smaller working set size)
+ * Linked LOADREPORT flag in SETUP.INI so a value of one switched off TOPMOST action during test game
  * Added AI code to allow multiple levels to be built/played (resets AI for each level)
  * Updated Game Creator Store DLL to allow more artists
  * Added ability for TALK action to use the sound from any entity (use entity name instead of WAV in $1)
@@ -135,6 +140,10 @@ V1.1.7
 FPGC VARIANT SPECIFIC
 ---------------------
 
+ * Added alwaysconfirmsave flag to SETUP.INI which ensures the SAVE cannot quickly overwrite a file
+ * Removed bullet holes from WW2 WALL K and weapon reference from SCIFI ARMOURY WALL
+ * Added MINER 2 INJURED entity to library to aid specific story line of a mission
+ * Added VERY LOW (x16 reducer) to LOW setting of texture quality (good for large level testing)
  * Added new BEHAVIOUR script called TOURGUIDE which can use zones to narrate a sequence using waypoints
  * Modified VRMODE 5(4) to eliminate Z axis track, and use X Y diminishing to simplify left/right up/down
  * New [COMMENTS] DisablePrefab field in languagebank\english\textfiles\fpsci-120.ini (defaults to NO)
