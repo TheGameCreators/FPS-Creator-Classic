@@ -12625,7 +12625,10 @@ if aiindex>0
         if tcontainerid>19 then tcontainerid=19
         ai set entity idle position obj,entityelement(e).x,entityelement(e).z,tcontainerid
         ai set entity angle y obj,entityelement(e).ry
-        ai entity go to position obj,entityelement(e).x,entityelement(e).z
+        targetcontainer=(entityelement(e).y+25)/100
+        if targetcontainer<0 then targetcontainer=0
+        if targetcontainer>19 then targetcontainer=19
+        ai entity go to position obj,entityelement(e).x,entityelement(e).z,targetcontainer
         ai set entity can duck obj,1
         ai set entity avoid distance obj,300
         ai set entity can strafe obj,1
@@ -12741,7 +12744,10 @@ if aiindex>0
          Gosub _darkai_find_safezone
          if tbesti>0
           i=tbesti
-          ai entity go to position obj,aisafezone(i).x,aisafezone(i).z
+          targetcontainer=(aisafezone(i).y+25)/100
+          if targetcontainer<0 then targetcontainer=0
+          if targetcontainer>19 then targetcontainer=19
+          ai entity go to position obj,aisafezone(i).x,aisafezone(i).z,targetcontainer
           aisafezone(i).occupied=1
           entityelement(e).darkai.movingtocover=1
           entityelement(e).darkai.coverx=aisafezone(i).x
@@ -12756,7 +12762,10 @@ if aiindex>0
         Gosub _darkai_find_safezone
         if tbesti>0
          i=tbesti
-         ai entity go to position obj,aisafezone(i).x,aisafezone(i).z
+         targetcontainer=(aisafezone(i).y+25)/100
+         if targetcontainer<0 then targetcontainer=0
+         if targetcontainer>19 then targetcontainer=19
+         ai entity go to position obj,aisafezone(i).x,aisafezone(i).z,targetcontainer
          aisafezone(i).occupied=1
          entityelement(e).darkai.movingtocover=1
          entityelement(e).darkai.coverx=aisafezone(i).x
@@ -12771,9 +12780,15 @@ if aiindex>0
       if ai entity exist(entityelement(e).obj) and entityelement(e).actualtarget>0
        tte=entityelement(e).actualtarget-1
        if entityelement(e).actualtarget=1 `then tobj=physicsplayerborble else tobj=entityelement(tte).obj
-        ai entity go to position obj,object position x(physicsplayerborble),object position z(physicsplayerborble)
+        targetcontainer=object position y(physicsplayerborble)/100
+        if targetcontainer<0 then targetcontainer=0
+        if targetcontainer>19 then targetcontainer=19
+        ai entity go to position obj,object position x(physicsplayerborble),object position z(physicsplayerborble),targetcontainer      
        else
-        ai entity go to position obj,entityelement(tte).x,entityelement(tte).z
+        targetcontainer=(entityelement(tte).y+25)/100
+        if targetcontainer<0 then targetcontainer=0
+        if targetcontainer>19 then targetcontainer=19
+        ai entity go to position obj,entityelement(tte).x,entityelement(tte).z,targetcontainer 
        endif
       endif
      endcase
@@ -12782,7 +12797,11 @@ if aiindex>0
        if entityelement(e).darkai.called>0
         i=entityelement(e).darkai.called
         if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control obj,0
-        ai entity go to position entityelement(e).obj,entityelement(i).x,entityelement(i).z : entityelement(e).darkai.called=-1
+        targetcontainer=(entityelement(i).y+25)/100
+        if targetcontainer<0 then targetcontainer=0
+        if targetcontainer>19 then targetcontainer=19
+        ai entity go to position entityelement(e).obj,entityelement(i).x,entityelement(i).z,targetcontainer 
+        entityelement(e).darkai.called=-1
         entityelement(e).darkai.calldelay2=timer()
        endif
       endif
@@ -12820,7 +12839,10 @@ if aiindex>0
      case AIACTAISTOP:
       if ai entity exist(entityelement(e).obj)
        if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control obj,0
-       ai entity go to position entityelement(e).obj,entityelement(e).x,entityelement(e).z
+       targetcontainer=(entityelement(e).y+25)/100
+       if targetcontainer<0 then targetcontainer=0
+       if targetcontainer>19 then targetcontainer=19
+       ai entity go to position entityelement(e).obj,entityelement(e).x,entityelement(e).z,targetcontainer
       endif
      endcase
      case AIACTAIUSEMELEE:
@@ -45305,9 +45327,13 @@ _darkai_init:
  rem clears the AI system of all data
  AI Start : AI Reset
  `
- rem N-CORE threading (if available)
- AI SET THREAD MODE 1
- AI SET THREAD COUNT 4
+ rem N-CORE threading (if available, and if no debug in progress)
+ `seems to conflict with new script based approach, ah well
+ `if gshowaioutlines=0
+ ` rem cannot use n-core in debug as objects for debug visuals are created sequentially
+ ` AI SET THREAD MODE 1
+ ` AI SET THREAD COUNT 4
+ `endif
  `
  rem X10 Set common entity radius and avoidance model (22)
  `AI Set Radius 20 : AI Set Avoid Mode 5 : rem 5 - avoidance grid system
@@ -45439,7 +45465,10 @@ _control_darkai:
   Rem Hockeykid - 160310 - Patrol path, this command creates a path from current point to a path point
   if entityelement(e).darkai.actionmode=8
    i=entityelement(e).darkai.path
-   ai entity go to position obj,points(i).x,points(i).z
+   targetcontainer=(points(i).y+25)/100
+   if targetcontainer<0 then targetcontainer=0
+   if targetcontainer>19 then targetcontainer=19
+   ai entity go to position obj,points(i).x,points(i).z,targetcontainer
    entityelement(e).darkai.actionmode=0
   endif
   Rem Hockeykid - 020310 - Special area for allies only
@@ -45469,7 +45498,10 @@ _control_darkai:
      Rem Hockeykid - 030310 - Reset control mode to manual
      if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control obj,0
      entityelement(e).darkai.follow=0
-     ai entity go to position obj,entityelement(e).x,entityelement(e).z
+     targetcontainer=(entityelement(e).y+25)/100
+     if targetcontainer<0 then targetcontainer=0
+     if targetcontainer>19 then targetcontainer=19
+     ai entity go to position obj,entityelement(e).x,entityelement(e).z,targetcontainer
     endif
 
 
@@ -45490,7 +45522,10 @@ _control_darkai:
    if entityelement(e).darkai.actionmode=3
     Rem entity must be in manual mode
     if entityelement(e).darkai.control=1 then ai set entity control obj,0 : entityelement(e).darkai.control=0
-    ai entity go to position obj,entityelement(e).x,entityelement(e).z
+    targetcontainer=(entityelement(e).y+25)/100
+    if targetcontainer<0 then targetcontainer=0
+    if targetcontainer>19 then targetcontainer=19
+    ai entity go to position obj,entityelement(e).x,entityelement(e).z,targetcontainer
     entityelement(e).darkai.actionmode=0
    endif
    `Rem Alert entity if Ambushed
@@ -45640,7 +45675,10 @@ _control_darkai:
    entityelement(e).darkai.movingtocover=0
    entityelement(e).darkai.state=STATE_COVER
   else
-   ai entity go to position obj,ai get entity destination x(obj),ai get entity destination z(obj)
+   targetcontainer=(entityelement(e).y+25)/100
+   if targetcontainer<0 then targetcontainer=0
+   if targetcontainer>19 then targetcontainer=19
+   ai entity go to position obj,ai get entity destination x(obj),ai get entity destination z(obj),targetcontainer
   endif
  endif
 
@@ -45741,13 +45779,20 @@ _darkai_debug:
 return
 
 _darkai_stop:
- ai entity go to position entityelement(e).obj,entityelement(e).x,entityelement(e).z
+ targetcontainer=(entityelement(e).y+25)/100
+ if targetcontainer<0 then targetcontainer=0
+ if targetcontainer>19 then targetcontainer=19
+ ai entity go to position entityelement(e).obj,entityelement(e).x,entityelement(e).z,targetcontainer
 return
+
 _darkai_stopfollow:
  if entityelement(e).darkai.team=1
   ai entity separate entityelement(e).obj
   if entityelement(e).darkai.control=1 then ai set entity control entityelement(e).obj,0 : entityelement(e).darkai.control=0
-  ai entity go to position entityelement(e).obj,entityelement(e).x,entityelement(e).z
+  targetcontainer=(entityelement(e).y+25)/100
+  if targetcontainer<0 then targetcontainer=0
+  if targetcontainer>19 then targetcontainer=19
+  ai entity go to position entityelement(e).obj,entityelement(e).x,entityelement(e).z,targetcontainer
   entityelement(e).darkai.follow=0
  endif
 
@@ -45893,7 +45938,10 @@ Function AIMoveToSound(obj,obje)
  if entityelement(obje).darkai.hearingrange=0 then entityelement(obje).darkai.hearingrange=700
  sound=AIHeardSound(obje)
  if sound>0
-   ai entity go to position obj,aisound(sound).x,aisound(sound).z
+  targetcontainer=(aisound(sound).y+25)/100
+  if targetcontainer<0 then targetcontainer=0
+  if targetcontainer>19 then targetcontainer=19
+  ai entity go to position obj,aisound(sound).x,aisound(sound).z,targetcontainer
  endif
 Endfunction
 
