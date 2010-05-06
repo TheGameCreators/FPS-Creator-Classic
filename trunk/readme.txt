@@ -8,6 +8,19 @@ History
 
 V1.1.7
 ------
+ * FPI actions merged from Fenix Mod
+	aisetactive=x - if x=1 then the dark ai will take control of the dark ai entity if x=0 then the dark ai will not take control of the dark ai entity (used to toggle off during entity reload to avoid sliding around)
+	alwaysactive=x -if x=1 then the entity will be set to always active if x=0 the entity will be set to always active off (mainly used for dark ai as dark ai entities need to be always active but can be used on regular FPSC objects)
+	aisettarget -Sets the current entities target to an enemy nearby that it can see
+
+ * FPI conditions merged from Fenix Mod
+	ducking=x (condition); x=1 is true if DAI is ducking, x=0 is true if DAI is not ducking.
+	strafingleft=x (condition); x=1 is true if DAI is strafing left, x=0 is true if DAI is not strafing left.
+	strafingright=x (condition); x=1 is true if DAI is strafing right, x=0 is true if DAI is not strafing right.
+	movingforwards=x (condition); x=1 is true if DAI is moving forewards, x=0 is true if DAI is not moving forewards (used mainly for setting animations).
+	movingbackwards=x (condition); x=1 is true if DAI is moving backwards, x=0 is true if DAI is not moving backwards (used mainly for setting animations).
+	idle=x (condition); x=1 is true if DAI is not moving, x=0 is true if DAI is moving (used mainly for setting animations).
+	aicanshoot=x (condition); x=1 is true if DAI can see an enemy, x=0 is true if DAI can not see an enemy.
 
  * Made a few code fixes (and a new DarkAI DLL) to solve the cross-container navigation and firing!
  * Tied the memory resource readout in the TAB mode of the test game to reflect new Virtual Size limit
