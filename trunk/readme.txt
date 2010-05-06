@@ -8,6 +8,9 @@ History
 
 V1.1.7
 ------
+ * If an animation does not exist for an entity and that animation number is called the weapon offset will be removed to attempt to find a real animation. EX: Entities with guns can now melee with animation 8
+	This fix should allow modelers to trim out a sizeable amount of redundant animations 	
+ 
  * FPI actions merged from Fenix Mod
 	aisetactive=x - if x=1 then the dark ai will take control of the dark ai entity if x=0 then the dark ai will not take control of the dark ai entity (used to toggle off during entity reload to avoid sliding around)
 	alwaysactive=x -if x=1 then the entity will be set to always active if x=0 the entity will be set to always active off (mainly used for dark ai as dark ai entities need to be always active but can be used on regular FPSC objects)

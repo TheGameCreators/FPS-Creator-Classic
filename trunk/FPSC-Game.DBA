@@ -816,6 +816,7 @@ endtype
 type entityanimtype
  start as integer
  finish as integer
+ found as integer
 endtype
 type entityfootfall
  keyframe as integer
@@ -4531,7 +4532,7 @@ if segpartmax<>-1
      if ttthemeshtouse=0
       if object exist(temporarymeshobject)=0 then make object sphere temporarymeshobject,5 : make mesh from object temporarymeshobject,temporarymeshobject
       ttthemeshtouse=temporarymeshobject
-     endif     
+     endif
      add limb segobj,p,ttthemeshtouse
      offset limb segobj,p,segmentprofile(segid,tp).offx,segmentprofile(segid,tp).offy,segmentprofile(segid,tp).offz
      rotate limb segobj,p,0,segmentprofile(segid,tp).roty,0
@@ -12788,13 +12789,13 @@ if aiindex>0
         targetcontainer=object position y(physicsplayerborble)/100
         if targetcontainer<0 then targetcontainer=0
         if targetcontainer>19 then targetcontainer=19
-        ai entity go to position obj,object position x(physicsplayerborble),object position z(physicsplayerborble),targetcontainer      
+        ai entity go to position obj,object position x(physicsplayerborble),object position z(physicsplayerborble),targetcontainer
         `entityelement(e).darkai.state=987 `test to block other interfering activities to test 'pure' move to target
        else
         targetcontainer=(entityelement(tte).y+25)/100
         if targetcontainer<0 then targetcontainer=0
         if targetcontainer>19 then targetcontainer=19
-        ai entity go to position obj,entityelement(tte).x,entityelement(tte).z,targetcontainer 
+        ai entity go to position obj,entityelement(tte).x,entityelement(tte).z,targetcontainer
        endif
       endif
      endcase
@@ -12806,7 +12807,7 @@ if aiindex>0
         targetcontainer=(entityelement(i).y+25)/100
         if targetcontainer<0 then targetcontainer=0
         if targetcontainer>19 then targetcontainer=19
-        ai entity go to position entityelement(e).obj,entityelement(i).x,entityelement(i).z,targetcontainer 
+        ai entity go to position entityelement(e).obj,entityelement(i).x,entityelement(i).z,targetcontainer
         entityelement(e).darkai.called=-1
         entityelement(e).darkai.calldelay2=timer()
        endif
@@ -21545,7 +21546,8 @@ if file exist(tprofile$)=0
     if entityprofile(entid).animmax>0
      for q=0 to entityprofile(entid).animmax-1
       tryfield$="anim"+str$(q)
-      if field$=tryfield$ then entityanim(entid,q).start=value1 : entityanim(entid,q).finish=value2
+      if field$=tryfield$ then entityanim(entid,q).start=value1 : entityanim(entid,q).finish=value2 : entityanim(entid,q).found=1
+      if entityanim(entid,q).found=0 then entityanim(entid,q).start=-1 : entityanim(entid,q).finish=-1
      next q
     endif
     `
@@ -22147,7 +22149,7 @@ if file exist(elementsfilename$)=1
       read file 1,a : `entityelement(e).eleprof.ex.impactforce=a
       read file 1,a : `entityelement(e).eleprof.ex.decaytime=a
       read file 1,a : `entityelement(e).eleprof.ex.jumpheight=a
-     endif     
+     endif
      `
      rem fill in the blanks if load older version
      ttentid=entityelement(e).bankindex
@@ -23821,7 +23823,7 @@ _mapfile_loadmap:
     if x10headerversion>=1
      rem x10 effects and volume values
      rem strings
-     read string 1,res$ 
+     read string 1,res$
      read string 1,res$
      read string 1,res$
      read string 1,res$
@@ -25903,6 +25905,13 @@ return
 _entity_getactualframe:
  `
  rem work out actual frame from base frame and entity-character state and weapon used
+ Rem Hockeykid - 050510 - Check To make sure that the animation exist, if not attempt to remove offset
+ if entityprofile(entid).ischaracter=1
+  if entityelement(e).attachmentweapontype>0
+   foundframe=0
+   if entityanim(entid,50+tbaseframe).start=-1 and entityanim(entid,50+tbaseframe).finish=-1 then foundframe=1
+  Endif
+ Endif
  rem only applies to characters with weapons
  if entityprofile(entid).ischaracter=1
   if entityelement(e).attachmentweapontype>0
@@ -25933,6 +25942,11 @@ _entity_getactualframe:
   rem assign crouch flag (profile of character for hit detect)
   if tbaseframe>=31 and tbaseframe<40 then entityelement(e).crouchprofile=1 else entityelement(e).crouchprofile=0
  else
+  if tbasetype=1 then tactualframe=entityanim(entid,tbaseframe).start
+  if tbasetype=2 then tactualframe=entityanim(entid,tbaseframe).finish
+ endif
+ Rem act as if entity has no weapon to avoid fram offset
+ if foundframe=1
   if tbasetype=1 then tactualframe=entityanim(entid,tbaseframe).start
   if tbasetype=2 then tactualframe=entityanim(entid,tbaseframe).finish
  endif
@@ -35941,8 +35955,8 @@ if grideditselect=4 or grideditselect=5
 endif
 
 rem Create a waypoint when instructed to
-if inputsys.kscancode=62 and inputsys.keypress=0 
- inputsys.keypress=1 : inputsys.domodewaypoint=1 : grideditselect=6 : 
+if inputsys.kscancode=62 and inputsys.keypress=0
+ inputsys.keypress=1 : inputsys.domodewaypoint=1 : grideditselect=6 :
  rem FPGC - 280410 - new waypoint created in center of view
  `mx#=inputsys.localx# : mz#=inputsys.localy#
  mx#=cx# : mz#=cy#*-1
@@ -37064,7 +37078,7 @@ endif
 
 rem Load and Save
 if inputsys.doload=1 then gosub _gridedit_load_map
-if inputsys.dosave=1 
+if inputsys.dosave=1
  if galwaysconfirmsave=1
   gosub _gridedit_saveas_map
  else
@@ -45553,7 +45567,7 @@ _darkai_control:
     endif
     ttargety#=entityelement(e).y+50
     if tobjtarget>0 and tobjtarget<65535
-     if object exist(tobjtarget)=1 
+     if object exist(tobjtarget)=1
       ttargety#=object position y(tobjtarget)
      endif
     endif
@@ -45752,7 +45766,7 @@ rem Apply New Actions
    if tnewcontainer<>toldcontainer
     rem entity has dropped into new container
     if tnewcontainer<0 then tnewcontainer=0
-    if tnewcontainer>19 then tnewcontainer=19    
+    if tnewcontainer>19 then tnewcontainer=19
     AI Set Entity Container obj,tnewcontainer
    endif
   endif
