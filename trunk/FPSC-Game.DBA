@@ -3629,6 +3629,8 @@ _main_game_showwindownow:
     window to front "FPSC Game"
    else
     window to front "__topmost__"+"FPSC Game"
+    sleep 100
+    window to front "__topmost__"+"FPSC Game"
    endif
   endif
  endif
