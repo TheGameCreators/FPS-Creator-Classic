@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
 
+ * Ensured characters placed in sealed room on lowest level do not fall through floor at start
  * Tweaked sound system to produce quieter sounds from layers above and below (likely different room)
  * Improved built-in DarkLIGHTS system (new DLL required by modders) to reduce virtual memory usage
 

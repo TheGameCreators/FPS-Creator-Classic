@@ -6088,7 +6088,7 @@ _entity_startentitiesoff:
    entityelement(e).dormant=1
    rem check if entity starts inside geometry
    entid=entityelement(e).bankindex
-   if entityprofile(entid).ischaracter=1
+   if entityprofile(entid).ischaracter=1 and entityelement(e).y>20
     tettry=0 : tskip=0
     ttryy#=entityelement(e).y
     ellipseheight#=1.0
@@ -6366,7 +6366,7 @@ if gcontrollerhint=1 and gxbox<>0
     if jumpaction<>0
      hud(gcontrollerhinthudid).image=gcontrollerhintbuttonjump
     else
-     if (plrkeySHIFT)=1
+     if (plrkeySHIFT)=1 or (plrkeySHIFT2)=1
       hud(gcontrollerhinthudid).image=gcontrollerhintbuttonrun
      else
       if movement<>0
@@ -28242,6 +28242,7 @@ if gtestgamemodefromeditor=1
  plrkeySPACE=57
  plrkeyRETURN=28
  plrkeySHIFT=42
+ plrkeySHIFT2=54
  plrkeyF12=88
 else
  rem from BUILD GAME config keys
@@ -28256,6 +28257,7 @@ else
  plrkeyQ=listkey(9)
  plrkeyE=listkey(10)
  plrkeySHIFT=listkey(11)
+ plrkeySHIFT2=54
  plrkeyZ=44
  plrkeyF12=88
 endif
@@ -28273,6 +28275,7 @@ if keystate(plrkeyR)=1 then plrkeyR=1 else plrkeyR=0
 if keystate(plrkeySPACE)=1 then plrkeySPACE=1 else plrkeySPACE=0
 if keystate(plrkeyRETURN)=1 then plrkeyRETURN=1 else plrkeyRETURN=0
 if keystate(plrkeySHIFT)=1 then plrkeySHIFT=1 else plrkeySHIFT=0
+if keystate(plrkeySHIFT2)=1 then plrkeySHIFT2=1 else plrkeySHIFT2=0
 
 rem hard coded arrow keys
 if upkey()=1 then plrkeyW=1
@@ -28400,7 +28403,7 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
  if crouchmode<>0
   basespeed#=20
  else
-  if (plrkeySHIFT)=1
+  if (plrkeySHIFT)=1 or (plrkeySHIFT2)=1
    basespeed#=55
   else
    basespeed#=35
@@ -29035,7 +29038,7 @@ else
 endif
 if movement<>0
  camerawobble#=wrapvalue(camerawobble#+24.0)
- if (plrkeySHIFT)=1
+ if (plrkeySHIFT)=1 or (plrkeySHIFT2)=1
   arenaadjust#=arenaadjustd#+(cos(camerawobble#)*0.50)
  else
   arenaadjust#=arenaadjustd#+(cos(camerawobble#)*0.25)
@@ -30708,7 +30711,7 @@ _multi_control:
           if (plrkeyD)=1
            stateanim(iLocalEL)=5
           else
-           if (plrkeySHIFT)=1
+           if (plrkeySHIFT)=1 or (plrkeySHIFT2)=1
             stateanim(iLocalEL)=6
            else
             stateanim(iLocalEL)=3
