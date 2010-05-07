@@ -8,6 +8,10 @@ History
 
 V1.1.7
 ------
+
+ * Tweaked sound system to produce quieter sounds from layers above and below (likely different room)
+ * Improved built-in DarkLIGHTS system (new DLL required by modders) to reduce virtual memory usage
+
  * If an animation does not exist for an entity and that animation number is called the weapon offset will be removed to attempt to find a real animation. EX: Entities with guns can now melee with animation 8
 	This fix should allow modelers to trim out a sizeable amount of redundant animations 	
  

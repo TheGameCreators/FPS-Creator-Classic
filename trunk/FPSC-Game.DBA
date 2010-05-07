@@ -5959,7 +5959,9 @@ if testgametabtoggle=1
  resourcemeterdest#(3)=((perf(6)+0.0)/20000.0)*192.0 : rem entitylogic
  rem FPGC - 050510 - memory meter reflects virtual address usage (true max before crash)
  `memoryused#=entidmaster+segidmaster
- memoryused#=system smem available(2)/1024/18
+ memoryused#=system smem available(2)-(600*1024)
+ if memoryused#<0 then memoryused#=0
+ memoryused#=memoryused#/1024/12
  resourcemeterdest#(4)=(memoryused#/100.0)*192.0 : rem memory
  `
  rem control resource meters
@@ -14436,7 +14438,7 @@ function playinternalBC3dsound(id,x#,y#,z#,strength#)
  if id>0
   if sound exist(id)=1
    broadcast3dsound(x#,y#,z#,strength#,0)
-   position sound id,x#/10.0,y#/10.0,z#/10.0
+   position sound id,x#/10.0,y#/3.0,z#/10.0
    play sound id
   endif
  endif
@@ -14445,7 +14447,7 @@ endfunction
 function playinternal3dsound(id,x#,y#,z#)
  if id>0
   if sound exist(id)=1
-   position sound id,x#/10.0,y#/10.0,z#/10.0
+   position sound id,x#/10.0,y#/3.0,z#/10.0
    play sound id
   endif
  endif
@@ -14454,7 +14456,7 @@ endfunction
 function loopinternal3dsound(id,x#,y#,z#)
  if id>0
   if sound exist(id)=1
-   position sound id,x#/10.0,y#/10.0,z#/10.0
+   position sound id,x#/10.0,y#/3.0,z#/10.0
    if sound playing(id)=0 then loop sound id
   endif
  endif
@@ -14463,7 +14465,7 @@ endfunction
 function posinternal3dsound(id,x#,y#,z#)
  if id>0
   if sound exist(id)=1
-   position sound id,x#/10.0,y#/10.0,z#/10.0
+   position sound id,x#/10.0,y#/3.0,z#/10.0
   endif
  endif
 endfunction
@@ -14471,7 +14473,7 @@ endfunction
 function playinternal3dsoundfactor(id,x#,y#,z#,factor#)
  if id>0
   if sound exist(id)=1
-   position sound id,x#/10.0,y#/10.0,z#/10.0
+   position sound id,x#/10.0,y#/3.0,z#/10.0
    factor#=(factor#*2.0)+80.0
    if factor#<0 then factor#=0
    if factor#>100 then factor#=100
@@ -14995,6 +14997,7 @@ next plrid
 rem place listener far away at start
 position listener -999999,-999999,-999999
 rotate listener 90,0,0
+scale listener 0.02
 
 return
 
@@ -16482,7 +16485,7 @@ if gunmode=104
    sndid=gunsound(gunid,1).soundid
    if sndid>0
     if sound exist(sndid)=1
-     position sound sndid,camera position x(),camera position y(),camera position z()
+     position sound sndid,camera position x()/10.0,camera position y()/3.0,camera position z()/10.0
      broadcast3dsound(camera position x(),camera position y(),camera position z(),100,-1)
     endif
    endif
@@ -16505,7 +16508,7 @@ if gunmode=105
    sndid=gunsound(gunid,1).soundid
    if sndid>0
     if sound exist(sndid)=1
-     position sound sndid,camera position x(),camera position y(),camera position z()
+     position sound sndid,camera position x()/10.0,camera position y()/3.0,camera position z()/10.0
      play sound sndid,gun(gunid).sound.fireloopend
     endif
    endif
@@ -16680,7 +16683,7 @@ if gunmode=702 `and object frame(currentgunobj)>=gun(gunid).action.reloadloop.e
  endif
  if gunsound(gunid,2).soundid>0
   if sound exist(gunsound(gunid,2).soundid)=1
-   position sound gunsound(gunid,2).soundid,camera position x(),camera position y(),camera position z()
+   position sound gunsound(gunid,2).soundid,camera position x()/10.0,camera position y()/3.0,camera position z()/10.0
   endif
  endif
 endif
@@ -16717,7 +16720,7 @@ if gunmode=123
  set object speed currentgunobj,timeelapsed#*100.0
  if gunsound(gunid,2).soundid>0
   if sound exist(gunsound(gunid,2).soundid)=1
-   position sound gunsound(gunid,2).soundid,camera position x(),camera position y(),camera position z()
+   position sound gunsound(gunid,2).soundid,camera position x()/10.0,camera position y()/3.0,camera position z()/10.0
   endif
  endif
 endif
@@ -16744,7 +16747,7 @@ if gunmode=131
  set object speed currentgunobj,timeelapsed#*100.0
  if gunsound(gunid,2).soundid>0
   if sound exist(gunsound(gunid,2).soundid)=1
-   position sound gunsound(gunid,2).soundid,camera position x(),camera position y(),camera position z()
+   position sound gunsound(gunid,2).soundid,camera position x()/10.0,camera position y()/3.0,camera position z()/10.0
   endif
  endif
  gunmode=132
@@ -25640,7 +25643,7 @@ if grealgameviewstate=0 and segobjusedformapeditor=0 and goptimizemode=1
   endif
   `
   rem close lightmapper
-  if tcollisionbuildfirst=1 then LM Reset
+  LM Reset
   `
   rem save lightmapped universe
   if file exist(universefile$)=1 then delete file universefile$
@@ -25805,8 +25808,8 @@ if cmz#>0.0 then cmz#=0.0
 
 rem Update camera position
 zrotate camera curveangle(0,camera angle z(0),1.75)
-position listener cmx#/10.0,cmy#/10.0,cmz#/10.0
-rotate listener 0,camera angle y(0),0
+`position listener cmx#/10.0,cmy#/3.0,cmz#/10.0
+`rotate listener 0,camera angle y(0),0
 
 rem Camera rotation speeds
 t=abs(cammovex#)+abs(cammovey#)
@@ -29066,21 +29069,21 @@ _ode_listener:
  `
  rem handle player with affecting listener properties (full CPU intense)
  if 0
-  position listener camera position x(0)/10.0,camera position y(0)/10.0,camera position z(0)/10.0
+  position listener camera position x(0)/10.0,camera position y(0)/3.0,camera position z(0)/10.0
   rotate listener 0,camera angle y(0),0
  else
   rem quick approx. of listener position (CPU friendly)
-  roughx=camera position x(0)/10.0 : roughx=(roughx/5)*5
-  roughy=camera position y(0)/10.0 : roughy=(roughy/5)*5
-  roughz=camera position z(0)/10.0 : roughz=(roughz/5)*5
+  roughx=camera position x(0)/10.0 : roughx=(roughx/2)*2
+  roughy=camera position y(0)/3.0 : roughy=(roughy/2)*2
+  roughz=camera position z(0)/10.0 : roughz=(roughz/2)*2
   if roughx<>lastroughx or roughy<>lastroughy or roughz<>lastroughz
    lastroughx=roughx : lastroughy=roughy : lastroughz=roughz
-   position listener roughx,roughy,roughz
+   position listener roughx,roughy-5,roughz
   endif
   `rotate listener 0,camera angle y(0),0  `want my rotspeed back!
-  roughaa=camera angle y(0)/45.0
+  roughaa=camera angle y(0)/22.0
   if roughaa<>lastroughaa
-   rotate listener 0,roughaa*45,0
+   rotate listener 0,roughaa*22,0
    lastroughaa=roughaa
   endif
  endif
