@@ -2312,6 +2312,7 @@ global gsystemmemorycapoff : gsystemmemorycapoff=0
 global gentitytogglingoff : gentitytogglingoff=0
 global gextracollisionbuilddisabled : gextracollisionbuilddisabled=1
 global galwaysconfirmsave : galwaysconfirmsave=0
+global gsimplifiedcharacterediting : gsimplifiedcharacterediting=0
 
 rem Version Control - TEST GAME Mode
 global gtestgamemodefromeditor : gtestgamemodefromeditor=0
@@ -2454,6 +2455,7 @@ if file exist(tfile$)=1
     tryfield$="entitytogglingoff" : if field$=tryfield$ then gentitytogglingoff=value1
     tryfield$="extracollisionbuilddisabled" : if field$=tryfield$ then gextracollisionbuilddisabled=value1
     tryfield$="alwaysconfirmsave" : if field$=tryfield$ then galwaysconfirmsave=value1
+    tryfield$="simplifiedcharacterediting" : if field$=tryfield$ then gsimplifiedcharacterediting=value1
     `
     tryfield$="xbox"
     if field$=tryfield$
@@ -2803,7 +2805,14 @@ rem LEAP POINT (detect if running as FPSC-Game.exe or FPSC-MapEditor.exe)
 rem
 rem
 if trueappname$="FPSC-MapEditor"
+ `
+ rem gather list of behaviours at start (if exists)
+ global behaviourlistmax : behaviourlistmax=0
+ behaviourlistmax=fillgloballistwithbehaviours_init()
+ `
+ rem Enter Map Editor specific code
  goto _mapeditorexecutable
+ `
 endif
 
 rem
@@ -42301,6 +42310,7 @@ rem BUILDGAME
 #constant SET_PROGRESS_ITEM                           108
 #constant SET_PROGRESS_POSITION                       112
 #constant BUILD_GAME_PROJECT_WEAPONS_DISPLAY          136
+global g_filemapoffset as DWORD
 
 rem
 rem BUILD GAME
@@ -43297,6 +43307,7 @@ setuparr$(i)="systemmemorycapoff="+str$(gsystemmemorycapoff) : inc i
 setuparr$(i)="entitytogglingoff="+str$(gentitytogglingoff) : inc i
 setuparr$(i)="extracollisionbuilddisabled="+str$(gextracollisionbuilddisabled) : inc i
 setuparr$(i)="alwaysconfirmsave="+str$(galwaysconfirmsave) : inc i
+setuparr$(i)="simplifiedcharacterediting="+str$(gsimplifiedcharacterediting) : inc i
 `
 setuparr$(i)="" : inc i
 setuparr$(i)="[GAMEDEBUG]" : inc i
@@ -43460,67 +43471,74 @@ _interface_openpropertywindow:
  rem wait until the entity window is read
  if get file map dword( 2, ENTITY_SETUP ) = 1
   `
-  rem Setup usage flags
-  tflaglives=0 : tflaglight=0 : tflagobjective=0 : tflagtdecal=0 : tflagspawn=0 : tflagifused=0
-  tflagvis=0 : tflagchar=0 : tflagweap=0 : tflagammo=0 : tflagai=1 : tflagsound=0 : tflagsoundset=0 : tflagnosecond=0
-  tflagmobile=0 : tflaghurtfall=0 : tflaghasweapon=0 : tflagammoclip=0 : tflagstats=0 : tflagquantity=0
-  tflagvideo=0
-  rem If its static and arena mode, only do optional visuals, ignore rest
-  tstatic=0
-  if gmultiplayergame=1
-   if entityprofile(gridentity).isflak=1
-    tstatic=1
-   else
-    if entityprofile(gridentity).isammo<>0 or entityprofile(gridentity).isweapon<>0 or entityprofile(gridentity).ischaracter<>0 or entityprofile(gridentity).ishealth<>0
-     tstatic=0
-    else
+  rem FPGC - 070510 - simplified character properties
+  if gsimplifiedcharacterediting=1 and entityprofile(gridentity).ischaracter=1
+   rem flag the simple character properties layout (FPGC)
+   tsimplecharview=1
+  else
+   rem Setup usage flags
+   tsimplecharview=0
+   tflaglives=0 : tflaglight=0 : tflagobjective=0 : tflagtdecal=0 : tflagspawn=0 : tflagifused=0
+   tflagvis=0 : tflagchar=0 : tflagweap=0 : tflagammo=0 : tflagai=1 : tflagsound=0 : tflagsoundset=0 : tflagnosecond=0
+   tflagmobile=0 : tflaghurtfall=0 : tflaghasweapon=0 : tflagammoclip=0 : tflagstats=0 : tflagquantity=0
+   tflagvideo=0
+   rem If its static and arena mode, only do optional visuals, ignore rest
+   tstatic=0
+   if gmultiplayergame=1
+    if entityprofile(gridentity).isflak=1
      tstatic=1
+    else
+     if entityprofile(gridentity).isammo<>0 or entityprofile(gridentity).isweapon<>0 or entityprofile(gridentity).ischaracter<>0 or entityprofile(gridentity).ishealth<>0
+      tstatic=0
+     else
+      tstatic=1
+     endif
     endif
    endif
-  endif
-  if gmultiplayergame=1 and tstatic=1
-   rem only allow arena mode static entity optional visuals
-   tflagvis=1 : tflagai=0
-  else
-   rem FPGC - 260310 - new entitylight indicated with new flag
-   if entityprofile(gridentity).islightmarker=1
-    tflaglight=1
+   if gmultiplayergame=1 and tstatic=1
+    rem only allow arena mode static entity optional visuals
+    tflagvis=1 : tflagai=0
    else
-    if entityprofile(gridentity).ismarker=0
-     tflagvis=1 : tflagmobile=1 : tflagobjective=1 : tflagsound=1 : tflagstats=1 : tflagspawn=1
-     if entityprofile(gridentity).ischaracter>0 then tflaglives=1 : tflagchar=1 : tflaghurtfall=1 : tflaghasweapon=1 : tflagsoundset=1 : tflagsound=0
-     if len(entityprofile(gridentity).isweapon$)>2 then tflagweap=1 : tflagammoclip=1 : tflagsound=0
-     if entityprofile(gridentity).isammo>0 then tflagammo=1 : tflagobjective=0 : tflagsound=0
+    rem FPGC - 260310 - new entitylight indicated with new flag
+    if entityprofile(gridentity).islightmarker=1
+     tflaglight=1
     else
-     if entityprofile(gridentity).ismarker=1
-      tflagai=0
-      rem FPGC - 160909 - filtered fpgcgenre=1 is shooter genre
-      if fpgcgenre=1
-       rem Shooter legacy properties for player start
-       if entityprofile(gridentity).lives>0
-        tflagstats=1 : tflaglives=1 : tflagsoundset=1 : tflaghurtfall=1 : tflaghasweapon=1 : tflagquantity=1
+     if entityprofile(gridentity).ismarker=0
+      tflagvis=1 : tflagmobile=1 : tflagobjective=1 : tflagsound=1 : tflagstats=1 : tflagspawn=1
+      if entityprofile(gridentity).ischaracter>0 then tflaglives=1 : tflagchar=1 : tflaghurtfall=1 : tflaghasweapon=1 : tflagsoundset=1 : tflagsound=0
+      if len(entityprofile(gridentity).isweapon$)>2 then tflagweap=1 : tflagammoclip=1 : tflagsound=0
+      if entityprofile(gridentity).isammo>0 then tflagammo=1 : tflagobjective=0 : tflagsound=0
+     else
+      if entityprofile(gridentity).ismarker=1
+       tflagai=0
+       rem FPGC - 160909 - filtered fpgcgenre=1 is shooter genre
+       if fpgcgenre=1
+        rem Shooter legacy properties for player start
+        if entityprofile(gridentity).lives>0
+         tflagstats=1 : tflaglives=1 : tflagsoundset=1 : tflaghurtfall=1 : tflaghasweapon=1 : tflagquantity=1
+        else
+         tflagsound=1 : tflagnosecond=1
+        endif
        else
-        tflagsound=1 : tflagnosecond=1
-       endif
-      else
-       rem Other genre's have no ammo quantity and weapon is renamed as equipment
-       if entityprofile(gridentity).lives=-1
-        rem checkpint marker is type 1
-        tflagsound=1 : tflagnosecond=1
-       else
-        tflagstats=1 : tflaglives=1 : tflagsoundset=1 : tflaghurtfall=1 : tflaghasweapon=1
+        rem Other genre's have no ammo quantity and weapon is renamed as equipment
+        if entityprofile(gridentity).lives=-1
+         rem checkpint marker is type 1
+         tflagsound=1 : tflagnosecond=1
+        else
+         tflagstats=1 : tflaglives=1 : tflagsoundset=1 : tflaghurtfall=1 : tflaghasweapon=1
+        endif
        endif
       endif
-     endif
-     if entityprofile(gridentity).ismarker=3 then tflagobjective=1 : tflagnosecond=1 : tflagifused=1
-     if entityprofile(gridentity).ismarker=4 then tflagtdecal=1
-     if entityprofile(gridentity).ismarker=3
-      if entityprofile(gridentity).markerindex=1
-       rem video
-       tflagvideo=1
-      else
-       rem sound
-       tflagsound=1
+      if entityprofile(gridentity).ismarker=3 then tflagobjective=1 : tflagnosecond=1 : tflagifused=1
+      if entityprofile(gridentity).ismarker=4 then tflagtdecal=1
+      if entityprofile(gridentity).ismarker=3
+       if entityprofile(gridentity).markerindex=1
+        rem video
+        tflagvideo=1
+       else
+        rem sound
+        tflagsound=1
+       endif
       endif
      endif
     endif
@@ -43534,231 +43552,259 @@ _interface_openpropertywindow:
   rem set the window title
   setpropertybase(ENTITY_WINDOW_TITLE,strarr$(411))
   `
-  rem Name
-  group=0 : setpropertybase(ENTITY_ADD_GROUP,strarr$(412)) : controlindex=0
-  setpropertystring(group,grideleprof.name$,strarr$(413),strarr$(204)) : inc controlindex
-  if entityprofile(gridentity).ismarker=0 or entityprofile(gridentity).islightmarker=1
-   if gmultiplayergame=0
-    if gentitytogglingoff=0
-     setpropertylist(group,controlindex,str$(gridentitystaticmode),strarr$(414),strarr$(205),0) : inc controlindex
-    endif
-   endif
-  endif
+  rem FPGC - 070510 - open entity properties filemap and wait for signal to write
+  open file map 3, "ENTITYPROPERTIES"
+  g_filemapoffset = 8
+  if ( dll exist(1)=0 ) then load dll "Kernel32.dll", 1
+  while get file map dword(3,0) = 1
+   `sleep 10
+   call dll 1,"Sleep",10
+  endwhile
   `
-  rem Basic AI
-  if gmultiplayergame=0
-   if tflagai=1
-    propfield(group)=controlindex
-    inc group : setpropertybase(ENTITY_ADD_GROUP,strarr$(415)) : controlindex=0
-    setpropertyfile(group,grideleprof.aiinit$,strarr$(561),strarr$(206),"scriptbank\") : inc controlindex
-    setpropertyfile(group,grideleprof.aimain$,strarr$(417),strarr$(207),"scriptbank\") : inc controlindex
-    setpropertyfile(group,grideleprof.aidestroy$,strarr$(418),strarr$(208),"scriptbank\") : inc controlindex
-   endif
-  endif
-  `
-  rem Has Weapon
-  if gmultiplayergame=0
-   if tflaghasweapon=1
-    setpropertylist(group,controlindex,grideleprof.hasweapon$,strarr$(419),strarr$(209),1) : inc controlindex
-   endif
-  endif
-  `
-  rem Is Weapon (FPGC - 280809 - filtered fpgcgenre=1 is shooter genre)
-  if tflagweap=1 and fpgcgenre=1
-   setpropertystring(group,str$(grideleprof.damage),strarr$(420),strarr$(210)) : inc controlindex
-   setpropertystring(group,str$(grideleprof.accuracy),strarr$(421),strarr$(211)) : inc controlindex
-   if grideleprof.weaponisammo=0
-    setpropertystring(group,str$(grideleprof.reloadqty),strarr$(422),strarr$(212)) : inc controlindex
-    setpropertystring(group,str$(grideleprof.fireiterations),strarr$(423),strarr$(213)) : inc controlindex
-   else
+  if tsimplecharview=1
+   `
+   rem Wizard (simplified) property editing
+   group=0 : startgroup("Character Info") : controlindex=0
+   setpropertystring2(group,grideleprof.name$,strarr$(413),"Choose a unique name for this character") : inc controlindex
+   setpropertylist2(group,controlindex,grideleprof.aimain$,"Behaviour","Select a behaviour for this character",11) : inc controlindex
+   setpropertyfile2(group,grideleprof.soundset1$,"Voiceover","Select a WAV or OGG file this character will use during their behaviour","audiobank\") : inc controlindex
+   `
+  else
+   `
+   rem Name
+   group=0 : startgroup(strarr$(412)) : controlindex=0
+   setpropertystring2(group,grideleprof.name$,strarr$(413),strarr$(204)) : inc controlindex
+   if entityprofile(gridentity).ismarker=0 or entityprofile(gridentity).islightmarker=1
     if gmultiplayergame=0
-     setpropertystring(group,str$(grideleprof.lifespan),strarr$(424),strarr$(214)) : inc controlindex
-     setpropertystring(group,str$(grideleprof.throwspeed),strarr$(425),strarr$(215)) : inc controlindex
-     setpropertystring(group,str$(grideleprof.throwangle),strarr$(426),strarr$(216)) : inc controlindex
-     setpropertystring(group,str$(grideleprof.bounceqty),strarr$(427),strarr$(217)) : inc controlindex
-     setpropertylist(group,controlindex,str$(grideleprof.explodeonhit),strarr$(428),strarr$(218),0) : inc controlindex
+     if gentitytogglingoff=0
+      setpropertylist2(group,controlindex,str$(gridentitystaticmode),strarr$(414),strarr$(205),0) : inc controlindex
+     endif
     endif
    endif
-  endif
-  `
-  rem Is Character
-  if tflagchar=1
+   `
+   rem Basic AI
    if gmultiplayergame=0
-    setpropertylist(group,controlindex,str$(grideleprof.cantakeweapon),strarr$(429),strarr$(219),0) : inc controlindex
-    rem FPGC - 280809 - filtered fpgcgenre=1 is shooter genre
-    if fpgcgenre=1
-     setpropertystring(group,str$(grideleprof.quantity),strarr$(430),strarr$(220)) : inc controlindex
-     setpropertystring(group,str$(grideleprof.rateoffire),strarr$(431),strarr$(221)) : inc controlindex
+    if tflagai=1
+     propfield(group)=controlindex
+     inc group : startgroup(strarr$(415)) : controlindex=0
+     setpropertyfile2(group,grideleprof.aiinit$,strarr$(561),strarr$(206),"scriptbank\") : inc controlindex
+     setpropertyfile2(group,grideleprof.aimain$,strarr$(417),strarr$(207),"scriptbank\") : inc controlindex
+     setpropertyfile2(group,grideleprof.aidestroy$,strarr$(418),strarr$(208),"scriptbank\") : inc controlindex
     endif
    endif
-  endif
-  if tflagquantity=1 then setpropertystring(group,str$(grideleprof.quantity),strarr$(432),strarr$(222)) : inc controlindex
-  `
-  rem AI Extra
-  if tflagvis=1 and tflagai=1
+   `
+   rem Has Weapon
    if gmultiplayergame=0
-    if tflagchar=1
+    if tflaghasweapon=1
+     setpropertylist2(group,controlindex,grideleprof.hasweapon$,strarr$(419),strarr$(209),1) : inc controlindex
+    endif
+   endif
+   `
+   rem Is Weapon (FPGC - 280809 - filtered fpgcgenre=1 is shooter genre)
+   if tflagweap=1 and fpgcgenre=1
+    setpropertystring2(group,str$(grideleprof.damage),strarr$(420),strarr$(210)) : inc controlindex
+    setpropertystring2(group,str$(grideleprof.accuracy),strarr$(421),strarr$(211)) : inc controlindex
+    if grideleprof.weaponisammo=0
+     setpropertystring2(group,str$(grideleprof.reloadqty),strarr$(422),strarr$(212)) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.fireiterations),strarr$(423),strarr$(213)) : inc controlindex
+    else
+     if gmultiplayergame=0
+      setpropertystring2(group,str$(grideleprof.lifespan),strarr$(424),strarr$(214)) : inc controlindex
+      setpropertystring2(group,str$(grideleprof.throwspeed),strarr$(425),strarr$(215)) : inc controlindex
+      setpropertystring2(group,str$(grideleprof.throwangle),strarr$(426),strarr$(216)) : inc controlindex
+      setpropertystring2(group,str$(grideleprof.bounceqty),strarr$(427),strarr$(217)) : inc controlindex
+      setpropertylist2(group,controlindex,str$(grideleprof.explodeonhit),strarr$(428),strarr$(218),0) : inc controlindex
+     endif
+    endif
+   endif
+   `
+   rem Is Character
+   if tflagchar=1
+    if gmultiplayergame=0
+     setpropertylist2(group,controlindex,str$(grideleprof.cantakeweapon),strarr$(429),strarr$(219),0) : inc controlindex
      rem FPGC - 280809 - filtered fpgcgenre=1 is shooter genre
      if fpgcgenre=1
-      setpropertyfile(group,grideleprof.aishoot$,strarr$(433),strarr$(223),"scriptbank\") : inc controlindex
-     endif
-     setpropertystring(group,str$(grideleprof.coneangle),strarr$(434),strarr$(224)) : inc controlindex
-    else
-     if tflagweap=0 and tflagammo=0
-      propfield(group)=controlindex
-      inc group : setpropertybase(ENTITY_ADD_GROUP,strarr$(435)) : controlindex=0
-      setpropertystring(group,grideleprof.usekey$,strarr$(436),strarr$(225)) : inc controlindex
-      setpropertystring(group,grideleprof.ifused$,strarr$(437),strarr$(226)) : inc controlindex
+      setpropertystring2(group,str$(grideleprof.quantity),strarr$(430),strarr$(220)) : inc controlindex
+      setpropertystring2(group,str$(grideleprof.rateoffire),strarr$(431),strarr$(221)) : inc controlindex
      endif
     endif
    endif
-  endif
-  if tflagifused=1
-   if gmultiplayergame=0
-    setpropertystring(group,grideleprof.ifused$,strarr$(438),strarr$(227)) : inc controlindex
-   endif
-  endif
-  `
-  rem Spawn Settings
-  if tflagspawn=1
-   if gmultiplayergame=0 or (gmultiplayergame=1 and tflagchar=0)
-    propfield(group)=controlindex
-    inc group : setpropertybase(ENTITY_ADD_GROUP,strarr$(439)) : controlindex=0
-    setpropertylist(group,controlindex,str$(grideleprof.spawnatstart),strarr$(562),strarr$(563),0) : inc controlindex
-    setpropertystring(group,str$(grideleprof.spawnmax),strarr$(440),strarr$(231)) : inc controlindex
-    setpropertystring(group,str$(grideleprof.spawnupto),strarr$(441),strarr$(232)) : inc controlindex
-    setpropertylist(group,controlindex,str$(grideleprof.spawnafterdelay),strarr$(442),strarr$(233),0) : inc controlindex
-    setpropertylist(group,controlindex,str$(grideleprof.spawnwhendead),strarr$(443),strarr$(234),0) : inc controlindex
-    setpropertystring(group,str$(grideleprof.spawndelay),strarr$(444),strarr$(235)) : inc controlindex
-    setpropertystring(group,str$(grideleprof.spawndelayrandom),strarr$(564),strarr$(565)) : inc controlindex
-    setpropertystring(group,str$(grideleprof.spawnqty),strarr$(445),strarr$(236)) : inc controlindex
-    setpropertystring(group,str$(grideleprof.spawnqtyrandom),strarr$(566),strarr$(567)) : inc controlindex
-    setpropertystring(group,str$(grideleprof.spawnvel),strarr$(568),strarr$(569)) : inc controlindex
-    setpropertystring(group,str$(grideleprof.spawnvelrandom),strarr$(570),strarr$(571)) : inc controlindex
-    setpropertystring(group,str$(grideleprof.spawnangle),strarr$(572),strarr$(573)) : inc controlindex
-    setpropertystring(group,str$(grideleprof.spawnanglerandom),strarr$(574),strarr$(575)) : inc controlindex
-    setpropertystring(group,str$(grideleprof.spawnlife),strarr$(576),strarr$(577)) : inc controlindex
-   endif
-  endif
-  `
-  rem Visual
-  if tflagvis=1
-   propfield(group)=controlindex
-   inc group : setpropertybase(ENTITY_ADD_GROUP,strarr$(446)) : controlindex=0
-   setpropertyfile(group,grideleprof.texd$,strarr$(447),strarr$(237),"") : inc controlindex
-   setpropertyfile(group,grideleprof.texaltd$,strarr$(448),strarr$(238),"") : inc controlindex
-   setpropertyfile(group,grideleprof.effect$,strarr$(578),strarr$(579),"effectbank\") : inc controlindex
-   setpropertystring(group,str$(grideleprof.transparency),strarr$(449),strarr$(240)) : inc controlindex
-   setpropertystring(group,str$(grideleprof.reducetexture),strarr$(450),strarr$(241)) : inc controlindex
-  endif
-  `
-  rem Statistics
-  if gmultiplayergame=0 or (gmultiplayergame=1 and tstatic=0)
-   if (tflagvis=1 or tflagobjective=1 or tflaglives=1 or tflagstats=1) and tflagweap=0 and tflagammo=0
-    propfield(group)=controlindex
-    inc group : setpropertybase(ENTITY_ADD_GROUP,strarr$(451)) : controlindex=0
+   if tflagquantity=1 then setpropertystring2(group,str$(grideleprof.quantity),strarr$(432),strarr$(222)) : inc controlindex
+   `
+   rem AI Extra
+   if tflagvis=1 and tflagai=1
     if gmultiplayergame=0
-     if tflaglives=1 then setpropertystring(group,str$(grideleprof.lives),strarr$(452),strarr$(242)) : inc controlindex
-    endif
-    if tflagvis=1 or tflagstats=1
-     if tflaglives=1
-      setpropertystring(group,str$(grideleprof.strength),strarr$(453),strarr$(243)) : inc controlindex
+     if tflagchar=1
+      rem FPGC - 280809 - filtered fpgcgenre=1 is shooter genre
+      if fpgcgenre=1
+       setpropertyfile2(group,grideleprof.aishoot$,strarr$(433),strarr$(223),"scriptbank\") : inc controlindex
+      endif
+      setpropertystring2(group,str$(grideleprof.coneangle),strarr$(434),strarr$(224)) : inc controlindex
      else
-      setpropertystring(group,str$(grideleprof.strength),strarr$(454),strarr$(244)) : inc controlindex
-     endif
-     if gmultiplayergame=0
-      setpropertystring(group,str$(grideleprof.speed),strarr$(455),strarr$(245)) : inc controlindex
+      if tflagweap=0 and tflagammo=0
+       propfield(group)=controlindex
+       inc group : startgroup(strarr$(435)) : controlindex=0
+       setpropertystring2(group,grideleprof.usekey$,strarr$(436),strarr$(225)) : inc controlindex
+       setpropertystring2(group,grideleprof.ifused$,strarr$(437),strarr$(226)) : inc controlindex
+      endif
      endif
     endif
-    if tflaghurtfall=1 then setpropertystring(group,str$(grideleprof.hurtfall),strarr$(456),strarr$(246)) : inc controlindex
+   endif
+   if tflagifused=1
     if gmultiplayergame=0
-     if tflagmobile=1 then setpropertylist(group,controlindex,str$(grideleprof.isimmobile),strarr$(457),strarr$(247),0) : inc controlindex
-    endif
-    if gmultiplayergame=0 or (gmultiplayergame=1 and entityprofile(gridentity).ismarker=3)
-     if tflagobjective=1 then setpropertystring(group,str$(grideleprof.isobjective),strarr$(458),strarr$(248)) : inc controlindex
+     setpropertystring2(group,grideleprof.ifused$,strarr$(438),strarr$(227)) : inc controlindex
     endif
    endif
-  endif
-  `
-  rem Physics Data (non-multiplayer)
-  if gmultiplayergame=0
-   if entityprofile(gridentity).ismarker=0 and entityprofile(gridentity).islightmarker=0
-    propfield(group)=controlindex
-    inc group : setpropertybase(ENTITY_ADD_GROUP,strarr$(596)) : controlindex=0
-    if grideleprof.physics<>1 then grideleprof.physics=0
-    setpropertylist(group,controlindex,str$(grideleprof.physics),strarr$(580),strarr$(581),0) : inc controlindex
-    setpropertylist(group,controlindex,str$(grideleprof.phyalways),strarr$(582),strarr$(583),0) : inc controlindex
-    setpropertystring(group,str$(grideleprof.phyweight),strarr$(584),strarr$(585)) : inc controlindex
-    setpropertystring(group,str$(grideleprof.phyfriction),strarr$(586),strarr$(587)) : inc controlindex
-    setpropertystring(group,str$(grideleprof.phyforcedamage),strarr$(588),strarr$(589)) : inc controlindex
-    setpropertystring(group,str$(grideleprof.rotatethrow),strarr$(590),strarr$(591)) : inc controlindex
-    setpropertylist(group,controlindex,str$(grideleprof.explodable),strarr$(592),strarr$(593),0) : inc controlindex
-    setpropertystring(group,str$(grideleprof.explodedamage),strarr$(594),strarr$(595)) : inc controlindex
+   `
+   rem Spawn Settings
+   if tflagspawn=1
+    if gmultiplayergame=0 or (gmultiplayergame=1 and tflagchar=0)
+     propfield(group)=controlindex
+     inc group : startgroup(strarr$(439)) : controlindex=0
+     setpropertylist2(group,controlindex,str$(grideleprof.spawnatstart),strarr$(562),strarr$(563),0) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.spawnmax),strarr$(440),strarr$(231)) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.spawnupto),strarr$(441),strarr$(232)) : inc controlindex
+     setpropertylist2(group,controlindex,str$(grideleprof.spawnafterdelay),strarr$(442),strarr$(233),0) : inc controlindex
+     setpropertylist2(group,controlindex,str$(grideleprof.spawnwhendead),strarr$(443),strarr$(234),0) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.spawndelay),strarr$(444),strarr$(235)) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.spawndelayrandom),strarr$(564),strarr$(565)) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.spawnqty),strarr$(445),strarr$(236)) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.spawnqtyrandom),strarr$(566),strarr$(567)) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.spawnvel),strarr$(568),strarr$(569)) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.spawnvelrandom),strarr$(570),strarr$(571)) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.spawnangle),strarr$(572),strarr$(573)) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.spawnanglerandom),strarr$(574),strarr$(575)) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.spawnlife),strarr$(576),strarr$(577)) : inc controlindex
+    endif
    endif
-  endif
-  `
-  rem Ammo data (FPGC - 280809 - filtered fpgcgenre=1 is shooter genre
-  if fpgcgenre=1
-   if tflagammo=1 or tflagammoclip=1
+   `
+   rem Visual
+   if tflagvis=1
     propfield(group)=controlindex
-    inc group : setpropertybase(ENTITY_ADD_GROUP,strarr$(459)) : controlindex=0
-    setpropertystring(group,str$(grideleprof.quantity),strarr$(460),strarr$(249)) : inc controlindex
+    inc group : startgroup(strarr$(446)) : controlindex=0
+    setpropertyfile2(group,grideleprof.texd$,strarr$(447),strarr$(237),"") : inc controlindex
+    setpropertyfile2(group,grideleprof.texaltd$,strarr$(448),strarr$(238),"") : inc controlindex
+    setpropertyfile2(group,grideleprof.effect$,strarr$(578),strarr$(579),"effectbank\") : inc controlindex
+    setpropertystring2(group,str$(grideleprof.transparency),strarr$(449),strarr$(240)) : inc controlindex
+    setpropertystring2(group,str$(grideleprof.reducetexture),strarr$(450),strarr$(241)) : inc controlindex
    endif
-  endif
-  `
-  rem Light data
-  if tflaglight=1
-   propfield(group)=controlindex
-   inc group : setpropertybase(ENTITY_ADD_GROUP,strarr$(461)) : controlindex=0
-   setpropertystring(group,str$(grideleprof.light.range),strarr$(462),strarr$(250)) : inc controlindex
-   setpropertycolor(group,grideleprof.light.color,strarr$(463),strarr$(251)) : inc controlindex
-  endif
-  `
-  rem Decal data
-  if tflagtdecal=1
-   propfield(group)=controlindex
-   inc group : setpropertybase(ENTITY_ADD_GROUP,strarr$(464)) : controlindex=0
-   setpropertyfile(group,grideleprof.basedecal$,strarr$(465),strarr$(252),"gamecore\decals\") : inc controlindex
-  endif
-  `
-  rem Sound or Video data
-  if tflagsound=1 or tflagsoundset=1
-   propfield(group)=controlindex
-   inc group : setpropertybase(ENTITY_ADD_GROUP,strarr$(466)) : controlindex=0
-   rem FPGC - 280809 - filtered fpgcgenre=1 is shooter genre
+   `
+   rem Statistics
+   if gmultiplayergame=0 or (gmultiplayergame=1 and tstatic=0)
+    if (tflagvis=1 or tflagobjective=1 or tflaglives=1 or tflagstats=1) and tflagweap=0 and tflagammo=0
+     propfield(group)=controlindex
+     inc group : startgroup(strarr$(451)) : controlindex=0
+     if gmultiplayergame=0
+      if tflaglives=1 then setpropertystring2(group,str$(grideleprof.lives),strarr$(452),strarr$(242)) : inc controlindex
+     endif
+     if tflagvis=1 or tflagstats=1
+      if tflaglives=1
+       setpropertystring2(group,str$(grideleprof.strength),strarr$(453),strarr$(243)) : inc controlindex
+      else
+       setpropertystring2(group,str$(grideleprof.strength),strarr$(454),strarr$(244)) : inc controlindex
+      endif
+      if gmultiplayergame=0
+       setpropertystring2(group,str$(grideleprof.speed),strarr$(455),strarr$(245)) : inc controlindex
+      endif
+     endif
+     if tflaghurtfall=1 then setpropertystring2(group,str$(grideleprof.hurtfall),strarr$(456),strarr$(246)) : inc controlindex
+     if gmultiplayergame=0
+      if tflagmobile=1 then setpropertylist2(group,controlindex,str$(grideleprof.isimmobile),strarr$(457),strarr$(247),0) : inc controlindex
+     endif
+     if gmultiplayergame=0 or (gmultiplayergame=1 and entityprofile(gridentity).ismarker=3)
+      if tflagobjective=1 then setpropertystring2(group,str$(grideleprof.isobjective),strarr$(458),strarr$(248)) : inc controlindex
+     endif
+    endif
+   endif
+   `
+   rem Physics Data (non-multiplayer)
+   if gmultiplayergame=0
+    if entityprofile(gridentity).ismarker=0 and entityprofile(gridentity).islightmarker=0
+     propfield(group)=controlindex
+     inc group : startgroup(strarr$(596)) : controlindex=0
+     if grideleprof.physics<>1 then grideleprof.physics=0
+     setpropertylist2(group,controlindex,str$(grideleprof.physics),strarr$(580),strarr$(581),0) : inc controlindex
+     setpropertylist2(group,controlindex,str$(grideleprof.phyalways),strarr$(582),strarr$(583),0) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.phyweight),strarr$(584),strarr$(585)) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.phyfriction),strarr$(586),strarr$(587)) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.phyforcedamage),strarr$(588),strarr$(589)) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.rotatethrow),strarr$(590),strarr$(591)) : inc controlindex
+     setpropertylist2(group,controlindex,str$(grideleprof.explodable),strarr$(592),strarr$(593),0) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.explodedamage),strarr$(594),strarr$(595)) : inc controlindex
+    endif
+   endif
+   `
+   rem Ammo data (FPGC - 280809 - filtered fpgcgenre=1 is shooter genre
    if fpgcgenre=1
-    if tflagsound=1 then setpropertyfile(group,grideleprof.soundset$,strarr$(467),strarr$(253),"audiobank\") : inc controlindex
-    if tflagsound=1 and tflagnosecond=0 then setpropertyfile(group,grideleprof.soundset1$,strarr$(468),strarr$(254),"audiobank\") : inc controlindex
-    if tflagsoundset=1 then setpropertyfile(group,grideleprof.soundset$,strarr$(469),strarr$(255),"audiobank\voices\") : inc controlindex
-   else
-    rem Allow full access to both SCRIPT $0 and $1 when not specifically a shooter genre
-    if tflagsoundset=1
-     setpropertyfile(group,grideleprof.soundset$,strarr$(469),strarr$(255),"audiobank\voices\") : inc controlindex
+    if tflagammo=1 or tflagammoclip=1
+     propfield(group)=controlindex
+     inc group : startgroup(strarr$(459)) : controlindex=0
+     setpropertystring2(group,str$(grideleprof.quantity),strarr$(460),strarr$(249)) : inc controlindex
+    endif
+   endif
+   `
+   rem Light data
+   if tflaglight=1
+    propfield(group)=controlindex
+    inc group : startgroup(strarr$(461)) : controlindex=0
+    setpropertystring2(group,str$(grideleprof.light.range),strarr$(462),strarr$(250)) : inc controlindex
+    setpropertycolor2(group,grideleprof.light.color,strarr$(463),strarr$(251)) : inc controlindex
+   endif
+   `
+   rem Decal data
+   if tflagtdecal=1
+    propfield(group)=controlindex
+    inc group : startgroup(strarr$(464)) : controlindex=0
+    setpropertyfile2(group,grideleprof.basedecal$,strarr$(465),strarr$(252),"gamecore\decals\") : inc controlindex
+   endif
+   `
+   rem Sound or Video data
+   if tflagsound=1 or tflagsoundset=1
+    propfield(group)=controlindex
+    inc group : startgroup(strarr$(466)) : controlindex=0
+    rem FPGC - 280809 - filtered fpgcgenre=1 is shooter genre
+    if fpgcgenre=1
+     if tflagsound=1 then setpropertyfile2(group,grideleprof.soundset$,strarr$(467),strarr$(253),"audiobank\") : inc controlindex
+     if tflagsound=1 and tflagnosecond=0 then setpropertyfile2(group,grideleprof.soundset1$,strarr$(468),strarr$(254),"audiobank\") : inc controlindex
+     if tflagsoundset=1 then setpropertyfile2(group,grideleprof.soundset$,strarr$(469),strarr$(255),"audiobank\voices\") : inc controlindex
     else
-     setpropertyfile(group,grideleprof.soundset$,strarr$(467),strarr$(253),"audiobank\") : inc controlindex
+     rem Allow full access to both SCRIPT $0 and $1 when not specifically a shooter genre
+     if tflagsoundset=1
+      setpropertyfile2(group,grideleprof.soundset$,strarr$(469),strarr$(255),"audiobank\voices\") : inc controlindex
+     else
+      setpropertyfile2(group,grideleprof.soundset$,strarr$(467),strarr$(253),"audiobank\") : inc controlindex
+     endif
+     setpropertyfile2(group,grideleprof.soundset1$,strarr$(468),strarr$(254),"audiobank\") : inc controlindex
     endif
-    setpropertyfile(group,grideleprof.soundset1$,strarr$(468),strarr$(254),"audiobank\") : inc controlindex
    endif
-  endif
-  if tflagvideo=1
-   propfield(group)=controlindex
-   inc group : setpropertybase(ENTITY_ADD_GROUP,strarr$(597)) : controlindex=0
-   rem FPGC - 280809 - filtered fpgcgenre=1 is shooter genre
-   if fpgcgenre=1
-    setpropertyfile(group,grideleprof.soundset$,strarr$(598),strarr$(599),"audiobank\") : inc controlindex
-    setpropertyfile(group,grideleprof.soundset1$,strarr$(600),strarr$(601),"videobank\") : inc controlindex
-   else
-    rem Non shooter genre uses MEDIA ZONE for WEBLINK and AUDIOVIDEO (combined as we have seperate SOUND ZONE)
-    setpropertystring(group,grideleprof.soundset$,strarr$(598),strarr$(599)) : inc controlindex
-    setpropertyfile(group,grideleprof.soundset1$,strarr$(600),strarr$(601),"videobank\") : inc controlindex
+   if tflagvideo=1
+    propfield(group)=controlindex
+    inc group : startgroup(strarr$(597)) : controlindex=0
+    rem FPGC - 280809 - filtered fpgcgenre=1 is shooter genre
+    if fpgcgenre=1
+     setpropertyfile2(group,grideleprof.soundset$,strarr$(598),strarr$(599),"audiobank\") : inc controlindex
+     setpropertyfile2(group,grideleprof.soundset1$,strarr$(600),strarr$(601),"videobank\") : inc controlindex
+    else
+     rem Non shooter genre uses MEDIA ZONE for WEBLINK and AUDIOVIDEO (combined as we have seperate SOUND ZONE)
+     setpropertystring2(group,grideleprof.soundset$,strarr$(598),strarr$(599)) : inc controlindex
+     setpropertyfile2(group,grideleprof.soundset1$,strarr$(600),strarr$(601),"videobank\") : inc controlindex
+    endif
    endif
+   `
   endif
   `
   rem End of data
   propfield(group)=controlindex
   propfieldgroupmax=group
   `
+  rem FPGC - 070510 - finish bulk entity properties population
+  set file map dword 3,g_filemapoffset,0 : inc g_filemapoffset,4
+  set file map dword 3,0,1
+  `
  endif
+ `
+ rem FPGC - 070510 - close bulk file map
+ close file map 3
  `
  wait for file map event 2
  close file map 2
@@ -43806,11 +43852,17 @@ _interface_copydatatoentity:
     if lower$(tdata$)=lower$(strarr$(471)) then tdata$="0"
    endif
    `
+   rem FPGC - 070510 - add behaviour folder back, along with FPI (from combo friendly name to script filename)
+   if lower$(tfield$)="behaviour" 
+    tdata$="behaviours\"+tdata$+".fpi"
+   endif
+   `
    rem get field data
    if lower$(tfield$)=lower$(strarr$(413)) then grideleprof.name$=tdata$
    if lower$(tfield$)=lower$(strarr$(414)) then gridentitystaticmode=val(tdata$)
    if lower$(tfield$)=lower$(strarr$(561)) then grideleprof.aiinit$=tdata$
    if lower$(tfield$)=lower$(strarr$(417)) then grideleprof.aimain$=tdata$
+   if lower$(tfield$)="behaviour" then grideleprof.aimain$=tdata$
    if lower$(tfield$)=lower$(strarr$(418)) then grideleprof.aidestroy$=tdata$
    if lower$(tfield$)=lower$(strarr$(433)) then grideleprof.aishoot$=tdata$
    if lower$(tfield$)=lower$(strarr$(434)) then grideleprof.coneangle=val(tdata$)
@@ -43864,6 +43916,7 @@ _interface_copydatatoentity:
    if lower$(tfield$)=lower$(strarr$(469)) then grideleprof.soundset$=tdata$
    if lower$(tfield$)=lower$(strarr$(598)) then grideleprof.soundset$=tdata$
    if lower$(tfield$)=lower$(strarr$(600)) then grideleprof.soundset1$=tdata$
+   if lower$(tfield$)="voiceover" then grideleprof.soundset1$=tdata$
    if lower$(tfield$)=lower$(strarr$(462)) then grideleprof.light.range=val(tdata$)
    `
    if lower$(tfield$)=lower$(strarr$(580)) then grideleprof.physics=val(tdata$)
@@ -44482,6 +44535,104 @@ _interface_handlefpi:
  `
 return
 
+rem
+rem FPGC - 070510 - New Interface Properties Functions (Bulk Setting)
+rem
+
+function startgroup(s$)
+ if s$="" then s$=""
+ set file map dword 3,g_filemapoffset,2 : inc g_filemapoffset,4
+ set file map dword 3,g_filemapoffset,len(s$) : inc g_filemapoffset,4
+ set file map string$ 3,g_filemapoffset,s$ : inc g_filemapoffset,((len(s$)+3)/4 )*4
+endfunction
+
+function endgroup()
+ set file map dword 3,g_filemapoffset,0 : inc g_filemapoffset,4
+endfunction
+
+function setpropertystring2(group,data$,field$,desc$)
+ if data$="" then data$=""
+ set file map dword 3,g_filemapoffset,3 : inc g_filemapoffset,4
+ set file map dword 3,g_filemapoffset,group : inc g_filemapoffset,4
+ set file map dword 3,g_filemapoffset,len(field$) : inc g_filemapoffset,4
+ set file map string$ 3,g_filemapoffset,field$ : inc g_filemapoffset,((len(field$)+3)/4 )*4
+ set file map dword 3,g_filemapoffset,len(data$) : inc g_filemapoffset,4
+ set file map string$ 3,g_filemapoffset,data$ : inc g_filemapoffset,((len(data$)+3)/4 )*4
+ set file map dword 3,g_filemapoffset,len(desc$) : inc g_filemapoffset,4
+ set file map string$ 3,g_filemapoffset,desc$ : inc g_filemapoffset,((len(desc$)+3)/4 )*4
+endfunction
+
+function setpropertycolor2(group,dataval as DWORD,field$,desc$)
+ data$=str$(rgbr(dataval))+" "+str$(rgbg(dataval))+" "+str$(rgbb(dataval))
+ set file map dword 3,g_filemapoffset,4 : inc g_filemapoffset,4
+ set file map dword 3,g_filemapoffset,group : inc g_filemapoffset,4
+ set file map dword 3,g_filemapoffset,len(field$) : inc g_filemapoffset,4
+ set file map string$ 3,g_filemapoffset,field$ : inc g_filemapoffset,((len(field$)+3)/4 )*4
+ set file map dword 3,g_filemapoffset,len(data$) : inc g_filemapoffset,4
+ set file map string$ 3,g_filemapoffset,data$ : inc g_filemapoffset,((len(data$)+3)/4 )*4
+ set file map dword 3,g_filemapoffset,len(desc$) : inc g_filemapoffset,4
+ set file map string$ 3,g_filemapoffset,desc$ : inc g_filemapoffset,((len(desc$)+3)/4 )*4
+endfunction
+
+function setpropertyfile2(group,data$,field$,desc$,within$)
+ if data$="" then data$=""
+ set file map dword 3,g_filemapoffset,5 : inc g_filemapoffset,4
+ set file map dword 3,g_filemapoffset,group : inc g_filemapoffset,4
+ set file map dword 3,g_filemapoffset,len(field$) : inc g_filemapoffset,4
+ set file map string$ 3,g_filemapoffset,field$ : inc g_filemapoffset,((len(field$)+3)/4 )*4
+ set file map dword 3,g_filemapoffset,len(data$) : inc g_filemapoffset,4
+ set file map string$ 3,g_filemapoffset,data$ : inc g_filemapoffset,((len(data$)+3)/4 )*4
+ set file map dword 3,g_filemapoffset,len(desc$) : inc g_filemapoffset,4
+ set file map string$ 3,g_filemapoffset,desc$ : inc g_filemapoffset,((len(desc$)+3)/4 )*4
+ s$ = rootdir$+within$
+ set file map dword 3,g_filemapoffset,len(s$) : inc g_filemapoffset,4
+ set file map string$ 3,g_filemapoffset,s$ : inc g_filemapoffset,((len(s$)+3)/4 )*4
+ set file map dword 3,g_filemapoffset,len(strarr$(321)) : inc g_filemapoffset,4
+ set file map string$ 3,g_filemapoffset,strarr$(321) : inc g_filemapoffset,((len(strarr$(321))+3)/4 )*4
+ set file map dword 3,g_filemapoffset,len(strarr$(322)) : inc g_filemapoffset,4
+ set file map string$ 3,g_filemapoffset,strarr$(322) : inc g_filemapoffset,((len(strarr$(322))+3)/4 )*4
+endfunction
+
+function setpropertylist2(group,controlindex,data$,field$,desc$,listtype)
+ if data$="" then data$=""
+ if listtype=0
+  rem yesno
+  if data$="0" then data$=strarr$(471)
+  if data$="1" then data$=strarr$(470)
+ endif
+ if listtype=11
+  rem behaviours (trim scriptbank behaviours and .fpi)
+  data$=right$(data$,len(data$)-len("behavioursx"))
+  data$=left$(data$,len(data$)-4)
+  data$=upper$(left$(data$,1))+lower$(right$(data$,len(data$)-1))
+ endif
+ set file map dword 3,g_filemapoffset,6 : inc g_filemapoffset,4
+ set file map dword 3,g_filemapoffset,group : inc g_filemapoffset,4
+ set file map dword 3,g_filemapoffset,controlindex : inc g_filemapoffset,4
+ set file map dword 3,g_filemapoffset,len(field$) : inc g_filemapoffset,4
+ set file map string$ 3,g_filemapoffset,field$ : inc g_filemapoffset,((len(field$)+3)/4 )*4
+ set file map dword 3,g_filemapoffset,len(data$) : inc g_filemapoffset,4
+ set file map string$ 3,g_filemapoffset,data$ : inc g_filemapoffset,((len(data$)+3)/4 )*4
+ set file map dword 3,g_filemapoffset,len(desc$) : inc g_filemapoffset,4
+ set file map string$ 3,g_filemapoffset,desc$ : inc g_filemapoffset,((len(desc$)+3)/4 )*4
+ listmax=0
+ if listtype=0
+  listmax=1
+  list$(0)=strarr$(471)
+  list$(1)=strarr$(470)
+ endif
+ if listtype=1
+  listmax=fillgloballistwithweapons()
+ endif
+ if listtype=11
+  listmax=fillgloballistwithbehaviours()
+ endif 
+ set file map dword 3,g_filemapoffset,listmax : inc g_filemapoffset,4
+ for i = 0 to listmax
+  set file map dword 3,g_filemapoffset,len(list$( i )) : inc g_filemapoffset,4
+  set file map string$ 3,g_filemapoffset,list$( i ) : inc g_filemapoffset,((len(list$( i ))+3)/4 )*4
+ next i
+endfunction
 
 rem
 rem Interface Properties Functions
@@ -44550,6 +44701,37 @@ function fillgloballistwithweapons()
  retvalue=gunmax
 endfunction retvalue
 
+function fillgloballistwithbehaviours_init()
+ retvalue=0
+ if path exist(rootdir$+"scriptbank\behaviours")=1
+  storedir$=get dir$()
+  set dir rootdir$+"scriptbank\behaviours"
+  perform checklist for files
+  dim behaviourlist$(checklist quantity())
+  for c=1 to checklist quantity()
+   file$=checklist string$(c)
+   if lower$(right$(file$,4))=".fpi"
+    inc retvalue
+    file$=left$(file$,len(file$)-4)
+    behaviourlist$(retvalue)=upper$(left$(file$,1))+lower$(right$(file$,len(file$)-1))
+   endif
+  next c
+  set dir storedir$
+ endif
+endfunction retvalue
+
+function fillgloballistwithbehaviours()
+ retvalue=behaviourlistmax
+ dim list$(retvalue)
+ list$(0)=""
+ if retvalue>0
+  for n=1 to retvalue
+   list$(n-1)=behaviourlist$(n)
+  next n
+  retvalue=retvalue-1
+ endif
+endfunction retvalue
+
 function setpropertylist(group,controlindex,data$,field$,desc$,listtype)
  if data$="" then data$=""
  if listtype=0
@@ -44575,6 +44757,9 @@ function setpropertylist(group,controlindex,data$,field$,desc$,listtype)
  if listtype=1
   listmax=fillgloballistwithweapons()
  endif
+ if listtype=11
+  listmax=fillgloballistwithbehaviours()
+ endif 
  for i = 0 to listmax
   set file map dword 2, ENTITY_SET_GROUP_INDEX, group
   set file map dword 2, ENTITY_SET_CONTROL_INDEX, controlindex

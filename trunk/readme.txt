@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
 
+ * Used new system to populate Entity Properties, providing much faster right click display
  * Updated Setup DLL so the TOPMOST directive used by test game now means user does not need click start
  * Ensured characters placed in sealed room on lowest level do not fall through floor at start
  * Tweaked sound system to produce quieter sounds from layers above and below (likely different room)
