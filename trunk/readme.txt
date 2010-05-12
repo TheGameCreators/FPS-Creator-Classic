@@ -9,6 +9,8 @@ History
 V1.1.7
 ------
 
+ * Added new FPI action AISETSPEED=X this will change the ai character's current speed to the number specified by x
+ * Added new FPI action AIPLRCALLTEAM=X this will alert teammates within x distance that the player needs help (to be used with other call commands)
  * Used new system to populate Entity Properties, providing much faster right click display
  * Updated Setup DLL so the TOPMOST directive used by test game now means user does not need click start
  * Ensured characters placed in sealed room on lowest level do not fall through floor at start

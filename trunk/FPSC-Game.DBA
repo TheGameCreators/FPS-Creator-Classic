@@ -1540,6 +1540,8 @@ Rem Hockeykid - 250210 - Dark AI constants
 #constant AIACTAISETMELEEDAMAGE 1082
 #constant AIACTAIROTATETOTARGET 1083
 #constant AIACTAIROTATETOSOUND 1084
+#constant AIACTAIPLRCALLTEAM 1085
+#constant AIACTAISETSPEED 1086
 Rem end Dark AI constants
 #constant AIACTHUDRESET 1100
 #constant AIACTHUDX 1101
@@ -9650,6 +9652,8 @@ actword$(AIACTAIUSEMELEE)="aiusemelee"
 actword$(AIACTAISETMELEEDAMAGE)="aisetmeleedamage"
 actword$(AIACTAIROTATETOTARGET)="airotatetotarget"
 actword$(AIACTAIROTATETOSOUND)="airotatetosound"
+actword$(AIACTAIPLRCALLTEAM)="aiplrcallteam"
+actword$(AIACTAISETSPEED)="aisetspeed"
 
 return
 
@@ -12740,6 +12744,16 @@ if aiindex>0
        Gosub _darkai_callteam
       endif
      endcase
+     case AIACTAIPLRCALLTEAM:
+      maxdist#=aiactionseq(seq).value
+      Gosub _darkai_plrcallteam
+     endcase
+     case AIACTAISETSPEED:
+      If Ai Entity Exist(entityelement(e).obj)
+       entityelement(e).eleprof.speed=aiactionseq(seq).value
+       ai set entity speed entityelement(e).obj,entityelement(e).eleprof.speed/2.0
+      Endif
+     endcase
      case AIACTAIMOVETOCOVER:
       if ai entity exist(entityelement(e).obj)
        Rem if =0 move to cover based on a targets X Z
@@ -12817,10 +12831,13 @@ if aiindex>0
        if entityelement(e).darkai.called>0
         i=entityelement(e).darkai.called
         if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control obj,0
-        targetcontainer=(entityelement(i).y+25)/100
+        x#=Object Position X(i)
+        z#=Object Position Z(i)
+        y#=Object Position Y(i)
+        targetcontainer=(y#+25)/100
         if targetcontainer<0 then targetcontainer=0
         if targetcontainer>19 then targetcontainer=19
-        ai entity go to position entityelement(e).obj,entityelement(i).x,entityelement(i).z,targetcontainer
+        ai entity go to position entityelement(e).obj,x#,z#,targetcontainer
         entityelement(e).darkai.called=-1
         entityelement(e).darkai.calldelay2=timer()
        endif
@@ -43853,7 +43870,7 @@ _interface_copydatatoentity:
    endif
    `
    rem FPGC - 070510 - add behaviour folder back, along with FPI (from combo friendly name to script filename)
-   if lower$(tfield$)="behaviour" 
+   if lower$(tfield$)="behaviour"
     tdata$="behaviours\"+tdata$+".fpi"
    endif
    `
@@ -44626,7 +44643,7 @@ function setpropertylist2(group,controlindex,data$,field$,desc$,listtype)
  endif
  if listtype=11
   listmax=fillgloballistwithbehaviours()
- endif 
+ endif
  set file map dword 3,g_filemapoffset,listmax : inc g_filemapoffset,4
  for i = 0 to listmax
   set file map dword 3,g_filemapoffset,len(list$( i )) : inc g_filemapoffset,4
@@ -44759,7 +44776,7 @@ function setpropertylist(group,controlindex,data$,field$,desc$,listtype)
  endif
  if listtype=11
   listmax=fillgloballistwithbehaviours()
- endif 
+ endif
  for i = 0 to listmax
   set file map dword 2, ENTITY_SET_GROUP_INDEX, group
   set file map dword 2, ENTITY_SET_CONTROL_INDEX, controlindex
@@ -46012,7 +46029,27 @@ _darkai_callteam:
    if entityelement(y).obj<>entityelement(e).obj and entityelement(y).darkai.team=entityelement(e).darkai.team
     dst#=(entityelement(y).x-entityelement(e).x)^2+(entityelement(y).z-entityelement(e).z)^2
     if dst#<=maxdist#
-     if entityelement(y).darkai.called=0 then entityelement(y).darkai.called=e : entityelement(y).darkai.calldelay=timer()
+     if entityelement(y).darkai.called=0 then entityelement(y).darkai.called=entityelement(e).obj : entityelement(y).darkai.calldelay=timer()
+    endif
+   endif
+  endif
+ next i
+Return
+
+_darkai_plrcallteam:
+ arraycount=array count(ischaracter())
+ maxdist#=maxdist#^2
+ x#=Object Position X(physicsplayerborble)
+ y#=Object Position Y(physicsplayerborble)
+ z#=Object Position Z(physicsplayerborble)
+ `
+ for i=1 to arraycount
+  y=ischaracter(i)
+  if ai entity exist(entityelement(y).obj)
+   if entityelement(y).darkai.team=1
+    dst#=(entityelement(y).x-x#)^2+(entityelement(y).z-z#)^2
+    if dst#<=maxdist#
+     if entityelement(y).darkai.called=0 then entityelement(y).darkai.called=physicsplayerborble : entityelement(y).darkai.calldelay=timer()
     endif
    endif
   endif
