@@ -12730,7 +12730,7 @@ if aiindex>0
      case AIACTAIMOVERANDOM:
       if ai entity exist(entityelement(e).obj)
        Rem Hockeykid - 030310 - Reset control mode to manual
-       if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control obj,0
+       if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control entityelement(e).obj,0
        if entityelement(e).darkai.team=1 and entityelement(e).darkai.follow=1 then Gosub _darkai_stopfollow
        entityelement(e).darkai.actionmode=2
       endif
@@ -12843,12 +12843,12 @@ if aiindex>0
      endcase
      case AIACTAIRESPONDTOCALL:
       if ai entity exist(entityelement(e).obj)
-       if entityelement(e).darkai.called<>0 and entityelement(e).darkai.called<>physicsplayerborble
+       if entityelement(e).darkai.called>0 and entityelement(e).darkai.called<>physicsplayerborble
         i=entityelement(e).darkai.called
-        if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control obj,0
-        x#=Object Position X(i)
-        z#=Object Position Z(i)
-        y#=Object Position Y(i)
+        if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control entityelement(e).obj,0
+        x#=Object Position X(entityelement(e).darkai.called)
+        z#=Object Position Z(entityelement(e).darkai.called)
+        y#=Object Position Y(entityelement(e).darkai.called)
         targetcontainer=(y#+25)/100
         if targetcontainer<0 then targetcontainer=0
         if targetcontainer>19 then targetcontainer=19
@@ -12862,7 +12862,7 @@ if aiindex>0
       if ai entity exist(entityelement(e).obj)
        if entityelement(e).darkai.called=physicsplayerborble
         i=entityelement(e).darkai.called
-        if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control obj,0
+        if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control entityelement(e).obj,0
         x#=Object Position X(i)
         z#=Object Position Z(i)
         y#=Object Position Y(i)
@@ -12907,7 +12907,7 @@ if aiindex>0
      endcase
      case AIACTAISTOP:
       if ai entity exist(entityelement(e).obj)
-       if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control obj,0
+       if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control entityelement(e).obj,0
        targetcontainer=(entityelement(e).y+25)/100
        if targetcontainer<0 then targetcontainer=0
        if targetcontainer>19 then targetcontainer=19
@@ -45957,7 +45957,7 @@ rem Apply New Actions
   if timer()-entityelement(e).darkai.calldelay>=1000 then entityelement(e).darkai.called=0
  endif
  if entityelement(e).darkai.called=-1
-  if timer()-entityelement(e).darkai.calldelay2>=15000 then entityelement(e).darkai.called=0
+  if timer()-entityelement(e).darkai.calldelay2>=5000 then entityelement(e).darkai.called=0
  endif
 
  rem Apply Direction
