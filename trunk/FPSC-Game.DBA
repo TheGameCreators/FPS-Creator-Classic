@@ -1361,6 +1361,7 @@ Rem Hockeykid - 250210 - Dark AI conditions
 #constant AICONDAITARGETDISTWITHIN 368
 #constant AICONDAITARGETDISTFURTHER 369
 #constant AICONDAIATCOVER 370
+#constant AICONDAICALLEDBYPLR 371
 Rem End Dark AI
 #constant AICONDHEADANGLEGREATER 401
 #constant AICONDHEADANGLELESS 402
@@ -1542,6 +1543,7 @@ Rem Hockeykid - 250210 - Dark AI constants
 #constant AIACTAIROTATETOSOUND 1084
 #constant AIACTAIPLRCALLTEAM 1085
 #constant AIACTAISETSPEED 1086
+#constant AIACTAIRESPONDTOPLAYER 1087
 Rem end Dark AI constants
 #constant AIACTHUDRESET 1100
 #constant AIACTHUDX 1101
@@ -9441,6 +9443,7 @@ conword$(AICONDAICALLED)="aicalled"
 conword$(AICONDAITARGETDISTWITHIN)="aitargetdistwithin"
 conword$(AICONDAITARGETDISTFURTHER)="aitargetdistfurther"
 conword$(AICONDAIATCOVER)="aiatcover"
+conword$(AICONDAICALLEDBYPLR)="aicalledbyplr"
 rem Dark AI end
 
 rem Set all action keywords
@@ -9654,6 +9657,7 @@ actword$(AIACTAIROTATETOTARGET)="airotatetotarget"
 actword$(AIACTAIROTATETOSOUND)="airotatetosound"
 actword$(AIACTAIPLRCALLTEAM)="aiplrcallteam"
 actword$(AIACTAISETSPEED)="aisetspeed"
+actword$(AIACTAIRESPONDTOPLAYER)="airespondtoplrcall"
 
 return
 
@@ -10680,8 +10684,17 @@ if aiindex>0
     case AICONDAICALLED:
      conda=aiconditionseq(seq).valuea
      if ai entity exist(entityelement(e).obj)
-      if entityelement(e).darkai.called>0 and conda=0 then airesult=0
-      if entityelement(e).darkai.called=0 and conda=1 then airesult=0
+      call=entityelement(e).darkai.called
+      if call=physicsplayerborble then call=0
+      if call>0 and conda=0 then airesult=0
+      if call=0 and conda=1 then airesult=0
+     endif
+    endcase
+    case AICONDAICALLEDBYPLR:
+     conda=aiconditionseq(seq).valuea
+     if ai entity exist(entityelement(e).obj)
+      if entityelement(e).darkai.called=physicsplayerborble and conda=0 then airesult=0
+      if entityelement(e).darkai.called<>physicsplayerborble and conda=1 then airesult=0
      endif
     endcase
     case AICONDAIATCOVER:
@@ -12750,6 +12763,8 @@ if aiindex>0
      endcase
      case AIACTAISETSPEED:
       If Ai Entity Exist(entityelement(e).obj)
+       entid=entityelement(e).bankindex
+       entityprofile(entid).speed=aiactionseq(seq).value
        entityelement(e).eleprof.speed=aiactionseq(seq).value
        ai set entity speed entityelement(e).obj,entityelement(e).eleprof.speed/2.0
       Endif
@@ -12828,7 +12843,24 @@ if aiindex>0
      endcase
      case AIACTAIRESPONDTOCALL:
       if ai entity exist(entityelement(e).obj)
-       if entityelement(e).darkai.called>0
+       if entityelement(e).darkai.called<>0 and entityelement(e).darkai.called<>physicsplayerborble
+        i=entityelement(e).darkai.called
+        if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control obj,0
+        x#=Object Position X(i)
+        z#=Object Position Z(i)
+        y#=Object Position Y(i)
+        targetcontainer=(y#+25)/100
+        if targetcontainer<0 then targetcontainer=0
+        if targetcontainer>19 then targetcontainer=19
+        ai entity go to position entityelement(e).obj,x#,z#,targetcontainer
+        entityelement(e).darkai.called=-1
+        entityelement(e).darkai.calldelay2=timer()
+       endif
+      endif
+     endcase
+     case AIACTAIRESPONDTOPLAYER:
+      if ai entity exist(entityelement(e).obj)
+       if entityelement(e).darkai.called=physicsplayerborble
         i=entityelement(e).darkai.called
         if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control obj,0
         x#=Object Position X(i)

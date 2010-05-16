@@ -9,6 +9,8 @@ History
 V1.1.7
 ------
 
+ * Added new FPI condition AICALLEDBYPLR=X this will return if the entity has been called by the AIPLRCALLTEAM=X command
+ * Added new FPI action AIRESPONDTOPLRCALL=X this will cause a fellow player teammate to move towards the player (if any he for help)
  * Added new FPI action AISETSPEED=X this will change the ai character's current speed to the number specified by x
  * Added new FPI action AIPLRCALLTEAM=X this will alert teammates within x distance that the player needs help (to be used with other call commands)
  * Used new system to populate Entity Properties, providing much faster right click display
