@@ -990,6 +990,8 @@ type aistatustype
  alphafadeupdate as integer
  headangle as float
  headdestangle as float
+ headnodangle as float
+ headdestnodangle as float
  waypoint as aiwaypointtype
  usinginternalai as integer
  oldstate as integer
@@ -6840,7 +6842,8 @@ for e=1 to entityelementlist
       if limb exist(obj,entityprofile(entid).headlimb)=1
        `
        rem handle regular head rotation to obey headangle
-       rotate limb obj,entityprofile(entid).headlimb,curveangle(entityelement(e).ai.headangle,limb angle x(obj,entityprofile(entid).headlimb),3.0),limb angle y(obj,entityprofile(entid).headlimb),limb angle z(obj,entityprofile(entid).headlimb)
+       `FPGC - 170510 - new HEADNOD rotate limb obj,entityprofile(entid).headlimb,curveangle(entityelement(e).ai.headangle,limb angle x(obj,entityprofile(entid).headlimb),3.0),limb angle y(obj,entityprofile(entid).headlimb),limb angle z(obj,entityprofile(entid).headlimb)
+       rotate limb obj,entityprofile(entid).headlimb,curveangle(entityelement(e).ai.headangle,limb angle x(obj,entityprofile(entid).headlimb),3.0),curveangle(entityelement(e).ai.headnodangle,limb angle y(obj,entityprofile(entid).headlimb),3.0),limb angle z(obj,entityprofile(entid).headlimb)
        `
        rem FPGC - DARKVOICES - 070910 - quick hack to move mouth and arm of the NEW character type
        if nextgenbranch=1
@@ -7400,6 +7403,8 @@ if trundefaultscript>0
  rem Always reset these after AI script switch
  entityelement(e).ai.headdestangle=0
  entityelement(e).ai.headangle=0
+ entityelement(e).ai.headdestnodangle=0
+ entityelement(e).ai.headnodangle=0
  `
 endif
 
@@ -7519,6 +7524,8 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
       entityelement(te).ai.state=0
       entityelement(te).ai.headangle=0
       entityelement(te).ai.headdestangle=0
+      entityelement(te).ai.headnodangle=0
+      entityelement(te).ai.headdestnodangle=0
       entityelement(te).ai.usinginternalai=0
       entityelement(te).ai.oldstate=0
       entityelement(te).ai.alphafade=0
@@ -7692,8 +7699,10 @@ if entityelement(e).ai.waypoint.state>0
   entityelement(e).mover.dy=waypointcoord(w).y
   entityelement(e).mover.dz=waypointcoord(w).z
   entityelement(e).mover.moved=1
-  entityelement(e).mover.run=0
   entityelement(e).ai.waypoint.state=2
+  `
+  rem FPGC - 170510 - comment this out so RUNFORE has a changce to allow running on waypoints
+  `entityelement(e).mover.run=0
   `
   rem characters animate when waypoint is followed, if alive
   entid=entityelement(e).bankindex
@@ -7710,7 +7719,8 @@ if entityelement(e).ai.waypoint.state>0
   entityelement(e).mover.dy=waypointcoord(w).y
   entityelement(e).mover.dz=waypointcoord(w).z
   entityelement(e).mover.moved=1
-  entityelement(e).mover.run=0
+  rem FPGC - 170510 - comment this out so RUNFORE has a changce to allow running on waypoints
+  `entityelement(e).mover.run=0
   tdx#=entityelement(e).mover.dx-entityelement(e).x
   tdz#=entityelement(e).mover.dz-entityelement(e).z
   entityelement(e).mover.da=atanfull(tdx#,tdz#)
@@ -8479,6 +8489,21 @@ _entity_controlmovements:
  else
   rem add subtle movements in headangle
   entityelement(e).ai.headangle=curvevalue(entityelement(e).ai.headdestangle-5.0+(rnd(100)/10.0),entityelement(e).ai.headangle,3.0)
+ endif
+ `
+ rem FPGC - 170510 - new head nod value (allowed on some characters, use RESETHEAD=X to control this
+ if entityelement(e).ai.headnodangle<>entityelement(e).ai.headdestnodangle
+  if entityelement(e).ai.headnodangle<entityelement(e).ai.headdestnodangle
+   entityelement(e).ai.headnodangle=entityelement(e).ai.headnodangle+(5*timeelapsed#)
+   if entityelement(e).ai.headnodangle>entityelement(e).ai.headdestnodangle
+    entityelement(e).ai.headnodangle=entityelement(e).ai.headdestnodangle
+   endif
+  else
+   entityelement(e).ai.headnodangle=entityelement(e).ai.headnodangle-(5*timeelapsed#)
+   if entityelement(e).ai.headnodangle<entityelement(e).ai.headdestnodangle
+    entityelement(e).ai.headnodangle=entityelement(e).ai.headdestnodangle
+   endif
+  endif
  endif
  `
 return
@@ -10960,6 +10985,8 @@ if aiindex>0
       entityelement(e).mover.dz=entityelement(e).z
       entityelement(e).ai.headangle=0.0
       entityelement(e).ai.headdestangle=0.0
+      entityelement(e).ai.headnodangle=0.0
+      entityelement(e).ai.headdestnodangle=0.0 
       entityelement(e).ai.waypoint.state=999
       entityelement(e).mover.moved=0
       entityelement(e).mover.run=0
@@ -10980,12 +11007,16 @@ if aiindex>0
      case AIACTROTATETOPLR:
       entityelement(e).ai.headangle=0.0
       entityelement(e).ai.headdestangle=0.0
+      entityelement(e).ai.headnodangle=0.0
+      entityelement(e).ai.headdestnodangle=0.0
       entityelement(e).mover.da=wrapvalue(diffangle#)
      endcase
      case AIACTROTATEIY:
       tmp#=aiactionseq(seq).value
       entityelement(e).ry=entityelement(e).ry+tmp#
       entityelement(e).mover.da=entityelement(e).ry
+      rem FPGC - 170510 - restore RY so rotate IY can turn gradually (not all at once)
+      entityelement(e).ry=entityelement(e).ry-tmp#
       if obj>0
        yrotate object obj,entityelement(e).ry
       endif
@@ -10995,6 +11026,7 @@ if aiindex>0
      endcase
      `
      case AIACTRESETHEAD:
+      entityelement(e).ai.headdestnodangle=aiactionseq(seq).value
       entityelement(e).ai.headdestangle=0.0
      endcase
      case AIACTROTATEHEAD:
@@ -11210,20 +11242,20 @@ if aiindex>0
       if tsoundzoneinstead>0
        rem Use sound and sound file of matching sound zone (soundset $1 NOT $0)
        tsoundindexfromsoundzone=entityelement(tsoundzoneinstead).soundset1
-       playinternal3dsound(tsoundindexfromsoundzone,tmpx#,tmpy#,tmpz#)
+       playinternal3dsoundfactor(tsoundindexfromsoundzone,tmpx#,tmpy#,tmpz#,20)
        entityelement(e).soundlooping=tsoundindexfromsoundzone
        currentsoundfile$=entityelement(tsoundzoneinstead).eleprof.soundset1$
       else
        rem Traditionally use soundset or direct file specified
        if aiactionseq(seq).value=-1
-        playinternal3dsound(entityelement(e).soundset,tmpx#,tmpy#,tmpz#)
+        playinternal3dsoundfactor(entityelement(e).soundset,tmpx#,tmpy#,tmpz#,20)
         entityelement(e).soundlooping=entityelement(e).soundset
        else
         if aiactionseq(seq).value=-2
-         playinternal3dsound(entityelement(e).soundset1,tmpx#,tmpy#,tmpz#)
+         playinternal3dsoundfactor(entityelement(e).soundset1,tmpx#,tmpy#,tmpz#,20)
          entityelement(e).soundlooping=entityelement(e).soundset1
         else
-         playinternal3dsound(aiactionseq(seq).value,tmpx#,tmpy#,tmpz#)
+         playinternal3dsoundfactor(aiactionseq(seq).value,tmpx#,tmpy#,tmpz#,20)
          entityelement(e).soundlooping=aiactionseq(seq).value
         endif
        endif
@@ -11556,6 +11588,7 @@ if aiindex>0
       if tdiffangle#>180 then tdiffangle#=tdiffangle#-360
       if abs(tdiffangle#)>aiactionseq(seq).value then tdiffangle#=0
       entityelement(e).ai.headdestangle=tdiffangle#
+      entityelement(e).ai.headdestnodangle=0
      endcase
      case AIACTMOVETOTARGET:
       tokay=0
@@ -11647,6 +11680,7 @@ if aiindex>0
       if tdiffangle#>180 then tdiffangle#=tdiffangle#-360
       if abs(tdiffangle#)>aiactionseq(seq).value then tdiffangle#=0
       entityelement(e).ai.headdestangle=tdiffangle#
+      entityelement(e).ai.headdestnodangle=0
      endcase
      case AIACTSETTARGETNAME:
       tstrindex=aiactionseq(seq).value
@@ -29141,7 +29175,7 @@ _ode_listener:
   roughz=camera position z(0)/10.0 : roughz=(roughz/2)*2
   if roughx<>lastroughx or roughy<>lastroughy or roughz<>lastroughz
    lastroughx=roughx : lastroughy=roughy : lastroughz=roughz
-   position listener roughx,roughy-5,roughz
+   position listener roughx,roughy,roughz
   endif
   `rotate listener 0,camera angle y(0),0  `want my rotspeed back!
   roughaa=camera angle y(0)/22.0
@@ -43862,6 +43896,9 @@ return
 
 _interface_copydatatoentity:
  `
+ rem FPGC - 170510 - can trigger LIPSYNC generation if VOICEOVER has a WAV and no LIPSYNC
+ generatelipsync$=""
+ `
  rem go through all active fields
  for iGroup=0 to propfieldgroupmax
   for iControl=0 to propfield(iGroup)-1
@@ -43965,7 +44002,10 @@ _interface_copydatatoentity:
    if lower$(tfield$)=lower$(strarr$(469)) then grideleprof.soundset$=tdata$
    if lower$(tfield$)=lower$(strarr$(598)) then grideleprof.soundset$=tdata$
    if lower$(tfield$)=lower$(strarr$(600)) then grideleprof.soundset1$=tdata$
-   if lower$(tfield$)="voiceover" then grideleprof.soundset1$=tdata$
+   if lower$(tfield$)="voiceover" 
+    grideleprof.soundset1$=tdata$
+    generatelipsync$=tdata$
+   endif
    if lower$(tfield$)=lower$(strarr$(462)) then grideleprof.light.range=val(tdata$)
    `
    if lower$(tfield$)=lower$(strarr$(580)) then grideleprof.physics=val(tdata$)
@@ -43994,6 +44034,21 @@ _interface_copydatatoentity:
    `
   next iControl
  next iGroup
+ `
+ rem FPGC - 170510 - generate LIPSYNC if not present
+ if generatelipsync$<>"" and lower$(right$(generatelipsync$,4))=".wav"
+  tlipsync$=left$(generatelipsync$,len(generatelipsync$)-4)+".lipsync"
+  if file exist(rootdir$+tlipsync$)=0
+   rem generate fresh LIPSYNC file
+   twav2lipsyncbat$=rootdir$+"audiobank\darkvoices\wav2lipsync.bat"
+   if file exist(twav2lipsyncbat$)=1 then delete file twav2lipsyncbat$
+   open to write 1,twav2lipsyncbat$
+    write string 1,chr$(34)+rootdir$+"audiobank\darkvoices\wav2lipsync.exe"+chr$(34)+" "+chr$(34)+rootdir$+generatelipsync$+chr$(34)
+   close file 1
+   twav2lipsync$=rootdir$+"audiobank\darkvoices\wav2lipsync silent"
+   execute file twav2lipsync$,"","",0
+  endif
+ endif
  `
 return
 

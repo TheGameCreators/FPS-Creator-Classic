@@ -168,6 +168,9 @@ V1.1.7
 FPGC VARIANT SPECIFIC
 ---------------------
 
+ * Wrote a host of new generic behaviours for story based characters
+ * Added new DARKVOICES folder inside AUDIOBANK which automatically generates LIPSYNC from WAVs specified
+ * Added new parameter awareness to RESETHEAD, which can tilt the head in a NOD angle (i.e. sleep)
  * Added alwaysconfirmsave flag to SETUP.INI which ensures the SAVE cannot quickly overwrite a file
  * Removed bullet holes from WW2 WALL K and weapon reference from SCIFI ARMOURY WALL
  * Added MINER 2 INJURED entity to library to aid specific story line of a mission
