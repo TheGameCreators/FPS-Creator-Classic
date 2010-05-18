@@ -2319,6 +2319,7 @@ global gentitytogglingoff : gentitytogglingoff=0
 global gextracollisionbuilddisabled : gextracollisionbuilddisabled=1
 global galwaysconfirmsave : galwaysconfirmsave=0
 global gsimplifiedcharacterediting : gsimplifiedcharacterediting=0
+global simplifiedentityediting : simplifiedentityediting=0
 
 rem Version Control - TEST GAME Mode
 global gtestgamemodefromeditor : gtestgamemodefromeditor=0
@@ -2462,6 +2463,7 @@ if file exist(tfile$)=1
     tryfield$="extracollisionbuilddisabled" : if field$=tryfield$ then gextracollisionbuilddisabled=value1
     tryfield$="alwaysconfirmsave" : if field$=tryfield$ then galwaysconfirmsave=value1
     tryfield$="simplifiedcharacterediting" : if field$=tryfield$ then gsimplifiedcharacterediting=value1
+    tryfield$="simplifiedentityediting" : if field$=tryfield$ then gsimplifiedentityediting=value1
     `
     tryfield$="xbox"
     if field$=tryfield$
@@ -12362,6 +12364,9 @@ if aiindex>0
        endif
       endif
       if weblinkaddress$<>""
+       if lower$(left$(weblinkaddress$,4))="www."
+        weblinkaddress$="http://"+weblinkaddress$
+       endif
        if lower$(left$(weblinkaddress$,5))="http:"
         window to back
         execute file "iexplore.exe",weblinkaddress$,"C:\Program Files\Internet Explorer",1
@@ -43391,6 +43396,7 @@ setuparr$(i)="entitytogglingoff="+str$(gentitytogglingoff) : inc i
 setuparr$(i)="extracollisionbuilddisabled="+str$(gextracollisionbuilddisabled) : inc i
 setuparr$(i)="alwaysconfirmsave="+str$(galwaysconfirmsave) : inc i
 setuparr$(i)="simplifiedcharacterediting="+str$(gsimplifiedcharacterediting) : inc i
+setuparr$(i)="simplifiedentityediting="+str$(gsimplifiedentityediting) : inc i
 `
 setuparr$(i)="" : inc i
 setuparr$(i)="[GAMEDEBUG]" : inc i
@@ -43646,7 +43652,7 @@ _interface_openpropertywindow:
   `
   if tsimplecharview=1
    `
-   rem Wizard (simplified) property editing
+   rem Character Info (simplified) property editing
    group=0 : startgroup("Character Info") : controlindex=0
    setpropertystring2(group,grideleprof.name$,strarr$(413),"Choose a unique name for this character") : inc controlindex
    setpropertylist2(group,controlindex,grideleprof.aimain$,"Behaviour","Select a behaviour for this character",11) : inc controlindex
@@ -43678,7 +43684,8 @@ _interface_openpropertywindow:
    `
    rem Has Weapon
    if gmultiplayergame=0
-    if tflaghasweapon=1
+    rem FPGC - 180510 - removed EQUIPMENT system from FPGC for the moment (and fpgcgenre=1)
+    if tflaghasweapon=1 and fpgcgenre=1
      setpropertylist2(group,controlindex,grideleprof.hasweapon$,strarr$(419),strarr$(209),1) : inc controlindex
     endif
    endif
@@ -43745,24 +43752,26 @@ _interface_openpropertywindow:
      propfield(group)=controlindex
      inc group : startgroup(strarr$(439)) : controlindex=0
      setpropertylist2(group,controlindex,str$(grideleprof.spawnatstart),strarr$(562),strarr$(563),0) : inc controlindex
-     setpropertystring2(group,str$(grideleprof.spawnmax),strarr$(440),strarr$(231)) : inc controlindex
-     setpropertystring2(group,str$(grideleprof.spawnupto),strarr$(441),strarr$(232)) : inc controlindex
-     setpropertylist2(group,controlindex,str$(grideleprof.spawnafterdelay),strarr$(442),strarr$(233),0) : inc controlindex
-     setpropertylist2(group,controlindex,str$(grideleprof.spawnwhendead),strarr$(443),strarr$(234),0) : inc controlindex
-     setpropertystring2(group,str$(grideleprof.spawndelay),strarr$(444),strarr$(235)) : inc controlindex
-     setpropertystring2(group,str$(grideleprof.spawndelayrandom),strarr$(564),strarr$(565)) : inc controlindex
-     setpropertystring2(group,str$(grideleprof.spawnqty),strarr$(445),strarr$(236)) : inc controlindex
-     setpropertystring2(group,str$(grideleprof.spawnqtyrandom),strarr$(566),strarr$(567)) : inc controlindex
-     setpropertystring2(group,str$(grideleprof.spawnvel),strarr$(568),strarr$(569)) : inc controlindex
-     setpropertystring2(group,str$(grideleprof.spawnvelrandom),strarr$(570),strarr$(571)) : inc controlindex
-     setpropertystring2(group,str$(grideleprof.spawnangle),strarr$(572),strarr$(573)) : inc controlindex
-     setpropertystring2(group,str$(grideleprof.spawnanglerandom),strarr$(574),strarr$(575)) : inc controlindex
-     setpropertystring2(group,str$(grideleprof.spawnlife),strarr$(576),strarr$(577)) : inc controlindex
+     if gsimplifiedentityediting=0
+      setpropertystring2(group,str$(grideleprof.spawnmax),strarr$(440),strarr$(231)) : inc controlindex
+      setpropertystring2(group,str$(grideleprof.spawnupto),strarr$(441),strarr$(232)) : inc controlindex
+      setpropertylist2(group,controlindex,str$(grideleprof.spawnafterdelay),strarr$(442),strarr$(233),0) : inc controlindex
+      setpropertylist2(group,controlindex,str$(grideleprof.spawnwhendead),strarr$(443),strarr$(234),0) : inc controlindex
+      setpropertystring2(group,str$(grideleprof.spawndelay),strarr$(444),strarr$(235)) : inc controlindex
+      setpropertystring2(group,str$(grideleprof.spawndelayrandom),strarr$(564),strarr$(565)) : inc controlindex
+      setpropertystring2(group,str$(grideleprof.spawnqty),strarr$(445),strarr$(236)) : inc controlindex
+      setpropertystring2(group,str$(grideleprof.spawnqtyrandom),strarr$(566),strarr$(567)) : inc controlindex
+      setpropertystring2(group,str$(grideleprof.spawnvel),strarr$(568),strarr$(569)) : inc controlindex
+      setpropertystring2(group,str$(grideleprof.spawnvelrandom),strarr$(570),strarr$(571)) : inc controlindex
+      setpropertystring2(group,str$(grideleprof.spawnangle),strarr$(572),strarr$(573)) : inc controlindex
+      setpropertystring2(group,str$(grideleprof.spawnanglerandom),strarr$(574),strarr$(575)) : inc controlindex
+      setpropertystring2(group,str$(grideleprof.spawnlife),strarr$(576),strarr$(577)) : inc controlindex
+     endif
     endif
    endif
    `
    rem Visual
-   if tflagvis=1
+   if tflagvis=1 and gsimplifiedentityediting=0
     propfield(group)=controlindex
     inc group : startgroup(strarr$(446)) : controlindex=0
     setpropertyfile2(group,grideleprof.texd$,strarr$(447),strarr$(237),"") : inc controlindex
@@ -43775,18 +43784,28 @@ _interface_openpropertywindow:
    rem Statistics
    if gmultiplayergame=0 or (gmultiplayergame=1 and tstatic=0)
     if (tflagvis=1 or tflagobjective=1 or tflaglives=1 or tflagstats=1) and tflagweap=0 and tflagammo=0
-     propfield(group)=controlindex
-     inc group : startgroup(strarr$(451)) : controlindex=0
+     if gsimplifiedentityediting=1
+      rem FPGC - 180510 - if simplified, may not have statistics group
+      if tflaglives=1 or tflaghurtfall=1 or tflagmobile=1
+       propfield(group)=controlindex
+       inc group : startgroup(strarr$(451)) : controlindex=0
+      endif
+     else
+      propfield(group)=controlindex
+      inc group : startgroup(strarr$(451)) : controlindex=0
+     endif
      if gmultiplayergame=0
       if tflaglives=1 then setpropertystring2(group,str$(grideleprof.lives),strarr$(452),strarr$(242)) : inc controlindex
      endif
-     if tflagvis=1 or tflagstats=1
+     if (tflagvis=1 or tflagstats=1)
       if tflaglives=1
        setpropertystring2(group,str$(grideleprof.strength),strarr$(453),strarr$(243)) : inc controlindex
       else
-       setpropertystring2(group,str$(grideleprof.strength),strarr$(454),strarr$(244)) : inc controlindex
+       if gsimplifiedentityediting=0
+        setpropertystring2(group,str$(grideleprof.strength),strarr$(454),strarr$(244)) : inc controlindex
+       endif
       endif
-      if gmultiplayergame=0
+      if gmultiplayergame=0 and gsimplifiedentityediting=0
        setpropertystring2(group,str$(grideleprof.speed),strarr$(455),strarr$(245)) : inc controlindex
       endif
      endif
@@ -43794,8 +43813,10 @@ _interface_openpropertywindow:
      if gmultiplayergame=0
       if tflagmobile=1 then setpropertylist2(group,controlindex,str$(grideleprof.isimmobile),strarr$(457),strarr$(247),0) : inc controlindex
      endif
-     if gmultiplayergame=0 or (gmultiplayergame=1 and entityprofile(gridentity).ismarker=3)
-      if tflagobjective=1 then setpropertystring2(group,str$(grideleprof.isobjective),strarr$(458),strarr$(248)) : inc controlindex
+     if gsimplifiedentityediting=0
+      if gmultiplayergame=0 or (gmultiplayergame=1 and entityprofile(gridentity).ismarker=3)
+       if tflagobjective=1 then setpropertystring2(group,str$(grideleprof.isobjective),strarr$(458),strarr$(248)) : inc controlindex
+      endif
      endif
     endif
    endif
@@ -43806,14 +43827,18 @@ _interface_openpropertywindow:
      propfield(group)=controlindex
      inc group : startgroup(strarr$(596)) : controlindex=0
      if grideleprof.physics<>1 then grideleprof.physics=0
-     setpropertylist2(group,controlindex,str$(grideleprof.physics),strarr$(580),strarr$(581),0) : inc controlindex
-     setpropertylist2(group,controlindex,str$(grideleprof.phyalways),strarr$(582),strarr$(583),0) : inc controlindex
-     setpropertystring2(group,str$(grideleprof.phyweight),strarr$(584),strarr$(585)) : inc controlindex
-     setpropertystring2(group,str$(grideleprof.phyfriction),strarr$(586),strarr$(587)) : inc controlindex
-     setpropertystring2(group,str$(grideleprof.phyforcedamage),strarr$(588),strarr$(589)) : inc controlindex
-     setpropertystring2(group,str$(grideleprof.rotatethrow),strarr$(590),strarr$(591)) : inc controlindex
-     setpropertylist2(group,controlindex,str$(grideleprof.explodable),strarr$(592),strarr$(593),0) : inc controlindex
-     setpropertystring2(group,str$(grideleprof.explodedamage),strarr$(594),strarr$(595)) : inc controlindex
+     if gsimplifiedentityediting=0
+      setpropertylist2(group,controlindex,str$(grideleprof.physics),strarr$(580),strarr$(581),0) : inc controlindex
+      setpropertylist2(group,controlindex,str$(grideleprof.phyalways),strarr$(582),strarr$(583),0) : inc controlindex
+      setpropertystring2(group,str$(grideleprof.phyweight),strarr$(584),strarr$(585)) : inc controlindex
+      setpropertystring2(group,str$(grideleprof.phyfriction),strarr$(586),strarr$(587)) : inc controlindex
+      setpropertystring2(group,str$(grideleprof.phyforcedamage),strarr$(588),strarr$(589)) : inc controlindex
+      setpropertystring2(group,str$(grideleprof.rotatethrow),strarr$(590),strarr$(591)) : inc controlindex
+      setpropertylist2(group,controlindex,str$(grideleprof.explodable),strarr$(592),strarr$(593),0) : inc controlindex
+      setpropertystring2(group,str$(grideleprof.explodedamage),strarr$(594),strarr$(595)) : inc controlindex
+     else
+      setpropertylist2(group,controlindex,str$(grideleprof.phyalways),strarr$(582),strarr$(583),0) : inc controlindex
+     endif
     endif
    endif
    `
@@ -43857,7 +43882,10 @@ _interface_openpropertywindow:
      else
       setpropertyfile2(group,grideleprof.soundset$,strarr$(467),strarr$(253),"audiobank\") : inc controlindex
      endif
-     setpropertyfile2(group,grideleprof.soundset1$,strarr$(468),strarr$(254),"audiobank\") : inc controlindex
+     rem FPGC - 180510 - no access to second $1 for player start marker
+     if entityprofile(gridentity).ismarker<>1
+      setpropertyfile2(group,grideleprof.soundset1$,strarr$(468),strarr$(254),"audiobank\") : inc controlindex
+     endif
     endif
    endif
    if tflagvideo=1

@@ -168,6 +168,7 @@ V1.1.7
 FPGC VARIANT SPECIFIC
 ---------------------
 
+ * Added new SETUP flag to simplify entity property editing for easier academic experience
  * Wrote a host of new generic behaviours for story based characters
  * Added new DARKVOICES folder inside AUDIOBANK which automatically generates LIPSYNC from WAVs specified
  * Added new parameter awareness to RESETHEAD, which can tilt the head in a NOD angle (i.e. sleep)
