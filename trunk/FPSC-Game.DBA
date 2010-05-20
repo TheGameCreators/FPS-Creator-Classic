@@ -111,6 +111,7 @@ type darkaitype
  ambushy# as float
  ambushz# as float
  beenhurt as integer
+ autoattackoff as integer
  Rem Delay Timers
  delay as integer
  delay2 as integer
@@ -990,8 +991,6 @@ type aistatustype
  alphafadeupdate as integer
  headangle as float
  headdestangle as float
- headnodangle as float
- headdestnodangle as float
  waypoint as aiwaypointtype
  usinginternalai as integer
  oldstate as integer
@@ -1546,6 +1545,7 @@ Rem Hockeykid - 250210 - Dark AI constants
 #constant AIACTAIPLRCALLTEAM 1085
 #constant AIACTAISETSPEED 1086
 #constant AIACTAIRESPONDTOPLAYER 1087
+#constant AIACTAITOGLLEATTACK 1088
 Rem end Dark AI constants
 #constant AIACTHUDRESET 1100
 #constant AIACTHUDX 1101
@@ -2319,7 +2319,6 @@ global gentitytogglingoff : gentitytogglingoff=0
 global gextracollisionbuilddisabled : gextracollisionbuilddisabled=1
 global galwaysconfirmsave : galwaysconfirmsave=0
 global gsimplifiedcharacterediting : gsimplifiedcharacterediting=0
-global simplifiedentityediting : simplifiedentityediting=0
 
 rem Version Control - TEST GAME Mode
 global gtestgamemodefromeditor : gtestgamemodefromeditor=0
@@ -2463,7 +2462,6 @@ if file exist(tfile$)=1
     tryfield$="extracollisionbuilddisabled" : if field$=tryfield$ then gextracollisionbuilddisabled=value1
     tryfield$="alwaysconfirmsave" : if field$=tryfield$ then galwaysconfirmsave=value1
     tryfield$="simplifiedcharacterediting" : if field$=tryfield$ then gsimplifiedcharacterediting=value1
-    tryfield$="simplifiedentityediting" : if field$=tryfield$ then gsimplifiedentityediting=value1
     `
     tryfield$="xbox"
     if field$=tryfield$
@@ -6844,8 +6842,7 @@ for e=1 to entityelementlist
       if limb exist(obj,entityprofile(entid).headlimb)=1
        `
        rem handle regular head rotation to obey headangle
-       `FPGC - 170510 - new HEADNOD rotate limb obj,entityprofile(entid).headlimb,curveangle(entityelement(e).ai.headangle,limb angle x(obj,entityprofile(entid).headlimb),3.0),limb angle y(obj,entityprofile(entid).headlimb),limb angle z(obj,entityprofile(entid).headlimb)
-       rotate limb obj,entityprofile(entid).headlimb,curveangle(entityelement(e).ai.headangle,limb angle x(obj,entityprofile(entid).headlimb),3.0),curveangle(entityelement(e).ai.headnodangle,limb angle y(obj,entityprofile(entid).headlimb),3.0),limb angle z(obj,entityprofile(entid).headlimb)
+       rotate limb obj,entityprofile(entid).headlimb,curveangle(entityelement(e).ai.headangle,limb angle x(obj,entityprofile(entid).headlimb),3.0),limb angle y(obj,entityprofile(entid).headlimb),limb angle z(obj,entityprofile(entid).headlimb)
        `
        rem FPGC - DARKVOICES - 070910 - quick hack to move mouth and arm of the NEW character type
        if nextgenbranch=1
@@ -7405,8 +7402,6 @@ if trundefaultscript>0
  rem Always reset these after AI script switch
  entityelement(e).ai.headdestangle=0
  entityelement(e).ai.headangle=0
- entityelement(e).ai.headdestnodangle=0
- entityelement(e).ai.headnodangle=0
  `
 endif
 
@@ -7526,8 +7521,6 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
       entityelement(te).ai.state=0
       entityelement(te).ai.headangle=0
       entityelement(te).ai.headdestangle=0
-      entityelement(te).ai.headnodangle=0
-      entityelement(te).ai.headdestnodangle=0
       entityelement(te).ai.usinginternalai=0
       entityelement(te).ai.oldstate=0
       entityelement(te).ai.alphafade=0
@@ -7701,10 +7694,8 @@ if entityelement(e).ai.waypoint.state>0
   entityelement(e).mover.dy=waypointcoord(w).y
   entityelement(e).mover.dz=waypointcoord(w).z
   entityelement(e).mover.moved=1
+  entityelement(e).mover.run=0
   entityelement(e).ai.waypoint.state=2
-  `
-  rem FPGC - 170510 - comment this out so RUNFORE has a changce to allow running on waypoints
-  `entityelement(e).mover.run=0
   `
   rem characters animate when waypoint is followed, if alive
   entid=entityelement(e).bankindex
@@ -7721,8 +7712,7 @@ if entityelement(e).ai.waypoint.state>0
   entityelement(e).mover.dy=waypointcoord(w).y
   entityelement(e).mover.dz=waypointcoord(w).z
   entityelement(e).mover.moved=1
-  rem FPGC - 170510 - comment this out so RUNFORE has a changce to allow running on waypoints
-  `entityelement(e).mover.run=0
+  entityelement(e).mover.run=0
   tdx#=entityelement(e).mover.dx-entityelement(e).x
   tdz#=entityelement(e).mover.dz-entityelement(e).z
   entityelement(e).mover.da=atanfull(tdx#,tdz#)
@@ -8491,21 +8481,6 @@ _entity_controlmovements:
  else
   rem add subtle movements in headangle
   entityelement(e).ai.headangle=curvevalue(entityelement(e).ai.headdestangle-5.0+(rnd(100)/10.0),entityelement(e).ai.headangle,3.0)
- endif
- `
- rem FPGC - 170510 - new head nod value (allowed on some characters, use RESETHEAD=X to control this
- if entityelement(e).ai.headnodangle<>entityelement(e).ai.headdestnodangle
-  if entityelement(e).ai.headnodangle<entityelement(e).ai.headdestnodangle
-   entityelement(e).ai.headnodangle=entityelement(e).ai.headnodangle+(5*timeelapsed#)
-   if entityelement(e).ai.headnodangle>entityelement(e).ai.headdestnodangle
-    entityelement(e).ai.headnodangle=entityelement(e).ai.headdestnodangle
-   endif
-  else
-   entityelement(e).ai.headnodangle=entityelement(e).ai.headnodangle-(5*timeelapsed#)
-   if entityelement(e).ai.headnodangle<entityelement(e).ai.headdestnodangle
-    entityelement(e).ai.headnodangle=entityelement(e).ai.headdestnodangle
-   endif
-  endif
  endif
  `
 return
@@ -9685,6 +9660,7 @@ actword$(AIACTAIROTATETOSOUND)="airotatetosound"
 actword$(AIACTAIPLRCALLTEAM)="aiplrcallteam"
 actword$(AIACTAISETSPEED)="aisetspeed"
 actword$(AIACTAIRESPONDTOPLAYER)="airespondtoplrcall"
+actword$(AIACTAITOGLLEATTACK)="aiattackawareness"
 
 return
 
@@ -10987,8 +10963,6 @@ if aiindex>0
       entityelement(e).mover.dz=entityelement(e).z
       entityelement(e).ai.headangle=0.0
       entityelement(e).ai.headdestangle=0.0
-      entityelement(e).ai.headnodangle=0.0
-      entityelement(e).ai.headdestnodangle=0.0 
       entityelement(e).ai.waypoint.state=999
       entityelement(e).mover.moved=0
       entityelement(e).mover.run=0
@@ -11009,16 +10983,12 @@ if aiindex>0
      case AIACTROTATETOPLR:
       entityelement(e).ai.headangle=0.0
       entityelement(e).ai.headdestangle=0.0
-      entityelement(e).ai.headnodangle=0.0
-      entityelement(e).ai.headdestnodangle=0.0
       entityelement(e).mover.da=wrapvalue(diffangle#)
      endcase
      case AIACTROTATEIY:
       tmp#=aiactionseq(seq).value
       entityelement(e).ry=entityelement(e).ry+tmp#
       entityelement(e).mover.da=entityelement(e).ry
-      rem FPGC - 170510 - restore RY so rotate IY can turn gradually (not all at once)
-      entityelement(e).ry=entityelement(e).ry-tmp#
       if obj>0
        yrotate object obj,entityelement(e).ry
       endif
@@ -11028,7 +10998,6 @@ if aiindex>0
      endcase
      `
      case AIACTRESETHEAD:
-      entityelement(e).ai.headdestnodangle=aiactionseq(seq).value
       entityelement(e).ai.headdestangle=0.0
      endcase
      case AIACTROTATEHEAD:
@@ -11244,20 +11213,20 @@ if aiindex>0
       if tsoundzoneinstead>0
        rem Use sound and sound file of matching sound zone (soundset $1 NOT $0)
        tsoundindexfromsoundzone=entityelement(tsoundzoneinstead).soundset1
-       playinternal3dsoundfactor(tsoundindexfromsoundzone,tmpx#,tmpy#,tmpz#,20)
+       playinternal3dsound(tsoundindexfromsoundzone,tmpx#,tmpy#,tmpz#)
        entityelement(e).soundlooping=tsoundindexfromsoundzone
        currentsoundfile$=entityelement(tsoundzoneinstead).eleprof.soundset1$
       else
        rem Traditionally use soundset or direct file specified
        if aiactionseq(seq).value=-1
-        playinternal3dsoundfactor(entityelement(e).soundset,tmpx#,tmpy#,tmpz#,20)
+        playinternal3dsound(entityelement(e).soundset,tmpx#,tmpy#,tmpz#)
         entityelement(e).soundlooping=entityelement(e).soundset
        else
         if aiactionseq(seq).value=-2
-         playinternal3dsoundfactor(entityelement(e).soundset1,tmpx#,tmpy#,tmpz#,20)
+         playinternal3dsound(entityelement(e).soundset1,tmpx#,tmpy#,tmpz#)
          entityelement(e).soundlooping=entityelement(e).soundset1
         else
-         playinternal3dsoundfactor(aiactionseq(seq).value,tmpx#,tmpy#,tmpz#,20)
+         playinternal3dsound(aiactionseq(seq).value,tmpx#,tmpy#,tmpz#)
          entityelement(e).soundlooping=aiactionseq(seq).value
         endif
        endif
@@ -11590,7 +11559,6 @@ if aiindex>0
       if tdiffangle#>180 then tdiffangle#=tdiffangle#-360
       if abs(tdiffangle#)>aiactionseq(seq).value then tdiffangle#=0
       entityelement(e).ai.headdestangle=tdiffangle#
-      entityelement(e).ai.headdestnodangle=0
      endcase
      case AIACTMOVETOTARGET:
       tokay=0
@@ -11682,7 +11650,6 @@ if aiindex>0
       if tdiffangle#>180 then tdiffangle#=tdiffangle#-360
       if abs(tdiffangle#)>aiactionseq(seq).value then tdiffangle#=0
       entityelement(e).ai.headdestangle=tdiffangle#
-      entityelement(e).ai.headdestnodangle=0
      endcase
      case AIACTSETTARGETNAME:
       tstrindex=aiactionseq(seq).value
@@ -12364,9 +12331,6 @@ if aiindex>0
        endif
       endif
       if weblinkaddress$<>""
-       if lower$(left$(weblinkaddress$,4))="www."
-        weblinkaddress$="http://"+weblinkaddress$
-       endif
        if lower$(left$(weblinkaddress$,5))="http:"
         window to back
         execute file "iexplore.exe",weblinkaddress$,"C:\Program Files\Internet Explorer",1
@@ -12895,6 +12859,12 @@ if aiindex>0
         entityelement(e).darkai.called=-1
         entityelement(e).darkai.calldelay2=timer()
        endif
+      endif
+     endcase
+     case AIACTAITOGLLEATTACK:
+      if AI Entity Exist(entityelement(e).obj)
+         if aiactionseq(seq).value=1 then entityelement(e).darkai.autoattackoff=0
+         if aiactionseq(seq).value=0 then entityelement(e).darkai.autoattackoff=1
       endif
      endcase
      case AIACTAIRESPONDTOPLAYER:
@@ -29180,7 +29150,7 @@ _ode_listener:
   roughz=camera position z(0)/10.0 : roughz=(roughz/2)*2
   if roughx<>lastroughx or roughy<>lastroughy or roughz<>lastroughz
    lastroughx=roughx : lastroughy=roughy : lastroughz=roughz
-   position listener roughx,roughy,roughz
+   position listener roughx,roughy-5,roughz
   endif
   `rotate listener 0,camera angle y(0),0  `want my rotspeed back!
   roughaa=camera angle y(0)/22.0
@@ -43396,7 +43366,6 @@ setuparr$(i)="entitytogglingoff="+str$(gentitytogglingoff) : inc i
 setuparr$(i)="extracollisionbuilddisabled="+str$(gextracollisionbuilddisabled) : inc i
 setuparr$(i)="alwaysconfirmsave="+str$(galwaysconfirmsave) : inc i
 setuparr$(i)="simplifiedcharacterediting="+str$(gsimplifiedcharacterediting) : inc i
-setuparr$(i)="simplifiedentityediting="+str$(gsimplifiedentityediting) : inc i
 `
 setuparr$(i)="" : inc i
 setuparr$(i)="[GAMEDEBUG]" : inc i
@@ -43652,7 +43621,7 @@ _interface_openpropertywindow:
   `
   if tsimplecharview=1
    `
-   rem Character Info (simplified) property editing
+   rem Wizard (simplified) property editing
    group=0 : startgroup("Character Info") : controlindex=0
    setpropertystring2(group,grideleprof.name$,strarr$(413),"Choose a unique name for this character") : inc controlindex
    setpropertylist2(group,controlindex,grideleprof.aimain$,"Behaviour","Select a behaviour for this character",11) : inc controlindex
@@ -43684,8 +43653,7 @@ _interface_openpropertywindow:
    `
    rem Has Weapon
    if gmultiplayergame=0
-    rem FPGC - 180510 - removed EQUIPMENT system from FPGC for the moment (and fpgcgenre=1)
-    if tflaghasweapon=1 and fpgcgenre=1
+    if tflaghasweapon=1
      setpropertylist2(group,controlindex,grideleprof.hasweapon$,strarr$(419),strarr$(209),1) : inc controlindex
     endif
    endif
@@ -43752,26 +43720,24 @@ _interface_openpropertywindow:
      propfield(group)=controlindex
      inc group : startgroup(strarr$(439)) : controlindex=0
      setpropertylist2(group,controlindex,str$(grideleprof.spawnatstart),strarr$(562),strarr$(563),0) : inc controlindex
-     if gsimplifiedentityediting=0
-      setpropertystring2(group,str$(grideleprof.spawnmax),strarr$(440),strarr$(231)) : inc controlindex
-      setpropertystring2(group,str$(grideleprof.spawnupto),strarr$(441),strarr$(232)) : inc controlindex
-      setpropertylist2(group,controlindex,str$(grideleprof.spawnafterdelay),strarr$(442),strarr$(233),0) : inc controlindex
-      setpropertylist2(group,controlindex,str$(grideleprof.spawnwhendead),strarr$(443),strarr$(234),0) : inc controlindex
-      setpropertystring2(group,str$(grideleprof.spawndelay),strarr$(444),strarr$(235)) : inc controlindex
-      setpropertystring2(group,str$(grideleprof.spawndelayrandom),strarr$(564),strarr$(565)) : inc controlindex
-      setpropertystring2(group,str$(grideleprof.spawnqty),strarr$(445),strarr$(236)) : inc controlindex
-      setpropertystring2(group,str$(grideleprof.spawnqtyrandom),strarr$(566),strarr$(567)) : inc controlindex
-      setpropertystring2(group,str$(grideleprof.spawnvel),strarr$(568),strarr$(569)) : inc controlindex
-      setpropertystring2(group,str$(grideleprof.spawnvelrandom),strarr$(570),strarr$(571)) : inc controlindex
-      setpropertystring2(group,str$(grideleprof.spawnangle),strarr$(572),strarr$(573)) : inc controlindex
-      setpropertystring2(group,str$(grideleprof.spawnanglerandom),strarr$(574),strarr$(575)) : inc controlindex
-      setpropertystring2(group,str$(grideleprof.spawnlife),strarr$(576),strarr$(577)) : inc controlindex
-     endif
+     setpropertystring2(group,str$(grideleprof.spawnmax),strarr$(440),strarr$(231)) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.spawnupto),strarr$(441),strarr$(232)) : inc controlindex
+     setpropertylist2(group,controlindex,str$(grideleprof.spawnafterdelay),strarr$(442),strarr$(233),0) : inc controlindex
+     setpropertylist2(group,controlindex,str$(grideleprof.spawnwhendead),strarr$(443),strarr$(234),0) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.spawndelay),strarr$(444),strarr$(235)) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.spawndelayrandom),strarr$(564),strarr$(565)) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.spawnqty),strarr$(445),strarr$(236)) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.spawnqtyrandom),strarr$(566),strarr$(567)) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.spawnvel),strarr$(568),strarr$(569)) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.spawnvelrandom),strarr$(570),strarr$(571)) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.spawnangle),strarr$(572),strarr$(573)) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.spawnanglerandom),strarr$(574),strarr$(575)) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.spawnlife),strarr$(576),strarr$(577)) : inc controlindex
     endif
    endif
    `
    rem Visual
-   if tflagvis=1 and gsimplifiedentityediting=0
+   if tflagvis=1
     propfield(group)=controlindex
     inc group : startgroup(strarr$(446)) : controlindex=0
     setpropertyfile2(group,grideleprof.texd$,strarr$(447),strarr$(237),"") : inc controlindex
@@ -43784,28 +43750,18 @@ _interface_openpropertywindow:
    rem Statistics
    if gmultiplayergame=0 or (gmultiplayergame=1 and tstatic=0)
     if (tflagvis=1 or tflagobjective=1 or tflaglives=1 or tflagstats=1) and tflagweap=0 and tflagammo=0
-     if gsimplifiedentityediting=1
-      rem FPGC - 180510 - if simplified, may not have statistics group
-      if tflaglives=1 or tflaghurtfall=1 or tflagmobile=1
-       propfield(group)=controlindex
-       inc group : startgroup(strarr$(451)) : controlindex=0
-      endif
-     else
-      propfield(group)=controlindex
-      inc group : startgroup(strarr$(451)) : controlindex=0
-     endif
+     propfield(group)=controlindex
+     inc group : startgroup(strarr$(451)) : controlindex=0
      if gmultiplayergame=0
       if tflaglives=1 then setpropertystring2(group,str$(grideleprof.lives),strarr$(452),strarr$(242)) : inc controlindex
      endif
-     if (tflagvis=1 or tflagstats=1)
+     if tflagvis=1 or tflagstats=1
       if tflaglives=1
        setpropertystring2(group,str$(grideleprof.strength),strarr$(453),strarr$(243)) : inc controlindex
       else
-       if gsimplifiedentityediting=0
-        setpropertystring2(group,str$(grideleprof.strength),strarr$(454),strarr$(244)) : inc controlindex
-       endif
+       setpropertystring2(group,str$(grideleprof.strength),strarr$(454),strarr$(244)) : inc controlindex
       endif
-      if gmultiplayergame=0 and gsimplifiedentityediting=0
+      if gmultiplayergame=0
        setpropertystring2(group,str$(grideleprof.speed),strarr$(455),strarr$(245)) : inc controlindex
       endif
      endif
@@ -43813,10 +43769,8 @@ _interface_openpropertywindow:
      if gmultiplayergame=0
       if tflagmobile=1 then setpropertylist2(group,controlindex,str$(grideleprof.isimmobile),strarr$(457),strarr$(247),0) : inc controlindex
      endif
-     if gsimplifiedentityediting=0
-      if gmultiplayergame=0 or (gmultiplayergame=1 and entityprofile(gridentity).ismarker=3)
-       if tflagobjective=1 then setpropertystring2(group,str$(grideleprof.isobjective),strarr$(458),strarr$(248)) : inc controlindex
-      endif
+     if gmultiplayergame=0 or (gmultiplayergame=1 and entityprofile(gridentity).ismarker=3)
+      if tflagobjective=1 then setpropertystring2(group,str$(grideleprof.isobjective),strarr$(458),strarr$(248)) : inc controlindex
      endif
     endif
    endif
@@ -43827,18 +43781,14 @@ _interface_openpropertywindow:
      propfield(group)=controlindex
      inc group : startgroup(strarr$(596)) : controlindex=0
      if grideleprof.physics<>1 then grideleprof.physics=0
-     if gsimplifiedentityediting=0
-      setpropertylist2(group,controlindex,str$(grideleprof.physics),strarr$(580),strarr$(581),0) : inc controlindex
-      setpropertylist2(group,controlindex,str$(grideleprof.phyalways),strarr$(582),strarr$(583),0) : inc controlindex
-      setpropertystring2(group,str$(grideleprof.phyweight),strarr$(584),strarr$(585)) : inc controlindex
-      setpropertystring2(group,str$(grideleprof.phyfriction),strarr$(586),strarr$(587)) : inc controlindex
-      setpropertystring2(group,str$(grideleprof.phyforcedamage),strarr$(588),strarr$(589)) : inc controlindex
-      setpropertystring2(group,str$(grideleprof.rotatethrow),strarr$(590),strarr$(591)) : inc controlindex
-      setpropertylist2(group,controlindex,str$(grideleprof.explodable),strarr$(592),strarr$(593),0) : inc controlindex
-      setpropertystring2(group,str$(grideleprof.explodedamage),strarr$(594),strarr$(595)) : inc controlindex
-     else
-      setpropertylist2(group,controlindex,str$(grideleprof.phyalways),strarr$(582),strarr$(583),0) : inc controlindex
-     endif
+     setpropertylist2(group,controlindex,str$(grideleprof.physics),strarr$(580),strarr$(581),0) : inc controlindex
+     setpropertylist2(group,controlindex,str$(grideleprof.phyalways),strarr$(582),strarr$(583),0) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.phyweight),strarr$(584),strarr$(585)) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.phyfriction),strarr$(586),strarr$(587)) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.phyforcedamage),strarr$(588),strarr$(589)) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.rotatethrow),strarr$(590),strarr$(591)) : inc controlindex
+     setpropertylist2(group,controlindex,str$(grideleprof.explodable),strarr$(592),strarr$(593),0) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.explodedamage),strarr$(594),strarr$(595)) : inc controlindex
     endif
    endif
    `
@@ -43882,10 +43832,7 @@ _interface_openpropertywindow:
      else
       setpropertyfile2(group,grideleprof.soundset$,strarr$(467),strarr$(253),"audiobank\") : inc controlindex
      endif
-     rem FPGC - 180510 - no access to second $1 for player start marker
-     if entityprofile(gridentity).ismarker<>1
-      setpropertyfile2(group,grideleprof.soundset1$,strarr$(468),strarr$(254),"audiobank\") : inc controlindex
-     endif
+     setpropertyfile2(group,grideleprof.soundset1$,strarr$(468),strarr$(254),"audiobank\") : inc controlindex
     endif
    endif
    if tflagvideo=1
@@ -43923,9 +43870,6 @@ _interface_openpropertywindow:
 return
 
 _interface_copydatatoentity:
- `
- rem FPGC - 170510 - can trigger LIPSYNC generation if VOICEOVER has a WAV and no LIPSYNC
- generatelipsync$=""
  `
  rem go through all active fields
  for iGroup=0 to propfieldgroupmax
@@ -44030,10 +43974,7 @@ _interface_copydatatoentity:
    if lower$(tfield$)=lower$(strarr$(469)) then grideleprof.soundset$=tdata$
    if lower$(tfield$)=lower$(strarr$(598)) then grideleprof.soundset$=tdata$
    if lower$(tfield$)=lower$(strarr$(600)) then grideleprof.soundset1$=tdata$
-   if lower$(tfield$)="voiceover" 
-    grideleprof.soundset1$=tdata$
-    generatelipsync$=tdata$
-   endif
+   if lower$(tfield$)="voiceover" then grideleprof.soundset1$=tdata$
    if lower$(tfield$)=lower$(strarr$(462)) then grideleprof.light.range=val(tdata$)
    `
    if lower$(tfield$)=lower$(strarr$(580)) then grideleprof.physics=val(tdata$)
@@ -44062,21 +44003,6 @@ _interface_copydatatoentity:
    `
   next iControl
  next iGroup
- `
- rem FPGC - 170510 - generate LIPSYNC if not present
- if generatelipsync$<>"" and lower$(right$(generatelipsync$,4))=".wav"
-  tlipsync$=left$(generatelipsync$,len(generatelipsync$)-4)+".lipsync"
-  if file exist(rootdir$+tlipsync$)=0
-   rem generate fresh LIPSYNC file
-   twav2lipsyncbat$=rootdir$+"audiobank\darkvoices\wav2lipsync.bat"
-   if file exist(twav2lipsyncbat$)=1 then delete file twav2lipsyncbat$
-   open to write 1,twav2lipsyncbat$
-    write string 1,chr$(34)+rootdir$+"audiobank\darkvoices\wav2lipsync.exe"+chr$(34)+" "+chr$(34)+rootdir$+generatelipsync$+chr$(34)
-   close file 1
-   twav2lipsync$=rootdir$+"audiobank\darkvoices\wav2lipsync silent"
-   execute file twav2lipsync$,"","",0
-  endif
- endif
  `
 return
 
@@ -45778,11 +45704,13 @@ _darkai_control:
  entityelement(e).darkai.running=0
 
  `Sees opponent
- if ttargetvisible=1 and entityelement(e).darkai.state=STATE_IDLE or ttargets>0 and entityelement(e).darkai.state=STATE_IDLE
-  if ttargetvisibleduck=0
-   entityelement(e).darkai.state=STATE_COVER
-  else
-   entityelement(e).darkai.state=STATE_ATTACKING
+ If entityelement(e).darkai.autoattackoff=0
+  if ttargetvisible=1 and entityelement(e).darkai.state=STATE_IDLE or ttargets>0 and entityelement(e).darkai.state=STATE_IDLE
+   if ttargetvisibleduck=0
+    entityelement(e).darkai.state=STATE_COVER
+   else
+    entityelement(e).darkai.state=STATE_ATTACKING
+   endif
   endif
  endif
  Rem current unused AI action is 11
@@ -45903,11 +45831,13 @@ _darkai_control:
     ai entity move to cover obj,ttargetx#,ttargetz#
    endif
    `Sees opponent
-   if ttargetvisible=1 or ttargets>0
-    if ttargetvisibleduck=0
-     entityelement(e).darkai.state=STATE_COVER
-    else
-     entityelement(e).darkai.state=STATE_ATTACKING
+   If entityelement(e).darkai.autoattackoff=0
+    if ttargetvisible=1 or ttargets>0
+     if ttargetvisibleduck=0
+      entityelement(e).darkai.state=STATE_COVER
+     else
+      entityelement(e).darkai.state=STATE_ATTACKING
+     endif
     endif
    endif
 

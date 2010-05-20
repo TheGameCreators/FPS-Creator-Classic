@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
 
+ * Added new FPI action AIATTACKAWARNESS=X by default this is turned on which causes the AI to go into "attack mode" when the see an enemy. Turning this off can make your AI ignore an enemy or aid in having the break away from a battle. 
  * Added new FPI condition AICALLEDBYPLR=X this will return if the entity has been called by the AIPLRCALLTEAM=X command
  * Added new FPI action AIRESPONDTOPLRCALL=X this will cause a fellow player teammate to move towards the player (if any he for help)
  * Added new FPI action AISETSPEED=X this will change the ai character's current speed to the number specified by x
