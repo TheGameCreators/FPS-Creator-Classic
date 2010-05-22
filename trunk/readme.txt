@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
 
+ * Added new FPI condition AIHASTARGET=X this will return ture if the entity has a target
  * Added new FPI action AIATTACKAWARNESS=X by default this is turned on which causes the AI to go into "attack mode" when the see an enemy. Turning this off can make your AI ignore an enemy or aid in having the break away from a battle. 
  * Added new FPI condition AICALLEDBYPLR=X this will return if the entity has been called by the AIPLRCALLTEAM=X command
  * Added new FPI action AIRESPONDTOPLRCALL=X this will cause a fellow player teammate to move towards the player (if any he for help)
@@ -63,7 +64,7 @@ V1.1.7
  * Added new feature to AI obstacle code to detect Wall Large and Wall Small (creating full/half walls)
  * Added new FPI action AIMOVETOTARGET this will cause the entity to move to its target if it has one
  * Added new FPI action AISTOP this will stop the AI entity right away
- * Added new FPI condition AIATCOVER this will return true if the entity is at the cover that the entity was instructed to move to by AIMOVETOCOVER=X
+ * Added new FPI condition AIATCOVER=x this will return true if the entity is at the cover that the entity was instructed to move to by AIMOVETOCOVER=X
  * Cleaned up some of the OBSTACLE container code and included new X10 modules (for later inclusion)
  * Added additional X10 inspired DarkAI code to include static entity obstacles
  * Added new FPI action AIROTATETOSOUND this will make the AI entity rotate to the closet sound that has been heard

@@ -1363,6 +1363,7 @@ Rem Hockeykid - 250210 - Dark AI conditions
 #constant AICONDAITARGETDISTFURTHER 369
 #constant AICONDAIATCOVER 370
 #constant AICONDAICALLEDBYPLR 371
+#constant AICONDAIHASTARGET 372
 Rem End Dark AI
 #constant AICONDHEADANGLEGREATER 401
 #constant AICONDHEADANGLELESS 402
@@ -9446,6 +9447,7 @@ conword$(AICONDAITARGETDISTWITHIN)="aitargetdistwithin"
 conword$(AICONDAITARGETDISTFURTHER)="aitargetdistfurther"
 conword$(AICONDAIATCOVER)="aiatcover"
 conword$(AICONDAICALLEDBYPLR)="aicalledbyplr"
+conword$(AICONDAIHASTARGET)="aihastarget"
 rem Dark AI end
 
 rem Set all action keywords
@@ -10708,6 +10710,13 @@ if aiindex>0
       else
        if conda=1 then airesult=0
       endif
+     endif
+    endcase
+    case AICONDAIHASTARGET:
+     conda=aiconditionseq(seq).valuea
+     if ai entity exist(entityelement(e).obj)
+      if conda=1 and entityelement(e).actualtarget=0 then airesult=0
+      if conda=0 and entityelement(e).actualtarget<>0 then airesult=0
      endif
     endcase
     `
