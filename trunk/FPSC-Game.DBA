@@ -1547,6 +1547,7 @@ Rem Hockeykid - 250210 - Dark AI constants
 #constant AIACTAISETSPEED 1086
 #constant AIACTAIRESPONDTOPLAYER 1087
 #constant AIACTAITOGLLEATTACK 1088
+#constant AIACTAICLEARTARGET 1089
 Rem end Dark AI constants
 #constant AIACTHUDRESET 1100
 #constant AIACTHUDX 1101
@@ -9663,6 +9664,7 @@ actword$(AIACTAIPLRCALLTEAM)="aiplrcallteam"
 actword$(AIACTAISETSPEED)="aisetspeed"
 actword$(AIACTAIRESPONDTOPLAYER)="airespondtoplrcall"
 actword$(AIACTAITOGLLEATTACK)="aiattackawareness"
+actword$(AIACTAICLEARTARGET)="aicleartarget"
 
 return
 
@@ -12694,6 +12696,11 @@ if aiindex>0
       endcase
       case AIACTTOGGLEACTIVE:
          entityelement(e).eleprof.phyalways=aiactionseq(seq).value
+      endcase
+      case AIACTAICLEARTARGET:
+         if ai entity exist(entityelement(e).obj)
+
+         endif
       endcase
       case AIACTAISETTARGET:
          obj=entityelement(e).obj
