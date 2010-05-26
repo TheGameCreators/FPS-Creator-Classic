@@ -45720,7 +45720,15 @@ _darkai_control:
  entityelement(e).darkai.running=0
 
  Rem Attack Awarness action
- if entityelement(e).darkai.autoattackoff=1 then ttargets=0 : ttargetvisibleduck=0
+ if entityelement(e).darkai.autoattackoff=1
+  ttargets=0
+  tobjtarget=0
+  ttargetvisibleduck=0
+  ttargetvisible=0
+  ttargetx#=0.0
+  ttargety#=0.0
+  ttargetz#=0.0
+ endif
 
  `Sees opponent
  If entityelement(e).darkai.autoattackoff=0
