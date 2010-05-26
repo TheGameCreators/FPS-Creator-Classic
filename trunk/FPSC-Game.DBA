@@ -3576,11 +3576,6 @@ if gcompilestandaloneexe=0
  rem Starting main loop
  debugviewtext(329,strarr$(629))
  `
-else
- `
- rem FPGC - 210510 - need this in build phase to transfer sounds across to exe
- debugviewtext(328,strarr$(105)) : gosub _entity_createelements_loadsoundlast
- `
 endif
 
 rem TestGameFromEditor Mode
@@ -7704,14 +7699,13 @@ if entityelement(e).ai.waypoint.state>0
   entityelement(e).mover.run=0
   entityelement(e).ai.waypoint.state=2
   `
-  rem FPGC - 210510 - comment this out so allow script to control waypoint animations
-  `rem characters animate when waypoint is followed, if alive
-  `entid=entityelement(e).bankindex
-  `if entityprofile(entid).ischaracter=1 and entityelement(e).health>0
-  ` if entityelement(e).animdo<>entityelement(e).animset-1
-  `  entityelement(e).animset=1+2
-  ` endif
-  `endif
+  rem characters animate when waypoint is followed, if alive
+  entid=entityelement(e).bankindex
+  if entityprofile(entid).ischaracter=1 and entityelement(e).health>0
+   if entityelement(e).animdo<>entityelement(e).animset-1
+    entityelement(e).animset=3
+   endif
+  endif
   `
  endif
  if entityelement(e).ai.waypoint.state=2
@@ -12705,7 +12699,7 @@ if aiindex>0
       endcase
       case AIACTAICLEARTARGET:
          if ai entity exist(entityelement(e).obj)
-
+            entityelement(e).actualtarget=0
          endif
       endcase
       case AIACTAISETTARGET:
@@ -45725,6 +45719,9 @@ _darkai_control:
  ai set entity no look at point obj
  entityelement(e).darkai.running=0
 
+ Rem Attack Awarness action
+ if entityelement(e).darkai.autoattackoff=1 then ttargets=0 : ttargetvisibleduck=0
+
  `Sees opponent
  If entityelement(e).darkai.autoattackoff=0
   if ttargetvisible=1 and entityelement(e).darkai.state=STATE_IDLE or ttargets>0 and entityelement(e).darkai.state=STATE_IDLE
@@ -45981,11 +45978,7 @@ _darkai_control:
  endif
 
 rem Apply New Actions
-`if entityelement(e).darkai.running=1 and ai get entity is ducking(obj)=0
-   `ai set entity speed obj,(entityelement(e).eleprof.speed*2.0)/2.0
-`else
  ai set entity speed obj,entityelement(e).eleprof.speed/2.0
-`endif
 
  Rem Hockeykid - 050410 - reset call flag if times up
  if entityelement(e).darkai.called>0
