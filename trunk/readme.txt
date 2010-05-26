@@ -172,6 +172,7 @@ V1.1.7
 FPGC VARIANT SPECIFIC
 ---------------------
 
+ * Added extra audio into the AUDIOBANK EFFECTS folder for extra creativity
  * Added new SETUP flag to simplify entity property editing for easier academic experience
  * Wrote a host of new generic behaviours for story based characters
  * Added new DARKVOICES folder inside AUDIOBANK which automatically generates LIPSYNC from WAVs specified
