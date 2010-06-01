@@ -36,19 +36,18 @@ if runengineinframe=1
  fpgchuds$="guns"
  fpgcgenre=1
 else
- if path exist("files\gamecore\equipment")=1
+ if path exist("files\gamecore\guns")=1
+  rem FPSC - Shooter Genre
+  fpgchud$="gun"
+  fpgchuds$="guns"
+  fpgcgenre=1
+ else
+  `if path exist("files\gamecore\equipment")=1
   rem FPGC - Equipment Only Genre (no weapons)
   fpgchud$="equipment"
   fpgchuds$="equipment"
   fpgcgenre=0
- else
-  rem ONLY if not educational equipment based (not FPGC)
-  if path exist("files\gamecore\guns")=1
-   rem FPSC - Shooter Genre
-   fpgchud$="gun"
-   fpgchuds$="guns"
-   fpgcgenre=1
-  endif
+  `endif
  endif
  if fpgchud$=""
   exit prompt "Genre Unknown", "Init Error" : end
@@ -12342,6 +12341,7 @@ if aiindex>0
        endif
       endif
       if weblinkaddress$<>""
+       if lower$(left$(weblinkaddress$,4))="www." then weblinkaddress$="http://"+weblinkaddress$
        if lower$(left$(weblinkaddress$,5))="http:"
         window to back
         execute file "iexplore.exe",weblinkaddress$,"C:\Program Files\Internet Explorer",1
