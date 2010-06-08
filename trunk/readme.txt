@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
 
+ * Fixed small bug which prevented smoke being emitted when no brass limb used in weapon
  * Added new FPI action AISETEYELEVEL=X this will set the eye offset (defaulted at 80) for use with the up and down aiming feature (the lower this is set the lower the entity will aim at its target)
  * Added new FPI action AIUSEFULLAIM=X this will toggle the option to have the AI aim up and down
  * Finally finally fixed the test game start issue, now no longer have repeating left clicks

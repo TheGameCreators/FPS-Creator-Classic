@@ -16300,7 +16300,7 @@ if gunid>0
   gosub _gun_shoot
   if gun(gunid).settings.flashlimb>=0 then gosub _gun_flash
   if gun(gunid).settings.brasslimb>=0 then gosub _gun_brass
-  if gun(gunid).settings.brasslimb>=0 then gosub _gun_smoke
+  if gun(gunid).settings.smokelimb>=0 then gosub _gun_smoke
   gosub _gun_soundcontrol
  endif
 endif
@@ -16587,7 +16587,7 @@ if gunmode=103
  endif
  weaponammo(weaponammoindex)=weaponammo(weaponammoindex)-1
  if gun(gunid).settings.brasslimb<>-1 then gunbrass=1 : gunbrasscount=gun(gunid).settings.firerate/2 : rem V113 AIRSLIDE 5/8/8 guntimercount=6
- if gun(gunid).settings.brasslimb<>-1 then gunsmoke=1 : gunsmokecount=gun(gunid).settings.firerate/2 : rem V113 AIRSLIDE 5/8/8 guntimercount=6
+ if gun(gunid).settings.smokelimb<>-1 then gunsmoke=1 : gunsmokecount=gun(gunid).settings.firerate/2 : rem V113 AIRSLIDE 5/8/8 guntimercount=6
  if gun(gunid).settings.equipment=0
   sndid=gunsound(gunid,1).soundid
   if sndid>0
@@ -16610,7 +16610,7 @@ if gunmode=104
   dec gunsmokecount,timeelapsed#
   dec guntimercount,timeelapsed#
   if gunbrasscount<=0 and gun(gunid).settings.brasslimb<>-1 then gunbrass=1 : gunbrasscount=gun(gunid).settings.firerate/2 : rem V113 AIRSLIDE 5/8/8 guntimercount=6
-  if gunsmokecount<=0 and gun(gunid).settings.brasslimb<>-1 then gunsmoke=1 : gunsmokecount=gun(gunid).settings.firerate/2 : rem V113 AIRSLIDE 5/8/8 guntimercount=6
+  if gunsmokecount<=0 and gun(gunid).settings.smokelimb<>-1 then gunsmoke=1 : gunsmokecount=gun(gunid).settings.firerate/2 : rem V113 AIRSLIDE 5/8/8 guntimercount=6
   if gun(gunid).settings.equipment=0
    if gunflash=0 then gunflash=1
    if guntimercount<=0 then gunshoot=1 : guntimercount=gun(gunid).settings.firerate/2 : weaponammo(weaponammoindex)=weaponammo(weaponammoindex)-1 : rem rem V113 AIRSLIDE 5/8/8
@@ -17721,7 +17721,7 @@ if gun(gunid).settings.brasslimb<>-1
 endif
 
 rem Setup gun with smoke images
-if gun(gunid).settings.brasslimb<>-1
+if gun(gunid).settings.smokelimb<>-1
  for o=21 to 30
   obj=hudbankoffset+o
   texture object obj,gun(gunid).settings.smokeimg
@@ -20013,7 +20013,7 @@ if gun(gunid).settings.brasslimb<>-1
   if object exist(obj)=1 then hide object obj
  next o
 endif
-if gun(gunid).settings.brasslimb<>-1
+if gun(gunid).settings.smokelimb<>-1
  for o=21 to 30
   obj=hudbankoffset+o
   if object exist(obj)=1 then hide object obj
