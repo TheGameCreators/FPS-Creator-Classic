@@ -9,6 +9,9 @@ History
 V1.1.7
 ------
 
+ * Fixed bug preventing builds to export the LIPSYNC and some $0 and $1 files
+ * Map Editor chops out mid-level base segments in entity zoom mode to stop blocking
+ * Reset SPINE and SPINE2 new entity profile properties, and fixed TC to TC-1 (true limb index)
  * Fixed small bug which prevented smoke being emitted when no brass limb used in weapon
  * Added new FPI action AISETEYELEVEL=X this will set the eye offset (defaulted at 80) for use with the up and down aiming feature (the lower this is set the lower the entity will aim at its target)
  * Added new FPI action AIUSEFULLAIM=X this will toggle the option to have the AI aim up and down

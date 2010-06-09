@@ -3584,6 +3584,11 @@ if gcompilestandaloneexe=0
  rem Starting main loop
  debugviewtext(329,strarr$(629))
  `
+else
+ `
+ rem need to at least add script referenced files to collection (during build)
+ gosub _entity_createelements_loadsoundlast_fileref
+ `
 endif
 
 rem TestGameFromEditor Mode
@@ -12372,13 +12377,17 @@ if aiindex>0
      case AIACTLIGHTON:
       entityelement(e).eleprof.light.islit=1
       if gdynamiclightingstate=1
-       infinilight(entityelement(e).eleprof.light.index).islit=1
+       if entityelement(e).eleprof.light.index<=array count(infinilight())
+        infinilight(entityelement(e).eleprof.light.index).islit=1
+       endif
       endif
      endcase
      case AIACTLIGHTOFF:
       entityelement(e).eleprof.light.islit=0
       if gdynamiclightingstate=1
-       infinilight(entityelement(e).eleprof.light.index).islit=0
+       if entityelement(e).eleprof.light.index<=array count(infinilight())
+        infinilight(entityelement(e).eleprof.light.index).islit=0
+       endif
       endif
      endcase
      case AIACTLIGHTRED:
@@ -14757,7 +14766,7 @@ function addfiletocollection(filename$)
      filecollection$()=filename$
      `
      rem FPGC - 220210 - if .WAV, assume a LIPSYNC could be with it (even if ultimately not copied)
-     if lower$(right$(filename$,4))=".wav"
+     if lower$(right$(filename$,4))=".wav" or lower$(right$(filename$,4))=".ogg"
       lipsyncfilename$=left$(filename$,len(filename$)-4)+".lipsync"
       array insert at bottom filecollection$()
       filecollection$()=lipsyncfilename$
@@ -21400,7 +21409,7 @@ if desc$<>""
     perform checklist for object limbs entobj
     for tc=1 to checklist quantity()
      if lower$(checklist string$(tc))="bip01_spine1"
-      entityprofile(entid).spine=tc
+      entityprofile(entid).spine=tc-1
       exit
      endif
     next tc
@@ -21411,7 +21420,7 @@ if desc$<>""
     perform checklist for object limbs entobj
     for tc=1 to checklist quantity()
      if lower$(checklist string$(tc))="bip01_spine2"
-      entityprofile(entid).spine2=tc
+      entityprofile(entid).spine2=tc-1
       exit
      endif
     next tc
@@ -23498,7 +23507,7 @@ return
 
 _entity_createelements_loadsoundlast:
  `
- rem Load any soundsets not belonging to characters or players
+ rem Load any soundsets not belonging to characters or players (uses loadsoundrefonly)
  for e=1 to entityelementlist
   entityelement(e).soundset=0
   entid=entityelement(e).bankindex
@@ -23519,7 +23528,9 @@ _entity_createelements_loadsoundlast:
     tfile$=entityelement(e).eleprof.soundset$
     if file exist(tfile$)=1
      addfiletocollection(tfile$)
-     entityelement(e).soundset=loadinternalsoundcore(tfile$,t3d)
+     if loadsoundrefonly=0
+      entityelement(e).soundset=loadinternalsoundcore(tfile$,t3d)
+     endif
     endif
    endif
    if entityelement(e).eleprof.soundset1$<>"" and tokay<>0
@@ -23527,7 +23538,9 @@ _entity_createelements_loadsoundlast:
     tfile$=entityelement(e).eleprof.soundset1$
     if file exist(tfile$)=1
      addfiletocollection(tfile$)
-     entityelement(e).soundset1=loadinternalsoundcore(tfile$,t3d)
+     if loadsoundrefonly=0
+      entityelement(e).soundset1=loadinternalsoundcore(tfile$,t3d)
+     endif
     endif
    endif
    `
@@ -23536,6 +23549,15 @@ _entity_createelements_loadsoundlast:
  `
 return
 
+_entity_createelements_loadsoundlast_fileref:
+ `
+ rem FPGC - 090610 - reference all files used by scripts ($0 and $1)
+ loadsoundrefonly=1
+ gosub _entity_createelements_loadsoundlast
+ loadsoundrefonly=0
+ `
+return
+ 
 _entity_attachelementstogame:
 
 rem associate dynamic entities with game universe (vislinking)
@@ -23829,8 +23851,8 @@ _entity_delete:
   entityprofile(entid).rotatethrow=0
   entityprofile(entid).explodable=0
   entityprofile(entid).explodedamage=0
-  entityprofile(entid).spine=0
-  entityprofile(entid).spine2=0
+  entityprofile(entid).spine=-1
+  entityprofile(entid).spine2=-1
  endif
  `
 return
@@ -41866,6 +41888,49 @@ for ly=lystart to lyend
             position object obj,objx#,50+((gridlayer+ly)*100.0),objy#
             rem set alpha for real object
             if shroudstatic=1
+               rem FPGC - 090610 - alpha changes if viewing through a wall
+               remstart
+               tthisalpha=100
+               if gridentity>0
+                tthisdx#=objx#-camera position x()
+                tthisdz#=objy#-camera position z()
+                tthisdd#=sqrt(abs(tthisdx#*tthisdx#)+abs(tthisdz#*tthisdz#))
+                tthisdx#=gridentityposx#-camera position x()
+                tthisdz#=gridentityposz#-camera position z()
+                tthisdd2#=sqrt(abs(tthisdx#*tthisdx#)+abs(tthisdz#*tthisdz#))
+                if tthisdd#<200 and tthisdd#<tthisdd2#
+                 tthisalpha=tthisdd#-100
+                 if tthisalpha>100 then tthisalpha=100
+                 if tthisalpha<10 then tthisalpha=10
+                endif
+                disable object zdepth obj
+               else
+                enable object zdepth obj
+               endif
+               show object obj : set alpha mapping on obj,tthisalpha
+               remend
+               if gridentity>0
+                for ttto=0 to 99
+                 if limb exist(obj,ttto)=1 
+                  ttsegparty#=limb position y(obj,ttto)    
+                  ttsegpartywhole=ttsegparty#/100 : ttsegpartywhole=ttsegpartywhole*100
+                  ttsegparty#=ttsegparty#-ttsegpartywhole
+                  if ttsegparty#>20 and ttsegparty#<80
+                   tthisdx#=limb position x(obj,ttto)-camera position x()
+                   tthisdy#=limb position y(obj,ttto)-camera position y()
+                   tthisdz#=limb position z(obj,ttto)-camera position z()
+                   tthisdd#=sqrt(abs(tthisdx#*tthisdx#)+abs(tthisdy#*tthisdy#)+abs(tthisdz#*tthisdz#))
+                   tthisdx#=gridentityposx#-camera position x()
+                   tthisdy#=gridentityposy#-camera position y()
+                   tthisdz#=gridentityposz#-camera position z()
+                   tthisdd2#=sqrt(abs(tthisdx#*tthisdx#)+abs(tthisdy#*tthisdy#)+abs(tthisdz#*tthisdz#))
+                   if tthisdd#<200 and tthisdd#<tthisdd2#
+                    hide limb obj,ttto
+                   endif
+                  endif
+                 endif
+                next ttto
+               endif
                show object obj : set alpha mapping on obj,100
             else
                if perc#<=0.0
@@ -41898,7 +41963,7 @@ for ly=lystart to lyend
              position object obj,objx#,50+((gridlayer+ly)*100.0),objy#
              rem set alpha for real object
              if shroudstatic=1
-                show object obj : set alpha mapping on obj,100
+               show object obj : set alpha mapping on obj,100
              else
                 if perc#<=0.0
                    hide object obj
