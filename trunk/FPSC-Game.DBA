@@ -45703,19 +45703,23 @@ _lipsync_control:
  rem get mouth pose
  pose=0
  if lipsyncglobal.playing=1
-  current as DWORD
-  current=(timer()-lipsyncglobal.time)+150
-  for t=1 to timelinemax
-   if current>=timeline(t).s and current<=timeline(t).e
-    pose=timeline(t).t
-    if pose=ph_rest then pose=0
-    if pose<>lastpose
-     posetravelspeed=timeline(t).e-current
+  if lipsyncglobal.soundid<1
+   lipsyncglobal.playing=0
+  else
+   current as DWORD
+   current=(timer()-lipsyncglobal.time)+150
+   for t=1 to timelinemax
+    if current>=timeline(t).s and current<=timeline(t).e
+     pose=timeline(t).t
+     if pose=ph_rest then pose=0
+     if pose<>lastpose
+      posetravelspeed=timeline(t).e-current
+     endif
+     lastpose=pose
     endif
-    lastpose=pose
-   endif
-  next t
-  if sound playing(lipsyncglobal.soundid)=0 then lipsyncglobal.playing=0
+   next t
+   if sound playing(lipsyncglobal.soundid)=0 then lipsyncglobal.playing=0
+  endif
  endif
  `
  rem set frame of mouth in head model to match pose
