@@ -178,6 +178,8 @@ V1.1.7
 FPGC VARIANT SPECIFIC
 ---------------------
 
+ * If run controllered EXE twice it crashed, reset HUD indices to fix this
+ * Added dependence in EQUIPMENT.TXT and GUNS.TXT in GAMECORE subfolder for genres
  * Added extra audio into the AUDIOBANK EFFECTS folder for extra creativity
  * Added new SETUP flag to simplify entity property editing for easier academic experience
  * Wrote a host of new generic behaviours for story based characters

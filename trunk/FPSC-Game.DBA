@@ -2937,6 +2937,9 @@ if gcontrollerhint<>0
  addfiletocollection("gamecore\huds\controller\walk4.png")
 endif
 
+rem FPGC - 100610 - include gun or equipment folder to specify genre
+addfiletocollection("gamecore\"+fpgchuds$+"\"+fpgchuds$+".txt")
+
 rem Add localisation text to final game
 if gcompilestandaloneexe=1
  addfiletocollection("languagebank\"+language$+"\textfiles\fpsc-050.ini")
@@ -3239,6 +3242,8 @@ _main_game_freeleveldata:
   `
   rem Ensure loader HUD is not used if resources removed
   internalloaderhud=0
+  gcontrollerhinthudid=0
+  gcontrollerhintbase=0
   `
   rem Special exception as only arrays that need carrying to new levels
   if leavegamedataalone=0
