@@ -9,6 +9,10 @@ History
 V1.1.7
 ------
 
+ * Can now save your game position at the bottom, top and whilst riding lift
+ * Added new data to save position (decal mode, sound state and lift-ride state)
+ * Added code to ensure walk anim not interupted when temp-stop at closed door
+ * Fixed issue of diffuse disappearing when use the ALTTEXTURE FPI action
  * Fixed bug preventing builds to export the LIPSYNC and some $0 and $1 files
  * Map Editor chops out mid-level base segments in entity zoom mode to stop blocking
  * Reset SPINE and SPINE2 new entity profile properties, and fixed TC to TC-1 (true limb index)

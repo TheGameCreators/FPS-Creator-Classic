@@ -230,6 +230,7 @@ type saveloadgamepositiontype
  playerinventorymax
  missiongoaltotal
  playerholdinggun
+ meridinglift
 endtype
 type saveloadgamepositionentitytype
  spawnleaderid as integer
@@ -274,6 +275,10 @@ type saveloadgamepositionentitytype
  aiolddestanimframe as float
  spawnatstart as integer
  spawnupto as integer
+ decalindex as integer
+ decalmode as integer
+ tsoundset0state as integer
+ tsoundset1state as integer
 endtype
 type saveloadgamepositionweaponslottype
  pref got invpos
@@ -2869,9 +2874,15 @@ if gtestgamemodefromeditor=0 and gcompilestandaloneexe=0
   load image "..\splash.bmp",1
   if image exist(1)=1
    set sprite 1,0,1
-   sprite 1,0,0,1
    set sprite alpha 1,0
-   size sprite 1,1024,768
+   logoimagewidth#=image width(1)
+   logoimageheight#=image height(1)
+   logoimageaspectratio#=logoimagewidth#/logoimageheight#
+   logowidth#=screen height()*logoimageaspectratio#
+   logowidth#=logowidth#/desktop width()
+   logowidth#=logowidth#*screen width()
+   size sprite 1,logowidth#,screen height()
+   sprite 1,(screen width()-logowidth#)/2,0,1
    for f=0 to 255 step 10
     cls 0 : set sprite alpha 1,f : sync
    next f
@@ -6476,14 +6487,6 @@ for e=1 to entityelementlist
  entid=entityelement(e).bankindex
  obj=entityelement(e).obj
  obje=e
-
- rem find value from entity
- `if obj>0
- ` if object exist(obj)=1
- `  center text object screen x(obj),object screen y(obj),str$(entityelement(e).rx)+" "+str$(entityelement(e).rz)
- ` endif
- `endif
-
  if entityelement(e).active=1 and entityelement(e).dormant=0
   `
   rem only non-spawn-masters with valid profile indexes
@@ -6553,6 +6556,13 @@ for e=1 to entityelementlist
      if entityelement(e).priorityai=1
       entityelement(e).logiccount=0
      endif
+     `
+     rem FPGC - 100610 - characters can also force their targets to assume high priority (like remote doors)
+     tcharactertarget=entityelement(e).actualtarget
+     if tcharactertarget>1
+      entityelement(tcharactertarget-1).logiccount=0
+     endif
+     `
     endif
     if entityelement(e).ai.libindex=entityelement(e).ai.libdestroy or entityelement(e).ai.libindex=entityelement(e).ai.libinit
      entityelement(e).logiccount=0
@@ -7777,6 +7787,15 @@ if entityelement(e).ai.waypoint.state>0
    endif
    rem ensure action taken immediately
    entityelement(e).logiccount=0
+   `
+   rem FPGC - 100610 - characters animate when waypoint is followed, if alive (copied from state one to solve sliding character bug afgter opening door)
+   entid=entityelement(e).bankindex
+   if entityprofile(entid).ischaracter=1 and entityelement(e).health>0
+    if entityelement(e).animdo<>entityelement(e).animset-1
+     entityelement(e).animset=3
+    endif
+   endif
+   `
   endif
  endif
  if entityelement(e).ai.waypoint.state=999
@@ -8249,7 +8268,8 @@ _entity_controlmovements:
  `
  rem uses MOVER IX IY IZ and STEPCOUNT to move entity around the scene
  tstep#=entityelement(e).mover.stepcount
-!! if entityelement(e).eleprof.isimmobile=0
+`!! if entityelement(e).eleprof.isimmobile=0 lee - was this a typo 100610 ?
+ if entityelement(e).eleprof.isimmobile=0
   `
   rem server controlled entities never have motion
   if entityelement(e).servercontrolled=1
@@ -8445,12 +8465,15 @@ _entity_controlmovements:
   rem if gravity stops entity, and was in motion, and no-more-moving, deactivate motion
   if entityelement(e).mover.inmotion=1
    if tgravitydefeated=1 and tstep#=0
-    rem entity stops moving
-    entityelement(e).mover.inmotion=0
-    rem stop animation too if logic count far from resolution
-    if entityprofile(entid).animmax>=1
-     if entityelement(e).animdo>=1 and entityelement(e).animdo<=5
-      entityelement(e).animset=1+1
+    rem FPGC - 100610 - only stop if NOT currently on a waypoint path (briefly stops for door that gets opened)
+    if entityelement(e).ai.waypoint.state<>2
+     rem entity stops moving
+     entityelement(e).mover.inmotion=0
+     rem stop animation too if logic count far from resolution
+     if entityprofile(entid).animmax>=1
+      if entityelement(e).animdo>=1 and entityelement(e).animdo<=5
+       entityelement(e).animset=1+1
+      endif
      endif
     endif
    endif
@@ -11291,6 +11314,9 @@ if aiindex>0
         if entityelement(e).eleprof.tex3id<>0 then texture object obj,3,entityelement(e).eleprof.tex3id
         set object effect obj,entityelement(e).eleprof.usingeffect
         objecteffect(obj)=entityelement(e).eleprof.usingeffect
+       else
+        rem FPGC - 100610 - fix issue which wipes 'material mode' when re-apply texture
+        set object diffuse obj,rgb(128,128,128)
        endif
       endif
      endcase
@@ -11770,15 +11796,18 @@ if aiindex>0
      endcase
      case AIACTWAYPOINTNEXT:
       if entityelement(e).ai.waypoint.current>0
-       if entityelement(e).ai.waypoint.direction=1
-        w=entityelement(e).ai.waypoint.current
-        if w<waypoint(entityelement(e).ai.waypoint.tracker).finish
-         entityelement(e).ai.waypoint.current=w+1
-        endif
-       else
-        w=entityelement(e).ai.waypoint.current
-        if w>waypoint(entityelement(e).ai.waypoint.tracker).start
-         entityelement(e).ai.waypoint.current=w-1
+       rem FPGC - 100610 - if previously used STOP (99), and then instruct NEXT, should NOT increment node destination!
+       if entityelement(e).ai.waypoint.state<>99
+        if entityelement(e).ai.waypoint.direction=1
+         w=entityelement(e).ai.waypoint.current
+         if w<waypoint(entityelement(e).ai.waypoint.tracker).finish
+          entityelement(e).ai.waypoint.current=w+1
+         endif
+        else
+         w=entityelement(e).ai.waypoint.current
+         if w>waypoint(entityelement(e).ai.waypoint.tracker).start
+          entityelement(e).ai.waypoint.current=w-1
+         endif
         endif
        endif
        entityelement(e).ai.waypoint.state=1
@@ -21970,6 +21999,11 @@ else
  entityprofile(entid).islightmarker=0
 endif
 `
+rem FPGC - 100610 - all FPGC characters are ALWAYS ACTIVE for full speed logic (more predictable)
+if entityprofile(entid).ischaracter=1 and fpgcgenre=0
+ entityprofile(entid).phyalways=1
+endif
+`
 rem fileexistelse
 else
  rem File not exist, provide debug information (only if file specified (old entities can be renamed and still hang around inside FPMs)
@@ -22415,7 +22449,6 @@ _entity_setupelementobject:
 rem place entity at correct position and orientation
 if object exist(obj)=1
  `
- `tscale=entityelement(e).eleprof.scale EA does not support SCALE value in eleprof!
  tscale=entityprofile(entid).scale
  if tscale<>0 then scale object obj,tscale,tscale,tscale
  `
@@ -33371,7 +33404,7 @@ _saveload_savegame:
  rem SAVE
  if file exist(saveloadfile$)=1 then delete file saveloadfile$
  open to write 1,saveloadfile$
- version=116 : write file 1,version
+ version=117 : write file 1,version
  if version>=104
   rem V104
   rem Player
@@ -33510,6 +33543,17 @@ _saveload_savegame:
    a#=saveloadgamehud(thudid).height : write float 1,a#
    a$=saveloadgamehud(thudid).imagefile$ : write string 1,a$
   next thudid
+ endif
+ if version>=117
+  rem FPGC - 100610 - save decal state, sound state and lift state (so player can save mid-lift ride)
+  for lsi=0 to entityelementmax
+   a#=saveloadgamepositionentity(lsi).decalindex : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).decalmode : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).tsoundset0state : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).tsoundset1state : write float 1,a#
+  next lsi
+  rem lift (plr associations)
+  a#=saveloadgameposition.meridinglift : write float 1,a#
  endif
  close file 1
  `
@@ -33664,6 +33708,17 @@ _saveload_loadgame:
    read string 1,a$ : saveloadgamehud(thudid).imagefile$=a$
   next thudid
  endif
+ if version>=117
+  rem FPGC - 100610 - save decal state, sound state and lift state (so player can save mid-lift ride)
+  for lsi=0 to entityelementmax
+   read float 1,a# : saveloadgamepositionentity(lsi).decalindex=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).decalmode=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).tsoundset0state=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).tsoundset1state=a#
+  next lsi
+  rem lift (plr associations)
+  read float 1,a# : saveloadgameposition.meridinglift=a#
+ endif
  close file 1
  `
  rem Immediate data required (prior to level loading) - 'saveload_retrievesavedata' used after level loaded
@@ -33690,6 +33745,7 @@ _saveload_storesavedata:
  saveloadgameposition.playerinventorymax=player(1).inventorymax
  saveloadgameposition.missiongoaltotal=missiongoaltotal
  saveloadgameposition.playerholdinggun=autoloadgun
+ saveloadgameposition.meridinglift=meridinglift
  `
  rem Inventory
  dim saveloadgamepositionplayerinventory(100) as inventorytype
@@ -33740,6 +33796,12 @@ _saveload_storesavedata:
   saveloadgamepositionentity(lsi).collected=entityelement(lsi).collected
   saveloadgamepositionentity(lsi).activated=entityelement(lsi).activated
   saveloadgamepositionentity(lsi).collisionactive=entityelement(lsi).collisionactive
+  saveloadgamepositionentity(lsi).decalindex=entityelement(lsi).decalindex
+  saveloadgamepositionentity(lsi).decalmode=entityelement(lsi).decalmode
+  tsoundset0state=0 : if entityelement(lsi).soundset>0 then tsoundset0state=sound looping(entityelement(lsi).soundset)
+  saveloadgamepositionentity(lsi).tsoundset0state=tsoundset0state
+  tsoundset1state=0 : if entityelement(lsi).soundset1>0 then tsoundset1state=sound looping(entityelement(lsi).soundset1)
+  saveloadgamepositionentity(lsi).tsoundset1state=tsoundset1state
  next lsi
  rem Weapons
  dim saveloadgamepositionweaponslot(10) as saveloadgamepositionweaponslottype
@@ -33796,6 +33858,7 @@ _saveload_retrievesavedata:
  player(1).lives=saveloadgameposition.playerlives
  player(1).inventorymax=saveloadgameposition.playerinventorymax
 ` missiongoaltotal=saveloadgameposition.missiongoaltotal
+ rem note some player vairables must be set AFTER the call to player_retstart lower down (i.e.  meridinglift)
  rem Inventory
  for lsi=0 to 100
   playerinventory(1,lsi).new=saveloadgamepositionplayerinventory(lsi).new
@@ -33862,6 +33925,20 @@ _saveload_retrievesavedata:
    endif
    remend
    `
+   rem FPGC - 100610 - (117) - restore decal, sound states for entity
+   entityelement(lsi).decalindex=saveloadgamepositionentity(lsi).decalindex
+   entityelement(lsi).decalmode=saveloadgamepositionentity(lsi).decalmode
+   tsoundset0state=saveloadgamepositionentity(lsi).tsoundset0state
+   if entityelement(lsi).soundset>0
+    if tsoundset0state=0 then stop sound entityelement(lsi).soundset
+    if tsoundset0state=1 then loop sound entityelement(lsi).soundset
+   endif
+   tsoundset1state=saveloadgamepositionentity(lsi).tsoundset1state
+   if entityelement(lsi).soundset1>0
+    if tsoundset1state=0 then stop sound entityelement(lsi).soundset1
+    if tsoundset1state=1 then loop sound entityelement(lsi).soundset1
+   endif
+   `
   next lsi
  endif
  rem Weapons
@@ -33904,6 +33981,9 @@ _saveload_retrievesavedata:
  playerstartry#=saveloadgameposition.playerry
  playerstarthasweapon=saveloadgameposition.playerholdinggun
  gosub _player_restart
+ `
+ rem FPGC - 100610 - while riding lift, can now save and load
+ meridinglift=saveloadgameposition.meridinglift
  `
  rem Now refresh gun
  gosub _gun_loadonlypresent
