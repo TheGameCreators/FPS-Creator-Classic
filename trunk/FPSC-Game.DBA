@@ -3294,11 +3294,15 @@ _main_game_core:
  else
   rem the warmup allows decals to form, player start gravity to settle, etc
   cls 0 : dec gamewarmupcount,timeelapsed#
+  rem FPGC - 110610 - stabalize start of physics simulation for text and standalone games
+  gosub _ode_beginphysics        
   if gamewarmupcount<0 then gamewarmupcount=0
   if gamewarmupcount=0
    cleardelta=mousemovex() : cleardelta=mousemovey()
    rem switch gravity on after warm up (maybe?)
    `ode set world gravity physicsgravx#,physicsgravy#,physicsgravz#
+   rem FPGC - 110610 - little nudge to ensure floating entities tied to physics fall to floor when game has warmed up
+   gosub _ode_giveentitiesalittlenudgejustbeforelevelbegins
   endif
  endif
  `
@@ -7085,7 +7089,30 @@ _entity_fillviscolmap:
  for tmx=0 to 39
   for tmz=0 to 39
    for tml=0 to 19
+    fillviscolmapnow=0
     if map(tml,tmx,tmz)=0
+     rem no base segment means hole in universe
+     fillviscolmapnow=1
+     rem FPGC - 110610 - check if overlays have a floor to ensure no hole is added
+     tolaymax=0 : olayindex=mapolay(tml,tmx,tmz)
+     while olaylist(olayindex,tolaymax)>0 and tolaymax<50 : inc tolaymax : endwhile
+     dec tolaymax
+     if tolaymax>=0
+      for olayti=0 to tolaymax
+       mapid=olaylist(olayindex,olayti)
+       if mapid<>0
+        gosub _gridedit_getmapvalues
+        if object exist(selectionbankoffset+mapselection)=1
+         rem does this overlay segment have a floor we can stand on?
+         if segmentprofile(mapselection).blueprint.mode>0
+          fillviscolmapnow=0
+         endif
+        endif
+       endif
+      next olayti
+     endif     
+    endif
+    if fillviscolmapnow=1
      for tx=0 to 3
       for tz=0 to 3
        viscolmap((tmx*4)+tx,tml,(tmz*4)+tz)=-2
@@ -9054,13 +9081,17 @@ _entity_deducthealth:
  tsoundtrigger=0 : tsoundmaterial=0
  if entityprofile(tentid).ischaracter=0 and tdamage>1
   tmatindex=entityprofile(tentid).materialindex-1
-  `if tmatindex>=0 and tmatindex<gmaterialmax : rem FPSCV101 - fix
   if tmatindex>=0 and tmatindex<=gmaterialmax
    tsoundtrigger=material(tmatindex).impactid
    tsoundmaterial=1+tmatindex
    tspd#=(material(tmatindex).freq*2)+rnd(material(tmatindex).freq)
    tsx#=tdamagex# : tsy#=tdamagey# : tsz#=tdamagez#
   endif
+ endif
+ `
+ rem FPGC - 110610 - FPGC characters are invincible
+ if entityprofile(tentid).ischaracter=1
+  if fpgcgenre=0 then entityelement(e).eleprof.strength=0
  endif
  `
  rem work out effect on health and lives
@@ -22002,6 +22033,8 @@ endif
 rem FPGC - 100610 - all FPGC characters are ALWAYS ACTIVE for full speed logic (more predictable)
 if entityprofile(entid).ischaracter=1 and fpgcgenre=0
  entityprofile(entid).phyalways=1
+ rem FPGC - 110610 - and ALL are invincible
+ entityprofile(entid).strength=0
 endif
 `
 rem fileexistelse
@@ -24533,6 +24566,7 @@ _gameflow_default:
         if gvrmode<>0 then vr920exist=reset left eye()
        endif
       endwhile
+      while control_mouseclick()<>0 : endwhile
       controlSPACE=1
       controlESCAPE=0
       `
@@ -28225,6 +28259,16 @@ _ode_ensureeisnotpenetrated:
      ode set linear velocity ttobj,0,0.01,0
     endif
    endif
+  endif
+ next tte
+return
+
+_ode_giveentitiesalittlenudgejustbeforelevelbegins:
+ rem FPGC - 110610 - called just after warm up and new physics reset (calms irratic start)
+ for tte=1 to entityelementmax
+  ttobj=entityelement(tte).obj
+  if entityelement(tte).eleprof.physics<>0 and ttobj>0
+   ode set linear velocity ttobj,0,0.01,0
   endif
  next tte
 return
@@ -36710,46 +36754,49 @@ if file exist("editors\gridedit\cfg.cfg")=1
  open to read 1,"editors\gridedit\cfg.cfg"
   `
   rem Current Camera Position
-  if skipfpmloading=1
+  `if skipfpmloading=1
    read float 1,cx#
    read float 1,cy#
    read float 1,gridzoom#
    read file 1,gridlayer
-  else
-   read float 1,a#
-   read float 1,a#
-   read float 1,a#
-   read file 1,a
-  endif
+  `else
+  ` read float 1,a#
+  ` read float 1,a#
+  ` read float 1,a#
+  ` read file 1,a
+  `endif
   `
   rem Edit Vars
-  if skipfpmloading=1
+  `if skipfpmloading=1
    read file 1,nogridsmart
    read file 1,grideditartmode
    read file 1,grideditselect
-  else
-   read file 1,a
-   read file 1,a
-   read file 1,a
-  endif
+  `else
+  ` read file 1,a
+  ` read file 1,a
+  ` read file 1,a
+  `endif
   `
   rem Project (only need project name if skipping FPM=using temp.fpm)
   read string 1,temp$ : if skipfpmloading=1 then projectfilename$=temp$
   read string 1,currentFPG$
   `
   rem Shroud Settings
-  if skipfpmloading=1
+  `if skipfpmloading=1
    read file 1,shroudsize
    read file 1,gridlayershowsingle
-  else
-   read file 1,a
-   read file 1,a
-  endif
+  `else
+  ` read file 1,a
+  ` read file 1,a
+  `endif
   `
  close file 1
 endif
 
 rem If projectname has changed, this config will not match the new level
+remstart
+FPGC - 110610 - completely disable this auto-positioning of starting position
+rem as it comes from CFG.CFG every time (from current level working on or loaded)
 if projectfilename$<>currentprojectfilename$ and skipfpmloading=0
  rem first reset config
  gosub _gridedit_clear_configsettings
@@ -36769,6 +36816,7 @@ if projectfilename$<>currentprojectfilename$ and skipfpmloading=0
  next tlayer
  shroudrefresh=1 : gosub _gridedit_updatelayershades
 endif
+remend
 
 rem Update editor settings
 gosub _editor_refresheditmarkers

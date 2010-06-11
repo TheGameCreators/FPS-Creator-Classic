@@ -9,6 +9,10 @@ History
 V1.1.7
 ------
 
+ * Adjusted map editor to load view position from last time level was saved
+ * Characters can now walk on gantries (segment overlays with directional floors)
+ * All entities are nudged slightly at start of level so they fall if suspended
+ * When click EXITGAME, hold until click released (prevents load game from showing)
  * Can now save your game position at the bottom, top and whilst riding lift
  * Added new data to save position (decal mode, sound state and lift-ride state)
  * Added code to ensure walk anim not interupted when temp-stop at closed door
@@ -182,6 +186,7 @@ V1.1.7
 FPGC VARIANT SPECIFIC
 ---------------------
 
+ * FPGC variant ensures ALL characters are invincible so they cannot be killed
  * If run controllered EXE twice it crashed, reset HUD indices to fix this
  * Added dependence in EQUIPMENT.TXT and GUNS.TXT in GAMECORE subfolder for genres
  * Added extra audio into the AUDIOBANK EFFECTS folder for extra creativity
