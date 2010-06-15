@@ -10876,7 +10876,7 @@ if aiindex>0
       rem deactivate entity (like a corpse)
       entityelement(e).active=0
       entityelement(e).beenkilled=1
-      entityelement(e).logiccount=0 : entityelement(e).logiccountburst=5
+      entityelement(e).logiccount=0 : entityelement(e).logiccountburst=120
       rem stop any looping sound
       if entityelement(e).firesoundloop>0 then stop sound entityelement(e).firesoundloop
       entityelement(e).firesoundloop=0
@@ -11490,13 +11490,13 @@ if aiindex>0
       te=entityelement(e).actualtarget-1
       if te>0
        entityelement(te).activated=aiactionseq(seq).value
-       entityelement(te).logiccount=0 : entityelement(te).logiccountburst=5
+       entityelement(te).logiccount=0 : entityelement(te).logiccountburst=120
        entityelement(te).dormant=0
       endif
      endcase
      case AIACTACTIVATE:
       entityelement(e).activated=aiactionseq(seq).value
-      entityelement(e).logiccount=0 : entityelement(e).logiccountburst=5
+      entityelement(e).logiccount=0 : entityelement(e).logiccountburst=120
       entityelement(e).dormant=0
      endcase
      case AIACTACTIVATEALLINZONE:
@@ -11827,8 +11827,22 @@ if aiindex>0
      endcase
      case AIACTWAYPOINTNEXT:
       if entityelement(e).ai.waypoint.current>0
-       rem FPGC - 100610 - if previously used STOP (99), and then instruct NEXT, should NOT increment node destination!
-       if entityelement(e).ai.waypoint.state<>99
+       tgoaheadandincdec=0
+       if entityelement(e).ai.waypoint.state=99
+        rem FPGC - 100610 - if previously used STOP (99), and then instruct NEXT, should NOT increment node destination!
+        rem except in the case where the entity is already AT the destination (cases where a STOP is actioned when state=3 in script)
+        w=entityelement(e).ai.waypoint.current
+        distx#=waypointcoord(w).x-entityelement(e).x
+        distz#=waypointcoord(w).z-entityelement(e).z
+        dist#=sqrt(abs(distx#*distx#)+abs(distz#*distz#))
+        if dist#<=10.0*(entityelement(e).eleprof.speed/100.0)
+         rem radius bigger to avoid catch twenty two
+         tgoaheadandincdec=1
+        endif
+       else
+        tgoaheadandincdec=1
+       endif
+       if tgoaheadandincdec=1
         if entityelement(e).ai.waypoint.direction=1
          w=entityelement(e).ai.waypoint.current
          if w<waypoint(entityelement(e).ai.waypoint.tracker).finish
@@ -26462,7 +26476,7 @@ _entity_activatename_single:
     endif
     if ttttokay=1
      entityelement(te).activated=tstate
-     entityelement(te).logiccount=0 : entityelement(te).logiccountburst=5
+     entityelement(te).logiccount=0 : entityelement(te).logiccountburst=120
      entityelement(te).dormant=0
     endif
    endif
@@ -26570,7 +26584,7 @@ _entity_activateallinzone:
     if tey>condy1-5 and tey<condy2+5
      if tez<condz1 and tez>condz2
       entityelement(te).activated=tactivated
-      entityelement(te).logiccount=0 : entityelement(te).logiccountburst=5
+      entityelement(te).logiccount=0 : entityelement(te).logiccountburst=120
       entityelement(te).dormant=0
      endif
     endif

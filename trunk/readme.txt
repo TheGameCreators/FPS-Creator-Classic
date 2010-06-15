@@ -9,6 +9,8 @@ History
 V1.1.7
 ------
 
+ * Fixed Lightmapper.DLL bug that caused secondary lightmapping cycles to crash (heap)
+ * Extended logic burst for activated entities to 2 seconds (120 interations)
  * Adjusted map editor to load view position from last time level was saved
  * Characters can now walk on gantries (segment overlays with directional floors)
  * All entities are nudged slightly at start of level so they fall if suspended
