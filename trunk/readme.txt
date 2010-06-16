@@ -8,7 +8,10 @@ History
 
 V1.1.7
 ------
-
+  
+ * Added USE KEY field to zone markers (so the zoneanykeyactivate.fpi can be used)
+ * Fixed Basic3D.DLL so old material index not returned with static collision result
+ * Second level play will not crash, even if stand on box at end of level one 
  * Fixed Lightmapper.DLL bug that caused secondary lightmapping cycles to crash (heap)
  * Extended logic burst for activated entities to 2 seconds (120 interations)
  * Adjusted map editor to load view position from last time level was saved

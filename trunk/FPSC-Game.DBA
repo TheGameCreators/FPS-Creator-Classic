@@ -15223,6 +15223,9 @@ position listener -999999,-999999,-999999
 rotate listener 90,0,0
 scale listener 0.02
 
+rem reset extra vars
+camerastoodonphyobj=0
+
 return
 
 _player_submitsoundsettolist:
@@ -26060,8 +26063,11 @@ if deactivatecollision=0
   cmx#=cox#+get static collision x()
   cmy#=coy#+get static collision y()
   cmz#=coz#+get static collision z()
-  tcolmaterialtype=get static collision value()-1
-  colmaterialtype=tcolmaterialtype
+  if get static collision floor()=1
+   rem FPGC - 150610 - added floor check for player floor material value (stops using wall material for footfalls)
+   tcolmaterialtype=get static collision value()-1
+   colmaterialtype=tcolmaterialtype
+  endif
   grav#=1
  else
   inc grav#,1
@@ -28888,6 +28894,7 @@ if inkey$()="K" and tkickout=0
 endif
 
 rem Ellipse Collision with static scene
+colmaterialtype=-1
 if deactivatecollision=0 and skipcol=0
  `
  rem check ellipse against movement
@@ -28927,14 +28934,17 @@ if deactivatecollision=0 and skipcol=0
   adjx#=get static collision x()
   adjy#=get static collision y()
   adjz#=get static collision z()
-  colmaterialtype=get static collision value()-1
+  tstaticfloor=get static collision floor()
+  if tstaticfloor=1
+   rem FPGC - 150610 - added floor check for player floor material value (stops using wall material for footfalls)
+   colmaterialtype=get static collision value()-1
+  endif
   sctx#=ctx#
   scty#=cty#
   sctz#=ctz#
   ctx#=ctox#+adjx#
   cty#=ctoy#+adjy#
   ctz#=ctoz#+adjz#
-  tstaticfloor=get static collision floor()
   if tstaticfloor=1 and grav#<0 then tgravitydefeated=1
   if jumpaction<>0 and camvely#>5.0 and cty#-scty#<0.0 then camvely#=camvely#*-1 : jumpaction=0
   if abs(ctx#-sctx#)+abs(ctz#-sctz#)>8
@@ -29336,10 +29346,10 @@ endif
 
 Rem Hockeykid - 250210 - DarkAI Set Player Container
 for y=0 to 19
-   if finalcamy# > container(y).y#-50.0 and finalcamy# < container(y).y#+50.0
-      k=y
-      ai set player container k : pcontainer=k : playercontain=k : exit
-   endif
+ if finalcamy# > container(y).y#-50.0 and finalcamy# < container(y).y#+50.0
+  k=y
+  ai set player container k : pcontainer=k : playercontain=k : exit
+ endif
 next y
 
 rem update listener
@@ -37489,20 +37499,11 @@ if inputsys.doscrolldown<>0
  if inputsys.doscrolldown=100 then cy#=bordery#
 endif
 
-
 rem Scroll boundaries
 if cx#<0 then cx#=0
 if cy#<0 then cy#=0
 if cx#>borderx# then cx#=borderx#
 if cy#>bordery# then cy#=bordery#
-
-`rem Resize Map
-`if inputsys.domapresize>0
-` mapresize=inputsys.domapresize
-` gosub _gridedit_resize_map
-` if object exist(1)=1 then delete object 1
-` inputsys.domapresize=-1
-`endif
 
 return
 
@@ -44014,6 +44015,7 @@ _interface_openpropertywindow:
    endif
    if tflagifused=1
     if gmultiplayergame=0
+     setpropertystring2(group,grideleprof.usekey$,strarr$(436),strarr$(225)) : inc controlindex
      setpropertystring2(group,grideleprof.ifused$,strarr$(438),strarr$(227)) : inc controlindex
     endif
    endif
