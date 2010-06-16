@@ -37529,12 +37529,14 @@ if grideditselect=4
  if entityelement(gridentityinzoomview).editorfixed=0
   `
   rem position adjustment
-  if inputsys.dozoomviewmovex=1 then dec zoomviewtargetx#,1.0
-  if inputsys.dozoomviewmovex=2 then inc zoomviewtargetx#,1.0
-  if inputsys.dozoomviewmovey=1 then dec zoomviewtargety#,1.0
-  if inputsys.dozoomviewmovey=2 then inc zoomviewtargety#,1.0
-  if inputsys.dozoomviewmovez=1 then dec zoomviewtargetz#,1.0
-  if inputsys.dozoomviewmovez=2 then inc zoomviewtargetz#,1.0
+  tposadjspeed#=1.0
+  if inputsys.keycontrol=1 then tposadjspeed#=0.05
+  if inputsys.dozoomviewmovex=1 then dec zoomviewtargetx#,tposadjspeed#
+  if inputsys.dozoomviewmovex=2 then inc zoomviewtargetx#,tposadjspeed#
+  if inputsys.dozoomviewmovey=1 then dec zoomviewtargety#,tposadjspeed#
+  if inputsys.dozoomviewmovey=2 then inc zoomviewtargety#,tposadjspeed#
+  if inputsys.dozoomviewmovez=1 then dec zoomviewtargetz#,tposadjspeed#
+  if inputsys.dozoomviewmovez=2 then inc zoomviewtargetz#,tposadjspeed#
   `
   rem rotation adjustment
   if entityprofile(gridentity).ismarker<>2 and entityprofile(gridentity).ismarker<>3
