@@ -135,8 +135,6 @@ desc          = DarkAI generic shoot and melee with ally command
 :state=48:state=1,setaiactive=1,aifollowplr=1
 
 ;//melee strike
-;//Temp Hack! ----------------------------------using anim 10in lieu of anim 8 plus FPE hack to override weapontype offset
-
 :state=190,varequal=0:state=191
 :state=190,varequal=1:state=291
 :state=190,varequal=911:state=191
@@ -145,21 +143,21 @@ desc          = DarkAI generic shoot and melee with ally command
 :state=191,aitargetdistwithin=70,aicanshoot=1:state=192,aistop
 :state=191,aitargetdistfurther=70:state=1
 :state=191,aicanshoot=0:state=1
-:state=192:setaiactive=0,state=193,setframe=10
-:state=193:incframe=10,airotatetotarget
-:state=193,framebeyond=10 40,aitargetdistwithin=70:aisetmeleedamage=10,aiusemelee=1,state=194,sound=audiobank\misc\melee.wav
-:state=193,frameatend=10:animate=1,state=1,setaiactive=1,airotatetotarget
-:state=194,frameatend=10:animate=1,state=1,setaiactive=1,airotatetotarget
+:state=192:setaiactive=0,state=193,setframe=8
+:state=193:incframe=8,airotatetotarget
+:state=193,framebeyond=8 60,aitargetdistwithin=70:aisetmeleedamage=10,aiusemelee=1,state=194,sound=audiobank\misc\melee.wav
+:state=193,frameatend=8:animate=1,state=1,setaiactive=1,airotatetotarget
+:state=194,frameatend=8:animate=1,state=1,setaiactive=1,airotatetotarget
 
 :state=291:aisettarget,airotatetotarget
 :state=291,aitargetdistwithin=70,aicanshoot=1:state=292,aistop
 :state=291,aitargetdistfurther=70:state=1,aifollowplr=1
 :state=291,aicanshoot=0:state=1,aifollowplr=1
-:state=292:setaiactive=0,state=293,setframe=10
-:state=293:incframe=10,airotatetotarget
-:state=293,framebeyond=10 40,aitargetdistwithin=70:aisetmeleedamage=10,aiusemelee=1,state=294,sound=audiobank\misc\melee.wav
-:state=293,frameatend=10:animate=1,state=1,setaiactive=1,airotatetotarget
-:state=294,frameatend=10:animate=1,state=1,setaiactive=1,airotatetotarget
+:state=292:setaiactive=0,state=293,setframe=8
+:state=293:incframe=8,airotatetotarget
+:state=293,framebeyond=8 60,aitargetdistwithin=70:aisetmeleedamage=10,aiusemelee=1,state=294,sound=audiobank\misc\melee.wav
+:state=293,frameatend=8:animate=1,state=1,setaiactive=1,airotatetotarget
+:state=294,frameatend=8:animate=1,state=1,setaiactive=1,airotatetotarget
 
 ;//Enemy team2 behavior------------------------------------------
 
