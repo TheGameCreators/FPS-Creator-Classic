@@ -17,7 +17,7 @@ desc          = DarkAI generic shoot and melee with ally command
 
 ;//local var flags default, escort or responder behavior. 0=default, 1=escort (Ally), 911=responder
 :always:localvar=1
-:state=0:setvar=0
+:state=0:aiusefullaim=1,setvar=0
 
 ;//Dark AI Animations----------------------------------------------------------------------------------------------------
 
@@ -51,7 +51,7 @@ desc          = DarkAI generic shoot and melee with ally command
 
 :state=1,aitargetdistwithin=70:state=2
 
-:state=1,ifweapon=0:state=10
+:state=1,hasweapon=1,ifweapon=0:state=10
 
 ;//Take cover when shot
 :state=1,shotdamage=1:state=60,aisettarget
@@ -189,5 +189,7 @@ desc          = DarkAI generic shoot and melee with ally command
 ;//-----------------------------------------------------------
 
 :state=0:setaiactive=1,alwaysactive=1,reloadweapon,state=1
+
+:nearactivatable=0:settarget,activatetarget=2
 
 ;//End
