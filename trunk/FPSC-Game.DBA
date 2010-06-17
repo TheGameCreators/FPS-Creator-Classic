@@ -1391,6 +1391,7 @@ Rem End Dark AI
 #constant AICONDHUDHAVENAME 823
 #constant AICONDSCANCODEKEYPRESSED 824
 #constant AICONDKEYPRESSED 825
+#constant AICONDHASWEAPON 826
 #constant AICONDLAST 900
 
 #constant AIACTNONE 0
@@ -3295,7 +3296,7 @@ _main_game_core:
   rem the warmup allows decals to form, player start gravity to settle, etc
   cls 0 : dec gamewarmupcount,timeelapsed#
   rem FPGC - 110610 - stabalize start of physics simulation for text and standalone games
-  gosub _ode_beginphysics        
+  gosub _ode_beginphysics
   if gamewarmupcount<0 then gamewarmupcount=0
   if gamewarmupcount=0
    cleardelta=mousemovex() : cleardelta=mousemovey()
@@ -6927,10 +6928,11 @@ for e=1 to entityelementlist
      Rem spine update
      entid=entityelement(e).bankindex
      if entityprofile(entid).spine>-1 and entityprofile(entid).ischaracter=1 and entityprofile(entid).spine2>-1
+      rotation#=(entityelement(e).spiner/2.0)
       Rem Handle Spine 1 Rotation
-      Rotate Limb entityelement(e).obj,entityprofile(entid).spine,Limb Angle X(entityelement(e).obj,entityprofile(entid).spine),(entityelement(e).spiner/2),Limb Angle Z(entityelement(e).obj,entityprofile(entid).spine)
+      Rotate Limb entityelement(e).obj,entityprofile(entid).spine,Limb Angle X(entityelement(e).obj,entityprofile(entid).spine),rotation#,Limb Angle Z(entityelement(e).obj,entityprofile(entid).spine)
       Rem Handle Spine 2 Rotation
-      Rotate Limb entityelement(e).obj,entityprofile(entid).spine2,Limb Angle X(entityelement(e).obj,entityprofile(entid).spine2),(entityelement(e).spiner/2),Limb Angle Z(entityelement(e).obj,entityprofile(entid).spine2)
+      Rotate Limb entityelement(e).obj,entityprofile(entid).spine2,Limb Angle X(entityelement(e).obj,entityprofile(entid).spine2),rotation#,Limb Angle Z(entityelement(e).obj,entityprofile(entid).spine2)
      endif
      `
      rem any visual overlay info
@@ -7110,7 +7112,7 @@ _entity_fillviscolmap:
         endif
        endif
       next olayti
-     endif     
+     endif
     endif
     if fillviscolmapnow=1
      for tx=0 to 3
@@ -9511,6 +9513,8 @@ Rem Hockeykid - 250210 - added etimer
 conword$(AICONDETIMERGREATER)="etimergreater"
 Rem Hockeykid - 020310 - added keypressed
 conword$(AICONDKEYPRESSED)="keypressed"
+Rem Hockeykid - 170610 - New condition to detect if the entit has a weapon or not
+conword$(AICONDHASWEAPON)="hasweapon"
 Rem Hockeykid - 250210 - Dark AI start
 conword$(AICONDDARKAISTRAFEL)="strafingleft"
 conword$(AICONDDARKAISTRAFER)="strafingright"
@@ -10637,48 +10641,54 @@ if aiindex>0
      if hudhaveplayername=1 and conda=0 then airesult=0
     endcase
     case AICONDKEYPRESSED:
-      if keystate(aiconditionseq(seq).valuea)<>aiconditionseq(seq).valueb then airesult=0
+     if keystate(aiconditionseq(seq).valuea)<>aiconditionseq(seq).valueb then airesult=0
+    endcase
+    case AICONDHASWEAPON:
+     if entityprofile(entid).ischaracter<>0
+      if aiconditionseq(seq).valuea=1 and entityelement(e).eleprof.hasweapon=0 then airesult=0
+      if aiconditionseq(seq).valuea=0 and entityelement(e).eleprof.hasweapon<>0 then airesult=0
+     endif
     endcase
     Rem Hockeykid - 250210 - Dark AI conditions
     case AICONDDARKAISTRAFEL:
-       conda=aiconditionseq(seq).valuea
-       taction=entityelement(e).darkai.action
-      if ai entity exist(entityelement(e).obj)
-         if entityelement(e).darkai.action=3 and conda=0 then airesult=0
-         if entityelement(e).darkai.action<>3 and conda=1 then airesult=0
+     conda=aiconditionseq(seq).valuea
+     taction=entityelement(e).darkai.action
+     if ai entity exist(entityelement(e).obj)
+      if entityelement(e).darkai.action=3 and conda=0 then airesult=0
+      if entityelement(e).darkai.action<>3 and conda=1 then airesult=0
      endif
     endcase
     case AICONDDARKAISTRAFER:
-       conda=aiconditionseq(seq).valuea
-       taction=entityelement(e).darkai.action
-      if ai entity exist(entityelement(e).obj)
-         if entityelement(e).darkai.action=4 and conda=0 then airesult=0
-         if entityelement(e).darkai.action<>4 and conda=1 then airesult=0
+     conda=aiconditionseq(seq).valuea
+     taction=entityelement(e).darkai.action
+     if ai entity exist(entityelement(e).obj)
+      if entityelement(e).darkai.action=4 and conda=0 then airesult=0
+      if entityelement(e).darkai.action<>4 and conda=1 then airesult=0
      endif
     endcase
     case AICONDDARKAIMOVINGF:
-       conda=aiconditionseq(seq).valuea
-       taction=entityelement(e).darkai.action
-      if ai entity exist(entityelement(e).obj)
-         if entityelement(e).darkai.action=1 and conda=0 then airesult=0
-         if entityelement(e).darkai.action<>1 and conda=1 then airesult=0
+     conda=aiconditionseq(seq).valuea
+     taction=entityelement(e).darkai.action
+     if ai entity exist(entityelement(e).obj)
+      if entityelement(e).darkai.action=1 and conda=0 then airesult=0
+      if entityelement(e).darkai.action<>1 and conda=1 then airesult=0
      endif
     endcase
     case AICONDDARKAIMOVINGB:
-       conda=aiconditionseq(seq).valuea
-       taction=entityelement(e).darkai.action
-       if ai entity exist(entityelement(e).obj)
-         if entityelement(e).darkai.action=2 and conda=0 then airesult=0
-         if entityelement(e).darkai.action<>2 and conda=1 then airesult=0
-         movingwork=airesult
-      endif
+     conda=aiconditionseq(seq).valuea
+     taction=entityelement(e).darkai.action
+     if ai entity exist(entityelement(e).obj)
+      if entityelement(e).darkai.action=2 and conda=0 then airesult=0
+      if entityelement(e).darkai.action<>2 and conda=1 then airesult=0
+      movingwork=airesult
+     endif
     endcase
     case AICONDDARKAIIDLE:
-       conda=aiconditionseq(seq).valuea
-       taction=entityelement(e).darkai.action
-      if ai entity exist(entityelement(e).obj)
-         if entityelement(e).darkai.action=0 and conda=0 then airesult=0
-         if entityelement(e).darkai.action<>0 and conda=1 then airesult=0
+     conda=aiconditionseq(seq).valuea
+     taction=entityelement(e).darkai.action
+     if ai entity exist(entityelement(e).obj)
+      if entityelement(e).darkai.action=0 and conda=0 then airesult=0
+      if entityelement(e).darkai.action<>0 and conda=1 then airesult=0
      endif
     endcase
    case AICONDDARKAICANSHOOT:
@@ -10691,7 +10701,7 @@ if aiindex>0
     case AICONDAIDUCKING:
      conda=aiconditionseq(seq).valuea
      if ai entity exist(entityelement(e).obj)
-        if ai get entity is ducking(entityelement(e).obj)=1 and conda=0 then airesult=0
+      if ai get entity is ducking(entityelement(e).obj)=1 and conda=0 then airesult=0
       if ai get entity is ducking(entityelement(e).obj)=0 and conda=1 then airesult=0
      endif
     endcase
@@ -11549,13 +11559,15 @@ if aiindex>0
      `
      case AIACTSETTARGET:
       if entityelement(e).possibletarget<>0
+       oldtarget=entityelement(e).actualtarget
        entityelement(e).actualtarget=entityelement(e).possibletarget
+
        if entityelement(e).actualtarget>1
-        tte=entityelement(e).actualtarget-1
-        entityelement(e).actualtargetx=entityelement(tte).x
-        entityelement(e).actualtargety=entityelement(tte).y
-        entityelement(e).actualtargetz=entityelement(tte).z
-        entityelement(e).losttargetcount=0
+         tte=entityelement(e).actualtarget-1
+         entityelement(e).actualtargetx=entityelement(tte).x
+         entityelement(e).actualtargety=entityelement(tte).y
+         entityelement(e).actualtargetz=entityelement(tte).z
+         entityelement(e).losttargetcount=0
        else
         if entityelement(e).actualtarget=-1
          entityelement(e).actualtargetx=bcsoundx#
@@ -11564,67 +11576,71 @@ if aiindex>0
          entityelement(e).losttargetcount=0
         else
          `
-         rem target is player
-         tdx#=(mex#-entityelement(e).x)
-         tdy#=(mey#-entityelement(e).y)
-         tdz#=(mez#-entityelement(e).z)
-         tdd#=sqrt(abs(tdx#*tdx#)+abs(tdz#*tdz#)+abs(tdy#*tdy#))+0.001
-         tdxh#=(tdx#/tdd#)*10.0
-         tdzh#=(tdz#/tdd#)*10.0
-         ttactualtargetx=mex#-tdxh#
-         ttactualtargety=mey#-phyeyeheight# : rem too much -meheight#
-         ttactualtargetz=mez#-tdzh#
-         `
-         rem only if actual target position has CHANGED!
-         taquirelinetoplr=0
-         if int(entityelement(e).actualtargetx/100)<>int(ttactualtargetx/100) or int(entityelement(e).actualtargety/100)<>int(ttactualtargety/100) or int(entityelement(e).actualtargetz/100)<>int(ttactualtargetz/100)
-          rem new position of target, so check ground before use it
-          entityelement(e).actualtargetx=ttactualtargetx
-          entityelement(e).actualtargety=ttactualtargety
-          entityelement(e).actualtargetz=ttactualtargetz
-          rem can go straight to players position to start trail if plr level(ish)
-          traily#=entityelement(e).actualtargety
-          if entityelement(e).plrtrailindex<>0
-           rem entity already has trail, but might be 'follow the leader' nonesense
-           rem if there is good ground between player and entity, give opportunity to skip
-           tokay=1
-           tstbx#=entityelement(e).x
-           tstby#=entityelement(e).y
-           tstbz#=entityelement(e).z
-           tdxi#=tdx#/tdd# : tdyi#=tdy#/tdd# : tdzi#=tdz#/tdd#
-           for tst#=0.0 to tdd# step 90.0
-            tstx#=tstbx#+(tdxi#*tst#)
-            tsty#=tstby#+(tdyi#*tst#)
-            tstz#=tstbz#+(tdzi#*tst#)
-            inc gameperfentities3
-            entityelement(e).raycastcount=0
-            if static raycast(tstx#,tsty#,tstz#,tstx#,tsty#-50,tstz#)=0
-             tokay=0
-            endif
-           next tst#
-           if tokay=1 then taquirelinetoplr=2
+         Rem Hockeykid - 170610 - Ensure that Dark AI entities cannot use settarget for targeting the player
+         if AI Entity Exist(entityelement(e).obj)=1 then entityelement(e).actualtarget=oldtarget
+         if AI Entity Exist(entityelement(e).obj)=0
+          rem target is player
+          tdx#=(mex#-entityelement(e).x)
+          tdy#=(mey#-entityelement(e).y)
+          tdz#=(mez#-entityelement(e).z)
+          tdd#=sqrt(abs(tdx#*tdx#)+abs(tdz#*tdz#)+abs(tdy#*tdy#))+0.001
+          tdxh#=(tdx#/tdd#)*10.0
+          tdzh#=(tdz#/tdd#)*10.0
+          ttactualtargetx=mex#-tdxh#
+          ttactualtargety=mey#-phyeyeheight# : rem too much -meheight#
+          ttactualtargetz=mez#-tdzh#
+          `
+          rem only if actual target position has CHANGED!
+          taquirelinetoplr=0
+          if int(entityelement(e).actualtargetx/100)<>int(ttactualtargetx/100) or int(entityelement(e).actualtargety/100)<>int(ttactualtargety/100) or int(entityelement(e).actualtargetz/100)<>int(ttactualtargetz/100)
+           rem new position of target, so check ground before use it
+           entityelement(e).actualtargetx=ttactualtargetx
+           entityelement(e).actualtargety=ttactualtargety
+           entityelement(e).actualtargetz=ttactualtargetz
+           rem can go straight to players position to start trail if plr level(ish)
+           traily#=entityelement(e).actualtargety
+           if entityelement(e).plrtrailindex<>0
+            rem entity already has trail, but might be 'follow the leader' nonesense
+            rem if there is good ground between player and entity, give opportunity to skip
+            tokay=1
+            tstbx#=entityelement(e).x
+            tstby#=entityelement(e).y
+            tstbz#=entityelement(e).z
+            tdxi#=tdx#/tdd# : tdyi#=tdy#/tdd# : tdzi#=tdz#/tdd#
+            for tst#=0.0 to tdd# step 90.0
+             tstx#=tstbx#+(tdxi#*tst#)
+             tsty#=tstby#+(tdyi#*tst#)
+             tstz#=tstbz#+(tdzi#*tst#)
+             inc gameperfentities3
+             entityelement(e).raycastcount=0
+             if static raycast(tstx#,tsty#,tstz#,tstx#,tsty#-50,tstz#)=0
+              tokay=0
+             endif
+            next tst#
+            if tokay=1 then taquirelinetoplr=2
+           endif
+           `
+          else
+           entityelement(e).losttargetcount=0
+          endif
+          if taquirelinetoplr=2
+           if abs(traily#-entityelement(e).y)<10.0
+            rem if on same level
+            taquirelinetoplr=1
+           endif
+           if traily#<entityelement(e).y
+            rem if player lower than entity
+            taquirelinetoplr=1
+           endif
+          endif
+          if taquirelinetoplr=1
+           trailx#=mex# : trailz#=mez#
+           trailaction=1 : gosub _player_leavetrail
+           entityelement(e).plrtrailindex=playertrailmax-1
+           if entityelement(e).plrtrailindex<1 then entityelement(e).plrtrailindex=100
           endif
           `
-         else
-          entityelement(e).losttargetcount=0
          endif
-         if taquirelinetoplr=2
-          if abs(traily#-entityelement(e).y)<10.0
-           rem if on same level
-           taquirelinetoplr=1
-          endif
-          if traily#<entityelement(e).y
-           rem if player lower than entity
-           taquirelinetoplr=1
-          endif
-         endif
-         if taquirelinetoplr=1
-          trailx#=mex# : trailz#=mez#
-          trailaction=1 : gosub _player_leavetrail
-          entityelement(e).plrtrailindex=playertrailmax-1
-          if entityelement(e).plrtrailindex<1 then entityelement(e).plrtrailindex=100
-         endif
-         `
         endif
        endif
        entityelement(e).possibletarget=0
@@ -23645,7 +23661,7 @@ _entity_createelements_loadsoundlast_fileref:
  loadsoundrefonly=0
  `
 return
- 
+
 _entity_attachelementstogame:
 
 rem associate dynamic entities with game universe (vislinking)
@@ -42061,8 +42077,8 @@ for ly=lystart to lyend
                remend
                if gridentity>0
                 for ttto=0 to 99
-                 if limb exist(obj,ttto)=1 
-                  ttsegparty#=limb position y(obj,ttto)    
+                 if limb exist(obj,ttto)=1
+                  ttsegparty#=limb position y(obj,ttto)
                   ttsegpartywhole=ttsegparty#/100 : ttsegpartywhole=ttsegpartywhole*100
                   ttsegparty#=ttsegparty#-ttsegpartywhole
                   if ttsegparty#>20 and ttsegparty#<80

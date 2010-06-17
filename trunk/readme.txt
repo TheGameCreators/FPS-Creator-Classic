@@ -8,7 +8,8 @@ History
 
 V1.1.7
 ------
-  
+	
+ * Added new FPI condition HASWEAPON=X this will check if the entity has a weapon   
  * In entity zoom view, press CONTROL to allow more accurate XYZ placement
  * Added USE KEY field to zone markers (so the zoneanykeyactivate.fpi can be used)
  * Fixed Basic3D.DLL so old material index not returned with static collision result
@@ -31,7 +32,7 @@ V1.1.7
  * Added new FPI action AIUSEFULLAIM=X this will toggle the option to have the AI aim up and down
  * Finally finally fixed the test game start issue, now no longer have repeating left clicks
  * Added new FPI action AICLEARTARGET this will manually clear the entities current target
- * Added new FPI condition AIHASTARGET=X this will return ture if the entity has a target
+ * Added new FPI condition AIHASTARGET=X this will return true if the entity has a target
  * Added new FPI action AIATTACKAWARNESS=X by default this is turned on which causes the AI to go into "attack mode" when the see an enemy. Turning this off can make your AI ignore an enemy or aid in having the break away from a battle. 
  * Added new FPI condition AICALLEDBYPLR=X this will return if the entity has been called by the AIPLRCALLTEAM=X command
  * Added new FPI action AIRESPONDTOPLRCALL=X this will cause a fellow player teammate to move towards the player (if any he for help)
