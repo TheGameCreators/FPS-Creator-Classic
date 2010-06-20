@@ -1150,6 +1150,9 @@ endtype
 rem Entity Elements Data
 type entitytype
  darkai as darkaitype
+ curvcmx as integer
+ curvcmy as integer
+ curvcmz as integer
  spine as integer
  spiner as float
  eyeoffset as integer
@@ -46361,6 +46364,25 @@ rem Apply New Actions
    endif
   endif
   AI Set Entity Y Position obj,entityelement(e).y
+ endif
+ `
+ rem update col map
+ tx=entityelement(e).x/25
+ ty=entityelement(e).y/100
+ tz=entityelement(e).z/-25
+ if tx>=0 and ty>=0 and tz>=0
+  if tx<=viscolx and ty<=viscoly and tz<=viscolz
+   if viscolmap(tx,ty,tz)=0 then viscolmap(tx,ty,tz)=e
+   if entityelement(e).curvcmx<>tx or entityelement(e).curvcmy<>ty or entityelement(e).curvcmz<>tz
+    otx=entityelement(e).curvcmx
+    oty=entityelement(e).curvcmy
+    otz=entityelement(e).curvcmz
+    if viscolmap(otx,oty,otz)=e then viscolmap(otx,oty,otz)=0
+    entityelement(e).curvcmx=tx
+    entityelement(e).curvcmy=ty
+    entityelement(e).curvcmz=tz
+   endif
+  endif
  endif
  `
  rem FPGC - 060510 - feedback internal AI state to debug string
