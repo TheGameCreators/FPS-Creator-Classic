@@ -279,6 +279,7 @@ type saveloadgamepositionentitytype
  decalmode as integer
  tsoundset0state as integer
  tsoundset1state as integer
+ physics as integer
 endtype
 type saveloadgamepositionweaponslottype
  pref got invpos
@@ -953,6 +954,9 @@ type entityprofiletype
  explodedamage as integer
  headframestart as integer
  headframefinish as integer
+ decaloffsetangle as float
+ decaloffsetdist as float
+ decaloffsety as float
  reserve1 as integer
  reserve2 as integer
  reserve3 as integer
@@ -1450,6 +1454,7 @@ Rem End Dark AI
 #constant AIACTLOOKATPLR 359
 #constant AIACTSETTARGETNAME 360
 #constant AIACTRAGDOLL 370
+#constant AIACTCARRYALL 391
 #constant AIACTPLRASS 401
 #constant AIACTPLRNOASS 402
 #constant AIACTPLRMOVEUP 403
@@ -1891,7 +1896,7 @@ type decalelementtype
  particleiz as float
  particlemirror as integer
 endtype
-global decalelementmax=200
+global decalelementmax=499
 dim decalelement(decalelementmax) as decalelementtype
 
 `
@@ -6387,7 +6392,7 @@ _entity_showdebugstringinfo:
       tgunid=entityprofile(tentid).isweapon
       center text object screen x(obj),object screen y(obj)+toffsetspawnlabel-20," AI:"+tainame$+" S:"+str$(entityelement(e).ai.state)+strarr$(99)+str$(gun(tgunid).settings.damage)+" H:"+str$(entityelement(e).health)
      else
-      center text object screen x(obj),object screen y(obj)+toffsetspawnlabel-20," AI:"+tainame$+" S:"+str$(entityelement(e).ai.state)+" H:"+str$(entityelement(e).health)+" FRAME:"+str$(entityelement(e).animframe)+"\"+str$(entityelement(e).destanimframe)
+      center text object screen x(obj),object screen y(obj)+toffsetspawnlabel-20," AI:"+tainame$+" S:"+str$(entityelement(e).ai.state)+" A:"+str$(entityelement(e).activated)+" H:"+str$(entityelement(e).health)+" FRAME:"+str$(entityelement(e).animframe)+"\"+str$(entityelement(e).destanimframe)
       center text object screen x(obj),object screen y(obj)+toffsetspawnlabel,"WP:"+str$(entityelement(e).ai.waypoint.current)+" TRK:"+str$(entityelement(e).ai.waypoint.tracker)+" DIR:"+str$(entityelement(e).ai.waypoint.direction)+" S:"+str$(entityelement(e).ai.waypoint.state)
      endif
     endif
@@ -8003,6 +8008,15 @@ if tindex<>0
   else
    decaly=entityelement(e).y
   endif
+  rem FPGC - 170610 - can apply a Y-rotated offset for entity
+  if entityprofile(entid).decaloffsetdist<>0 or entityprofile(entid).decaloffsety<>0
+   trotatedoffsetx=newxvalue(0,entityelement(e).ry+entityprofile(entid).decaloffsetangle,entityprofile(entid).decaloffsetdist)
+   trotatedoffsetz=newzvalue(0,entityelement(e).ry+entityprofile(entid).decaloffsetangle,entityprofile(entid).decaloffsetdist)
+   toffsety=entityprofile(entid).decaloffsety
+   decalx=decalx+trotatedoffsetx
+   decalz=decalz+trotatedoffsetz
+   decaly=decaly+toffsety
+  endif
   if entityelement(e).decalmode=1
    rem used for windows, where glass smash decal must exactly match
    if entityelement(e).obj>0
@@ -9584,6 +9598,7 @@ actword$(AIACTDECFRAME)="decframe"
 actword$(AIACTANIMATE)="animate"
 actword$(AIACTADVFRAME)="advframe"
 actword$(AIACTRAGDOLL)="ragdoll"
+actword$(AIACTCARRYALL)="carryall"
 actword$(AIACTPLRASS)="associateplayer"
 actword$(AIACTPLRNOASS)="unassociateplayer"
 actword$(AIACTPLRMOVEUP)="plrmoveup"
@@ -11419,6 +11434,69 @@ if aiindex>0
       endif
      endcase
      `
+     case AIACTCARRYALL:
+      rem FPGC - 170610 - when called on entity not using collision to carry any other entities in its field (lift)
+      for carrye=1 to entityelementlist
+       if entityelement(carrye).x>entityelement(e).x-50
+        if entityelement(carrye).x<entityelement(e).x+50
+         if entityelement(carrye).y>entityelement(e).y
+          if entityelement(carrye).y<entityelement(e).y+100
+           if entityelement(carrye).z<entityelement(e).z+50
+            if entityelement(carrye).z>entityelement(e).z-50
+             tcarryobj=entityelement(carrye).obj
+             if tcarryobj>0 and carrye<>e and (camerapicked=0 or (camerapicked>0 and carrye<>camerapickede))
+              if object exist(tcarryobj)=1
+               `
+               if entityelement(e).collisionactive=0
+                rem COLOFF - lift is moving
+                if entityelement(carrye).collisionactive=1           
+                 entityelement(carrye).collisionactive=0
+                 if entityelement(carrye).eleprof.physics<>0
+                  tttobj=ttobj : ttte=e
+                  e=carrye : gosub _ode_switchoffe
+                  ttobj=tttobj : e=ttte
+                 else
+                  set object collision off tcarryobj
+                 endif
+                 if entityelement(carrye).eleprof.physics<100
+                  rem FPGC -170610 - special physics foe lift
+                  entityelement(carrye).eleprof.physics=entityelement(carrye).eleprof.physics+100
+                 endif
+                endif
+                entityelement(carrye).y=entityelement(e).y+object collision center y(tcarryobj)+5
+                position object tcarryobj,entityelement(carrye).x,entityelement(carrye).y,entityelement(carrye).z
+               else
+                rem COLON - lift stopped
+                if entityelement(carrye).collisionactive=0           
+                 entityelement(carrye).collisionactive=1
+                 rem activate object collision
+                 if entityelement(carrye).eleprof.physics<>0
+                  tttobj=ttobj : ttte=e : tttentid=entid
+                  e=carrye
+                  gosub _ode_setupewithphysics
+                  gosub _ode_ensureeisnotpenetrated
+                  ttobj=tttobj : e=ttte : entid=tttentid
+                 else
+                  set object collision on tcarryobj
+                 endif
+                 if entityelement(carrye).eleprof.physics>=100
+                  rem FPGC -170610 - special physics foe lift
+                  entityelement(carrye).eleprof.physics=entityelement(carrye).eleprof.physics-100
+                 endif
+                endif
+               endif
+               `
+              endif
+             endif
+            endif
+           endif
+          endif
+         endif
+        endif
+       endif
+      next carrye
+     endcase
+     `
      case AIACTPLRASS:
       gosub _player_resettrail
       meridinglift=1+e
@@ -11449,7 +11527,7 @@ if aiindex>0
       foundte=aiactionseq(seq).value
       if foundte>0
        tranmex#=entityelement(foundte).x
-       tranmey#=entityelement(foundte).y+55.0
+       tranmey#=entityelement(foundte).y+75.0 : rem FPGC - 180610 - from 55 (stuck below gantry)
        tranmez#=entityelement(foundte).z
        tranmeangley#=entityelement(foundte).ry+180
        gosub _player_resettrail
@@ -11461,7 +11539,7 @@ if aiindex>0
       gosub _entity_findname
       if foundte>0
        tranmex#=entityelement(foundte).x
-       tranmey#=entityelement(foundte).y+55.0
+       tranmey#=entityelement(foundte).y+75.0 : rem FPGC - 180610 - from 55 (stuck below gantry)
        tranmez#=entityelement(foundte).z
        tranmeangley#=entityelement(foundte).ry+180
        gosub _player_resettrail
@@ -15860,7 +15938,14 @@ rem Mouseclick (mode 1-ignore A,C,D buttons of controller)
 tmouseclick=control_mouseclick_mode(1)
 if tdisablepickupdropthiscycle=1 and tmouseclick=2 then tmouseclick=0
 if showgamemenu=1 then tmouseclick=0
-
+`
+rem FPGC - 180610 - FPGC variant treats tmouseclick=1 as =2 (so if using equipment, revert to =1)
+if fpgcgenre=0
+ if currentgunobj>0
+  if tmouseclick=2 then tmouseclick=1
+ endif
+endif
+`
 rem Mouse
 player(plrid).state.firingmode=0
 if player(plrid).health>0 or playerstartstrength=0
@@ -16167,10 +16252,7 @@ function loadgun(tfile$)
    set object interpolation index,100
    set object frame index,gun(gunbankmax).action.show.s
    hide object index
-  else
-   exit prompt str$(file exist(tfile$))+" "+tfile$,str$(file exist(tdbofile$))+" "+tdbofile$
-   end
-
+   `
   endif
  endif
 endfunction index
@@ -16767,7 +16849,7 @@ endif
 if gunmode=106
  set object speed currentgunobj,timeelapsed#*100.0
  if object frame(currentgunobj)>=gun(gunid).action.finish.e then gunmode=107
- rem fpgc - detect sound slot 1 triggers, as these are USE actions and should ACTIVATE the equipment
+ rem FPGC - detect sound slot 1 triggers, as these are USE actions and should ACTIVATE the equipment
  if gun(gunid).settings.equipment=1 and total object frames(currentgunobj)>0
   if gun(gunid).sound.soundframes>0
    for p=0 to gun(gunid).sound.soundframes : rem FPGC - 110809 - was -1
@@ -16775,7 +16857,7 @@ if gunmode=106
      sndid=gunsound(gunid,gunsounditem(gunid,p).playsound).soundid
      if sndid>0
       if int(gunsounditem(gunid,p).keyframe)=int(object frame(currentgunobj))
-       tgunactivateequipment=1
+       tgunactivateequipment=1       
       endif
      endif
     endif
@@ -16836,8 +16918,11 @@ if tgunactivateequipment=1
  e=gun(gunid).settings.equipmententityelementindex
  if e>0
   tname$=entityelement(e).eleprof.ifused$
-  tstate=1 : tonlyactivateifnearautotoggle=1 : gosub _entity_activatename
+ else
+  rem FPGC - 180610 - if no entity (used player start field), default to 'broken' as the name for entities to be activated
+  tname$="broken"
  endif
+ tstate=1 : tonlyactivateifnearautotoggle=1 : gosub _entity_activatename
  e=tstoree : te=tstorete
  tgunactivateequipment=0
 endif
@@ -19760,7 +19845,14 @@ return
 `
 
 _decalelement_create:
-
+`
+rem FPGC - 170610 - early out if decal over 1000 units away from camera
+tdxx=decalx-camera position x()
+tdyy=decaly-camera position y()
+tdzz=decalz-camera position z()
+tddd=sqrt(abs(tdxx*tdxx)+abs(tdyy*tdyy)+abs(tdzz*tdzz))
+if tddd>800 then return
+`
 for d=1 to decalelementmax
  if decalelement(d).active=0 then exit
 next d
@@ -21588,6 +21680,9 @@ if file exist(tprofile$)=0
  entityprofile(entid).phyalways=0
  entityprofile(entid).spine=-1
  entityprofile(entid).spine2=-1
+ entityprofile(entid).decaloffsetangle=0
+ entityprofile(entid).decaloffsetdist=0
+ entityprofile(entid).decaloffsety=0
  `
  rem Load entity Data from file
  dim data$(400)
@@ -21782,6 +21877,14 @@ if file exist(tprofile$)=0
     if field$=tryfield$ then entityprofile(entid).trigger.areay1=value1 : entityprofile(entid).trigger.areay2=value2
     tryfield$="areaz"
     if field$=tryfield$ then entityprofile(entid).trigger.areaz1=value1 : entityprofile(entid).trigger.areaz2=value2
+    `
+    rem FPGC - 170610 - extra decal offset (ideal for placing flames in torches, etc)
+    tryfield$="decalangle"
+    if field$=tryfield$ then entityprofile(entid).decaloffsetangle=value1
+    tryfield$="decaldist"
+    if field$=tryfield$ then entityprofile(entid).decaloffsetdist=value1/10.0
+    tryfield$="decaly"
+    if field$=tryfield$ then entityprofile(entid).decaloffsety=value1/10.0    
     `
     rem entity body part list
     tryfield$="limbmax"
@@ -29408,7 +29511,8 @@ tclosestpickable=0
 if tclosestpickable=0
  bestdst#=99999.9 : bestay#=360 : beste=0
  for e=1 to entityelementmax
-  if entityelement(e).eleprof.physics=1 and entityelement(e).active=1
+  `if entityelement(e).eleprof.physics=1 and entityelement(e).active=1 100+=on lift!
+  if (entityelement(e).eleprof.physics=1 or entityelement(e).eleprof.physics=101) and entityelement(e).active=1
    tobj=entityelement(e).obj
    if tobj>0
     if object exist(tobj)=1
@@ -29479,6 +29583,23 @@ if camerapickup=1
       camturntofacemode=5 : camturntoface#=bestang#
       camerapickedangle#=camturntoface#
       camerapickede=beste : camerapicked=entityelement(camerapickede).obj
+      if entityelement(camerapickede).eleprof.physics>=100
+       rem FPGC - 170610 - special physics flag when ent rides lift, but can pick it up by re-activating here
+       if entityelement(camerapickede).collisionactive=0           
+        entityelement(camerapickede).collisionactive=1
+        rem activate object collision
+        if entityelement(camerapickede).eleprof.physics<>0
+         tttobj=ttobj : ttte=e : tttentid=entid
+         e=camerapickede
+         gosub _ode_setupewithphysics
+         gosub _ode_ensureeisnotpenetrated
+         ttobj=tttobj : e=ttte : entid=tttentid
+        else
+         set object collision on camerapicked
+        endif
+       endif
+       entityelement(camerapickede).eleprof.physics=entityelement(camerapickede).eleprof.physics-100
+      endif
       ode set body rotation camerapicked,-1,-1,-1 : rem special hack to reset GRAB rotation matrix feature
       ode set body rotation camerapicked,0,0,0
       if cameradampenactive=1
@@ -33638,6 +33759,7 @@ _saveload_savegame:
    a#=saveloadgamepositionentity(lsi).decalmode : write float 1,a#
    a#=saveloadgamepositionentity(lsi).tsoundset0state : write float 1,a#
    a#=saveloadgamepositionentity(lsi).tsoundset1state : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).physics : write float 1,a#
   next lsi
   rem lift (plr associations)
   a#=saveloadgameposition.meridinglift : write float 1,a#
@@ -33802,6 +33924,7 @@ _saveload_loadgame:
    read float 1,a# : saveloadgamepositionentity(lsi).decalmode=a#
    read float 1,a# : saveloadgamepositionentity(lsi).tsoundset0state=a#
    read float 1,a# : saveloadgamepositionentity(lsi).tsoundset1state=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).physics=a#
   next lsi
   rem lift (plr associations)
   read float 1,a# : saveloadgameposition.meridinglift=a#
@@ -33889,6 +34012,7 @@ _saveload_storesavedata:
   saveloadgamepositionentity(lsi).tsoundset0state=tsoundset0state
   tsoundset1state=0 : if entityelement(lsi).soundset1>0 then tsoundset1state=sound looping(entityelement(lsi).soundset1)
   saveloadgamepositionentity(lsi).tsoundset1state=tsoundset1state
+  saveloadgamepositionentity(lsi).physics=entityelement(lsi).eleprof.physics
  next lsi
  rem Weapons
  dim saveloadgamepositionweaponslot(10) as saveloadgamepositionweaponslottype
@@ -34018,13 +34142,14 @@ _saveload_retrievesavedata:
    tsoundset0state=saveloadgamepositionentity(lsi).tsoundset0state
    if entityelement(lsi).soundset>0
     if tsoundset0state=0 then stop sound entityelement(lsi).soundset
-    if tsoundset0state=1 then loop sound entityelement(lsi).soundset
+    if tsoundset0state=1 then loop sound entityelement(lsi).soundset : entityelement(lsi).soundlooping=entityelement(lsi).soundset
    endif
    tsoundset1state=saveloadgamepositionentity(lsi).tsoundset1state
    if entityelement(lsi).soundset1>0
     if tsoundset1state=0 then stop sound entityelement(lsi).soundset1
-    if tsoundset1state=1 then loop sound entityelement(lsi).soundset1
+    if tsoundset1state=1 then loop sound entityelement(lsi).soundset1 : entityelement(lsi).soundlooping=entityelement(lsi).soundset1
    endif
+   entityelement(lsi).eleprof.physics=saveloadgamepositionentity(lsi).physics
    `
   next lsi
  endif
@@ -39350,10 +39475,10 @@ if inputsys.mmx>=0 and inputsys.mmy>=0 and inputsys.mmx<maxx and inputsys.mmy<ma
         endwhile
        endif
        rem player start markers have exclusivity
-       if entityprofile(gridentity).ismarker=1 and entityprofile(gridentity).lives>0
+       if entityprofile(gridentity).ismarker=1 and entityprofile(gridentity).lives<>-1
         for e=1 to entityelementlist
          if entityelement(e).bankindex>0
-          if entityprofile(entityelement(e).bankindex).ismarker=1 and entityprofile(entityelement(e).bankindex).lives>0
+          if entityprofile(entityelement(e).bankindex).ismarker=1 and entityprofile(entityelement(e).bankindex).lives<>-1
            tentitytoselect=e
            gosub _gridedit_deleteentityfrommap
           endif
@@ -41265,7 +41390,7 @@ _gridedit_calctentitymesh:
   endif
  else
   if entityprofile(tentid).ismarker=1
-   if entityprofile(tentid).lives>0
+   if entityprofile(tentid).lives<>-1
     tentitymesh=204
    else
     tentitymesh=208
@@ -44572,12 +44697,15 @@ _interface_openfpi:
   add_file_picker( fgg, strarr$(507), fsarr(19), strarr$(508), rootdir$+"gamecore\huds\" ) : inc fii
   add_edit_box( fgg, strarr$(509), fsarr(59), strarr$(282) ) : inc fii
   add_edit_box( fgg, strarr$(510), fsarr(60), strarr$(283) ) : inc fii
-  add_file_picker( fgg, strarr$(511), fsarr(20), strarr$(512), rootdir$+"gamecore\huds\" ) : inc fii
-  add_edit_box( fgg, strarr$(513), fsarr(61), strarr$(284) ) : inc fii
-  add_edit_box( fgg, strarr$(514), fsarr(62), strarr$(285) ) : inc fii
-  add_file_picker( fgg, strarr$(515), fsarr(21), strarr$(516), rootdir$+"gamecore\huds\" ) : inc fii
-  add_edit_box( fgg, strarr$(517), fsarr(63), strarr$(286) ) : inc fii
-  add_edit_box( fgg, strarr$(518), fsarr(64), strarr$(287) ) : inc fii
+  if fpgcgenre<>0
+   rem FPGC - 170610 - weapon related properties not in FPGC variant
+   add_file_picker( fgg, strarr$(511), fsarr(20), strarr$(512), rootdir$+"gamecore\huds\" ) : inc fii
+   add_edit_box( fgg, strarr$(513), fsarr(61), strarr$(284) ) : inc fii
+   add_edit_box( fgg, strarr$(514), fsarr(62), strarr$(285) ) : inc fii
+   add_file_picker( fgg, strarr$(515), fsarr(21), strarr$(516), rootdir$+"gamecore\huds\" ) : inc fii
+   add_edit_box( fgg, strarr$(517), fsarr(63), strarr$(286) ) : inc fii
+   add_edit_box( fgg, strarr$(518), fsarr(64), strarr$(287) ) : inc fii
+  endif
  endif
  if fpiheaderimage=1
   if tgroupsworking=1 then fpifield(fgg)=fii : add_group(strarr$(519)) : inc fgg : fii=0
@@ -44782,14 +44910,14 @@ _interface_savefpi:
   fpifile$(i)=":state=0:hudreset,hudx="+fsarr(55)+",hudy="+fsarr(56)+",hudsizex=16,hudsizey=16,hudimage="+fsarr(17)+",hudtype=1,hudmake=numeric" : inc i
   fpifile$(i)=":state=0:hudreset,hudx="+fsarr(57)+",hudy="+fsarr(58)+",hudimage="+fsarr(18)+",hudtype=2,hudmake=display" : inc i
   fpifile$(i)=":state=0:hudreset,hudx="+fsarr(59)+",hudy="+fsarr(60)+",hudsizex=16,hudsizey=16,hudimage="+fsarr(19)+",hudtype=2,hudmake=numeric" : inc i
-  fpifile$(i)=":state=0:hudreset,hudx="+fsarr(61)+",hudy="+fsarr(62)+",hudimage="+fsarr(20)+",hudtype=3,hudmake=status" : inc i
-  fpifile$(i)=":state=0:hudreset,hudx="+fsarr(63)+",hudy="+fsarr(64)+",hudsizex=16,hudsizey=16,hudimage="+fsarr(21)+",hudtype=3,hudmake=numeric" : inc i
+  if len(fsarr(61))>0 then fpifile$(i)=":state=0:hudreset,hudx="+fsarr(61)+",hudy="+fsarr(62)+",hudimage="+fsarr(20)+",hudtype=3,hudmake=status" : inc i
+  if len(fsarr(63))>0 then fpifile$(i)=":state=0:hudreset,hudx="+fsarr(63)+",hudy="+fsarr(64)+",hudsizex=16,hudsizey=16,hudimage="+fsarr(21)+",hudtype=3,hudmake=numeric" : inc i
   fpifile$(i)="; Setup Game Menu" : inc i
   fpifile$(i)=":state=0:hudreset,hudx="+fsarr(23)+",hudy="+fsarr(24)+",hudimage="+fsarr(22)+",hudname=gamemenutitle,hudhide=1,hudmake=display" : inc i
   rem V103
   fpifile$(i)=":state=0:hudreset,hudx="+fsarr(41)+",hudy="+fsarr(42)+",hudimage="+fsarr(40)+",hudtype=2,hudname=loadgame,hudhide=1,hudmake=button" : inc i
   fpifile$(i)=":state=0:hudreset,hudx="+fsarr(44)+",hudy="+fsarr(45)+",hudimage="+fsarr(43)+",hudtype=3,hudname=savegame,hudhide=1,hudmake=button" : inc i
-  fpifile$(i)=":state=0:hudreset,hudx="+fsarr(26)+",hudy="+fsarr(27)+",hudimage="+fsarr(25)+",hudname=savingprompt,hudhide=1,hudmake=display" : inc i
+  if len(fsarr(26))>0 then fpifile$(i)=":state=0:hudreset,hudx="+fsarr(26)+",hudy="+fsarr(27)+",hudimage="+fsarr(25)+",hudname=savingprompt,hudhide=1,hudmake=display" : inc i
   fpifile$(i)=":state=0:hudreset,hudx="+fsarr(47)+",hudy="+fsarr(48)+",hudimage="+fsarr(46)+",hudtype=5,hudname=quitgame,hudhide=1,hudmake=button" : inc i
   fpifile$(i)=":state=0:hudreset,hudx="+fsarr(50)+",hudy="+fsarr(51)+",hudimage="+fsarr(49)+",hudtype=4,hudname=returngame,hudhide=1,hudmake=button" : inc i
   fpifile$(i)=":state=0:hudreset,hudx=50,hudy=50,hudimage="+fsarr(3)+",hudname=pointer,hudhide=1,hudmake=pointer" : inc i

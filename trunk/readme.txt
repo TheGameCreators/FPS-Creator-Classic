@@ -8,8 +8,14 @@ History
 
 V1.1.7
 ------
-	
- * Added new FPI condition HASWEAPON=X this will check if the entity has a weapon   
+
+ * Moved transport OUT desintation coordinates 10 units higher to (+75), fixes 'below gantry issue'
+ * Added A: to non character entity debug info to show 'activation' state
+ * Special state for physics objects on lifts (+100) is retained during save load process
+ * When load saved game position while on lift3.fpi, sound will halt when instructed to stop
+ * Can now place entity objects on lifts and carry them up and down
+ * Added early out for decal creation if over 1000 units away (not close to player, waste of resource)
+ * Increased decal element maximum from 200 to 490 (more real-time particle decals allowed)
  * In entity zoom view, press CONTROL to allow more accurate XYZ placement
  * Added USE KEY field to zone markers (so the zoneanykeyactivate.fpi can be used)
  * Fixed Basic3D.DLL so old material index not returned with static collision result
@@ -32,7 +38,7 @@ V1.1.7
  * Added new FPI action AIUSEFULLAIM=X this will toggle the option to have the AI aim up and down
  * Finally finally fixed the test game start issue, now no longer have repeating left clicks
  * Added new FPI action AICLEARTARGET this will manually clear the entities current target
- * Added new FPI condition AIHASTARGET=X this will return true if the entity has a target
+ * Added new FPI condition AIHASTARGET=X this will return ture if the entity has a target
  * Added new FPI action AIATTACKAWARNESS=X by default this is turned on which causes the AI to go into "attack mode" when the see an enemy. Turning this off can make your AI ignore an enemy or aid in having the break away from a battle. 
  * Added new FPI condition AICALLEDBYPLR=X this will return if the entity has been called by the AIPLRCALLTEAM=X command
  * Added new FPI action AIRESPONDTOPLRCALL=X this will cause a fellow player teammate to move towards the player (if any he for help)
@@ -193,6 +199,9 @@ V1.1.7
 FPGC VARIANT SPECIFIC
 ---------------------
 
+ * When equipment specified in Start Marker, and used, the IFUSED field defaults to 'broken' (entity to activate)
+ * Ensured that when Player Start Marker has no lives, it still has exclusivity (only one per level)
+ * Removed weapon related properties from Setup FPI Wizard (zoom, ammo)
  * FPGC variant ensures ALL characters are invincible so they cannot be killed
  * If run controllered EXE twice it crashed, reset HUD indices to fix this
  * Added dependence in EQUIPMENT.TXT and GUNS.TXT in GAMECORE subfolder for genres
