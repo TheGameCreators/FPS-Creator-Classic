@@ -8359,6 +8359,22 @@ _entity_controlmovements:
    entityelement(e).z=entityelement(e).z+tiz#
    entityelement(e).mover.stepcount=tstep#-tbit#
    `
+   if ai entity exist(entityelement(e).obj)
+    if ai get entity x(entityelement(e).obj)<>entityelement(e).x or ai get entity z(entityelement(e).obj)<>entityelement(e).z
+     ai set entity position entityelement(e).obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
+     Remstart
+     if ai get entity is moving(entityelement(e).obj) and entityelement(e).ai.waypoint.state>0 and entityelement(e).ai.waypoint.state<99
+      entityelement(e).mover.dx=entityelement(e).x
+      entityelement(e).mover.dy=entityelement(e).y
+      entityelement(e).mover.dz=entityelement(e).z
+      entityelement(e).ai.waypoint.state=99
+      entityelement(e).mover.moved=1
+      entityelement(e).mover.run=0
+     endif
+     Remend
+    endif
+   endif
+   `
   endif
   `
   rem ensure entity characters do not croud each other
@@ -11449,7 +11465,7 @@ if aiindex>0
                `
                if entityelement(e).collisionactive=0
                 rem COLOFF - lift is moving
-                if entityelement(carrye).collisionactive=1           
+                if entityelement(carrye).collisionactive=1
                  entityelement(carrye).collisionactive=0
                  if entityelement(carrye).eleprof.physics<>0
                   tttobj=ttobj : ttte=e
@@ -11467,7 +11483,7 @@ if aiindex>0
                 position object tcarryobj,entityelement(carrye).x,entityelement(carrye).y,entityelement(carrye).z
                else
                 rem COLON - lift stopped
-                if entityelement(carrye).collisionactive=0           
+                if entityelement(carrye).collisionactive=0
                  entityelement(carrye).collisionactive=1
                  rem activate object collision
                  if entityelement(carrye).eleprof.physics<>0
@@ -16857,7 +16873,7 @@ if gunmode=106
      sndid=gunsound(gunid,gunsounditem(gunid,p).playsound).soundid
      if sndid>0
       if int(gunsounditem(gunid,p).keyframe)=int(object frame(currentgunobj))
-       tgunactivateequipment=1       
+       tgunactivateequipment=1
       endif
      endif
     endif
@@ -21884,7 +21900,7 @@ if file exist(tprofile$)=0
     tryfield$="decaldist"
     if field$=tryfield$ then entityprofile(entid).decaloffsetdist=value1/10.0
     tryfield$="decaly"
-    if field$=tryfield$ then entityprofile(entid).decaloffsety=value1/10.0    
+    if field$=tryfield$ then entityprofile(entid).decaloffsety=value1/10.0
     `
     rem entity body part list
     tryfield$="limbmax"
@@ -29585,7 +29601,7 @@ if camerapickup=1
       camerapickede=beste : camerapicked=entityelement(camerapickede).obj
       if entityelement(camerapickede).eleprof.physics>=100
        rem FPGC - 170610 - special physics flag when ent rides lift, but can pick it up by re-activating here
-       if entityelement(camerapickede).collisionactive=0           
+       if entityelement(camerapickede).collisionactive=0
         entityelement(camerapickede).collisionactive=1
         rem activate object collision
         if entityelement(camerapickede).eleprof.physics<>0
@@ -46154,9 +46170,18 @@ _darkai_control:
  tstate=entityelement(e).darkai.state
 
  rem Collect Position Information
- tmyx#=object position x(obj)
- tmyy#=object position y(obj)
- tmyz#=object position z(obj)
+ tmyx#=entityelement(e).x`object position x(obj)
+ tmyy#=entityelement(e).y`object position y(obj)
+ tmyz#=entityelement(e).z`object position z(obj)
+ `if entityelement(e).ai.waypoint.state>0 and entityelement(e).ai.waypoint.state<>99 and entityelement(e).ai.waypoint.state<>999
+  rem if the entity is moving via a Dark AI command
+  `if ai get entity is moving(obj)=1
+   Rem if new destination in ai system break away from waypoints
+   `entityelement(e).ai.waypoint.state=99
+ `else
+  ` ai set entity position obj,tmyx#,tmyy#,tmyz#
+  `endif
+ `endif
 
  rem Reset Actions
  ai set entity no look at point obj
@@ -46514,7 +46539,7 @@ rem Apply New Actions
  endif
  `
  rem FPGC - 060510 - feedback internal AI state to debug string
- entitydebug$(e)="Internal State:"+AI Get Entity State$(obj)+"  STATE:"+str$(entityelement(e).darkai.state)+"  ACTIONMODE:"+str$(entityelement(e).darkai.actionmode)+"  CAN SEE:"+str$(ttargetvisible)
+ entitydebug$(e)="Internal State:"+AI Get Entity State$(obj)+"  STATE:"+str$(entityelement(e).darkai.state)+"  ACTIONMODE:"+str$(entityelement(e).darkai.actionmode)+"  CAN SEE:"+str$(ttargetvisible)+" IS MOVING:"+str$(ai get entity is moving(obj))
  `
 return
 
