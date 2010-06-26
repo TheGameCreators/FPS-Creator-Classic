@@ -8,7 +8,21 @@ History
 
 V1.1.7
 ------
+ 
+ * Added AI Factions! (Commands for it listed below)
+ * Added new FPI action AIADDNEUTRAL=X Y this will add the teams specified by Y to the X's neutral list 
+	NOTE!: separate each 'Y' with a | mark 
+	EXAMPLE: aiaddneutral=1 2|3|4|5|6        This will add teams 2,3,4,5,6 to team 1's neutral list
 
+ * Added new FPI action AIADDENEMY=X Y this will add the teams specified by Y to the X's enemy list 
+	NOTE!: separate each 'Y' with a | mark 
+	EXAMPLE: aiaddenemy=1 2|3|4|5|6        This will add teams 2,3,4,5,6 to team 1's enemy list
+
+ * Added new FPI action AIADDALLY=X Y this will add the teams specified by Y to the X's ally list 
+	NOTE!: separate each 'Y' with a | mark 
+	EXAMPLE: aiaddally=1 2|3|4|5|6        This will add teams 2,3,4,5,6 to team 1's ally list
+		
+	
  * Moved transport OUT desintation coordinates 10 units higher to (+75), fixes 'below gantry issue'
  * Added A: to non character entity debug info to show 'activation' state
  * Special state for physics objects on lifts (+100) is retained during save load process
