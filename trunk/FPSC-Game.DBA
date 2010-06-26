@@ -3386,8 +3386,10 @@ _main_game_core:
  `
  for x=1 to 20
   for y=1 to 20
-   if aifaction(x,y).enemy<>0 then print "Team:"+str$(aifaction(x,y).team)+" Enemy:"+str$(aifaction(x,y).enemy)
-   if aifaction(x,y).ally<>0 then print "Team:"+str$(aifaction(x,y).team)+" Ally:"+str$(aifaction(x,y).ally)
+   if aifaction(x,1).team>0
+    if aifaction(x,y).enemy<>0 then print "Team:"+str$(aifaction(x,1).team)+" Enemy:"+str$(aifaction(x,y).enemy)
+    if aifaction(x,y).ally<>0 then print "Team:"+str$(aifaction(x,1).team)+" Ally:"+str$(aifaction(x,y).ally)
+   endif
   next y
  next x
  `
@@ -13844,7 +13846,7 @@ if desc$<>""
      if teamslot=0
       w=AIFindEmptyTeam()
       aifaction(w,1).team=team
-      endif
+     endif
     endcase
     `
     case AIACTFPGCRAWTEXT:
@@ -14021,6 +14023,7 @@ rem Load AI Script Data from file
 dim data$(350)
 load array aidir$+ai$,data$()
 addfiletocollection(aidir$+ai$)
+founddescfield=0
 for l=0 to 349
  line$=data$(l)
  `
@@ -14050,7 +14053,7 @@ for l=0 to 349
     if len(value2$)>0 then value2=val(value2$) else value2=-1
     `
     rem AI header
-    if field$="desc" then ailist(aiindex).desc$=value$
+    if field$="desc" then ailist(aiindex).desc$=value$ : founddescfield=1
     `
    else
     `
@@ -14124,6 +14127,9 @@ for l=0 to 349
  endif
 next l
 undim data$()
+`
+Rem Fix desc issue (user did not even use desc)
+if founddescfield=0 then ailist(aiindex).desc$="desc = FPI Script"
 `
 rem Finalise condition data values
 conindexlast=conindexcount-1
@@ -46140,6 +46146,10 @@ _darkai_init:
  rem clears the AI system of all data
  AI Start : AI Reset
  `
+ Rem Create team 1
+ w=AIFindEmptyTeam()
+ aifaction(w,1).team=1
+ `
  rem N-CORE threading (if available, and if no debug in progress)
  `seems to conflict with new script based approach, ah well
  `if gshowaioutlines=0
@@ -46731,8 +46741,9 @@ Add_Targets:
   if entityelement(y).obj>0
    if ai entity exist(entityelement(y).obj)
     for x=1 to FactionArrayMax
-     if entityelement(y).obj<>entityelement(e).obj and entityelement(y).darkai.team<>entityelement(e).darkai.team and aifaction(teamslot,x).enemy=entityelement(y).darkai.team
+     `if entityelement(y).obj<>entityelement(e).obj and entityelement(y).darkai.team<>entityelement(e).darkai.team and aifaction(teamslot,x).neutral<>entityelement(y).darkai.team and aifaction(teamslot,x).ally<>entityelement(y).darkai.team
        `if ai get entity can see(entityelement(e).obj,object position x(entityelement(y).obj),object position z(entityelement(y).obj),1)>0 `280410 - old DarkAI
+      if entityelement(y).obj<>entityelement(e).obj and entityelement(y).darkai.team<>entityelement(e).darkai.team and aifaction(teamslot,x).enemy=entityelement(y).darkai.team
        if ai get entity can see(entityelement(e).obj,object position x(entityelement(y).obj),object position y(entityelement(y).obj),object position z(entityelement(y).obj),1)>0
         ai entity add target entityelement(e).obj,entityelement(y).obj
        endif
@@ -46755,6 +46766,7 @@ Add_Targets:
  next i
  `if entityelement(e).darkai.team<>1 and ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position z(physicsplayerborble),1)>0 `280410 - old DarkAI
  for x=1 to FactionArrayMax
+  `if aifaction(teamslot,x).neutral<>1 and aifaction(teamslot,x).ally<>1 and ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position y(physicsplayerborble),object position z(physicsplayerborble),1)>0
   if aifaction(teamslot,x).enemy=1 and ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position y(physicsplayerborble),object position z(physicsplayerborble),1)>0
    ai entity add target entityelement(e).obj,physicsplayerborble
   endif
@@ -46856,6 +46868,7 @@ Function AIParseFactions(string$,teamtype)
  team=val(team$)
  teamslot=AIFindTeam(team)
  space=a
+ if teamslot=0 then exitfunction
  `
  a$=""
  lastmark=0
@@ -46864,7 +46877,9 @@ Function AIParseFactions(string$,teamtype)
    a$=a$+mid$(string$,i)
   else
    lastmark=i
-   AIInsertFactions(team,teamslot,a$,teamtype)
+   teama=val(a$)
+   found=AIFindTeam(teama)
+   if found>0 then AIInsertFactions(team,teamslot,teama,teamtype)
    a$=""
   endif
  next i
@@ -46879,35 +46894,37 @@ Function AIParseFactions(string$,teamtype)
    a$=a$+mid$(string$,i)
   next i
  endif
- AIInsertFactions(team,teamslot,a$,teamtype)
+ teama=val(a$)
+ found=AIFindTeam(teama)
+ if found>0 then AIInsertFactions(team,teamslot,teama,teamtype)
  `
 Endfunction
 
-Function AIInsertFactions(team,teamslot,a$,teamtype)
+Function AIInsertFactions(team,teamslot,teama,teamtype)
  emptyslot=0
  if teamtype=1
   Rem remove if in another faction group
   for x=1 to FactionArrayMax
-   if aifaction(teamslot,x).ally=val(a$) then aifaction(teamslot,x).ally=0 : exit
-   if aifaction(teamslot,x).neutral=val(a$) then aifaction(teamslot,x).neutral=0 : exit
+   if aifaction(teamslot,x).ally=teama then aifaction(teamslot,x).ally=0 : exit
+   if aifaction(teamslot,x).neutral=teama then aifaction(teamslot,x).neutral=0 : exit
   next x
 
   for x=1 to FactionArrayMax
    if aifaction(teamslot,x).enemy=0 and emptyslot=0 then emptyslot=x
-   if aifaction(teamslot,x).enemy=val(a$) then emptyslot=x : exit
+   if aifaction(teamslot,x).enemy=teama then emptyslot=x : exit
   next x
   `
   if emptyslot<>0
-   aifaction(teamslot,emptyslot).enemy=val(a$)
+   aifaction(teamslot,emptyslot).enemy=teama
    oppslot=AIFindTeam(aifaction(teamslot,emptyslot).enemy)
    for x=1 to FactionArrayMax
-    if aifaction(oppslot,x).ally=val(a$) then aifaction(oppslot,x).ally=0 : exit
-    if aifaction(oppslot,x).neutral=val(a$) then aifaction(oppslot,x).neutral=0 : exit
+    if aifaction(oppslot,x).ally=teama then aifaction(oppslot,x).ally=0 : exit
+    if aifaction(oppslot,x).neutral=teama then aifaction(oppslot,x).neutral=0 : exit
    next x
 
    for x=1 to FactionArrayMax
     if aifaction(oppslot,x).enemy=0 and emptyslot=0 then emptyslot=x
-    if aifaction(oppslot,x).enemy=val(a$) then emptyslot=x : exit
+    if aifaction(oppslot,x).enemy=teama then emptyslot=x : exit
    next x
    if emptyslot<>0 then aifaction(oppslot,emptyslot).enemy=team
   endif
@@ -46917,26 +46934,26 @@ Function AIInsertFactions(team,teamslot,a$,teamtype)
  if teamtype=2
   Rem remove if in another faction group
   for x=1 to FactionArrayMax
-   if aifaction(teamslot,x).enemy=val(a$) then aifaction(teamslot,x).enemy=0 : exit
-   if aifaction(teamslot,x).neutral=val(a$) then aifaction(teamslot,x).neutral=0 : exit
+   if aifaction(teamslot,x).enemy=teama then aifaction(teamslot,x).enemy=0 : exit
+   if aifaction(teamslot,x).neutral=teama then aifaction(teamslot,x).neutral=0 : exit
   next x
 
   for x=1 to FactionArrayMax
    if aifaction(teamslot,x).ally=0 and emptyslot=0 then emptyslot=x
-   if aifaction(teamslot,x).ally=val(a$) then emptyslot=x : exit
+   if aifaction(teamslot,x).ally=teama then emptyslot=x : exit
   next x
   `
   if emptyslot<>0
-   aifaction(teamslot,emptyslot).ally=val(a$)
+   aifaction(teamslot,emptyslot).ally=teama
    oppslot=AIFindTeam(aifaction(teamslot,emptyslot).ally)
    for x=1 to FactionArrayMax
-    if aifaction(oppslot,x).enemy=val(a$) then aifaction(oppslot,x).enemy=0 : exit
-    if aifaction(oppslot,x).neutral=val(a$) then aifaction(oppslot,x).neutral=0 : exit
+    if aifaction(oppslot,x).enemy=teama then aifaction(oppslot,x).enemy=0 : exit
+    if aifaction(oppslot,x).neutral=teama then aifaction(oppslot,x).neutral=0 : exit
    next x
 
    for x=1 to FactionArrayMax
     if aifaction(oppslot,x).ally=0 and emptyslot=0 then emptyslot=x
-    if aifaction(oppslot,x).ally=val(a$) then emptyslot=x : exit
+    if aifaction(oppslot,x).ally=teama then emptyslot=x : exit
    next x
    if emptyslot<>0 then aifaction(oppslot,emptyslot).ally=team
   endif
@@ -46945,26 +46962,26 @@ Function AIInsertFactions(team,teamslot,a$,teamtype)
  if teamtype=3
   Rem remove if in another faction group
   for x=1 to FactionArrayMax
-   if aifaction(teamslot,x).enemy=val(a$) then aifaction(teamslot,x).enemy=0 : exit
-   if aifaction(teamslot,x).ally=val(a$) then aifaction(teamslot,x).ally=0 : exit
+   if aifaction(teamslot,x).enemy=teama then aifaction(teamslot,x).enemy=0 : exit
+   if aifaction(teamslot,x).ally=teama then aifaction(teamslot,x).ally=0 : exit
   next x
 
   for x=1 to FactionArrayMax
    if aifaction(teamslot,x).neutral=0 and emptyslot=0 then emptyslot=x
-   if aifaction(teamslot,x).neutral=val(a$) then emptyslot=x : exit
+   if aifaction(teamslot,x).neutral=teama then emptyslot=x : exit
   next x
   `
   if emptyslot<>0
-   aifaction(teamslot,emptyslot).neutral=val(a$)
+   aifaction(teamslot,emptyslot).neutral=teama
    oppslot=AIFindTeam(aifaction(teamslot,emptyslot).neutral)
    for x=1 to FactionArrayMax
-    if aifaction(oppslot,x).enemy=val(a$) then aifaction(oppslot,x).enemy=0 : exit
-    if aifaction(oppslot,x).ally=val(a$) then aifaction(oppslot,x).ally=0 : exit
+    if aifaction(oppslot,x).enemy=teama then aifaction(oppslot,x).enemy=0 : exit
+    if aifaction(oppslot,x).ally=teama then aifaction(oppslot,x).ally=0 : exit
    next x
 
    for x=1 to FactionArrayMax
     if aifaction(oppslot,x).neutral=0 and emptyslot=0 then emptyslot=x
-    if aifaction(oppslot,x).neutral=val(a$) then emptyslot=x : exit
+    if aifaction(oppslot,x).neutral=teama then emptyslot=x : exit
    next x
    if emptyslot<>0 then aifaction(oppslot,emptyslot).neutral=team
   endif
