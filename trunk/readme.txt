@@ -9,6 +9,11 @@ History
 V1.1.7
 ------
  
+ * Added new FPI action AIAUTOFACTIONOFF=x by default the faction system adds the factionto both teams
+	For example if I did aiaddenemy=1 2 then team 1 would become team 2's enemy but team 2 would also become team 1's enemy
+	This command allows you to toggle that on and off which will allow you to do things such as:
+		police help civilian but civilian wont help police 
+
  * Added new FPI condition HEALTHGREATER=X this will return true if the entity's health is greater the X (a much needed addition) 
  * Added AI Factions! (Commands for it listed below)
  * Added new FPI action AIADDNEUTRAL=X Y this will add the teams specified by Y to the X's neutral list 
