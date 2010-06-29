@@ -4,8 +4,8 @@ desc          = DarkAI passive until triggered (demo script)
 
 ;//DEMO HUD
 :state=0:hudreset,hudx=10,hudy=80,hudtext=DARK AI DEMO CONTROL,hudname=tip1,hudhide=1,hudmake=display
-:state=0:hudreset,hudx=10,hudy=82,hudtext=[V] START DEMO,hudname=tip2,hudhide=1,hudmake=display
-:state=0:hudreset,hudx=10,hudy=84,hudtext=[Z] STOP DEMO,hudname=tip3,hudhide=1,hudmake=display
+:state=0:hudreset,hudx=10,hudy=82,hudtext=PRESS [V] START DEMO,hudname=tip2,hudhide=1,hudmake=display
+:state=0:hudreset,hudx=10,hudy=84,hudtext=HOLD [Z] STOP DEMO,hudname=tip3,hudhide=1,hudmake=display
 :state=1:hudshow=tip1,hudshow=tip2,hudshow=tip3
 
 ;//Dark AI Animations----------------------------------------------------------------------------------------------------

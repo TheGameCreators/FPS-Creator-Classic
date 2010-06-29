@@ -19,7 +19,7 @@ desc          = DarkAI passive until triggered
 ;//behavior and triggers---------------------------------------------------------------------------------
 
 ;//respond to calls
-:aiaction=0,aicalled=1:aistop,etimerstart,state=911
+:state=1,aicalled=1:aistop,etimerstart,state=911
 :state=911:airespondtocall
 :state=911,aihastarget=0:aisettarget,airotatetotarget
 :state=911,etimergreater=3000:state=0
@@ -39,12 +39,12 @@ desc          = DarkAI passive until triggered
 :aihastarget=0:activate=0
 
 ;//Targeting
-:state=1,aihastarget=0:aisettarget,airotatetotarget
-:aihastarget=1,aicanshoot=0:aicleartarget,aisettarget,airotatetotarget
+:state=1,aihastarget=0:aiattackawareness=1,aisettarget,airotatetotarget
+:aihastarget=1,aicanshoot=0:aiattackawareness=0,setaicleartarget,aiattackawareness=1,aisettarget,airotatetotarget
 :state=1:airotatetotarget
 
 ;//"Attack" and heal wounded (teams 4 and 5)
-:state=1,aitargetdistfurther=120:aimovetotarget,airotatetotarget
+:state=1,aitargetdistfurther=110:aimovetotarget,airotatetotarget
 :state=1,aitargetdistwithin=120,rateoffire:airotatetotarget,state=290
 :state=290:state=291,etimerstart,aisetmeleedamage=-10
 :state=291:airotatetotarget

@@ -28,9 +28,9 @@ desc          = DarkAI generic shoot and melee with ally command assign to AI as
 :aihastarget=0:activate=0
 
 ;//Targeting
-:state=1,aihastarget=0:aisettarget,airotatetotarget
-:aihastarget=1,aicanshoot=0:aicleartarget,aisettarget,airotatetotarget
-:aihastarget=1,random=10:aicleartarget,aisettarget,airotatetotarget
+:state=1,aihastarget=0:aiattackawareness=1,aisettarget,airotatetotarget
+:aihastarget=1,aicanshoot=0:aiattackawareness=0,setaicleartarget,aiattackawareness=1,aisettarget,airotatetotarget
+:aihastarget=1,random=10:aiattackawareness=0,setaicleartarget,aiattackawareness=1,aisettarget,airotatetotarget
 :state=1:airotatetotarget
 
 ;//Respond to any sounds while not in combat
@@ -81,8 +81,7 @@ desc          = DarkAI generic shoot and melee with ally command assign to AI as
 :state=195:setaiactive=1,state=1
 
 ;//Give stand-down order when 'Z' is pressed (run main script)
-:keypressed=44 1:aicleartarget,aiattackawareness=0,setaiactive=1,runfpidefault=1,state=999
-;,sound=audiobank\switches\click.wav
+:keypressed=44 1:aiattackawareness=0,aicleartarget,setaiactive=1,runfpidefault=1,sound=audiobank\switches\click.wav,state=999
 
 ;//Start Script------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 :state=0:setaiactive=1,alwaysactive=1,reloadweapon,activate=0,aiattackawareness=1,etimerstart,state=1

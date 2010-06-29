@@ -1,0 +1,36 @@
+desc          = Dark AI Melee Follow and Attack
+
+;Triggers
+
+:always:globalvar=1
+
+;Walking animations
+:ducking=0,strafingleft=1:animate=3
+:ducking=0,strafingright=1:animate=4
+:ducking=0,movingforwards=1:animate=2
+:ducking=0,movingbackwards=1:animate=2
+:ducking=0,idle=1:animate=1
+
+;Crouching Animations
+:ducking=1,movingforwards=1:animate=32
+:ducking=1,movingbackwards=1:animationreverse
+:ducking=1,strafingleft=1:animate=32
+:ducking=1,movingbackwards=1:animate=32
+:ducking=1,idle=1:animate=31
+
+:state=0:aisetmeleedamage=10,setaiactive=1,alwaysactive=1,state=11
+:state=12,aihastarget=0:aisettarget
+:state=12,aihastarget=1:state=1
+:state=1,aitargetdistwithin=500:state=2
+:state=2,aitargetdistfurther=90:setaiactive=1,airotatetotarget,aimovetotarget
+:state=2,aitargetdistfurther=500:state=12
+:state=2,aitargetdistwithin=90,aicanshoot=1,rateoffire:setaiactive=0,airotatetotarget,setframe=8,state=3
+:state=3,framebeyond=8 60,aitargetdistwithin=100:aiusemelee=0,sound=audiobank\misc\melee.wav,setaiactive=0,state=4
+:state=3:incframe=8,airotatetotarget
+:state=3,frameatend=8:state=2
+:state=4:incframe=8
+:state=4,frameatend=8:setaiactive=1,state=2
+:state=1,aihastarget=0:state=12
+:state=2,aihastarget=0:state=12
+:state=13,etimergreater=5000:state=12
+:state=11,varequal=1:etimerstart,state=13

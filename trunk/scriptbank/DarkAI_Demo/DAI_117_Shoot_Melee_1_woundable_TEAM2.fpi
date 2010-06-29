@@ -25,9 +25,11 @@ desc          = DarkAI generic shoot and melee with ally command assign to AI as
 :aihastarget=0:activate=0
 
 ;//Targeting
-:state=1,aihastarget=0:aisettarget,airotatetotarget
-:aihastarget=1,aicanshoot=0:aicleartarget,aisettarget,airotatetotarget
-:aihastarget=1,random=10:aicleartarget,aisettarget,airotatetotarget
+:aiaction=1:aiusefullaim=1
+:aiaction=0:aiusefullaim=0
+:state=1,aihastarget=0:aiattackawareness=1,aisettarget,airotatetotarget
+:aihastarget=1,aicanshoot=0:aiattackawareness=0,setaicleartarget,aiattackawareness=1,aisettarget,airotatetotarget
+:aihastarget=1,random=10:aiattackawareness=0,setaicleartarget,aiattackawareness=1,aisettarget,airotatetotarget
 :state=1:airotatetotarget
 
 ;//Respond to any sounds while not in combat

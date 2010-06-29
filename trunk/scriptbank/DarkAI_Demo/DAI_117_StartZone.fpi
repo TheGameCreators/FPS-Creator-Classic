@@ -1,0 +1,24 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Setup "master" level
+
+
+;Faction setup
+:always:globalvar=1
+:state=0:fpgcrawtextsize=18,fpgcrawtextfont=arial,fpgcrawtextr=200,fpgcrawtextg=200,fpgcrawtextb=200,fpgcrawtextx=50,fpgcrawtexty=10,plrdisable=1000000000,state=11
+;Go timer
+:state=1:fpgcrawtext=Game will start in - 5,etimerstart,state=2
+:state=2,etimergreater=1000:fpgcrawtext=Game will start in - 4,etimerstart,state=3
+:state=3,etimergreater=1000:fpgcrawtext=Game will start in - 3,etimerstart,state=4
+:state=4,etimergreater=1000:fpgcrawtext=Game will start in - 2,etimerstart,state=5
+:state=5,etimergreater=1000:fpgcrawtext=Game will start in - 1,etimerstart,state=6
+:state=6,etimergreater=500:fpgcrawtext=Go!,plrdisable=0,destroy,etimerstart,state=7
+:state=7,etimergreater=500:state=8
+
+:state=11:fpgcrawtext=Press F2 to start the game
+:state=11,keypressed=60 1:setvar=1,plrmoveto=triggermain,state=1
+
+
+;End of Script
