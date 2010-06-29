@@ -101,6 +101,7 @@ type darkaitype
  running as boolean
  action as integer
  useaim as integer
+ aiy as float
  Rem Paths
  path as integer
  Rem Action mode
@@ -1324,6 +1325,7 @@ rem AI constants
 #constant AICONDQUANTITY 7
 #constant AICONDSPEED 8
 #constant AICONDRATEOFFIRE 9
+#constant AICONDHEALTHGREATER 10
 #constant AICONDVAREQUAL 11
 #constant AICONDVARNOTEQUAL 12
 #constant AICONDVARGREATER 13
@@ -7797,7 +7799,7 @@ if entityelement(e).ai.waypoint.state>0
   `
   rem characters animate when waypoint is followed, if alive
   entid=entityelement(e).bankindex
-  if entityprofile(entid).ischaracter=1 and entityelement(e).health>0
+  if entityprofile(entid).ischaracter=1 and entityelement(e).health>0 and ai entity exist(entityelement(e).obj)=0
    if entityelement(e).animdo<>entityelement(e).animset-1
     entityelement(e).animset=3
    endif
@@ -7849,7 +7851,7 @@ if entityelement(e).ai.waypoint.state>0
    `
    rem FPGC - 100610 - characters animate when waypoint is followed, if alive (copied from state one to solve sliding character bug afgter opening door)
    entid=entityelement(e).bankindex
-   if entityprofile(entid).ischaracter=1 and entityelement(e).health>0
+   if entityprofile(entid).ischaracter=1 and entityelement(e).health>0 and ai entity exist(entityelement(e).obj)=0
     if entityelement(e).animdo<>entityelement(e).animset-1
      entityelement(e).animset=3
     endif
@@ -8382,7 +8384,7 @@ _entity_controlmovements:
    entityelement(e).mover.stepcount=tstep#-tbit#
    `
    if ai entity exist(entityelement(e).obj)
-    if ai get entity x(entityelement(e).obj)<>entityelement(e).x or ai get entity z(entityelement(e).obj)<>entityelement(e).z
+    if ai get entity x(entityelement(e).obj)<>entityelement(e).x or ai get entity z(entityelement(e).obj)<>entityelement(e).z or entityelement(e).darkai.aiy<>entityelement(e).y
      ai set entity position entityelement(e).obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
      Remstart
      if ai get entity is moving(entityelement(e).obj) and entityelement(e).ai.waypoint.state>0 and entityelement(e).ai.waypoint.state<99
@@ -9500,6 +9502,7 @@ conword$(AICONDSTATE)="state"
 conword$(AICONDRANDOM)="random"
 conword$(AICONDHEALTH)="health"
 conword$(AICONDHEALTHLESS)="healthless"
+conword$(AICONDHEALTHGREATER)="healthgreater"
 conword$(AICONDQUANTITY)="quantity"
 conword$(AICONDSPEED)="speed"
 conword$(AICONDRATEOFFIRE)="rateoffire"
@@ -9910,6 +9913,11 @@ if aiindex>0
      conda=entityelement(e).health
      condb=aiconditionseq(seq).valuea
      if conda>=condb then airesult=0
+    endcase
+    case AICONDHEALTHGREATER:
+     conda=entityelement(e).health
+     condb=aiconditionseq(seq).valuea
+     if conda<=condb then airesult=0
     endcase
     case AICONDQUANTITY:
      conda=entityelement(e).eleprof.quantity
@@ -12930,7 +12938,7 @@ if aiindex>0
        ai set entity can strafe obj,1
        ai set entity control obj,0
       endcase
-     case AIACTAIACTIVE:
+      case AIACTAIACTIVE:
       if ai entity exist(entityelement(e).obj)
        ai set entity active obj,aiactionseq(seq).value
        if aiactionseq(seq).value=0 then entityelement(e).darkai.aistop=1
@@ -12949,37 +12957,37 @@ if aiindex>0
        endif
       endcase
       case AIACTAISETTARGET:
-         obj=entityelement(e).obj
-         tent = 0
-         if ai entity exist(obj)
-            entityelement(e).ttarget=AI Get Entity Target ID (obj,1)
-            ttarget=entityelement(e).ttarget
-            if ttarget>0
-               if ttarget = physicsplayerborble
-                  entityelement(e).actualtarget=1
-                  entityelement(e).actualtargetx=mex#
-                  entityelement(e).actualtargety=mey#
-                  entityelement(e).actualtargetz=mez#
-                  entityelement(e).losttargetcount=0
-               else
-                  `if array count(phyobjele())>=ttarget
-                  for l=1 to entityelementlist
-                     if entityelement(l).obj=ttarget then tent = l : exit
-                  next l
-                  if tent>0
-                     entityelement(e).actualtarget=tent+1
-                     if entityelement(e).actualtarget>0
-                        tte=entityelement(e).actualtarget-1
-                        entityelement(e).actualtargetx=entityelement(tte).x
-                        entityelement(e).actualtargety=entityelement(tte).y
-                        entityelement(e).actualtargetz=entityelement(tte).z
-                        entityelement(e).losttargetcount=0
-                     endif
-                  endif
-               endif
-            endif
+       obj=entityelement(e).obj
+       tent = 0
+       if ai entity exist(obj)
+        entityelement(e).ttarget=AI Get Entity Target ID (obj,1)
+        ttarget=entityelement(e).ttarget
+        if ttarget>0
+         if ttarget = physicsplayerborble
+          entityelement(e).actualtarget=1
+          entityelement(e).actualtargetx=mex#
+          entityelement(e).actualtargety=mey#
+          entityelement(e).actualtargetz=mez#
+          entityelement(e).losttargetcount=0
+         else
+          `if array count(phyobjele())>=ttarget
+          for l=1 to entityelementlist
+           if entityelement(l).obj=ttarget then tent = l : exit
+          next l
+          if tent>0
+           entityelement(e).actualtarget=tent+1
+           if entityelement(e).actualtarget>0
+            tte=entityelement(e).actualtarget-1
+            entityelement(e).actualtargetx=entityelement(tte).x
+            entityelement(e).actualtargety=entityelement(tte).y
+            entityelement(e).actualtargetz=entityelement(tte).z
+            entityelement(e).losttargetcount=0
+           endif
+          endif
          endif
-   endcase
+        endif
+       endif
+      endcase
    case AIACTAIENABLEFULLAIM:
     if ai entity exist(entityelement(e).obj)
      entid=entityelement(e).bankindex
@@ -46549,6 +46557,7 @@ rem Apply New Actions
  entityelement(e).mover.da=ai get entity angle y(obj)
  entityelement(e).x=tentx#
  entityelement(e).z=tentz#
+ entityelement(e).darkai.aiy=Object Position Y(obj)
 
  rem Apply Animation
  entityelement(e).darkai.action=0
@@ -46740,6 +46749,7 @@ Add_Targets:
   y=ischaracter(i)
   if entityelement(y).obj>0
    if ai entity exist(entityelement(y).obj)
+    foundenemy=0
     for x=1 to FactionArrayMax
      `if entityelement(y).obj<>entityelement(e).obj and entityelement(y).darkai.team<>entityelement(e).darkai.team and aifaction(teamslot,x).neutral<>entityelement(y).darkai.team and aifaction(teamslot,x).ally<>entityelement(y).darkai.team
        `if ai get entity can see(entityelement(e).obj,object position x(entityelement(y).obj),object position z(entityelement(y).obj),1)>0 `280410 - old DarkAI
@@ -46748,7 +46758,12 @@ Add_Targets:
         ai entity add target entityelement(e).obj,entityelement(y).obj
        endif
       endif
+      if entityelement(y).darkai.team=aifaction(teamslot,x).enemy then foundenemy=1
     next x
+    if foundenemy=0
+     ai entity remove target entityelement(e).obj,entityelement(y).obj
+     if entityelement(entityelement(e).actualtarget-1).obj=entityelement(y).obj then entityelement(e).actualtarget=0
+    endif
     `
     Rem If entityelement(y).actualtarget>0 and the target no longer exist on the list reset flag
     tokay=0

@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
  
+ * Added new FPI condition HEALTHGREATER=X this will return true is the entities health is greater the X (a much needed addition) 
  * Added AI Factions! (Commands for it listed below)
  * Added new FPI action AIADDNEUTRAL=X Y this will add the teams specified by Y to the X's neutral list 
 	NOTE!: separate each 'Y' with a | mark 
