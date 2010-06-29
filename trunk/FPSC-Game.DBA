@@ -46878,7 +46878,7 @@ Function AIParseFactions(string$,teamtype)
   if mid$(string$,i)=" " then a=i : exit
  next i
  for i=0 to a-1
-  team$=mid$(string$,i)+team$
+  team$=team$+mid$(string$,i)
  next i
  team=val(team$)
  teamslot=AIFindTeam(team)
