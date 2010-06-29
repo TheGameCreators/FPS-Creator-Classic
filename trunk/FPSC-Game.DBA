@@ -1171,6 +1171,9 @@ type entitytype
  spine as integer
  spiner as float
  eyeoffset as integer
+ aimoved as integer
+ aimovex as float
+ aimovez as float
  ttarget as integer
  etimer as integer Rem Hockeykid - 250210 - added entity variable for etimer
  editorfixed as integer
@@ -7790,7 +7793,7 @@ if entityelement(e).ai.waypoint.state>0
   `
   rem characters animate when waypoint is followed, if alive
   entid=entityelement(e).bankindex
-  if entityprofile(entid).ischaracter=1 and entityelement(e).health>0 and ai entity exist(entityelement(e).obj)=0
+  if entityprofile(entid).ischaracter=1 and entityelement(e).health>0
    if entityelement(e).animdo<>entityelement(e).animset-1
     entityelement(e).animset=3
    endif
@@ -7842,7 +7845,7 @@ if entityelement(e).ai.waypoint.state>0
    `
    rem FPGC - 100610 - characters animate when waypoint is followed, if alive (copied from state one to solve sliding character bug afgter opening door)
    entid=entityelement(e).bankindex
-   if entityprofile(entid).ischaracter=1 and entityelement(e).health>0 and ai entity exist(entityelement(e).obj)=0
+   if entityprofile(entid).ischaracter=1
     if entityelement(e).animdo<>entityelement(e).animset-1
      entityelement(e).animset=3
     endif
@@ -8377,6 +8380,7 @@ _entity_controlmovements:
    if ai entity exist(entityelement(e).obj)
     if ai get entity x(entityelement(e).obj)<>entityelement(e).x or ai get entity z(entityelement(e).obj)<>entityelement(e).z or entityelement(e).darkai.aiy<>entityelement(e).y
      ai set entity position entityelement(e).obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
+     entityelement(e).aimovex=entityelement(e).x : entityelement(e).aimovez=entityelement(e).z : entityelement(e).aimoved=1
      Remstart
      if ai get entity is moving(entityelement(e).obj) and entityelement(e).ai.waypoint.state>0 and entityelement(e).ai.waypoint.state<99
       entityelement(e).mover.dx=entityelement(e).x
@@ -46552,6 +46556,7 @@ rem Apply New Actions
 
  rem Apply Animation
  entityelement(e).darkai.action=0
+ if entityelement(e).ai.waypoint.state=2 then tmoving=0
  if tmoving=1
   moveangle#=wrapvalue(atanfull(tmovx#,tmovz#))
   viewangle#=wrapvalue(ai get entity angle y(obj))
@@ -46562,6 +46567,7 @@ rem Apply New Actions
   if conda#>80.0 then entityelement(e).darkai.action=4
   if conda#<-80.0 then entityelement(e).darkai.action=3
   if conda#<-120.0 or conda#>120.0 then entityelement(e).darkai.action=2
+  if entityelement(e).aimoved=1 then entityelement(e).aimoved=0
  endif
  if entityelement(e).darkai.ehit=-1 then entityelement(e).darkai.ehit=0
  `
