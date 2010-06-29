@@ -1,0 +1,13 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Arena enemy for DAI eval. demo.
+
+;Triggers
+
+:state=0:setalphafade=100,addaiteam=2,state=1
+:state=1:aiaddenemy=2 8,state=2
+:state=2:runfpidefault=1
+
+;End of Script

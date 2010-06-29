@@ -1,0 +1,64 @@
+;//Requires v1.17+ DarkAI + TF341 animation
+
+desc          = DarkAI passive until triggered
+
+;//Dark AI Animations----------------------------------------------------------------------------------------------------
+;//Running
+:activated=1,ducking=0,movingforwards=1,aitargetdistfurther=200:animate=5
+:activated=1,ducking=0,movingforwards=1,aitargetdistwithin=200:animate=2
+;//Walking animations
+:ducking=0,strafingleft=1:animate=3
+:ducking=0,strafingright=1:animate=4
+:activated=0,ducking=0,movingforwards=1:animate=2
+:ducking=0,movingbackwards=1:animate=2
+:ducking=0,idle=1:animate=1
+;//Crouching Animations
+:ducking=1,idle=0:animate=32
+:ducking=1,idle=1:animate=31
+
+;//behavior and triggers---------------------------------------------------------------------------------
+
+;//respond to calls
+:aiaction=0,aicalled=1:aistop,etimerstart,state=911
+:state=911:airespondtocall
+:state=911,aihastarget=0:aisettarget,airotatetotarget
+:state=911,etimergreater=3000:state=0
+:state=911,aihastarget=1:state=1
+
+:state=1,aiaction=0,random=10:aimoverandom
+:idle=1,random=50:rotateheadrandom=50
+:idle=0:resethead
+
+;//Sprint when activated
+:activated=0:aisetspeed=100
+:activated=1:aisetspeed=250
+:state=911,movingforwards=1:activate=1
+:aihastarget=1,movingforwards=1,aitargetdistfurther=100:activate=1
+:aihastarget=1,movingforwards=1,aitargetdistwithin=90:activate=0
+:movingforwards=0:activate=0
+:aihastarget=0:activate=0
+
+;//Targeting
+:state=1,aihastarget=0:aisettarget,airotatetotarget
+:aihastarget=1,aicanshoot=0:aicleartarget,aisettarget,airotatetotarget
+:state=1:airotatetotarget
+
+;//"Attack" and heal wounded (teams 4 and 5)
+:state=1,aitargetdistfurther=120:aimovetotarget,airotatetotarget
+:state=1,aitargetdistwithin=120,rateoffire:airotatetotarget,state=290
+:state=290:state=291,etimerstart,aisetmeleedamage=-10
+:state=291:airotatetotarget
+:state=291,aitargetdistwithin=120,aicanshoot=1:state=292,aistop
+:state=291,aitargetdistfurther=120:state=1
+:state=291,aicanshoot=0:state=1
+:state=292:setaiactive=0,state=293,setframe=8
+:state=293:incframe=8,airotatetotarget,aiusemelee
+:state=293,frameatend=8:state=295
+:state=295:setaiactive=1,state=296
+:state=296:aiattackawareness=0,aicleartarget,state=297
+:state=297:aiattackawareness=1,state=1
+
+
+;//Start Script------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+:state=0:setaiactive=1,alwaysactive=1,activate=0,aiattackawareness=1,state=1
+;//End

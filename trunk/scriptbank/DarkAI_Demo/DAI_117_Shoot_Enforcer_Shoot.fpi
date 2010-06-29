@@ -1,0 +1,59 @@
+;//Requires v1.17+ DarkAI
+desc          = DarkAI generic shoot and melee with ally command assign to AI as shoot script
+
+;//Dark AI Animations----------------------------------------------------------------------------------------------------
+;//Running
+:activated=1,ducking=0,movingforwards=1,aitargetdistfurther=200:animate=5
+:activated=1,ducking=0,movingforwards=1,aitargetdistwithin=200:animate=2
+;//Walking animations
+:ducking=0,strafingleft=1:animate=3
+:ducking=0,strafingright=1:animate=4
+:activated=0,ducking=0,movingforwards=1:animate=2
+:ducking=0,movingbackwards=1:animate=2
+:ducking=0,idle=1:animate=1
+;//Crouching Animations
+:ducking=1,idle=0:animate=32
+:ducking=1,idle=1:animate=31
+
+;//behavior and triggers---------------------------------------------------------------------------------
+
+;//Targeting
+:aiaction=1:aiusefullaim=1
+:aiaction=0:aiusefullaim=0
+:state=1,aihastarget=0:aisettarget,airotatetotarget
+:aihastarget=1,aicanshoot=0:aicleartarget,aisettarget,airotatetotarget
+:state=1:airotatetotarget
+
+;//Respond to any sounds while not in combat
+:state=1,idle=1,aiaction=0,aicanshoot=0,aiheardsound=2500:aicleartarget,state=30,etimerstart
+:state=1,idle=0,aiaction=0,aicanshoot=0,aiheardsound=1000:aicleartarget,state=30,etimerstart
+:state=30,aiheardsound=3000:airotatetosound,state=1
+:state=30,etimergreater=4000:state=1
+
+;//Shooting
+:state=1,hasweapon=1,ifweapon=1,aicanshoot=1,rateoffire:useweapon,rundecal=6
+
+;//Reload
+:state=1,hasweapon=1,ifweapon=0,ducking=0:aistop,setaiactive=0,state=25
+:state=1,hasweapon=1,ifweapon=0,ducking=1:aistop,setaiactive=0,state=45
+
+;//Reload standing
+:state=25:setframe=6,state=26
+:state=26:incframe=6
+:state=26,framebeyond=6 60:reloadweapon
+:state=26,frameatend=6:sound=audiobank\guns\reload.wav,state=27
+:state=27:state=1,setaiactive=1
+
+;//Reload crouched
+:state=45:setframe=36,state=46
+:state=46:incframe=36
+:state=46,framebeyond=36 60:reloadweapon
+:state=46,frameatend=36:sound=audiobank\guns\reload.wav,state=47
+:state=47:state=1,setaiactive=1
+
+;//Give stand-down order when 'PgDn' is pressed (run main script)
+:keypressed=209 1:aiaddneutral=9 2|3,aiaddneutral=2 9,aiaddneutral=3 9,aiaddenemy=2 3,aicleartarget,setaiactive=1,runfpidefault=1,sound=audiobank\switches\click.wav,state=999
+
+;//Start Script------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+:state=0:setaiactive=1,alwaysactive=1,reloadweapon,activate=0,aiattackawareness=1,etimerstart,state=1
+;//End
