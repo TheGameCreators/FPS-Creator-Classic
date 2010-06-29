@@ -3386,15 +3386,6 @@ _main_game_core:
  Rem Hockeykid - 250210 - Update AI
  AI Update
  `
- for x=1 to 20
-  for y=1 to 20
-   if aifaction(x,1).team>0
-    if aifaction(x,y).enemy<>0 then print "Team:"+str$(aifaction(x,1).team)+" Enemy:"+str$(aifaction(x,y).enemy)
-    if aifaction(x,y).ally<>0 then print "Team:"+str$(aifaction(x,1).team)+" Ally:"+str$(aifaction(x,y).ally)
-   endif
-  next y
- next x
- `
  rem Update screen
  if gvrmode<>0
   rem VR920
@@ -46762,7 +46753,10 @@ Add_Targets:
     next x
     if foundenemy=0
      ai entity remove target entityelement(e).obj,entityelement(y).obj
-     if entityelement(entityelement(e).actualtarget-1).obj=entityelement(y).obj then entityelement(e).actualtarget=0
+     if entityelement(e).actualtarget>1
+      c=entityelement(e).actualtarget-1
+      if entityelement(c).obj=entityelement(y).obj then entityelement(e).actualtarget=0
+     endif
     endif
     `
     Rem If entityelement(y).actualtarget>0 and the target no longer exist on the list reset flag
