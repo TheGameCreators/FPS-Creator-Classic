@@ -1,36 +1,97 @@
-desc          = Dark AI Melee Follow and Attack
+;//Requires v1.17+ DarkAI
+desc          = DarkAI melee zombie for master zombie demo
 
-;Triggers
 
-:always:globalvar=1
 
-;Walking animations
+;//Dark AI Animations----------------------------------------------------------------------------------------------------
+;//Running
+:activated=1,ducking=0,movingforwards=1,aitargetdistfurther=200:animate=5
+:activated=1,ducking=0,movingforwards=1,aitargetdistwithin=200:animate=2
+;//Walking animations
 :ducking=0,strafingleft=1:animate=3
 :ducking=0,strafingright=1:animate=4
-:ducking=0,movingforwards=1:animate=2
+:activated=0,ducking=0,movingforwards=1:animate=2
 :ducking=0,movingbackwards=1:animate=2
 :ducking=0,idle=1:animate=1
-
-;Crouching Animations
-:ducking=1,movingforwards=1:animate=32
-:ducking=1,movingbackwards=1:animationreverse
-:ducking=1,strafingleft=1:animate=32
-:ducking=1,movingbackwards=1:animate=32
+;//Crouching Animations
+:ducking=1,idle=0:animate=32
 :ducking=1,idle=1:animate=31
 
-:state=0:aisetmeleedamage=10,setaiactive=1,alwaysactive=1,state=11
-:state=12,aihastarget=0:aisettarget
-:state=12,aihastarget=1:state=1
-:state=1,aitargetdistwithin=500:state=2
-:state=2,aitargetdistfurther=90:setaiactive=1,airotatetotarget,aimovetotarget
-:state=2,aitargetdistfurther=500:state=12
-:state=2,aitargetdistwithin=90,aicanshoot=1,rateoffire:setaiactive=0,airotatetotarget,setframe=8,state=3
-:state=3,framebeyond=8 60,aitargetdistwithin=100:aiusemelee=0,sound=audiobank\misc\melee.wav,setaiactive=0,state=4
-:state=3:incframe=8,airotatetotarget
-:state=3,frameatend=8:state=2
-:state=4:incframe=8
-:state=4,frameatend=8:setaiactive=1,state=2
-:state=1,aihastarget=0:state=12
-:state=2,aihastarget=0:state=12
-:state=13,etimergreater=5000:state=12
-:state=11,varequal=1:etimerstart,state=13
+;//Common behavior and triggers---------------------------------------------------------------------------------
+;//Sprint when activated
+:activated=0:aisetspeed=100
+:activated=1:aisetspeed=250
+:aihastarget=1,movingforwards=1,aitargetdistfurther=100:activate=1
+:aihastarget=1,movingforwards=1,aitargetdistwithin=90:activate=0
+:movingforwards=0:activate=0
+:aihastarget=0:activate=0
+
+;//Targeting
+:aiaction=1:aiusefullaim=1
+:aiaction=0:aiusefullaim=0
+:state=1,aihastarget=0:aiattackawareness=1,aisettarget,airotatetotarget
+:aihastarget=1,aicanshoot=0:aiattackawareness=0,aicleartarget,aiattackawareness=1,aisettarget,airotatetotarget
+:aihastarget=1,random=10:aiattackawareness=0,aicleartarget,aiattackawareness=1,aisettarget,airotatetotarget
+:state=1:airotatetotarget
+
+;//Respond to any sounds while not in combat
+:state=1,idle=1,aiaction=0,aicanshoot=0,aiheardsound=2500:aicleartarget,state=30,etimerstart
+:state=1,idle=0,aiaction=0,aicanshoot=0,aiheardsound=1000:aicleartarget,state=30,etimerstart
+:state=30,varequal=1,aiheardsound=3000:airotatetosound
+:state=30,varequal=0,aiheardsound=3000:aimovetosound
+:state=30,etimergreater=4000:state=1
+:state=30,aihastarget=0:aisettarget,airotatetotarget
+:state=30,aihastarget=1,aicanshoot=0:aisettarget,airotatetotarget
+:state=30,aicanshoot=1:state=1
+
+;//Fall back to cover while returning fire
+:state=60:etimerstart,state=67
+:state=67,aiatcover=0:aimovetocover=0,airotatetotarget
+:state=67,aiatcover=1:activate=0,state=1
+:state=67,movingforwards=1,aitargetdistfurther=100,etimergreater=200:activate=1
+:state=67,movingforwards=0:activate=0
+:state=67,etimergreater=2000:activate=0,state=1
+
+;//close with enemy for melee if seen nearby
+:state=1:globalvar=2
+:state=1,aicanshoot=1,varequal=0,aitargetdistfurther=70,random=25:etimerstart,state=55
+:state=1,varequal=1:aimoverandom
+:state=55:globalvar=2
+:state=55,varequal=1:state=1
+:state=55:aimovetotarget
+:state=55,movingforwards=1,aitargetdistwithin=200,etimergreater=300:activate=1
+:state=55,movingforwards=0:activate=0
+:state=55,aitargetdistwithin=70:activate=0,state=190
+:state=55,aicanshoot=0:activate=0,state=1
+:state=55,aihastarget=0:activate=0,state=1
+
+;//Enemy at close range
+:state=1,aitargetdistwithin=70:state=2
+:state=2,random=3:state=60
+:state=2:airotatetotarget,state=190
+:state=2,aitargetdistfurther=70:state=1
+
+;//melee strike
+:state=190:globalvar=2
+:state=190,varequal=0:state=191,etimerstart
+:state=190,varequal=1:state=1
+:state=191:airotatetotarget
+:state=191,aitargetdistwithin=70,aicanshoot=1:state=192,aistop
+:state=191,aitargetdistfurther=70:state=1
+:state=191,aicanshoot=0:state=1
+:state=192:setaiactive=0,state=193,setframe=8
+:state=193:incframe=8,airotatetotarget
+:state=193,framebeyond=8 40,aitargetdistwithin=70:state=194,aisetmeleedamage=10,aiusemelee=1,aiattackawareness=0,aicleartarget,aiattackawareness=1,sound=audiobank\misc\melee.wav
+:state=193,frameatend=8:setframe=1,state=195
+:state=194,frameatend=8:setframe=1,state=195
+:state=194,etimergreater=1500:setframe=1,state=195
+:state=195:setaiactive=1,state=1
+
+
+;//Start Script------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+:state=0:globalvar=1
+:state=0,varequal=1:setaiactive=1,alwaysactive=1,reloadweapon,activate=0,aiattackawareness=1,etimerstart,state=13
+:state=13,etimergreater=5000:state=11
+:state=11:etimerstart,state=1
+
+;//End

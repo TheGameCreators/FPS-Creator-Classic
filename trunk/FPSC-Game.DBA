@@ -3369,11 +3369,14 @@ _main_game_core:
  tcamz#=object position z(physicsplayerborble)
  if player(1).health>0
   rem player in world - enemies bate!
+  `if playerdied=1 then ai add player physicsplayerborble,0 : playerdied=0
   AI Set Player Position tcamx#,tcamy#,tcamz#
   `AI Set Player Position tcamx#,tcamz# `280410 - old DarkAI
  else
   rem player is heaven - out of reach of enemies
-  `AI Set Player Position 0,150000,0 (lee-100310-later DarkAI command)
+  AI Set Player Position 0,150000,0 `(lee-100310-later DarkAI command)
+   `ai kill player
+   playerdied=1
  endif
  `
  Rem Hockeykid - 250210 - Dark AI Tell AI system if player crouching
@@ -12970,26 +12973,34 @@ if aiindex>0
         ttarget=entityelement(e).ttarget
         if ttarget>0
          if ttarget = physicsplayerborble
-          entityelement(e).actualtarget=1
-          entityelement(e).actualtargetx=mex#
-          entityelement(e).actualtargety=mey#
-          entityelement(e).actualtargetz=mez#
-          entityelement(e).losttargetcount=0
+          if player(1).health>0
+           entityelement(e).actualtarget=1
+           entityelement(e).actualtargetx=mex#
+           entityelement(e).actualtargety=mey#
+           entityelement(e).actualtargetz=mez#
+           entityelement(e).losttargetcount=0
+          else
+           entityelement(e).actualtarget=0
+           entityelement(e).losttargetcount=0
+           ai entity remove target entityelement(e).obj,ttarget
+          endif
          else
           `if array count(phyobjele())>=ttarget
           for l=1 to entityelementlist
            if entityelement(l).obj=ttarget then tent = l : exit
           next l
           if tent>0
-           entityelement(e).actualtarget=tent+1
-           if entityelement(e).actualtarget>0
-            tte=entityelement(e).actualtarget-1
-            entityelement(e).actualtargetx=entityelement(tte).x
-            entityelement(e).actualtargety=entityelement(tte).y
-            entityelement(e).actualtargetz=entityelement(tte).z
-            entityelement(e).losttargetcount=0
+           if ai entity exist(entityelement(tent).obj)
+            entityelement(e).actualtarget=tent+1
+            if entityelement(e).actualtarget>0
+             tte=entityelement(e).actualtarget-1
+             entityelement(e).actualtargety=entityelement(tte).y
+             entityelement(e).actualtargetz=entityelement(tte).z
+             entityelement(e).losttargetcount=0
+            endif
            endif
           endif
+          `
          endif
         endif
        endif
@@ -46794,12 +46805,14 @@ Add_Targets:
   endif
  next i
  `if entityelement(e).darkai.team<>1 and ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position z(physicsplayerborble),1)>0 `280410 - old DarkAI
- for x=1 to FactionArrayMax
-  `if aifaction(teamslot,x).neutral<>1 and aifaction(teamslot,x).ally<>1 and ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position y(physicsplayerborble),object position z(physicsplayerborble),1)>0
-  if aifaction(teamslot,x).enemy=1 and ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position y(physicsplayerborble),object position z(physicsplayerborble),1)>0
-   ai entity add target entityelement(e).obj,physicsplayerborble
-  endif
- next x
+ if player(1).health>0
+  for x=1 to FactionArrayMax
+   `if aifaction(teamslot,x).neutral<>1 and aifaction(teamslot,x).ally<>1 and ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position y(physicsplayerborble),object position z(physicsplayerborble),1)>0
+   if aifaction(teamslot,x).enemy=1 and ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position y(physicsplayerborble),object position z(physicsplayerborble),1)>0
+    ai entity add target entityelement(e).obj,physicsplayerborble
+   endif
+  next x
+ endif
 Return
 
 
