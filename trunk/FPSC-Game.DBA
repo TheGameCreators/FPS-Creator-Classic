@@ -12949,7 +12949,7 @@ if aiindex>0
       endcase
       case AIACTAIACTIVE:
       if ai entity exist(entityelement(e).obj)
-       ai set entity active obj,aiactionseq(seq).value
+       ai set entity active entityelement(e).obj,aiactionseq(seq).value
        if aiactionseq(seq).value=0 then entityelement(e).darkai.aistop=1
        if aiactionseq(seq).value<>0 then entityelement(e).darkai.aistop=0
       endif
@@ -46791,15 +46791,17 @@ Add_Targets:
     endif
     `
     Rem If entityelement(y).actualtarget>0 and the target no longer exist on the list reset flag
-    tokay=0
-    if ai get entity count targets(entityelement(y).obj)=0 then entityelement(y).actualtarget=0
-    if entityelement(y).actualtarget>1 and ai get entity count targets(entityelement(y).obj)>0
-     tcount=ai get entity count targets(entityelement(y).obj)
-     for x=1 to tcount
-      c=entityelement(y).actualtarget-1
-      if entityelement(c).obj=ai get entity target id(entityelement(y).obj,x) then tokay=1 : exit
-     next x
-     if tokay=0 then entityelement(y).actualtarget=0
+    if ai entity exist(entityelement(y).obj)
+     tokay=0
+     if ai get entity count targets(entityelement(y).obj)=0 then entityelement(y).actualtarget=0
+     if entityelement(y).actualtarget>1 and ai get entity count targets(entityelement(y).obj)>0
+      tcount=ai get entity count targets(entityelement(y).obj)
+      for x=1 to tcount
+       c=entityelement(y).actualtarget-1
+       if entityelement(c).obj=ai get entity target id(entityelement(y).obj,x) then tokay=1 : exit
+      next x
+      if tokay=0 then entityelement(y).actualtarget=0
+     endif
     endif
    endif
   endif
