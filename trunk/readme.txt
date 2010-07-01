@@ -162,7 +162,8 @@ V1.1.7
  * Added new FPI action AIADDPOINT=X x=is the points id number - this will create a point to be used with other ai point commands
  * Fixed bug from V1.16 that broke runfpi because of the runfpi scripts not being loaded
  * Added new FPI condition AITEAM=X x is the teams number
- * Added new FPI condition ISDARKAI=X which is true if the entity has been loaded into the Dark AI system 
+ * Added new FPI condition ISDARKAI=X which is true if the entity has been loaded into the Dark AI system
+ * Added new FPI condition KEYPRESSED=X Y which is true if Y=1 and the X key is being pressed. Also true when Y=0 and the X key is not being pressed (x should be equal to the desired scancode) 
  * Changed all data structure members from integer to float which fell under timer based calculations
  * Changed character weapon fire from counter to timer based logic
  * Changed flak movement and detonation from counter to timer based logic
