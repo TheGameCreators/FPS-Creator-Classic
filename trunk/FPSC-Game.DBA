@@ -7409,20 +7409,28 @@ if entityelement(e).fireweapon=1
    flakpitch=0
    if flak(flakid).throwangle=0
     rem LAUNCH
-    tdx#=mex#-entityelement(e).x
-    tdz#=mez#-entityelement(e).z
-    tdy#=(mey#-50)-entityelement(e).y
+    if entityelement(e).actualtarget>1
+     tte=entityelement(e).actualtarget-1
+     tdx#=object position x(entityelement(tte).obj)-x1#`entityelement(e).x
+     tdz#=object position z(entityelement(tte).obj)-z1#`entityelement(e).z
+     tdy#=object position y(entityelement(tte).obj)-y1#`entityelement(e).y
+    else
+     tdx#=mex#-x1#`entityelement(e).x
+     tdz#=mez#-z1#`entityelement(e).z
+     tdy#=(mey#-50)-y1#`entityelement(e).y
+    endif
     flakpitch=atanfull(tdy#,sqrt(abs(tdx#*tdx#)+abs(tdz#*tdz#)))*-1
    else
     rem LOB
     if entityelement(e).actualtarget<>0
-     y2#=entityelement(e).actualtargety
+     tte=entityelement(e).actualtarget-1
+     if tte=0 then y2#=mey# else y2#=object position y(entityelement(tte).obj)
      if y2#>entityelement(e).y-100.0
-      x2#=entityelement(e).actualtargetx
-      z2#=entityelement(e).actualtargetz
-      tdx#=abs(x2#-entityelement(e).x)
-      tdy#=abs(y2#-entityelement(e).y)
-      tdz#=abs(z2#-entityelement(e).z)
+      if tte=0 then x2#=mez# else x2#=object position x(entityelement(tte).obj)
+      if tte=0 then z2#=mez# else z2#=object position z(entityelement(tte).obj)
+      tdx#=abs(x2#-x1#)
+      tdy#=abs(y2#-y1#)
+      tdz#=abs(z2#-z1#)
       tdd#=sqrt((tdx#*tdx#)+(tdy#*tdy#)+(tdz#*tdz#))
       flakpitch=22.0+((45.0/500.0)*tdd#)
       if flakpitch>80 then flakpitch=80
