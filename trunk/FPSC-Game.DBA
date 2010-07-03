@@ -296,6 +296,7 @@ type saveloadgamepositionentitytype
  tsoundset0state as integer
  tsoundset1state as integer
  physics as integer
+ alttextureused as integer
 endtype
 type saveloadgamepositionweaponslottype
  pref got invpos
@@ -1286,6 +1287,7 @@ type entitytype
  soundset1 as integer
  soundlooping as integer
  soundistalking as integer
+ alttextureused as integer
  reserve1 as integer
  reserve2 as integer
  reserve3 as integer
@@ -11443,23 +11445,9 @@ if aiindex>0
      endcase
      `
      case AIACTALTTEXTURE:
-      if obj>0
-       if aiactionseq(seq).value=0
-        texture object obj,0,entityelement(e).eleprof.texdid
-       else
-        texture object obj,0,entityelement(e).eleprof.texaltdid
-       endif
-       if entityelement(e).eleprof.usingeffect>0
-        if entityelement(e).eleprof.tex1id<>0 then texture object obj,1,entityelement(e).eleprof.tex1id
-        if entityelement(e).eleprof.tex2id<>0 then texture object obj,2,entityelement(e).eleprof.tex2id
-        if entityelement(e).eleprof.tex3id<>0 then texture object obj,3,entityelement(e).eleprof.tex3id
-        set object effect obj,entityelement(e).eleprof.usingeffect
-        objecteffect(obj)=entityelement(e).eleprof.usingeffect
-       else
-        rem FPGC - 100610 - fix issue which wipes 'material mode' when re-apply texture
-        set object diffuse obj,rgb(128,128,128)
-       endif
-      endif
+      rem FPGC - 030710 - switched to entity flag and subroutine (for load game position code)
+      entityelement(e).alttextureused=aiactionseq(seq).value
+      gosub _entity_updatealttexture
      endcase
      `
      case AIACTSETALPHAFADE:
@@ -21600,6 +21588,29 @@ endif
 
 return
 
+_entity_updatealttexture:
+ `
+ rem called from FPI action (obj,e)
+ if obj>0
+  if entityelement(e).alttextureused=0
+   texture object obj,0,entityelement(e).eleprof.texdid
+  else
+   texture object obj,0,entityelement(e).eleprof.texaltdid
+  endif
+  if entityelement(e).eleprof.usingeffect>0
+   if entityelement(e).eleprof.tex1id<>0 then texture object obj,1,entityelement(e).eleprof.tex1id
+   if entityelement(e).eleprof.tex2id<>0 then texture object obj,2,entityelement(e).eleprof.tex2id
+   if entityelement(e).eleprof.tex3id<>0 then texture object obj,3,entityelement(e).eleprof.tex3id
+   set object effect obj,entityelement(e).eleprof.usingeffect
+   objecteffect(obj)=entityelement(e).eleprof.usingeffect
+  else
+   rem FPGC - 100610 - fix issue which wipes 'material mode' when re-apply texture
+   set object diffuse obj,rgb(128,128,128)
+  endif
+ endif
+ `
+return
+
 _entity_load:
 
 rem FPGC - 050909 - resource monitor of entities
@@ -23603,6 +23614,9 @@ _entity_configueelementforuse:
  entityelement(e).mover.da=entityelement(e).ry
  entityelement(e).ai.waypoint.state=0
  entityelement(e).ai.state=0
+ `
+ rem FPGC - 030710 - reset extra entity flags
+ entityelement(e).alttextureused=0
  `
  rem Configure animation defaults
  if entityprofile(entid).ischaracter=1
@@ -33914,6 +33928,7 @@ _saveload_savegame:
    a#=saveloadgamepositionentity(lsi).tsoundset0state : write float 1,a#
    a#=saveloadgamepositionentity(lsi).tsoundset1state : write float 1,a#
    a#=saveloadgamepositionentity(lsi).physics : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).alttextureused : write float 1,a#
   next lsi
   rem lift (plr associations)
   a#=saveloadgameposition.meridinglift : write float 1,a#
@@ -34079,6 +34094,7 @@ _saveload_loadgame:
    read float 1,a# : saveloadgamepositionentity(lsi).tsoundset0state=a#
    read float 1,a# : saveloadgamepositionentity(lsi).tsoundset1state=a#
    read float 1,a# : saveloadgamepositionentity(lsi).physics=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).alttextureused=a#
   next lsi
   rem lift (plr associations)
   read float 1,a# : saveloadgameposition.meridinglift=a#
@@ -34170,6 +34186,7 @@ _saveload_storesavedata:
   tsoundset1state=0 : if entityelement(lsi).soundset1>0 then tsoundset1state=sound looping(entityelement(lsi).soundset1)
   saveloadgamepositionentity(lsi).tsoundset1state=tsoundset1state
   saveloadgamepositionentity(lsi).physics=entityelement(lsi).eleprof.physics
+  saveloadgamepositionentity(lsi).alttextureused=entityelement(lsi).alttextureused
  next lsi
  rem Weapons
  dim saveloadgamepositionweaponslot(10) as saveloadgamepositionweaponslottype
@@ -34306,7 +34323,10 @@ _saveload_retrievesavedata:
     if tsoundset1state=0 then stop sound entityelement(lsi).soundset1
     if tsoundset1state=1 then loop sound entityelement(lsi).soundset1 : entityelement(lsi).soundlooping=entityelement(lsi).soundset1
    endif
+   `
+   rem more restores
    entityelement(lsi).eleprof.physics=saveloadgamepositionentity(lsi).physics
+   entityelement(lsi).alttextureused=saveloadgamepositionentity(lsi).alttextureused
    `
   next lsi
  endif
@@ -34564,6 +34584,9 @@ _saveload_retrievesavedata:
    gosub _ai_stopentsounds
    `
   endif
+  `
+  rem FPGC - 030710 - update alt texture if flagged
+  if entityelement(e).alttextureused>0 then gosub _entity_updatealttexture
   `
 `  rem ignore spawned objects
 `  endif
