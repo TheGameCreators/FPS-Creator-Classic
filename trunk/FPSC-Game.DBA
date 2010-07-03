@@ -1,15 +1,16 @@
 rem
 rem FIRST PERSON GAME CREATOR GAME ENGINE - V1.20
-rem Copyright (c) The Game Creators Ltd 2005-2009
+rem Copyright (c) 2005, 2010 The Game Creators Ltd
 rem
 rem Used Under Public License:
 rem  1. You CANNOT make 'game creation' or 'level editor' software with this code
 rem  2. You CANNOT make a 'game engine' for the purpose of selling it as an engine
 rem  3. You CAN make a GAME with this source code for the purpose of selling it
 rem
-rem Requires DBPro Upgrade 7.4 special build (provided with FPGC source) includes:
+rem Requires DBPro Upgrade 7.5, and additionally requires:
 rem plugins-licensed\DBProGameFX.dll
 rem plugins-licensed\EnhancementsFREE.dll
+rem plugins-licensed\DarkAI.dll
 rem plugins-licensed\LightMapper.dll
 rem plugins-user\DBProMultiplayerPlusDebug.dll
 rem plugins-user\DBProODEDebug.dll
@@ -25,6 +26,7 @@ rem DBPro: http://darkbasicpro.thegamecreators.com
 rem FPSC: http://www.fpscreator.com
 rem
 rem Credit to Airslide for help with Dark AI when it went into Fenix Mod
+rem Credit to Hockeykid for his continued help integrating Dark AI
 
 rem Special build flags for 'genre' switch
 global fpgchud$ : fpgchud$=""
@@ -195,6 +197,8 @@ empty array gamememtable()
 global gamememactuallyused : gamememactuallyused=0
 global gamememactuallyusedrt  :gamememactuallyusedrt=0
 global gamememresourceid : gamememresourceid=0
+global mymousex as integer : mymousex=0
+global mymousey as integer : mymousey=0
 
 rem Data structure to old player save data
 type saveplayerstatetype
@@ -2351,6 +2355,7 @@ global gimageblockmode : gimageblockmode=0
 global gxbox : gxbox=0
 global gxboxinvert : gxboxinvert=0
 global gxboxcontrollertype : gxboxcontrollertype=0
+global gxboxmag as float : gxboxmag=1.0
 global gshowalluniquetextures : gshowalluniquetextures=0
 global gaspectratio : gaspectratio=0
 global gnewblossershaders : gnewblossershaders=1
@@ -2518,6 +2523,7 @@ if file exist(tfile$)=1
       if value1=4 then gxbox=1 : gxboxinvert=1 : gxboxcontrollertype=1
      endif
     endif
+    tryfield$="xboxmag" : if field$=tryfield$ then gxboxmag=(0.0+value1)/100.0
     `
     tryfield$="dynamiclighting" : if field$=tryfield$ then gdynamiclightingstate=value1
     tryfield$="dynamicshadows" : if field$=tryfield$ then gdynamicshadowsstate=value1
@@ -3403,6 +3409,46 @@ _main_game_core:
  next x
  `
  rem Update screen
+ gosub _main_sync
+ `
+ rem FPGC - 190310 - quick exit keys (for standalone game only)
+ if grealgameviewstate=1
+  if keystate(56)=1 or keystate(184)=1
+   if keystate(18)=1 then continueokay=1 : loopapp=0 : levelwon=2 : rem quit game
+  endif
+ endif
+ `
+ rem Can intercept to grab screen
+ if keystate(plrkeyF12)=1
+  tnum=1
+  repeat
+   snapshotfile$="..\snapshot"+str$(tnum)+".bmp"
+   inc tnum
+  until file exist(snapshotfile$)=0
+  get image 21000000,0,0,screen width(),screen height(),1
+  if image exist(21000000)=1
+   save image snapshotfile$,21000000,1
+   delete image 21000000
+  endif
+  while keystate(plrkeyF12)=1
+  endwhile
+ endif
+ `
+ rem Sync Performance check
+ gameperfsync=gameperfsync+(perftimer()-gameperftimestamp)
+ gameperftimestamp=perftimer()
+ gamedebugviewtime=timer()
+ `
+ rem Exit Conditions for test game
+ if grealgameviewstate=0
+  Rem Hockeykid - 260210 - Added ai reset to avoid Dark AI from creating a silent crash
+  if control_escapekey()=1 then ai reset : continueokay=1 : levelwon=2 : rem QUIT
+ endif
+ `
+return
+
+_main_sync:
+ rem FPGC - 280610 - moved entire SYNC sequence to subroutine so PAUSE mode can call it too
  if gvrmode<>0
   rem VR920
   set camera rotation xyz
@@ -3470,42 +3516,7 @@ _main_game_core:
  else
   gosub _postprocess_renderdepthcamera
   sync
- endif
- `
- rem FPGC - 190310 - quick exit keys (for standalone game only)
- if grealgameviewstate=1
-  if keystate(56)=1 or keystate(184)=1
-   if keystate(18)=1 then continueokay=1 : loopapp=0 : levelwon=2 : rem quit game
-  endif
- endif
- `
- rem Can intercept to grab screen
- if keystate(plrkeyF12)=1
-  tnum=1
-  repeat
-   snapshotfile$="..\snapshot"+str$(tnum)+".bmp"
-   inc tnum
-  until file exist(snapshotfile$)=0
-  get image 21000000,0,0,screen width(),screen height(),1
-  if image exist(21000000)=1
-   save image snapshotfile$,21000000,1
-   delete image 21000000
-  endif
-  while keystate(plrkeyF12)=1
-  endwhile
- endif
- `
- rem Sync Performance check
- gameperfsync=gameperfsync+(perftimer()-gameperftimestamp)
- gameperftimestamp=perftimer()
- gamedebugviewtime=timer()
- `
- rem Exit Conditions for test game
- if grealgameviewstate=0
-  Rem Hockeykid - 260210 - Added ai reset to avoid Dark AI from creating a silent crash
-  if control_escapekey()=1 then ai reset : continueokay=1 : levelwon=2 : rem QUIT
- endif
- `
+ endif 
 return
 
 _main_initcalceyes:
@@ -3729,7 +3740,7 @@ return
 _main_game_corecontrol:
 
 rem Stamp time for performance meter
-if showgamemenu=0 then position mouse screen width()/2,screen height()/2
+if showgamemenu=0 then inputpositionmouse(screen width()/2,screen height()/2)
 
 rem STATUS AND HUD GRAPHICS
 if gamewarmupcount=0
@@ -6581,6 +6592,10 @@ for e=1 to entityelementlist
      if entityelement(e).plrdist<100
       entityelement(e).logiccount=0
      endif
+     rem FPGC - 280610 - for looping decals, always active
+     if entityelement(e).decalmode=2 or entityelement(e).decalmode=3 or entityelement(e).decalmode=5
+      entityelement(e).logiccount=0
+     endif
     else
      rem characters can have a priority logic monopoly
      if logicprioritycount<int(logicprioritymax#)
@@ -7861,6 +7876,7 @@ if entityelement(e).ai.waypoint.state>0
      endif
     endif
    endif
+   `
    rem ensure action taken immediately
    entityelement(e).logiccount=0
    `
@@ -12035,6 +12051,8 @@ if aiindex>0
       if entityelement(e).ai.waypoint.current>0
        r=rnd(1)
        if r=0
+        w=entityelement(e).ai.waypoint.current
+        linkto=waypointcoord(w).link
         entityelement(e).ai.waypoint.current=linkto
         entityelement(e).ai.waypoint.tracker=waypointcoord(linkto).index
        else
@@ -12796,7 +12814,7 @@ if aiindex>0
       rem Continue And Load
       saveload.loadswitch=1
       saveloadfile$=""
-      position mouse screen width()/2,(screen height()/4)*3.5
+      inputpositionmouse(screen width()/2,(screen height()/4)*3.5)
       cleardelta=mousemovex() : cleardelta=mousemovey()
       gosub _saveload_maindialogloop
       if saveloadfile$<>""
@@ -12804,7 +12822,7 @@ if aiindex>0
        loadsavedlevel$=saveloadfile$ : saveloadfile$=""
        continueokay=1 : levelwon=3
       endif
-      position mouse screen width()/2,(screen height()/4)*3.5
+      inputpositionmouse(screen width()/2,(screen height()/4)*3.5)
       cleardelta=mousemovex() : cleardelta=mousemovey()
       hudselectionmade=0
      endcase
@@ -12812,7 +12830,7 @@ if aiindex>0
       rem Continue And Save
       saveload.loadswitch=0
       saveloadfile$=""
-      position mouse screen width()/2,(screen height()/4)*3.5
+      inputpositionmouse(screen width()/2,(screen height()/4)*3.5)
       cleardelta=mousemovex() : cleardelta=mousemovey()
       gosub _saveload_maindialogloop
       if saveloadfile$<>""
@@ -12821,7 +12839,7 @@ if aiindex>0
        saveloadfile$=""
       endif
       while control_mouseclick()<>0 : endwhile
-      position mouse screen width()/2,(screen height()/4)*3.5
+      inputpositionmouse(screen width()/2,(screen height()/4)*3.5)
       cleardelta=mousemovex() : cleardelta=mousemovey()
       hudselectionmade=0
      endcase
@@ -12863,7 +12881,7 @@ if aiindex>0
       rem User pressed ESCAPE, and is now in pause mode
       gosub _saveload_savebox_earlygrab
       cleardelta=mousemovex() : cleardelta=mousemovey()
-      position mouse screen width()/2,(screen height()/4)*3
+      inputpositionmouse(screen width()/2,(screen height()/4)*3)
       hudselectionmade=0 : ttemp=control_mouseclick()
       showgamemenu=1
       `
@@ -13237,7 +13255,7 @@ if aiindex>0
         stte=e : e=tte
         gosub _entity_deducthealth
         e=stte
-         Rem Create Blood
+        Rem Create Blood
         if blood=1
          decalid=entitydecal(entityelement(e).bankindex,1)
          if decalid>0
@@ -24655,7 +24673,6 @@ _gameflow_default:
    inc imgbase,4
   next rmi
  endif
-
  `
  rem App Loop
  loopapp=1
@@ -24807,6 +24824,7 @@ _gameflow_default:
       startofgametime=timer()
       continueokay=0
       gamewarmupcount=30.0
+      ingameloop=1
       gosub _ode_beginphysics
       if gvrmode<>0 then vr920exist=reset left eye()
       while continueokay=0
@@ -24826,13 +24844,15 @@ _gameflow_default:
          next o
         endif
         gosub _screen_control
-        if len(loadsavedlevel$)<2 then sync
+        `if len(loadsavedlevel$)<2 then sync : rem FPGC - 280610 - replaced with sync to handle stereoscopics
+        if len(loadsavedlevel$)<2 then gosub _main_sync
         if gvrmode<>0 then vr920exist=reset left eye()
        endif
       endwhile
       while control_mouseclick()<>0 : endwhile
       controlSPACE=1
       controlESCAPE=0
+      ingameloop=0
       `
       rem FPGC - 200310 - switch FULL SCREEN EFFECTS shaders off (back to cam zero)
       gosub _postprocess_off
@@ -26872,9 +26892,9 @@ _ai_hud_controller:
   tjty#=tjty1# : if abs(tjty2#)>abs(tjty1#) then tjty#=tjty2#
   if ttcontrolofmousepos=1
    if abs(tjtx#)>50 or abs(tjty#)>50
-    tjtx#=mousex()+(tjtx#/10.0)
-    tjty#=mousey()+(tjty#/10.0)
-    position mouse tjtx#,tjty#+1
+    tjtx#=inputmousex()+(tjtx#/10.0)
+    tjty#=inputmousey()+(tjty#/10.0)
+    inputpositionmouse(tjtx#,tjty#)
    endif
   endif
   if gxboxcontrollertype=0
@@ -26892,6 +26912,13 @@ _ai_hud_controller:
 return
 
 _ai_hud_view:
+ `
+ rem FPGC - 280610 - must be called to ensure we have latest mouse position from mouse input (movemousexy)
+ if ingameloop=1 and showgamemenu=0
+  rem except when in actual game where the HUD mouse would wipe out the game mouse!
+ else
+  inputupdatemouse()
+ endif
  `
  rem FPGC - 160909 - intercept HUD creation on some occasions
  for hudid=1 to hudmax
@@ -27177,7 +27204,7 @@ _ai_hud_view:
   endif
   `
  next hudid
-  `
+ `
  rem Handle HUD control
  for hudid=1 to hudmax
   `
@@ -27188,8 +27215,8 @@ _ai_hud_view:
    ttmouseclick=0 : ttcontrolofmousepos=1 : gosub _ai_hud_controller
    `
    rem Can Display At Mouse Coordinate
-   hud(hudid).posx=mousex()-((hud(hudid).width/2)*gratiox#)
-   hud(hudid).posy=mousey()-((hud(hudid).height/2)*gratioy#)
+   hud(hudid).posx=inputmousex()-((hud(hudid).width/2)*gratiox#)
+   hud(hudid).posy=inputmousey()-((hud(hudid).height/2)*gratioy#)
    aihudpointerimagestore=hud(hudid).image
    rem Can Detect When Select HUD Item
    for thudid=1 to hudmax
@@ -29353,9 +29380,11 @@ if showgamemenu=0
    jty#=(joystick twist z()-32767.0)/327.67
   endif
   if gxboxinvert=1 then jty#=jty#*-1.0
-  if abs(jtx#)>50.0 then cammovex#=jtx#/10.0
+  rem FPGC - 280610 - infact, use flag to control it (XBOXMAG=200)
+  `if abs(jtx#)>50.0 then cammovex#=jtx#/10.0
+  if abs(jtx#)>50.0 then cammovex#=(jtx#*gxboxmag)/5.0
   `if abs(jty#)>50.0 then cammovey#=jty#/10.0 FPGC - 100310 - speed it up a bit
-  if abs(jty#)>50.0 then cammovey#=jty#/2.0
+  if abs(jty#)>50.0 then cammovey#=jty#/2.0 
  endif
  `
  if mefrozen>0 and mefrozentype=2 then cammovex#=0 : cammovey#=0
@@ -30846,8 +30875,8 @@ _multi_earlyinit:
   MULTIPLAYER CONNECT TO TCP SERVER playername$, ipaddress$
  endif
  `
- rem Create Deadreckoning vectors
- for t=10+0 to 10+(16*5) : r=make vector3(t) : next t
+ rem Create Deadreckoning vectors (FPGC - 280610 - moved from 10+ to 20+ allows vectors for stereoscopics)
+ for t=20+0 to 20+(16*5) : r=make vector3(t) : next t
  `
  rem Memblock allocations for vary-byte tranfser
  mb_move=101 : make memblock mb_move, 48
@@ -31122,7 +31151,7 @@ return
 _multi_free:
  `
  rem Free Deadreckoning vectors
- for t=10+0 to 10+(16*5) : r=delete vector3(t) : next t
+ for t=20+0 to 20+(16*5) : r=delete vector3(t) : next t
  `
  rem Delet memblocks
  if mb_move>0
@@ -33207,7 +33236,7 @@ _packet_move:
   eloff=((el-1)*5) : debugel=el
   statedx(el)=px# : statedy(el)=py# : statedz(el)=pz#
   statex(el)=statesx(el) : statey(el)=statesy(el) : statez(el)=statesz(el)
-  cpx#(1)=statex(el) : cpy#(1)=statey(el) : cpz#(1)=statez(el) : set vector3 10+eloff,cpx#(1),cpy#(1),cpz#(1)
+  cpx#(1)=statex(el) : cpy#(1)=statey(el) : cpz#(1)=statez(el) : set vector3 20+eloff,cpx#(1),cpy#(1),cpz#(1)
   tdx#=px#-statex(el)
   tdz#=statez(el)-pz#
   td#=sqrt(abs(tdx#*tdx#)+abs(tdz#*tdz#))/2.0
@@ -33215,12 +33244,12 @@ _packet_move:
   ix#=newxvalue(statex(el),statesa(el),td#)
   iy#=statey(el)
   iz#=newzvalue(statez(el),statesa(el)+180,td#)
-  cpx#(2)=ix# : cpy#(2)=iy# : cpz#(2)=iz# : set vector3 11+eloff,cpx#(2),cpy#(2),cpz#(2)
-  cpx#(3)=px# : cpy#(3)=py# : cpz#(3)=pz# : set vector3 12+eloff,cpx#(3),cpy#(3),cpz#(3)
+  cpx#(2)=ix# : cpy#(2)=iy# : cpz#(2)=iz# : set vector3 21+eloff,cpx#(2),cpy#(2),cpz#(2)
+  cpx#(3)=px# : cpy#(3)=py# : cpz#(3)=pz# : set vector3 22+eloff,cpx#(3),cpy#(3),cpz#(3)
   ix#=newxvalue(px#,pa#,td#)
   iy#=py#
   iz#=newzvalue(pz#,pa#+180,td#)
-  cpx#(4)=ix# : cpy#(4)=iy# : cpz#(4)=iz# : set vector3 13+eloff,cpx#(4),cpy#(4),cpz#(4)
+  cpx#(4)=ix# : cpy#(4)=iy# : cpz#(4)=iz# : set vector3 23+eloff,cpx#(4),cpy#(4),cpz#(4)
   statesx(el)=px# : statesy(el)=py# : statesz(el)=pz# : statesa(el)=pa#
   statesvel(el)=1.0
   statemsgap(el)=0
@@ -33251,9 +33280,9 @@ _packet_move_dedrec:
    timespan#=(1.0/200.0)*statemsgap(el)
    if timespan#>1.0 then timespan#=1.0 : statemove(el)=0
    eloff=((el-1)*5)
-   cpx#=x vector3(10+eloff)
-   cpy#=y vector3(10+eloff)
-   cpz#=z vector3(10+eloff)
+   cpx#=x vector3(20+eloff)
+   cpy#=y vector3(20+eloff)
+   cpz#=z vector3(20+eloff)
    rem move position of plr
    statex(el)=cpx#+((statesx(el)-cpx#)*timespan#)
    statey(el)=cpy#+((statesy(el)-cpy#)*timespan#)
@@ -35705,6 +35734,24 @@ return
 `
 ` INPUT SYSTEM SUBROUTINES
 `
+
+rem FPGC - 280610 - created to standardize mouse/controller HUD pointer handling
+function inputmousex()
+endfunction mymousex
+function inputmousey()
+endfunction mymousey
+function inputpositionmouse(x,y)
+ mymousex=x
+ mymousey=y
+endfunction
+function inputupdatemouse()
+ mymousex=mymousex+mousemovex()
+ mymousey=mymousey+mousemovey()
+ if mymousex<0 then mymousex=0
+ if mymousex>screen width()-1 then mymousex=screen width()-1
+ if mymousey<0 then mymousey=0
+ if mymousey>screen height()-1 then mymousey=screen height()-1
+endfunction
 
 _input_getdirectcontrols:
 

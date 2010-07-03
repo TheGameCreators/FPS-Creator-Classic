@@ -9,12 +9,18 @@ History
 V1.1.7
 ------
  
+ * Fixed IMAGE BLOCK Code so if it exceeds contiuous virtual address allocation, it switches to non-imageblock mode
  * Added new FPI action AIAUTOFACTIONOFF=x by default the faction system adds the factionto both teams
 	For example if I did aiaddenemy=1 2 then team 1 would become team 2's enemy but team 2 would also become team 1's enemy
 	This command allows you to toggle that on and off which will allow you to do things such as:
 		police help civilian but civilian wont help police 
 
  * Added new FPI condition HEALTHGREATER=X this will return true if the entity's health is greater the X (a much needed addition) 
+ * Replaced direct MOUSE commands with mouse functions so controller can perfectly override HUD pointer
+ * Added awareness of new XBOXMAG field to control the magnifier of the controllers Y rotation speed
+ * Fixed issue of decals set to looping not always active, now forced to remain active always
+ * Fixed overlap in VECTOR resources where multiplayer catmulrom spline mixed with stereoscopic eye calc
+ * Fixed bug in WAYPOINTRANDOM command so multiple characters find the correct waypoint link node
  * Added AI Factions! (Commands for it listed below)
  * Added new FPI action AIADDNEUTRAL=X Y this will add the teams specified by Y to the X's neutral list 
 	NOTE!: separate each 'Y' with a | mark 
@@ -27,9 +33,11 @@ V1.1.7
  * Added new FPI action AIADDALLY=X Y this will add the teams specified by Y to the X's ally list 
 	NOTE!: separate each 'Y' with a | mark 
 	EXAMPLE: aiaddally=1 2|3|4|5|6        This will add teams 2,3,4,5,6 to team 1's ally list
-		
-	
+			
  * Moved transport OUT desintation coordinates 10 units higher to (+75), fixes 'below gantry issue'
+ * Fixed overlap in VECTOR resources where multiplayer catmulrom spline mixed with stereoscopic eye calc
+ * Fixed bug in WAYPOINTRANDOM command so multiple characters find the correct waypoint link node
+ * Moved transport OUT desintation coordinates units higher to (+75), fixes 'below gantry issue'
  * Added A: to non character entity debug info to show 'activation' state
  * Special state for physics objects on lifts (+100) is retained during save load process
  * When load saved game position while on lift3.fpi, sound will halt when instructed to stop
