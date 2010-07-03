@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
  
+ * Fixed issue of immobile entities having their rotations reset on reloading a saved position
  * Fixed IMAGE BLOCK Code so if it exceeds contiuous virtual address allocation, it switches to non-imageblock mode
  * Added new FPI action AIAUTOFACTIONOFF=x by default the faction system adds the factionto both teams
 	For example if I did aiaddenemy=1 2 then team 1 would become team 2's enemy but team 2 would also become team 1's enemy

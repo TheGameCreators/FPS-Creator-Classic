@@ -34148,6 +34148,9 @@ _saveload_storesavedata:
      saveloadgamepositionentity(lsi).rx=object angle x(tttobj)
      saveloadgamepositionentity(lsi).ry=object angle y(tttobj)
      saveloadgamepositionentity(lsi).rz=object angle z(tttobj)
+     saveloadgamepositionentity(lsi).orx=object angle x(tttobj)
+     saveloadgamepositionentity(lsi).ory=object angle y(tttobj)
+     saveloadgamepositionentity(lsi).orz=object angle z(tttobj)
     endif
    endif
   endif
@@ -34413,8 +34416,12 @@ _saveload_retrievesavedata:
        rotate object obj,0,0,0
       endif
      else
-      rem FPGC - 020909 - need to retain rotation for doors, etc
-      rotate object obj,saveloadgamepositionentity(e).orx,saveloadgamepositionentity(e).ory,saveloadgamepositionentity(e).orz
+      if entityelement(e).eleprof.isimmobile=1
+       rem FPGC - 030710 - retain by not even changing rotation ( as it messes up rotated entities like switches)
+      else
+       rem FPGC - 030710 - else rotate for dynamic objects that can move during the simulation
+       rotate object obj,saveloadgamepositionentity(e).orx,saveloadgamepositionentity(e).ory,saveloadgamepositionentity(e).orz
+      endif
      endif
      rem create the physics body
      rem V109 - 090209 - any active spawned entities should be woken!
