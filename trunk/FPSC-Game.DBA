@@ -9261,6 +9261,11 @@ _entity_deducthealth:
         debristextureused=entityelement(e).eleprof.texdid
         debrissizex#=object size x(tobj) : debrissizey#=object size y(tobj) : debrissizez#=object size z(tobj)
         debrisexplodable=texplodable
+        rem FPGC - 030710 - calculate correct lighting for debris  
+        recx#=entityelement(e).x
+        recy#=entityelement(e).y
+        recz#=entityelement(e).z
+        gosub _lighting_managegloballightingreciever
         gosub _part_createfragment
         rem Forces object invisible (replaced by fragments)
         tobj=entityelement(e).obj
@@ -30663,6 +30668,9 @@ _part_createfragment:
     ode set angular velocity fragmento,0,0,0
    endif
    texture object fragmento,debristextureused
+   rem FPGC - 040710 - make debris same lighting as entity that produced it (avlightcog passed in from prev call to _lighting_managegloballightingreciever)
+   rem leelee
+   set object emissive fragmento,rgb(avlightcolr#/2,avlightcolg#/2,avlightcolb#/2)
    if debrisexplodable=1
     set blend mapping on fragmento, 1, explosionscorch, 3, 6
    else

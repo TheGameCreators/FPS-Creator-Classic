@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
  
+ * Fixed issue of debris not being lit like entities (destroyed crate looks correctly lit now)
  * Fixed issue of ALTTEXTURE (texture switched switches) not correct when re-load saved position
  * Fixed issue of immobile entities having their rotations reset on reloading a saved position
  * Fixed IMAGE BLOCK Code so if it exceeds contiuous virtual address allocation, it switches to non-imageblock mode
