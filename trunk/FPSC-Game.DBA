@@ -33973,6 +33973,16 @@ _saveload_savegame:
   rem lift (plr associations)
   a#=saveloadgameposition.meridinglift : write float 1,a#
   `
+  Rem Save Dark AI points() array
+  array=array count(saveloadgamepositionpoints())
+  a#=array : write float 1,a#
+  for i=1 to array
+   a#=saveloadgamepositionpoints(i).id : write float 1,a#
+   a#=saveloadgamepositionpoints(i).x : write float 1,a#
+   a#=saveloadgamepositionpoints(i).y : write float 1,a#
+   a#=saveloadgamepositionpoints(i).z : write float 1,a#
+  next i
+  `
  endif
  close file 1
  `
@@ -34147,6 +34157,17 @@ _saveload_loadgame:
   rem lift (plr associations)
   read float 1,a# : saveloadgameposition.meridinglift=a#
   `
+  Rem Load Dark AI points() array
+  read float 1,a# : array=a#
+  dim saveloadgamepositionpoints(array) as pathtype
+  dim points(array) as pathtype
+  for i=1 to array
+   read float 1,a# : saveloadgamepositionpoints(i).id=a#
+   read float 1,a# : saveloadgamepositionpoints(i).x=a#
+   read float 1,a# : saveloadgamepositionpoints(i).y=a#
+   read float 1,a# : saveloadgamepositionpoints(i).z=a#
+  next i
+  `
  endif
  close file 1
  `
@@ -34254,6 +34275,15 @@ _saveload_storesavedata:
   endif
 
  next lsi
+ Rem Save Dark AI points() array
+ array=array count(points())
+ dim saveloadgamepositionpoints(array) as pathtype
+ for i=1 to array
+  saveloadgamepositionpoints(i).id=points(i).id
+  saveloadgamepositionpoints(i).x=points(i).x
+  saveloadgamepositionpoints(i).y=points(i).y
+  saveloadgamepositionpoints(i).z=points(i).z
+ next i
  rem Weapons
  dim saveloadgamepositionweaponslot(10) as saveloadgamepositionweaponslottype
  for lsi=0 to 10
@@ -34410,6 +34440,14 @@ _saveload_retrievesavedata:
    `
   next lsi
  endif
+ Rem Load Dark AI points() array
+ array=array count(saveloadgamepositionpoints())
+ for i=1 to array
+  points(i).id=saveloadgamepositionpoints(i).id
+  points(i).x=saveloadgamepositionpoints(i).x
+  points(i).y=saveloadgamepositionpoints(i).y
+  points(i).z=saveloadgamepositionpoints(i).z
+ next i
  rem Weapons
  for lsi=0 to 10
   weaponslot(lsi).pref=saveloadgamepositionweaponslot(lsi).pref
