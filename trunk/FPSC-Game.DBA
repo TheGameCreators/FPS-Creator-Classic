@@ -94,6 +94,10 @@ dim loadreport$(100000)
 
 Rem Hockeykid - 250210 - Entity DarkAI
 type darkaitype
+ Rem save game
+ daidestx as float
+ daidestz as float
+ daihasdest as integer
  Rem Misc
  control as integer
  follow as integer
@@ -179,7 +183,6 @@ Type aifactiontype
  ally as integer
  neutral as integer
 endtype
-Dim aifaction(FactionArrayMax,FactionArrayMax) as aifactiontype
 
 Rem Hockeykid - 040310 - Adding X10'a performance meter
 rem Resource meter structures
@@ -249,6 +252,12 @@ type saveloadgamepositiontype
  meridinglift
 endtype
 type saveloadgamepositionentitytype
+ daistate as integer
+ daidestx as float
+ daidestz as float
+ daihasdest as integer
+ isdai as integer
+ daiteam as integer
  spawnleaderid as integer
  ailibindex as integer
  aistate as integer
@@ -461,6 +470,17 @@ global grawtextfont$ : grawtextfont$=""
 global grawtextfontlast$ : grawtextfontlast$=""
 global grawtext$
 global grawtextcount
+
+`
+`AI Arrays
+`
+dim ischaracter(0)
+Rem Also dim path array
+dim points(0) as pathtype
+Rem Dim sounds
+dim aisound(100) as aisoundtype
+Rem declare factions
+dim aifaction(FactionArrayMax,FactionArrayMax) as aifactiontype
 
 `
 ` Editors Data
@@ -3229,6 +3249,8 @@ _main_game_freeleveldata:
   `
   rem FREE ANY DATA
   Rem AI Undim
+  undim ischaracter()
+  undim aifaction()
   undim aisafezone()
   undim points()
   undim aisound()
@@ -3522,7 +3544,7 @@ _main_sync:
  else
   gosub _postprocess_renderdepthcamera
   sync
- endif 
+ endif
 return
 
 _main_initcalceyes:
@@ -9280,7 +9302,7 @@ _entity_deducthealth:
         debristextureused=entityelement(e).eleprof.texdid
         debrissizex#=object size x(tobj) : debrissizey#=object size y(tobj) : debrissizez#=object size z(tobj)
         debrisexplodable=texplodable
-        rem FPGC - 030710 - calculate correct lighting for debris  
+        rem FPGC - 030710 - calculate correct lighting for debris
         recx#=entityelement(e).x
         recy#=entityelement(e).y
         recz#=entityelement(e).z
@@ -10894,17 +10916,17 @@ if aiindex>0
     case AICONDAIATPOINT:
      conda=aiconditionseq(seq).valuea
      condb=aiconditionseq(seq).valueb
-      if ai entity exist(entityelement(e).obj) and conda>0
-         foundi=0
-         for i=1 to array count(points())
-            if points(i).id=conda then foundi=i : exit
-         next i
-         i=foundi
-         airesult=0
-         if points(i).x<>object position x(entityelement(e).obj) and condb=0 or points(i).z<>object position z(entityelement(e).obj) and condb=0 then airesult=1
-         if entityelement(e).x>=points(i).x-5 and entityelement(e).x<=points(i).x+5 and entityelement(e).z>=points(i).z-5 and entityelement(e).z<=points(i).z+5 and condb=1 then airesult=1
-         if entityelement(e).x<points(i).x-5 and condb=0 or entityelement(e).x>points(i).x+5 and condb=0 or entityelement(e).z<points(i).z-5 and condb=0 or entityelement(e).z>points(i).z+5 and condb=0 then airesult=1
-         if points(i).x=0 and points(i).z=0 then airesult=0
+     if ai entity exist(entityelement(e).obj) and conda>0
+      foundi=0
+      for i=1 to array count(points())
+       if points(i).id=conda then foundi=i : exit
+      next i
+      i=foundi
+      airesult=0
+      if points(i).x<>object position x(entityelement(e).obj) and condb=0 or points(i).z<>object position z(entityelement(e).obj) and condb=0 then airesult=1
+      if entityelement(e).x>=points(i).x-5 and entityelement(e).x<=points(i).x+5 and entityelement(e).z>=points(i).z-5 and entityelement(e).z<=points(i).z+5 and condb=1 then airesult=1
+      if entityelement(e).x<points(i).x-5 and condb=0 or entityelement(e).x>points(i).x+5 and condb=0 or entityelement(e).z<points(i).z-5 and condb=0 or entityelement(e).z>points(i).z+5 and condb=0 then airesult=1
+      if points(i).x=0 and points(i).z=0 then airesult=0
      endif
     endcase
     case AICONDAICALLED:
@@ -12934,56 +12956,8 @@ if aiindex>0
      endcase
     Rem Hockeykid - 250210 - Dark AI
       case AIACTADDAITEAM:
-       obj=entityelement(e).obj
-       if ai entity exist(obj)
-        ai kill entity obj
-       endif
-       tcont=0
-       for y=0 to 19
-        if entityelement(e).y >= container(y).y#-50.0 and entityelement(e).y <= container(y).y#+50.0
-         tcont=y : exit
-        endif
-       next y
-       entityelement(e).darkai.team=aiactionseq(seq).value
-       if entityelement(e).darkai.team<>1
-        ai add enemy obj,0,tcont
-       else
-        ai add friendly obj,0,tcont
-       endif
-       `
-       AI Set Entity Can Select targets obj,0
-       ai set entity view arc obj,entityelement(e).eleprof.coneangle*0.7,entityelement(e).eleprof.coneangle
-       `
-       rem FPGC - 060510 - height measures characters EYE from FEET (for alternative visibility raycast)
-       AI Set Entity Height obj,entityelement(e).eleprof.coneheight
-       AI Set Entity Turn Speed obj,entityelement(e).eleprof.speed*2
-       `
-       ai set entity fire arc obj,20
-       ai set entity view range obj,600
-       ai set entity attack distance obj,200-rnd(50)+rnd(50)
-       ai set entity aggressive obj
-       entityelement(e).darkai.hearingrange=700
-       `ai set entity hearing range obj,700
-       `ai set entity hearing threshold obj,10
-       ai set entity can roam obj,1
-       REM DAI SPEED
-       ai set entity speed obj,entityelement(e).eleprof.speed/2.0
-       `ai set entity position obj,entityelement(e).x,entityelement(e).z `280410 - old DarkAI
-       ai set entity position obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
-       `ai set entity idle position obj,entityelement(e).x,entityelement(e).z `280410 - old DarkAI
-       tcontainerid=entityelement(e).y+50
-       if tcontainerid<0 then tcontainerid=0
-       if tcontainerid>19 then tcontainerid=19
-       ai set entity idle position obj,entityelement(e).x,entityelement(e).z,tcontainerid
-       ai set entity angle y obj,entityelement(e).ry
-       targetcontainer=(entityelement(e).y+25)/100
-       if targetcontainer<0 then targetcontainer=0
-       if targetcontainer>19 then targetcontainer=19
-       ai entity go to position obj,entityelement(e).x,entityelement(e).z,targetcontainer
-       ai set entity can duck obj,1
-       ai set entity avoid distance obj,300
-       ai set entity can strafe obj,1
-       ai set entity control obj,0
+       obj=entityelement(e).obj : team=aiactionseq(seq).value
+       Gosub _darkai_addai
       endcase
       case AIACTAIACTIVE:
       if ai entity exist(entityelement(e).obj)
@@ -29455,7 +29429,7 @@ if showgamemenu=0
   `if abs(jtx#)>50.0 then cammovex#=jtx#/10.0
   if abs(jtx#)>50.0 then cammovex#=(jtx#*gxboxmag)/5.0
   `if abs(jty#)>50.0 then cammovey#=jty#/10.0 FPGC - 100310 - speed it up a bit
-  if abs(jty#)>50.0 then cammovey#=jty#/2.0 
+  if abs(jty#)>50.0 then cammovey#=jty#/2.0
  endif
  `
  if mefrozen>0 and mefrozentype=2 then cammovex#=0 : cammovey#=0
@@ -33988,9 +33962,17 @@ _saveload_savegame:
    a#=saveloadgamepositionentity(lsi).tsoundset1state : write float 1,a#
    a#=saveloadgamepositionentity(lsi).physics : write float 1,a#
    a#=saveloadgamepositionentity(lsi).alttextureused : write float 1,a#
+   Rem Dark AI
+   a#=saveloadgamepositionentity(lsi).daistate : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).daidestx : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).daidestz : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).daihasdest : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).isdai : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).daiteam : write float 1,a#
   next lsi
   rem lift (plr associations)
   a#=saveloadgameposition.meridinglift : write float 1,a#
+  `
  endif
  close file 1
  `
@@ -34154,9 +34136,17 @@ _saveload_loadgame:
    read float 1,a# : saveloadgamepositionentity(lsi).tsoundset1state=a#
    read float 1,a# : saveloadgamepositionentity(lsi).physics=a#
    read float 1,a# : saveloadgamepositionentity(lsi).alttextureused=a#
+   Rem Dark AI
+   read float 1,a# : saveloadgamepositionentity(lsi).daistate=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).daidestx=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).daidestz=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).daihasdest=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).isdai=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).daiteam=a#
   next lsi
   rem lift (plr associations)
   read float 1,a# : saveloadgameposition.meridinglift=a#
+  `
  endif
  close file 1
  `
@@ -34246,6 +34236,23 @@ _saveload_storesavedata:
   saveloadgamepositionentity(lsi).tsoundset1state=tsoundset1state
   saveloadgamepositionentity(lsi).physics=entityelement(lsi).eleprof.physics
   saveloadgamepositionentity(lsi).alttextureused=entityelement(lsi).alttextureused
+  Rem Dark AI
+  saveloadgamepositionentity(lsi).daistate=entityelement(lsi).darkai.state
+  saveloadgamepositionentity(lsi).daiteam=entityelement(lsi).darkai.team
+  saveloadgamepositionentity(lsi).daihasdest=0
+  saveloadgamepositionentity(lsi).daidestx=0
+  saveloadgamepositionentity(lsi).daidestz=0
+  if tttobj>0
+   saveloadgamepositionentity(lsi).isdai=ai entity exist(tttobj)
+   if ai entity exist(tttobj)
+    if ai get entity x(tttobj)<>ai get entity destination x(tttobj) or ai get entity z(tttobj)<>ai get entity destination z(tttobj)
+     saveloadgamepositionentity(lsi).daihasdest=1
+     saveloadgamepositionentity(lsi).daidestx=ai get entity destination x(tttobj)
+     saveloadgamepositionentity(lsi).daidestz=ai get entity destination z(tttobj)
+    endif
+   endif
+  endif
+
  next lsi
  rem Weapons
  dim saveloadgamepositionweaponslot(10) as saveloadgamepositionweaponslottype
@@ -34386,6 +34393,20 @@ _saveload_retrievesavedata:
    rem more restores
    entityelement(lsi).eleprof.physics=saveloadgamepositionentity(lsi).physics
    entityelement(lsi).alttextureused=saveloadgamepositionentity(lsi).alttextureused
+   `
+   Rem Dark AI
+   entityelement(lsi).darkai.state=saveloadgamepositionentity(lsi).daistate
+   entityelement(lsi).darkai.daihasdest=saveloadgamepositionentity(lsi).daihasdest
+   entityelement(lsi).darkai.daidestx=saveloadgamepositionentity(lsi).daidestx
+   entityelement(lsi).darkai.daidestz=saveloadgamepositionentity(lsi).daidestz
+   entityelement(lsi).darkai.team=saveloadgamepositionentity(lsi).daiteam
+   `entityelement(lsi).darkai.isdai=saveloadgamepositionentity(lsi).isdai
+   if saveloadgamepositionentity(lsi).isdai=1
+    team=entityelement(lsi).darkai.team
+    obj=entityelement(lsi).obj
+    e=lsi
+    Gosub _darkai_addai
+   endif
    `
   next lsi
  endif
@@ -46355,6 +46376,58 @@ _darkai_free:
  `
 return
 
+_darkai_addai:
+ if ai entity exist(obj)
+  ai kill entity obj
+ endif
+ tcont=0
+ for y=0 to 19
+  if entityelement(e).y >= container(y).y#-50.0 and entityelement(e).y <= container(y).y#+50.0
+   tcont=y : exit
+  endif
+ next y
+ entityelement(e).darkai.team=team
+ if entityelement(e).darkai.team<>1
+  ai add enemy obj,0,tcont
+ else
+  ai add friendly obj,0,tcont
+ endif
+ `
+ AI Set Entity Can Select targets obj,0
+ ai set entity view arc obj,entityelement(e).eleprof.coneangle*0.7,entityelement(e).eleprof.coneangle
+ `
+ rem FPGC - 060510 - height measures characters EYE from FEET (for alternative visibility raycast)
+ AI Set Entity Height obj,entityelement(e).eleprof.coneheight
+ AI Set Entity Turn Speed obj,entityelement(e).eleprof.speed*2
+ `
+ ai set entity fire arc obj,20
+ ai set entity view range obj,600
+ ai set entity attack distance obj,200-rnd(50)+rnd(50)
+ ai set entity aggressive obj
+ entityelement(e).darkai.hearingrange=700
+ `ai set entity hearing range obj,700
+ `ai set entity hearing threshold obj,10
+ ai set entity can roam obj,1
+ REM DAI SPEED
+ ai set entity speed obj,entityelement(e).eleprof.speed/2.0
+ `ai set entity position obj,entityelement(e).x,entityelement(e).z `280410 - old DarkAI
+ ai set entity position obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
+ `ai set entity idle position obj,entityelement(e).x,entityelement(e).z `280410 - old DarkAI
+ tcontainerid=entityelement(e).y+50
+ if tcontainerid<0 then tcontainerid=0
+ if tcontainerid>19 then tcontainerid=19
+ ai set entity idle position obj,entityelement(e).x,entityelement(e).z,tcontainerid
+ ai set entity angle y obj,entityelement(e).ry
+ targetcontainer=(entityelement(e).y+25)/100
+ if targetcontainer<0 then targetcontainer=0
+ if targetcontainer>19 then targetcontainer=19
+ ai entity go to position obj,entityelement(e).x,entityelement(e).z,targetcontainer
+ ai set entity can duck obj,1
+ ai set entity avoid distance obj,300
+ ai set entity can strafe obj,1
+ ai set entity control obj,0
+Return
+
 Rem Hockeykid - 250210 - Dark AI control subroutine
 _darkai_control:
 
@@ -46447,6 +46520,13 @@ _darkai_control:
   ttargetx#=0.0
   ttargety#=0.0
   ttargetz#=0.0
+ endif
+
+ Rem Finish path - game was save
+ if entityelement(e).darkai.daihasdest=1
+  desty#=ai get entity container(entityelement(e).obj)
+  ai entity go to position entityelement(e).obj,entityelement(e).darkai.daidestx,entityelement(e).darkai.daidestz,desty#
+  entityelement(e).darkai.daihasdest=0
  endif
 
  `Sees opponent
@@ -46965,13 +47045,6 @@ Return
 
 
 _Character_Array:
- `
- undim ischaracter()
- dim ischaracter(0)
- Rem Also dim path array
- dim points(0) as pathtype
- Rem Dim sounds
- dim aisound(100) as aisoundtype
 
  `
  for e=1 to entityelementlist
