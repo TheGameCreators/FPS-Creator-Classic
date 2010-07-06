@@ -9,6 +9,8 @@ History
 V1.1.7
 ------
  
+ * Restored the FPI team action constant name to fix temporary bug in DarkAI behaviours
+ * Restored three laboratory textures to correct place (programmer art L shape on wall bug)
  * Replaced old text based debug info in TEST GAME with graphical bars from resource meter
  * Fixed BUMPENT in PS2 to allow entity to be lit by the dynamic lighting colors
  * Cleared camera view after each level, so don't get a ghost of last scene when start next level

@@ -9833,7 +9833,7 @@ actword$(AIACTFPGCRAWTEXTOFF)="fpgcrawtextoff"
 actword$(AIACTFPGCRAWTEXT)="fpgcrawtext"
 actword$(AIACTETIMERSTART)="etimerstart"
 Rem Hockeykid - 250210 - Dark AI commands
-actword$(AIACT)=""
+actword$(AIACTADDAITEAM)="addaiteam"
 actword$(AIACTAIALLYFOLLOW)="allyfollow"
 actword$(AIACTAISETTARGET)="aisettarget"
 actword$(AIACTAIMOVERANDOM)="aimoverandom"
