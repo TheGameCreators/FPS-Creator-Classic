@@ -6002,7 +6002,8 @@ if gameperftimetracker>av#
 endif
 
 rem Optional additional statistics
-if debugviewmode=0
+rem FPGC - 060710 - removed old debug text in favour of graphical readout (below)
+if debugviewmode=0 and 0
  `
  rem Appreviated for game scene (temp)
  t$=""
@@ -6050,32 +6051,26 @@ if debugviewmode=0
   center text screen width()-32,screen height()-16,"V"+str$(gversion)
  endif
  `
-else
- `
 endif
+
+rem place statistics in resource meter values
+resourcemeterdest#(0)=((perf(11)+0.0)/300000.0)*192.0 : rem syncs
+resourcemeterdest#(1)=((perf(10)+0.0)/50000.0)*192.0 : rem physics
+resourcemeterdest#(2)=((perf(17)+0.0)/75000.0)*192.0 : rem ai
+resourcemeterdest#(3)=((perf(6)+0.0)/20000.0)*192.0 : rem entitylogic
+memoryused#=system smem available(2)-(600*1024)
+if memoryused#<0 then memoryused#=0
+memoryused#=memoryused#/1024/12
+resourcemeterdest#(4)=(memoryused#/100.0)*192.0 : rem memory
+for rmi=0 to 4
+ resourcemeter#(rmi)=curvevalue(resourcemeterdest#(rmi),resourcemeter#(rmi),10.0)
+ if resourcemeter#(rmi)<0 then resourcemeter#(rmi)=0
+ if resourcemeter#(rmi)>192 then resourcemeter#(rmi)=192
+ resourcemeter(rmi)=resourcemeter#(rmi)
+next rmi
 
 rem Resource Meter Panel
 if testgametabtoggle=1
- `
- rem place statistics in resource meter values
- resourcemeterdest#(0)=((perf(11)+0.0)/300000.0)*192.0 : rem syncs
- resourcemeterdest#(1)=((perf(10)+0.0)/50000.0)*192.0 : rem physics
- resourcemeterdest#(2)=((perf(17)+0.0)/75000.0)*192.0 : rem ai
- resourcemeterdest#(3)=((perf(6)+0.0)/20000.0)*192.0 : rem entitylogic
- rem FPGC - 050510 - memory meter reflects virtual address usage (true max before crash)
- `memoryused#=entidmaster+segidmaster
- memoryused#=system smem available(2)-(600*1024)
- if memoryused#<0 then memoryused#=0
- memoryused#=memoryused#/1024/12
- resourcemeterdest#(4)=(memoryused#/100.0)*192.0 : rem memory
- `
- rem control resource meters
- for rmi=0 to 4
-  resourcemeter#(rmi)=curvevalue(resourcemeterdest#(rmi),resourcemeter#(rmi),10.0)
-  if resourcemeter#(rmi)<0 then resourcemeter#(rmi)=0
-  if resourcemeter#(rmi)>192 then resourcemeter#(rmi)=192
-  resourcemeter(rmi)=resourcemeter#(rmi)
- next rmi
  `
  rem draw resource meter
  img=effectmenuimagestart+33 : rmposx=0 : rmposy=screen height()-335
@@ -6086,11 +6081,31 @@ if testgametabtoggle=1
   t=resourcemeter(rmi) : if t<10 : t=10 : endif : size sprite img+3+(rmi*4)+2,t,10
   paste sprite img+3+(rmi*4)+2,rmposx+22,rmposy+80+(rmi*53) : rem filler
   paste sprite img+3+(rmi*4)+3,rmposx+22+t,rmposy+80+(rmi*53) : rem end
+  size sprite img+2,207,14
   paste sprite img+2,rmposx+15,rmposy+78+(rmi*53) : rem glass
  next rmi
  `
  rem FPS reading in resource meter panel
  printvalue(rmposx+199,rmposy+19,screen fps())
+ `
+else
+ `
+ rem FPGC - 060710 - replace text based debug info with more graphics (cooler and more relevent)
+ if debugviewmode=0
+  `
+  rem draw resource meter
+  img=effectmenuimagestart+33 : rmposx=(screen width()-548)/2 : rmposy=screen height()-20
+  for rmi=0 to 4
+   paste sprite img+3+(rmi*4)+1,rmposx+17+(rmi*112),rmposy : rem start
+   t=resourcemeter(rmi)/2 : if t<10 : t=10 : endif : size sprite img+3+(rmi*4)+2,t,10
+   paste sprite img+3+(rmi*4)+2,rmposx+22+(rmi*112),rmposy : rem filler
+   paste sprite img+3+(rmi*4)+3,rmposx+22+t+(rmi*112),rmposy : rem end
+   size sprite img+2,108,14
+   paste sprite img+2,rmposx+15+(rmi*112),rmposy-2 : rem glass
+  next rmi
+  printvalue(rmposx,rmposy,screen fps())
+  `
+ endif
  `
 endif
 
@@ -8109,7 +8124,7 @@ if tindex<>0
   endif
   if entityelement(e).decalmode=2 or entityelement(e).decalmode=3 or entityelement(e).decalmode=5
    rem loop decal continually recreating it
-   entityelement(e).decalloop=entityelement(e).decalloop+timeelapsed#
+   entityelement(e).decalloop=entityelement(e).decalloop+(timeelapsed#*2)
    if entityelement(e).decalloop>=15
     entityelement(e).decalloop=0
     currentdecald=entityelement(e).decalslotused
@@ -9818,7 +9833,7 @@ actword$(AIACTFPGCRAWTEXTOFF)="fpgcrawtextoff"
 actword$(AIACTFPGCRAWTEXT)="fpgcrawtext"
 actword$(AIACTETIMERSTART)="etimerstart"
 Rem Hockeykid - 250210 - Dark AI commands
-actword$(AIACTADDAITEAM)="addaiteam"
+actword$(AIACT)=""
 actword$(AIACTAIALLYFOLLOW)="allyfollow"
 actword$(AIACTAISETTARGET)="aisettarget"
 actword$(AIACTAIMOVERANDOM)="aimoverandom"
@@ -20098,12 +20113,14 @@ for f=1 to decalelementmax
    rem animation
    decalid=decalelement(f).decalid
    rem next frame
-   decalelement(f).framedelay=decalelement(f).framedelay+timeelapsed#
+   rem FPGC - 050710 - glass smash much slower than previous non-timer based system, so we speed it up!
+   `decalelement(f).framedelay=decalelement(f).framedelay+timeelapsed#
+   decalelement(f).framedelay=decalelement(f).framedelay+(timeelapsed#*2)
    if decalelement(f).framedelay>=1
     decalelement(f).framedelay=0
     decalelement(f).frame=decalelement(f).frame+(decal(decalid).lifeincrement/100.0)
    endif
-   if decalelement(f).frame>=decal(decalid).framemax
+   if decalelement(f).frame>decal(decalid).framemax-1
     rem no more animation
     decalelement(f).frame=decal(decalid).framemax-0.1
     tdetonate=1
@@ -20840,13 +20857,13 @@ if lighttable(recx,recy,recz).x>0 and 0
 else
  `
  rem Reset ready to store strongest point
- avlightposx#=0 : avlightposy#=0 : avlightposz#=0
+ avlightposx#=mex# : avlightposy#=mey# : avlightposz#=mez#
  avlightcolr#=0 : avlightcolg#=0 : avlightcolb#=0
  tlightinfluencedbydynamiclight=0
  avlightrange#=0
  `
  rem Go through ALL scene lights
- titer=0 : tqty=0
+ titer=0 : tqty=0 : tqtyav#=1.0
  closestdist#=99999
  array index to top infinilight()
  while array index valid(infinilight())
@@ -20857,16 +20874,34 @@ else
   ldistz#=infinilight().z-recz#
   ldist#=sqrt(abs(ldistx#*ldistx#)+abs(ldisty#*ldisty#)+abs(ldistz#*ldistz#))
   `
-  rem for all lights within range
-  if ldist#<infinilight().range and infinilight().islit=1
-   `
-   rem Relatve to overall distance (influence)
+  rem Relatve to overall distance (influence)
+  if ldist#<=infinilight().range
    tlightpower#=cos((ldist#/infinilight().range)*90)
+  else
+   tlightpower#=0
+  endif
+  `
+  rem for all lights within range
+  rem FPGC - 050710 - above did not work well because a light leaving the range would
+  rem instantly cause the average light to JUMP, making shaded characters look very odd
+  rem instead use strength of proximity to player to weight light influences within range
+  `if ldist#<infinilight().range and infinilight().islit=1
+  tplayercareabout#=1000.0
+  tdiffx#=mex#-infinilight().x
+  tdiffy#=mey#-infinilight().y
+  tdiffz#=mez#-infinilight().z
+  tdiff#=sqrt(abs(tdiffx#*tdiffx#)+abs(tdiffy#*tdiffy#)+abs(tdiffz#*tdiffz#))
+  tlightrawstrength#=1.0-(tdiff#/tplayercareabout#) : rem player can apprecirate/care about direction of light within this range
+  tlightrawstrength#=tlightrawstrength#*tlightpower#
+  if tlightrawstrength#<0.0 then tlightrawstrength#=0.0
+  if tlightrawstrength#>1.0 then tlightrawstrength#=1.0
+  if infinilight().islit=1 and tdiff#<tplayercareabout#
    `
    rem Count visible illuminations
-   avlightposx#=avlightposx#+infinilight().x
-   avlightposy#=avlightposy#+infinilight().y
-   avlightposz#=avlightposz#+infinilight().z
+   avlightposx#=avlightposx#+(infinilight().x*tlightrawstrength#)
+   avlightposy#=avlightposy#+(infinilight().y*tlightrawstrength#)
+   avlightposz#=avlightposz#+(infinilight().z*tlightrawstrength#)
+   tqtyav#=tqtyav#+tlightrawstrength#
    avlightcolr#=avlightcolr#+(infinilight().colrgb.r*tlightpower#)
    avlightcolg#=avlightcolg#+(infinilight().colrgb.g*tlightpower#)
    avlightcolb#=avlightcolb#+(infinilight().colrgb.b*tlightpower#)
@@ -20885,14 +20920,18 @@ else
  endwhile
  `
  rem Center to player for correct averaged single light position
- avlightposx#=avlightposx#/tqty
- avlightposy#=avlightposy#/tqty
- avlightposz#=avlightposz#/tqty
+ if tqtyav#>0
+  avlightposx#=avlightposx#/tqtyav#
+  avlightposy#=avlightposy#/tqtyav#
+  avlightposz#=avlightposz#/tqtyav#
+ endif
  `
  rem get correct average light color
- avlightcolr#=avlightcolr#/tqty
- avlightcolg#=avlightcolg#/tqty
- avlightcolb#=avlightcolb#/tqty
+ if tqty>0
+  avlightcolr#=avlightcolr#/tqty
+  avlightcolg#=avlightcolg#/tqty
+  avlightcolb#=avlightcolb#/tqty
+ endif
  `
  rem FPSCV104RC8 - ensure colours not maxed
  if avlightcolr#>255 then avlightcolr#=255
@@ -21564,6 +21603,12 @@ else
 endif
 `
 rem Apply effect to entity object (map editor does NOT use any effects)
+if tcanceltheeffect=1
+ rem FPGC - 050710 - make sure this entity cannot try to summon an effect later (no texture for such effect)
+ rem typically this is an entity FPE file mistake, but the engine will correct it here for smoothness
+ entityprofile(entid).effect$=""
+endif
+`
 entityprofile(entid).usingeffect=0
 if guseeffectonentitiesstate=1 and segobjusedformapeditor=0 and tcanceltheeffect=0
  tfile$=entityprofile(entid).effect$
@@ -24872,6 +24917,9 @@ _gameflow_default:
       controlSPACE=1
       controlESCAPE=0
       ingameloop=0
+      `
+      rem FPGC - 050710 - clear camera view (so don't get ghost of last level at start of next level
+      clear camera view rgb(0,0,0)
       `
       rem FPGC - 200310 - switch FULL SCREEN EFFECTS shaders off (back to cam zero)
       gosub _postprocess_off
@@ -30669,7 +30717,6 @@ _part_createfragment:
    endif
    texture object fragmento,debristextureused
    rem FPGC - 040710 - make debris same lighting as entity that produced it (avlightcog passed in from prev call to _lighting_managegloballightingreciever)
-   rem leelee
    set object emissive fragmento,rgb(avlightcolr#/2,avlightcolg#/2,avlightcolb#/2)
    if debrisexplodable=1
     set blend mapping on fragmento, 1, explosionscorch, 3, 6

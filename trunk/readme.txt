@@ -9,6 +9,12 @@ History
 V1.1.7
 ------
  
+ * Replaced old text based debug info in TEST GAME with graphical bars from resource meter
+ * Fixed BUMPENT in PS2 to allow entity to be lit by the dynamic lighting colors
+ * Cleared camera view after each level, so don't get a ghost of last scene when start next level
+ * Changed average light position code to be player centric and smooth (better bump map effects)
+ * Fixed system so entities mistakenly using shaders without supporting textures are handled properly
+ * Doubled speed of decal frame increment to match pre-timer based engine (glass smash correct again)
  * Fixed issue of debris not being lit like entities (destroyed crate looks correctly lit now)
  * Fixed issue of ALTTEXTURE (texture switched switches) not correct when re-load saved position
  * Fixed issue of immobile entities having their rotations reset on reloading a saved position
