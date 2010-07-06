@@ -3402,13 +3402,17 @@ _main_game_core:
  Rem Hockeykid - 250210 - Update AI
  AI Update
  `
- for x=1 to 20
-  for y=1 to 20
-   if aifaction(x,y).enemy<>0 then print "Team:"+str$(aifaction(x,1).team)+" Enemy:"+str$(aifaction(x,y).enemy)
-   if aifaction(x,y).ally<>0 then print "Team:"+str$(aifaction(x,1).team)+" Ally:"+str$(aifaction(x,y).ally)
-   if aifaction(x,y).neutral<>0 then print "Team:"+str$(aifaction(x,1).team)+" Neutral:"+str$(aifaction(x,y).neutral)
-  next y
- next x
+ rem FPGC - 060710 - hide any debug text behind the AI debug flag so final games do not get
+ rem extra debug text in their test game and standalone game sessions
+ if gshowaioutlines=1
+  for x=1 to 20
+   for y=1 to 20
+    if aifaction(x,y).enemy<>0 then print "Team:"+str$(aifaction(x,1).team)+" Enemy:"+str$(aifaction(x,y).enemy)
+    if aifaction(x,y).ally<>0 then print "Team:"+str$(aifaction(x,1).team)+" Ally:"+str$(aifaction(x,y).ally)
+    if aifaction(x,y).neutral<>0 then print "Team:"+str$(aifaction(x,1).team)+" Neutral:"+str$(aifaction(x,y).neutral)
+   next y
+  next x
+ endif
  `
  rem Update screen
  gosub _main_sync

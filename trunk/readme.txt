@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
  
+ * Hid team debug text readout behind the showaioutlines flag from SETUP.INI for final levels
  * Restored the FPI team action constant name to fix temporary bug in DarkAI behaviours
  * Restored three laboratory textures to correct place (programmer art L shape on wall bug)
  * Replaced old text based debug info in TEST GAME with graphical bars from resource meter
