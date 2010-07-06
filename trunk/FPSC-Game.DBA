@@ -44410,6 +44410,8 @@ _interface_openpropertywindow:
        setpropertyfile2(group,grideleprof.aishoot$,strarr$(433),strarr$(223),"scriptbank\") : inc controlindex
       endif
       setpropertystring2(group,str$(grideleprof.coneangle),strarr$(434),strarr$(224)) : inc controlindex
+      rem FPGC - 060710 - generic scripts can now activate entity specified in this field (disappearactivate)
+      setpropertystring2(group,grideleprof.ifused$,strarr$(437),strarr$(226)) : inc controlindex
      else
       if tflagweap=0 and tflagammo=0
        propfield(group)=controlindex

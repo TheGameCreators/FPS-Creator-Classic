@@ -9,6 +9,8 @@ History
 V1.1.7
 ------
  
+ * Added new code to the MapEditor to allow character entities to specify IFUSED string (for script below)
+ * Added new script called DISAPPEARACTIVATE when can activate a second entity during the destroy step
  * Hid team debug text readout behind the showaioutlines flag from SETUP.INI for final levels
  * Restored the FPI team action constant name to fix temporary bug in DarkAI behaviours
  * Restored three laboratory textures to correct place (programmer art L shape on wall bug)
