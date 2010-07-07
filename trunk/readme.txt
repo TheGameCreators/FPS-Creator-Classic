@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
  
+ * Fixed code that controls loading of _I _N and _S textures for fixed shaders (PS2 illumination bug fixed)
  * Added new code to the MapEditor to allow character entities to specify IFUSED string (for script below)
  * Added new script called DISAPPEARACTIVATE when can activate a second entity during the destroy step
  * Hid team debug text readout behind the showaioutlines flag from SETUP.INI for final levels

@@ -6129,6 +6129,7 @@ else
    paste sprite img+2,rmposx+15+(rmi*112),rmposy-2 : rem glass
   next rmi
   printvalue(rmposx,rmposy,screen fps())
+  printvalue(screen width()-32,rmposy+6,gversion)
   `
  endif
  `
@@ -14445,6 +14446,29 @@ _common_makeeffecttextureset:
      texdir5$=tstr1$+"B"+tstr2$
     endif
    endif
+   `
+   rem FPGC - 070710 - some entities do not follow pure naming conventions and are slightly modified
+   rem such as Light4_G_G2.tga using the multi-use Light4_I.tga for the illumination, so we account for this
+   for tcheck=1 to 4
+    if tcheck=1 then tcheck$=texdir2$
+    if tcheck=2 then tcheck$=texdir3$
+    if tcheck=3 then tcheck$=texdir4$
+    if tcheck=4 then tcheck$=texdir5$
+    if right$(lower$(tcheck$),4)=".tga" then tcheck$=left$(tcheck$,len(tcheck$)-4)+".dds"
+    if file exist(tcheck$)=0
+     rem assuming the format name_letter_D2.tga was used (therefore name_letter_I.tga)
+     rem and the intended 'common support texture' was name_I.tga or name_N.tga or name_S.tga
+     rem we can detect for and change it here if the alternative filename exists
+     tcheck$=left$(tcheck$,len(tcheck$)-7)+right$(tcheck$,5)
+     if right$(lower$(tcheck$),4)=".tga" then tcheck$=left$(tcheck$,len(tcheck$)-4)+".dds"
+     if file exist(tcheck$)=1
+      if tcheck=1 then texdir2$=tcheck$
+      if tcheck=2 then texdir3$=tcheck$
+      if tcheck=3 then texdir4$=tcheck$
+      if tcheck=4 then texdir5$=tcheck$
+     endif
+    endif
+   next tcheck
    `
   else
    `
