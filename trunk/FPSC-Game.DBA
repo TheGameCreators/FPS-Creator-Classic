@@ -481,7 +481,6 @@ Rem Dim sounds
 dim aisound(100) as aisoundtype
 Rem declare factions
 dim aifaction(FactionArrayMax,FactionArrayMax) as aifactiontype
-
 `
 ` Editors Data
 `
@@ -33983,6 +33982,16 @@ _saveload_savegame:
    a#=saveloadgamepositionpoints(i).z : write float 1,a#
   next i
   `
+  Rem Save Dark AI factions
+  for x=1 to FactionArrayMax
+   a#=saveloadgamepositionfactions(x,1).team : write float 1,a#
+   for i=1 to FactionArrayMax
+    a#=saveloadgamepositionfactions(x,i).neutral : write float 1,a#
+    a#=saveloadgamepositionfactions(x,i).ally : write float 1,a#
+    a#=saveloadgamepositionfactions(x,i).enemy : write float 1,a#
+   next i
+  next x
+  `
  endif
  close file 1
  `
@@ -34168,6 +34177,17 @@ _saveload_loadgame:
    read float 1,a# : saveloadgamepositionpoints(i).z=a#
   next i
   `
+  Rem Load Dark AI faction array
+  dim saveloadgamepositionfactions(FactionArrayMax,FactionArrayMax) as aifactiontype
+  for x=1 to FactionArrayMax
+   read float 1,a# : saveloadgamepositionfactions(x,1).team=a#
+   for i=1 to FactionArrayMax
+    read float 1,a# : saveloadgamepositionfactions(x,i).neutral=a#
+    read float 1,a# : saveloadgamepositionfactions(x,i).ally=a#
+    read float 1,a# : saveloadgamepositionfactions(x,i).enemy=a#
+   next i
+  next x
+  `
  endif
  close file 1
  `
@@ -34284,6 +34304,16 @@ _saveload_storesavedata:
   saveloadgamepositionpoints(i).y=points(i).y
   saveloadgamepositionpoints(i).z=points(i).z
  next i
+ Rem Save Dark AI faction array
+ dim saveloadgamepositionfactions(FactionArrayMax,FactionArrayMax) as aifactiontype
+ for x=1 to FactionArrayMax
+  saveloadgamepositionfactions(x,1).team=aifaction(x,1).team
+  for i=1 to FactionArrayMax
+   saveloadgamepositionfactions(x,i).neutral=aifaction(x,i).neutral
+   saveloadgamepositionfactions(x,i).ally=aifaction(x,i).ally
+   saveloadgamepositionfactions(x,i).enemy=aifaction(x,i).enemy
+  next i
+ next x
  rem Weapons
  dim saveloadgamepositionweaponslot(10) as saveloadgamepositionweaponslottype
  for lsi=0 to 10
@@ -34448,6 +34478,15 @@ _saveload_retrievesavedata:
   points(i).y=saveloadgamepositionpoints(i).y
   points(i).z=saveloadgamepositionpoints(i).z
  next i
+ Rem Load Dark AI faction array
+ for x=1 to FactionArrayMax
+  aifaction(x,1).team=saveloadgamepositionfactions(x,1).team
+  for i=1 to FactionArrayMax
+   aifaction(x,i).neutral=saveloadgamepositionfactions(x,i).neutral
+   aifaction(x,i).ally=saveloadgamepositionfactions(x,i).ally
+   aifaction(x,i).enemy=saveloadgamepositionfactions(x,i).enemy
+  next i
+ next x
  rem Weapons
  for lsi=0 to 10
   weaponslot(lsi).pref=saveloadgamepositionweaponslot(lsi).pref
