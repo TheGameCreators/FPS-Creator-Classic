@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
  
+ * Fixed bug causing standalone games not detecting full effect textures (bumpent and illuminationent)
  * Updated DBP Sprite DLL to allow render state for sprite similar to GHOST MODE 2 (use SET SPRITE X,0,2)
  * Cross hair object no longer renders into depth buffer, removing any distortion that may have resulted
  * Updated setuplevel.FPI to completely hide the LIVES and HEALTH labels if start marker specifies zero

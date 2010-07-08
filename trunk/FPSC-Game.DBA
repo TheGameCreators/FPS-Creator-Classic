@@ -14341,7 +14341,18 @@ rem
 
 _common_wipeeffectifnotexist:
  rem if file not exist, do not try to use effect
- if file exist(tfile$)=0 then tfile$=""
+ if file exist(tfile$)=0
+  rem FPGC - 080710 - also check ps_2_0 folder which might hold them
+  ttfilefile$=getfile(tfile$)
+  ttfilepath$="effectbank\ps_2_0\"+ttfilefile$
+  if file exist(ttfilepath$)=1
+   rem substitute now to save conversion later
+   tfile$=ttfilepath$
+  else
+   rem not in main effectbank or in ps_2_0 folder, remove effect from consideration
+   tfile$=""
+  endif
+ endif
 return
 
 _common_makeeffecttextureset:
