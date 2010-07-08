@@ -200,8 +200,8 @@ empty array gamememtable()
 global gamememactuallyused : gamememactuallyused=0
 global gamememactuallyusedrt  :gamememactuallyusedrt=0
 global gamememresourceid : gamememresourceid=0
-global mymousex as integer : mymousex=0
-global mymousey as integer : mymousey=0
+global mymousex as integer : mymousex=screen width()/2
+global mymousey as integer : mymousey=screen height()/2
 
 rem Data structure to old player save data
 type saveplayerstatetype
@@ -1755,8 +1755,8 @@ global waypointmax=0
 `
 ` Global Particle and Debris Data Structures
 `
-dim debris(32)
-
+rem FPGC - 080701 - never a good idea, removed perminantly
+`dim debris(32)
 
 `
 ` Gun Data Structures
@@ -3292,7 +3292,7 @@ _main_game_freeleveldata:
   undim ailist()
   undim waypointcoord()
   undim waypoint()
-  undim debris()
+  `undim debris()
   undim gun()
   undim gunsound()
   undim gunsoundcompanion()
@@ -7439,6 +7439,7 @@ if entityelement(e).fireweapon=1
     rem bullet result
     if tbullethit=1
      rem debris where the bullet struck
+     remstart FPGC - 080701 - never a good idea, removed perminantly
      for p=1 to 32
       if debris(p)=0
        rem debris where the bullet struck
@@ -7449,6 +7450,7 @@ if entityelement(e).fireweapon=1
        exit
       endif
      next p
+     remend
      rem add scorch if hit universe static polygons
      if tbullethitstatic=1
       tscorchtype=gun(tgunid).settings.scorchtype
@@ -9407,6 +9409,14 @@ _entity_deducthealth:
   if timpacttype=3 then timpacttype=2 : tresult=1
  endif
  `
+ rem FPGC - 080710 - DarkAI characters CANNOT be thrown back (they mess up AI consistency, i.e. they move, rotate while lying on floor :)
+ tobj=entityelement(e).obj
+ if tobj>0
+  if timpacttype=2 and ai entity exist(tobj)=1
+   timpacttype=1
+  endif
+ endif
+ `
  rem play and sounds that are due (entity hurt, damage, destroy)
  gosub _ode_triggermaterialsound
  `
@@ -9440,29 +9450,29 @@ _entity_deducthealth:
       next tn
       `
       rem FPGC - 230210 - if shutgun style damage (throw to floor), but ragdoll, ignore
-     if entityelement(e).health>0 and timpacttype=2 and tdestroyasragdoll=1
+      if entityelement(e).health>0 and timpacttype=2 and tdestroyasragdoll=1
        rem ignore
       else
-      rem Blast
-      if tdestroyasragdoll=1
-       aifile$="people\throwragdollback.fpi"
-       if tdir=1 then aifile$="people\throwragdollback.fpi"
-       if tdir=2 then aifile$="people\throwragdollfore.fpi"
-       if tdir=3 then aifile$="people\throwragdollright.fpi"
-       if tdir=4 then aifile$="people\throwragdollleft.fpi"
-      else
-       aifile$="people\throwback.fpi"
-       if tdir=1 then aifile$="people\throwback.fpi"
-       if tdir=2 then aifile$="people\throwfore.fpi"
-       if tdir=3 then aifile$="people\throwleft.fpi"
-       if tdir=4 then aifile$="people\throwright.fpi"
+       rem Blast
+       if tdestroyasragdoll=1
+        aifile$="people\throwragdollback.fpi"
+        if tdir=1 then aifile$="people\throwragdollback.fpi"
+        if tdir=2 then aifile$="people\throwragdollfore.fpi"
+        if tdir=3 then aifile$="people\throwragdollright.fpi"
+        if tdir=4 then aifile$="people\throwragdollleft.fpi"
+       else
+        aifile$="people\throwback.fpi"
+        if tdir=1 then aifile$="people\throwback.fpi"
+        if tdir=2 then aifile$="people\throwfore.fpi"
+        if tdir=3 then aifile$="people\throwleft.fpi"
+        if tdir=4 then aifile$="people\throwright.fpi"
+       endif
+       gosub _entity_setnewai
+       `
+       rem any waypoint activity must stop right away
+       entityelement(e).ai.waypoint.state=999
+       entityelement(e).mover.moved=0
       endif
-      gosub _entity_setnewai
-      `
-      rem any waypoint activity must stop right away
-      entityelement(e).ai.waypoint.state=999
-      entityelement(e).mover.moved=0
-     endif
       `
      endif
     endif
@@ -12930,12 +12940,31 @@ if aiindex>0
        endif
       next o
       `
+      rem FPGC - 080710 - resume any paused soundloops
+      for lsi=1 to entityelementmax
+       if entityelement(lsi).firesoundloop>0
+        if sound exist(entityelement(lsi).firesoundloop)=1
+         pause sound entityelement(lsi).firesoundloop
+        endif
+       endif
+      next lsi
+      `
      endcase
      case AIACTRESUMEGAME:
       showgamemenu=0
       while control_mouseclick()<>0 : endwhile
       cleardelta=mousemovex() : cleardelta=mousemovey()
       tensureentitytimestampsupdated=1
+      `
+      rem FPGC - 080710 - resume any paused soundloops
+      for lsi=1 to entityelementmax
+       if entityelement(lsi).firesoundloop>0 
+        if sound exist(entityelement(lsi).firesoundloop)=1
+         resume sound entityelement(lsi).firesoundloop
+        endif
+       endif
+      next lsi
+      `
      endcase
      case AIACTHOSTGAME:
       createorjoin=1
@@ -16316,7 +16345,13 @@ if gotweapon>0
  if gun(tgunid).settings.weaponisammo=0
   if tqty=0 then tqty=1
   if weaponammo(gotweapon)=0
-   weaponammo(gotweapon)=tqty
+   if tqty>gun(tgunid).settings.reloadqty
+    rem FPGC - 080710 - gun has MAX slots of ammo, cannot exceed this!
+    weaponammo(gotweapon)=gun(tgunid).settings.reloadqty
+    weaponclipammo(gotweapon)=tqty-gun(tgunid).settings.reloadqty
+   else
+    weaponammo(gotweapon)=tqty
+   endif
   else
    weaponclipammo(gotweapon)=weaponclipammo(gotweapon)+tqty
   endif
@@ -17321,9 +17356,11 @@ for o=6 to 20
   ly#=limb position y(currentgunobj,gun(gunid).settings.brasslimb)
   lz#=limb position z(currentgunobj,gun(gunid).settings.brasslimb)+1.0-(rnd(20)/10.0)
   position object obj,lx#,ly#,lz#
-  set object to object orientation obj,hudbankoffset+2
-  roll object left obj,25+rnd(10)
-  brassfallcount(o)=15
+  rotate object obj,0,camera angle y(),0
+  `set object to object orientation obj,hudbankoffset+2
+  `roll object left obj,25+rnd(10) ` FPGC - 080710 - simplify expelled brass
+  `brassfallcount(o)=15
+  brassfallcount(o)=0
   show object obj
   gunbrass=0
  endif
@@ -17332,9 +17369,11 @@ for o=6 to 20
   ly#=limb position y(currentgunobj,gun(gunid).settings.brasslimb2)
   lz#=limb position z(currentgunobj,gun(gunid).settings.brasslimb2)+1.0-(rnd(20)/10.0)
   position object obj,lx#,ly#,lz#
-  set object to object orientation obj,hudbankoffset+2
-  roll object left obj,25+rnd(10)
-  brassfallcount(o)=15
+  rotate object obj,0,camera angle y(),0
+  `set object to object orientation obj,hudbankoffset+2
+  `roll object left obj,25+rnd(10) ` FPGC - 080710 - simplify expelled brass
+  `brassfallcount(o)=15
+  brassfallcount(o)=0
   show object obj
   gunbrass2=0
  endif
@@ -17346,19 +17385,22 @@ _gun_brass_indi:
  for o=6 to 20
   obj=hudbankoffset+o
   if object visible(obj)=1
-   if brassfallcount(o)>5
-    eject#=1.0
-   else
-    eject#=brassfallcount(o)/5.0
-   endif
-   move object right obj,1.0
-   if object position y(obj)>object position y(hudbankoffset+2)-20
-    if brassfallcount(o)>0
-     brassfallcount(o)=brassfallcount(o)-1
-     roll object right obj,4.0
-    endif
-   endif
-   position object obj,object position x(obj),object position y(obj)-((1.0-eject#)*1.0),object position z(obj)
+   rem FPGC - 080710 - simplify expelled brass
+   brassfallcount(o)=brassfallcount(o)+1
+   `if brassfallcount(o)>5
+   ` eject#=1.0
+   `else
+   ` eject#=brassfallcount(o)/5.0
+   `endif
+   `move object right obj,1.0
+   `if object position y(obj)>object position y(hudbankoffset+2)-20
+   ` if brassfallcount(o)>0
+   `  brassfallcount(o)=brassfallcount(o)-1
+   `  roll object right obj,4.0
+   ` endif
+   `endif
+   `position object obj,object position x(obj),object position y(obj)-((1.0-eject#)*1.0),object position z(obj)
+   position object obj,object position x(obj),object position y(obj)-((brassfallcount(o)+0.1)/10.0),object position z(obj)
    if object position y(obj)<object position y(hudbankoffset+2)-50 or object in screen(obj)=0
     hide object obj
    endif
@@ -18458,6 +18500,7 @@ return
 
 _particles_control:
 
+remstart FPGC - 080701 - never a good idea, removed perminantly
 rem Handle any debris
 for p=1 to 32
  if debris(p)>0
@@ -18469,6 +18512,7 @@ for p=1 to 32
   endif
  endif
 next p
+remend
 
 return
 

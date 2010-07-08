@@ -9,6 +9,10 @@ History
 V1.1.7
 ------
  
+ * When collect weapon with lots of ammo specified, correctly place ammo in weapon and clip slots
+ * When a character uses DarkAI, fall/get-up feature disabled (shutgun) as AI does not handle this behaviour
+ * In standalone game, when pause game the looping entity sounds will now pause, and resume when resuming
+ * Removed old style particle code from engine (as it could occasionally cause HUD screen corruption)
  * Fixed bug causing standalone games not detecting full effect textures (bumpent and illuminationent)
  * Updated DBP Sprite DLL to allow render state for sprite similar to GHOST MODE 2 (use SET SPRITE X,0,2)
  * Cross hair object no longer renders into depth buffer, removing any distortion that may have resulted
