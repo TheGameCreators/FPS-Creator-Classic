@@ -9,6 +9,9 @@ History
 V1.1.7
 ------
  
+ * Updated DBP Sprite DLL to allow render state for sprite similar to GHOST MODE 2 (use SET SPRITE X,0,2)
+ * Cross hair object no longer renders into depth buffer, removing any distortion that may have resulted
+ * Updated setuplevel.FPI to completely hide the LIVES and HEALTH labels if start marker specifies zero
  * Fixed code that controls loading of _I _N and _S textures for fixed shaders (PS2 illumination bug fixed)
  * Added new code to the MapEditor to allow character entities to specify IFUSED string (for script below)
  * Added new script called DISAPPEARACTIVATE when can activate a second entity during the destroy step

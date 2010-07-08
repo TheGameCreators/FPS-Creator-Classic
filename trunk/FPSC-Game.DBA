@@ -3475,6 +3475,7 @@ _main_game_core:
 return
 
 _main_sync:
+ `
  rem FPGC - 280610 - moved entire SYNC sequence to subroutine so PAUSE mode can call it too
  if gvrmode<>0
   rem VR920
@@ -17764,17 +17765,21 @@ for o=21 to 30
 next obj
 
 rem crosshair hud object
-obj=hudbankoffset+31
-make object cube obj,25
-set object collision off obj
-disable object zdepth obj
-disable object zwrite obj
-lock object on obj
-position object obj,0,0,400
-ghost object on obj
-set object ambient obj,0
-set object light obj,0
-hide object obj
+if gdepthcameraid>0
+ rem FPGC - 070710 - replace cross hair with sprite
+else
+ obj=hudbankoffset+31
+ make object cube obj,25
+ set object collision off obj
+ disable object zdepth obj
+ disable object zwrite obj
+ lock object on obj
+ position object obj,0,0,400
+ ghost object on obj
+ set object ambient obj,0
+ set object light obj,0
+ hide object obj
+endif
 
 return
 
@@ -18077,14 +18082,31 @@ if gun(gunid).settings.smokelimb<>-1
 endif
 
 rem Setup gun with crosshair
-obj=hudbankoffset+31
-timg=gun(gunid).settings.crosshairimg
-texture object obj,timg
-crosshairx=(screen width()-image width(timg))/2
-crosshairy=(screen height()-image height(timg))/2
-ts#=(100.0/64.0)*image width(timg)
-scale object obj,ts#,ts#,ts#
-show object obj
+if gdepthcameraid>0
+ rem FPGC - 070710 - replace cross hair with sprite
+ timg=gun(gunid).settings.crosshairimg
+ if timg>0
+  if image exist(timg)=1
+   crosshairx#=(screen width()-image width(timg))/2
+   crosshairy#=(screen height()-image height(timg))/2
+   set sprite effectmenuimagestart+40,0,2
+   sprite effectmenuimagestart+40,crosshairx#,crosshairy#,timg
+   ts#=(100.0/147.0)*image width(timg)
+   size sprite effectmenuimagestart+40,ts#,ts#
+   of#=((image width(timg)-ts#)/2)*-1
+   offset sprite effectmenuimagestart+40,of#,of#
+  endif
+ endif
+else
+ obj=hudbankoffset+31
+ timg=gun(gunid).settings.crosshairimg
+ texture object obj,timg
+ crosshairx=(screen width()-image width(timg))/2
+ crosshairy=(screen height()-image height(timg))/2
+ ts#=(100.0/64.0)*image width(timg)
+ scale object obj,ts#,ts#,ts#
+ show object obj
+endif
 
 `rem Second-Handed Weapon Mode
 `if gun(gunid).settings.seconduse=1
@@ -20377,8 +20399,18 @@ if gun(gunid).settings.smokelimb<>-1
 endif
 
 rem Hide cross hair
-obj=hudbankoffset+31
-if object exist(obj)=1 then hide object obj
+if gdepthcameraid>0
+ rem FPGC - 070710 - replace cross hair with sprite
+ timg=gun(gunid).settings.crosshairimg
+ if timg>0
+  if image exist(timg)=1
+   sprite effectmenuimagestart+40,-10000,-10000,timg
+  endif
+ endif
+else
+ obj=hudbankoffset+31
+ if object exist(obj)=1 then hide object obj
+endif
 
 rem Clear basic gun vars
 gunflash=0 : gunsmoke=0 : gunbrass=0 : gunshoot=0 : gunmode=5
@@ -47432,6 +47464,13 @@ _postprocess_apply:
     else
      set object mask o,%1,0,0,0
     endif
+   endif
+  next o
+  `
+  rem FPGC - 070710 - some objects must be excluded from depth render
+  for o=hudbankoffset to hudbankoffset+31
+   if object exist(o)=1
+    set object mask o,%1,0,0,0
    endif
   next o
   `
