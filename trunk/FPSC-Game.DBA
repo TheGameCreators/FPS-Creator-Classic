@@ -16671,7 +16671,7 @@ if player(plrid).health>0 or playerstartstrength=0
  if tmouseheld=1
   if mouseclick()<>1 or (weaponammo(weaponammoindex)>0 and gun(gunid).settings.alternate = 0) or (weaponammo(weaponammoindex+10)>0 and gun(gunid).settings.alternate = 1) then tmouseheld=0
  endif
- if (weaponammo(weaponammoindex)>0 and gun(gunid).settings.alternate = 0) or (weaponammo(weaponammoindex+10)>0 and gun(gunid).settings.alternate = 1)
+ if (weaponammo(weaponammoindex)>0 and gun(gunid).settings.alternate = 0) or (weaponammo(weaponammoindex+10)>0 and gun(gunid).settings.alternate = 1) or gun(gunid).settings.reloadqty=0
   if tmouseclick=1 and player(plrid).state.blockingaction=0 then player(plrid).state.firingmode=1
  else
   if tmouseclick=1 and tmouseheld=0 and player(plrid).state.blockingaction=0 then gunshootnoammo=1
@@ -16714,7 +16714,7 @@ if player(plrid).health>0 or playerstartstrength=0
  endif
  Rem Reload key
  if plrkeyRheld=1 and plrkeyR=0 then plrkeyRheld=0
- if (weaponclipammo(weaponammoindex)=0 and gun(gunid).settings.alternate = 0) or (weaponclipammo(weaponammoindex+10)=0 and gun(gunid).settings.alternate = 1) `or gun(gunid).settings.weaponisammo=1
+ if (weaponclipammo(weaponammoindex)=0 and gun(gunid).settings.alternate = 0) or (weaponclipammo(weaponammoindex+10)=0 and gun(gunid).settings.alternate = 1) or gun(gunid).settings.reloadqty=0 `or gun(gunid).settings.weaponisammo=1
   if (plrkeyR)=1 and plrkeyRheld=0 then gunreloadnoammo=1  : plrkeyRheld=1
  else
   if (plrkeyR)=1 then player(plrid).state.firingmode=2
