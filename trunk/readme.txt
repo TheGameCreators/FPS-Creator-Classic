@@ -9,6 +9,8 @@ History
 V1.1.7
 ------
  
+ * AIRMOD Support added. Thanks to Hockeykid for a 21 hour marathon integration and Jake for his excellent work!
+ * Adjusted speed of weapon animations to match old legacy speeds (sync's all weapons properly again)
  * Updated official U75 to reflect change to IMAGE and SPRITE DLLs (download 090710 version to compile source)
  * When collect weapon with lots of ammo specified, correctly place ammo in weapon and clip slots
  * When a character uses DarkAI, fall/get-up feature disabled (shutgun) as AI does not handle this behaviour

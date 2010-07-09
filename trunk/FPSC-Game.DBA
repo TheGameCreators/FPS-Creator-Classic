@@ -17457,9 +17457,13 @@ if gun(gunid).settings.weaponisammo=1
  endif
 endif
 
+rem FPGC - 090710 - generic speed of gun animations (to match legacy sound-sensitive gun anims from < V116)
+`genericgunanimspeed#=100.0
+genericgunanimspeed#=130.0
+
 rem AirMod - Zoom To/From Animations >>>> (show/hide)
 if gunmode >= 2001 and gunmode <= 2010
- set object speed currentgunobj,timeelapsed#*100.0
+ set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
 endif
 if gunmode = 2001
  set object interpolation currentgunobj,100
@@ -17616,10 +17620,10 @@ endif
 if gunmode=7
  gunmode=8
  play object currentgunobj,gidle.s+3.0,gidle.e
- set object speed currentgunobj,timeelapsed#*100.0
+ set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
 endif
 if gunmode=8
- set object speed currentgunobj,timeelapsed#*100.0
+ set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
  if object frame(currentgunobj)>=gidle.e then gunmode=9
 endif
 if gunmode=9
@@ -17662,17 +17666,17 @@ if gunmode=23
  play object currentgunobj,gmove.s+3.0,gmove.e
  rem AirMod - for Move animation speed modifier
  if gun(gunid).settings.movespeedmod = 0
-  set object speed currentgunobj,timeelapsed#*((basespeed#/35)*100)
+  set object speed currentgunobj,timeelapsed#*((basespeed#/35)*genericgunanimspeed#)
  else
-  set object speed currentgunobj,timeelapsed#*100.0
+  set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
  endif
 endif
 if gunmode=24
  rem AirMod - for Move animation speed modifier
  if gun(gunid).settings.movespeedmod = 0
-  set object speed currentgunobj,timeelapsed#*((basespeed#/35)*100)
+  set object speed currentgunobj,timeelapsed#*((basespeed#/35)*genericgunanimspeed#)
  else
-  set object speed currentgunobj,timeelapsed#*100.0
+  set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
  endif
  if object frame(currentgunobj)>=gmove.e then gunmode=25
 endif
@@ -17716,7 +17720,8 @@ if gunmode=32
   set object interpolation currentgunobj,100
   set object frame currentgunobj,ghide.s
   rem V111 - 140608 - modifier to adjust gun animation speed based on change from 32fps to 38fps cap
-  set object speed currentgunobj,timeelapsed#*(125.0*0.842)
+  `set object speed currentgunobj,timeelapsed#*(125.0*0.842)
+  set object speed currentgunobj,timeelapsed#*genericgunanimspeed#  
   gunmode=33
  endif
 endif
@@ -17724,15 +17729,16 @@ if gunmode=33
  gunmode=34
  set object interpolation currentgunobj,100
  play object currentgunobj,ghide.s,ghide.e
- set object speed currentgunobj,timeelapsed#*100.0
+ set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
 endif
 if gunmode=34
- set object speed currentgunobj,timeelapsed#*100.0
+ set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
  if object frame(currentgunobj)>=ghide.e then gunmode=35
 endif
 if gunmode=35
  rem V111 - 140608 - modifier to adjust gun animation speed based on change from 32fps to 38fps cap
- set object speed currentgunobj,timeelapsed#*(75.0*0.842)
+ `set object speed currentgunobj,timeelapsed#*(75.0*0.842)
+ set object speed currentgunobj,timeelapsed#*(genericgunanimspeed#*0.75)
  autoloadgun=gunselectionafterhide
  gunselectionlockdown=0
  gunmode=5
@@ -17741,7 +17747,7 @@ endif
 rem gun blocking control
 if gunmode=1001
  gunmode=1002
- set object speed currentgunobj,timeelapsed#*100
+ set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
  set object interpolation currentgunobj,100
  play object currentgunobj,gblock.s,gblock.e
 endif
@@ -17805,7 +17811,7 @@ if gunmode=101
   set object interpolation currentgunobj,100
   tfireanim=tempani
   play object currentgunobj,gstart.s,gstart.e
-  set object speed currentgunobj,timeelapsed#*100.0
+  set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
  else
   if gunclick<>1
    if gun(gunid).settings.alternate=0 then sndid=gunsound(gunid,3).soundid else sndid=gunsound(gunid,3).altsoundid
@@ -17823,7 +17829,7 @@ if gunmode=101
  endif
 endif
 if gunmode=102
- set object speed currentgunobj,timeelapsed#*100.0
+ set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
  if object frame(currentgunobj)>=gstart.e then gunmode=103
 endif
 if gunmode=103
@@ -17864,7 +17870,7 @@ if gunmode=103
    if sound exist(sndid)=1
     if gautomatic.s>0 and gun(gunid).settings.alternate=0 or gautomatic.s>0 and gun(gunid).settings.alternate=1 and gun(gunid).settings.alternateisray=1
      loop object currentgunobj,gautomatic.s,gautomatic.e
-     set object speed currentgunobj,timeelapsed#*100.0
+     set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
      play sound sndid,fireloopend : rem some sound bug
      loop sound sndid,0,fireloopend
      gunmodeloopsnd=sndid : gunmodeloopstarted=timer()
@@ -17923,7 +17929,7 @@ if gunmode=105
  if gfinish.s>0
   gunmode=106
   play object currentgunobj,gfinish.s,gfinish.e
-  set object speed currentgunobj,timeelapsed#*100.0
+  set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
   if gun(gunid).settings.equipment=0
    `sndid=gunsound(gunid,1).soundid
    if gun(gunid).settings.alternate=0
@@ -17945,7 +17951,7 @@ if gunmode=105
  endif
 endif
 if gunmode=106
- set object speed currentgunobj,timeelapsed#*100.0
+ set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
  if object frame(currentgunobj)>=gfinish.e then gunmode=107
  rem FPGC - detect sound slot 1 triggers, as these are USE actions and should ACTIVATE the equipment
  if gun(gunid).settings.equipment=1 and total object frames(currentgunobj)>0
@@ -18107,19 +18113,19 @@ if gunmode = 700
  gunmode = 701
  set object interpolation currentgunobj,100
  play object currentgunobj,gstartreload.s,gstartreload.e
- set object speed currentgunobj,timeelapsed#*100.0
+ set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
 endif
 if gunmode=701
- set object speed currentgunobj,timeelapsed#*100.0
+ set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
  if object frame(currentgunobj)>=gstartreload.e then gunmode=703
 endif
 if gunmode=703
  play object currentgunobj,greloadloop.s,greloadloop.e
- set object speed currentgunobj,timeelapsed#*100.0
+ set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
  gunmode = 7031
 endif
 if gunmode=7031
- set object speed currentgunobj,timeelapsed#*100.0
+ set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
  if object frame(currentgunobj)>=greloadloop.e then gunmode=702
 endif
 if gunmode=702 `and object frame(currentgunobj)>=gun(gunid).action.reloadloop.e
@@ -18154,16 +18160,16 @@ if gunmode = 704
  gunmode = 705
 endif
 if gunmode=705
- set object speed currentgunobj,timeelapsed#*100.0
+ set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
  if object frame(currentgunobj)>=gcock.e then gunmode=5
 endif
 if gunmode = 706
  play object currentgunobj,gendreload.s,gendreload.e
- set object speed currentgunobj,timeelapsed#*100.0
+ set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
  gunmode = 707
 endif
 if gunmode=707
- set object speed currentgunobj,timeelapsed#*100.0
+ set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
  if object frame(currentgunobj)>=gendreload.e then gunmode=5
 endif
 rem AIRSLIDE SHOTGUN CODE END
@@ -18172,7 +18178,7 @@ if gunmode=123
  gunmode=124
  set object interpolation currentgunobj,100
  play object currentgunobj,gstartreload.s,gcock.e
- set object speed currentgunobj,timeelapsed#*100.0
+ set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
  if gunsound(gunid,2).soundid>0
   if sound exist(gunsound(gunid,2).soundid)=1
    position sound gunsound(gunid,2).soundid,camera position x()/10.0,camera position y()/3.0,camera position z()/10.0
@@ -18180,7 +18186,7 @@ if gunmode=123
  endif
 endif
 if gunmode=124
- set object speed currentgunobj,timeelapsed#*100.0
+ set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
  if object frame(currentgunobj)>=gcock.e then gunmode=125
 endif
 if gunmode=125
@@ -18212,7 +18218,7 @@ if gunmode=131
  set object interpolation currentgunobj,100
  set object frame currentgunobj,gshow.s
  play object currentgunobj,gshow.s,gshow.e
- set object speed currentgunobj,timeelapsed#*100.0
+ set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
  if gunsound(gunid,2).soundid>0
   if sound exist(gunsound(gunid,2).soundid)=1
    position sound gunsound(gunid,2).soundid,camera position x()/10.0,camera position y()/3.0,camera position z()/10.0
@@ -18221,7 +18227,7 @@ if gunmode=131
  gunmode=132
 endif
 if gunmode=132
- set object speed currentgunobj,timeelapsed#*100.0
+ set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
  if object frame(currentgunobj)>=gshow.e then gunmode=5
 endif
 
@@ -19536,7 +19542,8 @@ disable object zdepth currentgunobj
 
 rem Setup gun for animation
 rem V111 - 140608 - modifier to adjust gun animation speed based on change from 32fps to 38fps cap
-set object speed currentgunobj,(75.0*0.842)
+`set object speed currentgunobj,(75.0*0.842)
+set object speed currentgunobj,timeelapsed#*(genericgunanimspeed#*0.75)
 loop object currentgunobj
 
 rem Setup gun with muzzle flash image
