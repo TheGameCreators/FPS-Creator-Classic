@@ -7891,10 +7891,10 @@ _entity_controlblood:
     if entityblood(e,k).delay < 1
      entityblood(e,k).delay = 10
      dstwallhit#=static raycast(entityblood(e,k).oldx#,entityblood(e,k).oldy#,entityblood(e,k).oldz#,entityblood(e,k).x#,entityblood(e,k).y#,entityblood(e,k).z#)
-     if dstwallhit#>0
-      wallhitx#=checklist fvalue a(6)
-      wallhity#=checklist fvalue b(6)
-      wallhitz#=checklist fvalue c(6)
+     if bdstwallhit#>0
+      bwallhitx#=checklist fvalue a(6)
+      bwallhity#=checklist fvalue b(6)
+      bwallhitz#=checklist fvalue c(6)
       `   wallhitmaterial=get static collision value()-1
       tscorchtype3=8+rnd(3)
       tscorchsize3#=10.0 + rnd(20)`+((tbullethitflesh/100.0)*(20.0+rnd(20)))
@@ -7905,7 +7905,7 @@ _entity_controlblood:
       decalid=blood`entitydecal(entid,1)
       decalscalemodx=0 : rem FPSCV101 - fix
       tdecalairmodsize = 1 : tdecalairmodsizex# = 2.5 : tdecalairmodsizey# = 2.5
-      decalorient=0 : decalx=wallhitx# : decaly=wallhity# : decalz=wallhitz#
+      decalorient=0 : decalx=bwallhitx# : decaly=bwallhity# : decalz=bwallhitz#
       originatore=-1 : gosub _decalelement_create
      endif
      entityblood(e,k).oldx# = entityblood(e,k).x#
@@ -17721,7 +17721,7 @@ if gunmode=32
   set object frame currentgunobj,ghide.s
   rem V111 - 140608 - modifier to adjust gun animation speed based on change from 32fps to 38fps cap
   `set object speed currentgunobj,timeelapsed#*(125.0*0.842)
-  set object speed currentgunobj,timeelapsed#*genericgunanimspeed#  
+  set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
   gunmode=33
  endif
 endif
@@ -21336,7 +21336,15 @@ if d<decalelementmax
   decalelement(d).scalemodx=decalscalemodx*(decal(decalid).scaleonlyx/100.0)
   decalelement(d).scalemody=decalscalemody
  endif
- scale object tobj,decalelement(d).scalemodx,decalelement(d).scalemody,100
+ `scale object tobj,decalelement(d).scalemodx,decalelement(d).scalemody,100
+ rem AirMod - Special Decal Modifier >>>
+ if tdecalairmodsize=1
+  tdecalairmodsize=0
+  scale object tobj,decalelement(d).scalemodx*tdecalairmodsizex#,decalelement(d).scalemody*tdecalairmodsizey#,100
+ else
+  scale object tobj,decalelement(d).scalemodx,decalelement(d).scalemody,100
+ endif
+ rem AirMod - Done <<<
  rem show decal object
  show object tobj
 else
