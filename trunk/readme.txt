@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
  
+ * Updated official U75 to reflect change to IMAGE and SPRITE DLLs (download 090710 version to compile source)
  * When collect weapon with lots of ammo specified, correctly place ammo in weapon and clip slots
  * When a character uses DarkAI, fall/get-up feature disabled (shutgun) as AI does not handle this behaviour
  * In standalone game, when pause game the looping entity sounds will now pause, and resume when resuming
