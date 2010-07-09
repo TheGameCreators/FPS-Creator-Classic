@@ -8,7 +8,8 @@ History
 
 V1.1.7
 ------
- 
+
+ * Fixed bug causing advanced weapons not to copy over their textures when build standalone games 
  * AIRMOD Support added. Thanks to Hockeykid for a 21 hour marathon integration and Jake for his excellent work!
  * Adjusted speed of weapon animations to match old legacy speeds (sync's all weapons properly again)
  * Updated official U75 to reflect change to IMAGE and SPRITE DLLs (download 090710 version to compile source)

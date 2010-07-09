@@ -19500,6 +19500,21 @@ else
  `
 endif
 
+rem FPGC - 100710 - scan gun folder for extra DDS/JPG/PNG textures and add to files collection
+rem for those weapons which specify secondary textures inside the weapon model
+tstoreolddir$=get dir$()
+set dir "gamecore\"+fpgchuds$+"\"+gun$+"\"
+perform checklist for files
+for ttc=1 to checklist quantity()
+ ttgfile$=lower$(checklist string$(ttc))
+ if ttgfile$<>"." and ttgfile$<>".."
+  if right$(ttgfile$,4)=".dds" or right$(ttgfile$,4)=".jpg" or right$(ttgfile$,4)=".png"
+   addfiletocollection("gamecore\"+fpgchuds$+"\"+gun$+"\"+ttgfile$)
+  endif
+ endif
+next ttc
+set dir tstoreolddir$
+
 rem load in scope if any
 if gun(gunid).zoomscope$<>""
  img$="gamecore\"+fpgchuds$+"\"+gun$+"\"+gun(gunid).zoomscope$
