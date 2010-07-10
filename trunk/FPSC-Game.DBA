@@ -19238,8 +19238,18 @@ if gun(gunid).action.cock.e=0
  gun(gunid).action.cock.s=gun(gunid).action.endreload.e
  gun(gunid).action.cock.e=gun(gunid).action.endreload.e
 endif
+Rem fill empty animations if no animation found
+if gun(gunid).emptyaction.hide.e=0 then gun(gunid).emptyaction.hide=gun(gunid).action.hide
+if gun(gunid).emptyaction.show.e=0 then gun(gunid).emptyaction.show=gun(gunid).action.show
+if gun(gunid).emptyaction.idle.e=0 then gun(gunid).emptyaction.idle=gun(gunid).action.idle
+if gun(gunid).emptyaction.move.e=0 then gun(gunid).emptyaction.move=gun(gunid).action.move
+if gun(gunid).emptyaction.cock.e=0 and gun(gunid).emptyaction.endreload.e=0 then gun(gunid).emptyaction.cock=gun(gunid).action.cock
+if gun(gunid).emptyaction.startreload.e=0 then gun(gunid).emptyaction.startreload=gun(gunid).action.startreload
+if gun(gunid).emptyaction.reloadloop.e=0 then gun(gunid).emptyaction.reloadloop=gun(gunid).action.reloadloop
+if gun(gunid).emptyaction.endreload.e=0 then gun(gunid).emptyaction.endreload=gun(gunid).action.endreload
+
 rem If no COCK animation, fill with end of reload data
-if gun(gunid).emptyaction.cock.e=0
+if gun(gunid).emptyaction.cock.e=0 `and gun(gunid).emptyaction.endreload.e>0 and gun(gunid).emptyaction.endreload.e<>gun(gunid).action.endreload.e
  gun(gunid).emptyaction.cock.s=gun(gunid).emptyaction.endreload.e
  gun(gunid).emptyaction.cock.e=gun(gunid).emptyaction.endreload.e
 endif
