@@ -6948,9 +6948,6 @@ for e=1 to entityelementlist
       tdx#=x1#-mex# : tdy#=y1#-mey# : tdz#=z1#-mez#
       entityelement(e).plrdist=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
       if entityelement(e).plrdist<80
-      
-      end
-      
        rem player collects weapon from enemy (stores takeweaponammo in Quantity)
        weaponindex=tgunid
        weaponinvposition=pi : tgunid=weaponindex
