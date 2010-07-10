@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
 
+ * Can now collect gun if deceased character had gone into ragdoll mode
  * Fixed bug causing advanced weapons not to copy over their textures when build standalone games 
  * AIRMOD Support added. Thanks to Hockeykid for a 21 hour marathon integration and Jake for his excellent work!
  * Adjusted speed of weapon animations to match old legacy speeds (sync's all weapons properly again)

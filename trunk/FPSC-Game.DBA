@@ -1206,6 +1206,8 @@ type entityeleproftype
  rotatethrow as integer
  explodable as integer
  explodedamage as integer
+ phydw1 as DWORD
+ phydw2 as DWORD
  phydw3 as DWORD
  phydw4 as DWORD
  phydw5 as DWORD
@@ -1330,6 +1332,7 @@ type entitytype
  soundlooping as integer
  soundistalking as integer
  alttextureused as integer
+ ragdollon as integer
  reserve1 as integer
  reserve2 as integer
  reserve3 as integer
@@ -6932,7 +6935,8 @@ for e=1 to entityelementlist
      tgunid=entityelement(e).currentweapon
      if tgunid>0
       rem calculate player activity distance (of the attached weapon point)
-      if entityprofile(entid).firespotlimb>-1
+      rem FPGC - 100710 - if ragdollified, use entity last location for gun pickup (real OBJ at 0,0,0)
+      if entityprofile(entid).firespotlimb>-1 and entityelement(e).ragdollon=0
        x1#=limb position x(obj,entityprofile(entid).firespotlimb)
        y1#=limb position y(obj,entityprofile(entid).firespotlimb)
        z1#=limb position z(obj,entityprofile(entid).firespotlimb)
@@ -6944,6 +6948,9 @@ for e=1 to entityelementlist
       tdx#=x1#-mex# : tdy#=y1#-mey# : tdz#=z1#-mez#
       entityelement(e).plrdist=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
       if entityelement(e).plrdist<80
+      
+      end
+      
        rem player collects weapon from enemy (stores takeweaponammo in Quantity)
        weaponindex=tgunid
        weaponinvposition=pi : tgunid=weaponindex
@@ -7890,7 +7897,7 @@ _entity_controlblood:
     endif
     if entityblood(e,k).delay < 1
      entityblood(e,k).delay = 10
-     dstwallhit#=static raycast(entityblood(e,k).oldx#,entityblood(e,k).oldy#,entityblood(e,k).oldz#,entityblood(e,k).x#,entityblood(e,k).y#,entityblood(e,k).z#)
+     bdstwallhit#=static raycast(entityblood(e,k).oldx#,entityblood(e,k).oldy#,entityblood(e,k).oldz#,entityblood(e,k).x#,entityblood(e,k).y#,entityblood(e,k).z#)
      if bdstwallhit#>0
       bwallhitx#=checklist fvalue a(6)
       bwallhity#=checklist fvalue b(6)
@@ -11926,15 +11933,19 @@ if aiindex>0
      case AIACTRAGDOLL:
       rem FPGC - 210210 - by popular demand, ragdoll via script
       if entityprofile(entid).ischaracter=1
-       ODE Create Ragdoll from bone model obj,0.6 : rem was 0.8 up to 171007 (was 0.6 on 300707)
-       detach object from static obj
-       rem set friction and weight for the character as a ragdoll
-       ode set contact fdir1 obj,entityprofile(tttentid).phyfriction
-       rem ragdoll must use 'percentage' as each bone has its own mass
-       ode set body mass obj,1.0
-       rem stabalize the object
-       ode set linear velocity obj,0,0,0
-       ode set angular velocity obj,0,0,0
+       if entityelement(e).ragdollon=0
+        entityelement(e).ragdollon=1
+        ODE Create Ragdoll from bone model obj,0.6 : rem was 0.8 up to 171007 (was 0.6 on 300707)
+        detach object from static obj
+        rem set friction and weight for the character as a ragdoll
+        `ode set contact fdir1 obj,entityprofile(tttentid).phyfriction FPGC - 100710 - correction
+        ode set contact fdir1 obj,entityprofile(entid).phyfriction
+        rem ragdoll must use 'percentage' as each bone has its own mass
+        ode set body mass obj,1.0
+        rem stabalize the object
+        ode set linear velocity obj,0,0,0
+        ode set angular velocity obj,0,0,0
+       endif
       endif
      endcase
      `
@@ -24973,6 +24984,7 @@ _entity_configueelementforuse:
  `
  rem FPGC - 030710 - reset extra entity flags
  entityelement(e).alttextureused=0
+ entityelement(e).ragdollon=0
  `
  rem Configure animation defaults
  if entityprofile(entid).ischaracter=1
