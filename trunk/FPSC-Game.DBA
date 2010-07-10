@@ -20768,6 +20768,44 @@ _flak_scaninall_dataonly:
  next flakid
 return
 
+_flak_addanynewflaktoexistingdataonlylist:
+ `
+ rem FPGC - 100710 - typically called when add a new entity (in mapeditor) such as might have
+ rem been downloaded from the Game Creator Store (mapeditor NEEDS to know about the flak data now!)
+ rem Scan entire flaks folder (again)
+ ttstoreolderfolder$=get dir$()
+ set dir "gamecore" : flakid=1
+ empty array filelist$()
+ buildfilelist("flak","")
+ set dir ".."
+ if array count(filelist$())>0
+  for chkfile=0 to array count(filelist$())
+   fffile$=filelist$(chkfile)
+   if fffile$<>"." and fffile$<>".."
+    if lower$(right$(fffile$,12))="flakspec.txt"
+     rem scan to make sure this is a new flak item
+     ttgotthisone=0
+     ttnewflakname$=lower$(left$(fffile$,len(fffile$)-13))
+     for ttflakid=1 to flakmax
+      if lower$(flak(flakid).name$)=ttnewflakname$ then ttgotthisone=1
+     next ttflakid
+     if ttgotthisone=0
+      rem found a new flak item
+      inc flakmax
+      flakid=flakmax
+      dim flak(flakmax) as flaktype
+      flak(flakid).name$=ttnewflakname$
+      flak$=flak(flakid).name$
+      gosub _flak_loaddata
+     endif
+    endif
+   endif
+  next chkfile
+ endif
+ set dir ttstoreolderfolder$
+ `
+return
+
 `V109 BETA10 - not needed - do not load ALL flak!
 `_flak_scaninall:
 `rem Scan entire flaks folder
@@ -25457,6 +25495,9 @@ if right$(ent$,4)=".fpe"
   else
    entid=freeentid
   endif
+  `
+  rem FPGC - 100710 - when add new entity, it may require updated FLAK data (should the entity have come direct from the GC store)
+  gosub _flak_addanynewflaktoexistingdataonlylist
   `
   rem Load entity
   entitybank$(entid)=ent$
