@@ -9,6 +9,18 @@ History
 V1.1.7
 ------
 
+ * Added new empty feature (rewrote code from Fenix Mod). This allows you to use special animations for your gun when its empty. (allowing something like the slide pulled back on a pistol). 
+    useempty=x 1 to enable 0 to disable
+
+    empty putaway=x,y 
+    empty select=x,y
+    empty idle=x,y
+    empty move=x,y
+    empty cock=x,y
+    empty reload=x,y
+    (the x value is the start frame and the y value is the end frame)
+
+ * Added new gunspec addtospare=x this will add the ammo you pick up to you "spare" collection when completely out of ammo instead of directly into the clip
  * In the Editor, when download and use a weapon containing FLAK, editor refreshes data right away
  * Can now collect gun if deceased character had gone into ragdoll mode
  * Fixed bug causing advanced weapons not to copy over their textures when build standalone games 

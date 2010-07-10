@@ -1864,6 +1864,7 @@ endtype
 
 rem Gun Settings Data Structure
 type gunsettingstype
+ isempty as integer
  muzzleflash as integer
  muzzlex# as float
  muzzley# as float
@@ -1967,6 +1968,9 @@ type gunsettingstype
  zoomwalkspeed as float
  zoomturnspeed as float
  rem AirMod - Done
+ hasempty as integer
+ canaddtospare as integer
+ addtospare as integer
 endtype
 
 rem Gun Actions Data Structure
@@ -2021,6 +2025,7 @@ type guntype
  forward# as float
  zoomaction as gunactionstype
  altaction as gunactionstype
+ emptyaction as gunactionstype
 endtype
 dim gun(100) as guntype
 `dim gunsound(100,5) as gunsoundbanktype
@@ -2112,6 +2117,7 @@ type playerstatetype
  moving firingmode
  rem AirMod - Melee Block Move
  blockingaction as integer
+ empty as integer
 endtype
 
 rem Weapon Data Structure
@@ -16681,7 +16687,9 @@ if player(plrid).health>0 or playerstartstrength=0
  endif
  if (weaponammo(weaponammoindex)>0 and gun(gunid).settings.alternate = 0) or (weaponammo(weaponammoindex+10)>0 and gun(gunid).settings.alternate = 1) or gun(gunid).settings.reloadqty=0
   if tmouseclick=1 and player(plrid).state.blockingaction=0 then player(plrid).state.firingmode=1
+  if gun(gunid).settings.isempty>0 then gun(gunid).settings.isempty=0
  else
+  if gun(gunid).settings.isempty=0 and gun(gunid).settings.hasempty=1 then gun(gunid).settings.isempty=1
   if tmouseclick=1 and tmouseheld=0 and player(plrid).state.blockingaction=0 then gunshootnoammo=1
  endif
  rem AirMod - Blocking Move >>>
@@ -16695,7 +16703,7 @@ if player(plrid).health>0 or playerstartstrength=0
  rem AirMod - No Zoom in When Reloading or firing in simple zoom
  if tmouseclick=2 and (gunmode<=100 or gun(gunid).settings.simplezoom=0) and gun(gunid).settings.alternate = 0 and (gun(gunid).settings.forcezoomout=0 or gunmode <= 100)
   rem AirMod - Modified for Simple Zoom
-  if gunzoommode=0 and (gun(gunid).settings.zoommode<>0 or gun(gunid).settings.simplezoom<>0)
+  if gunzoommode=0 and (gun(gunid).settings.zoommode<>0 or gun(gunid).settings.simplezoom<>0) and gun(gunid).settings.isempty=0
    gunzoommode=1 : gunzoommag#=1.0
    rem AirMod - Added for Simple Zoom
    if gun(gunid).settings.simplezoomanim<>0 and gun(gunid).settings.simplezoom<>0 then gunmode=2001
@@ -16916,7 +16924,13 @@ if gotweapon>0
     weaponammo(gotweapon)=gun(tgunid).settings.reloadqty
     weaponclipammo(gotweapon)=tqty-gun(tgunid).settings.reloadqty
    else
-    weaponammo(gotweapon)=tqty
+    if gun(tgunid).settings.addtospare=0
+      weaponammo(gotweapon)=tqty
+    else
+     Rem new gunspec addition "addtospare" This will allow it so picking up ammo with an empty weapon won't add the ammo directly into the clip
+     if gun(tgunid).settings.canaddtospare=1 then weaponclipammo(gotweapon)=weaponclipammo(gotweapon)+tqty
+     if gun(tgunid).settings.canaddtospare=0 then weaponammo(gotweapon)=tqty : gun(tgunid).settings.canaddtospare=1
+    endif
    endif
   else
    weaponclipammo(gotweapon)=weaponclipammo(gotweapon)+tqty
@@ -17550,46 +17564,59 @@ if gun(gunid).settings.alternate<>0
  gcock=gun(gunid).altaction.cock
  ghide=gun(gunid).altaction.hide
 else
- gshow=gun(gunid).action.show
- gidle=gun(gunid).action.idle
- gmove=gun(gunid).action.move
- gautomatic=gun(gunid).action.automatic
- gstartreload=gun(gunid).action.startreload
- greloadloop=gun(gunid).action.reloadloop
- gendreload=gun(gunid).action.endreload
- gcock=gun(gunid).action.cock
- ghide=gun(gunid).action.hide
- if tfireanim=0
-  gstart=gun(gunid).action.start
-  gfinish=gun(gunid).action.finish
-  tempani=1
-  if gun(gunid).action.start2.s > 0 and rnd(2)=0
-   gstart=gun(gunid).action.start2
-   gfinish=gun(gunid).action.finish2
-   tempani=2
-  endif
-  if gun(gunid).action.start3.s > 0 and rnd(2)=0
-   gstart=gun(gunid).action.start3
-   gfinish=gun(gunid).action.finish3
-   tempani=3
-  endif
+ if gun(gunid).settings.hasempty=1 and gun(gunid).settings.isempty=1
+  if gunzoommode <> 0 and gun(gunid).settings.simplezoom <> 0 and gun(gunid).settings.simplezoomanim <> 0 then gunzoommode=0 : gunmode = 2003
+  gshow=gun(gunid).emptyaction.show
+  gidle=gun(gunid).emptyaction.idle
+  gmove=gun(gunid).emptyaction.move
+  gautomatic=gun(gunid).emptyaction.automatic
+  gstartreload=gun(gunid).emptyaction.startreload
+  greloadloop=gun(gunid).emptyaction.reloadloop
+  gendreload=gun(gunid).emptyaction.endreload
+  gcock=gun(gunid).emptyaction.cock
+  ghide=gun(gunid).emptyaction.hide
  else
-  if tfireanim=1
+  gshow=gun(gunid).action.show
+  gidle=gun(gunid).action.idle
+  gmove=gun(gunid).action.move
+  gautomatic=gun(gunid).action.automatic
+  gstartreload=gun(gunid).action.startreload
+  greloadloop=gun(gunid).action.reloadloop
+  gendreload=gun(gunid).action.endreload
+  gcock=gun(gunid).action.cock
+  ghide=gun(gunid).action.hide
+  if tfireanim=0
    gstart=gun(gunid).action.start
    gfinish=gun(gunid).action.finish
+   tempani=1
+   if gun(gunid).action.start2.s > 0 and rnd(2)=0
+    gstart=gun(gunid).action.start2
+    gfinish=gun(gunid).action.finish2
+    tempani=2
+   endif
+   if gun(gunid).action.start3.s > 0 and rnd(2)=0
+    gstart=gun(gunid).action.start3
+    gfinish=gun(gunid).action.finish3
+    tempani=3
+   endif
+  else
+   if tfireanim=1
+    gstart=gun(gunid).action.start
+    gfinish=gun(gunid).action.finish
+   endif
+   if tfireanim=2
+    gstart=gun(gunid).action.start2
+    gfinish=gun(gunid).action.finish2
+   endif
+   if tfireanim=3
+    gstart=gun(gunid).action.start3
+    gfinish=gun(gunid).action.finish3
+   endif
   endif
-  if tfireanim=2
-   gstart=gun(gunid).action.start2
-   gfinish=gun(gunid).action.finish2
-  endif
-  if tfireanim=3
-   gstart=gun(gunid).action.start3
-   gfinish=gun(gunid).action.finish3
-  endif
+  `
  endif
- `
 endif
-if gunzoommode <> 0 and gun(gunid).settings.simplezoom <> 0 and gun(gunid).settings.simplezoomanim <> 0
+if gunzoommode <> 0 and gun(gunid).settings.simplezoom <> 0 and gun(gunid).settings.simplezoomanim <> 0 and gun(gunid).settings.isempty=0
  gshow=gun(gunid).zoomaction.show
  gidle=gun(gunid).zoomaction.idle
  gmove=gun(gunid).zoomaction.move
@@ -19162,6 +19189,19 @@ for l=0 to 299
       gun(gunid).altaction.endreload.s=value2 : gun(gunid).altaction.endreload.e=value2
    endif
    rem AirMod - Done<<<
+   Rem "empty" gun feature
+   if field$="useempty" then gun(gunid).settings.hasempty=1
+   if field$="empty putaway" then gun(gunid).emptyaction.hide.s=value1 : gun(gunid).emptyaction.hide.e=value2
+   if field$="empty select" then gun(gunid).emptyaction.show.s=value1 : gun(gunid).emptyaction.show.e=value2
+   if field$="empty idle" then gun(gunid).emptyaction.idle.s=value1 : gun(gunid).emptyaction.idle.e=value2
+   if field$="empty move" then gun(gunid).emptyaction.move.s=value1 : gun(gunid).emptyaction.move.e=value2
+   if field$="empty cock" then gun(gunid).emptyaction.cock.s=value1 : gun(gunid).emptyaction.cock.e=value2
+   if field$="empty reload"
+      gun(gunid).emptyaction.startreload.s=value1 : gun(gunid).emptyaction.startreload.e=value2
+      gun(gunid).emptyaction.reloadloop.s=value2 : gun(gunid).emptyaction.reloadloop.e=value2
+      gun(gunid).emptyaction.endreload.s=value2 : gun(gunid).emptyaction.endreload.e=value2
+   endif
+   if field$="addtospare" then gun(gunid).settings.addtospare=value1
    `
    rem GUN SOUND FRAMES DATA
    tryfield$="soundframes"
@@ -19198,7 +19238,11 @@ if gun(gunid).action.cock.e=0
  gun(gunid).action.cock.s=gun(gunid).action.endreload.e
  gun(gunid).action.cock.e=gun(gunid).action.endreload.e
 endif
-
+rem If no COCK animation, fill with end of reload data
+if gun(gunid).emptyaction.cock.e=0
+ gun(gunid).emptyaction.cock.s=gun(gunid).emptyaction.endreload.e
+ gun(gunid).emptyaction.cock.e=gun(gunid).emptyaction.endreload.e
+endif
 rem If no COCK animation, fill with end of reload data
 if gun(gunid).altaction.cock.e=0
  gun(gunid).altaction.cock.s=gun(gunid).altaction.endreload.e
