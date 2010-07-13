@@ -9,9 +9,22 @@ History
 V1.1.7
 ------
 
+ * Added ability for DAI characters to run if they are further than 175 units away from their destination
+ * Added new FPI actions ANIMATIONNORMAL and ANIMATIONREVERSE to reverse animations using ANIMATE
+ * Added code to absorb the jitter seen when a character toggles quickly between two animations (interp=10%)
+ * [G] and [H] prompts on Allies now work 100% of the time, solving the bug that hid the text on occasion
+ * Comprehensive change to rename DIST# assigned variables (to ensure PLRWITHIN action works 100%)
+ * Adjusted default AI scripts, removed melee (incomplete) and ensured enemies instantly start conflict!
+ * Weapons carried by killed characters who are off-screen during skipped death animation no longer float
+ * Ensured that enemies can target player, even if player has infinite health (no start marker or health=0)
+ * Simplified DAI player position code so level without start marker will not mess up enemy targetting
+ * Added code to detect if FPSC-MapEditor would be denied write access, and prompt early error of this
+ * Added code to defer undo/redo interface update to the end of large loops (significant performance boost)
+ * Improved code which draws floor as art shapes (floor features skip area check for performance)
+ * Added new scifi segment entries and a few new textures to show off updated Full Effects system
  * Added new empty feature (rewrote code from Fenix Mod). This allows you to use special animations for your gun when its empty. (allowing something like the slide pulled back on a pistol). 
     useempty=x 1 to enable 0 to disable
-
+ * Added code to use an accumilator to detect strafe from DAI so lightning quick side move avoids strafe anim
     empty putaway=x,y 
     empty select=x,y
     empty idle=x,y
@@ -19,7 +32,6 @@ V1.1.7
     empty cock=x,y
     empty reload=x,y
     (the x value is the start frame and the y value is the end frame)
-
  * Added new gunspec addtospare=x this will add the ammo you pick up to you "spare" collection when completely out of ammo instead of directly into the clip
  * In the Editor, when download and use a weapon containing FLAK, editor refreshes data right away
  * Can now collect gun if deceased character had gone into ragdoll mode

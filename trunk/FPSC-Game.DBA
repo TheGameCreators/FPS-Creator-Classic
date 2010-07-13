@@ -107,6 +107,7 @@ type darkaitype
  state as integer
  running as boolean
  action as integer
+ strafebuildup as integer
  useaim as integer
  aiy as float
  Rem Paths
@@ -472,7 +473,7 @@ global grawtextsizelast : grawtextsizelast=0
 global grawtextfont$ : grawtextfont$=""
 global grawtextfontlast$ : grawtextfontlast$=""
 global grawtext$
-global grawtextcount
+global grawtextcount as float : grawtextcount=0
 
 `
 `AI Arrays
@@ -1456,6 +1457,7 @@ Rem Hockeykid - 250210 - Dark AI conditions
 #constant AICONDAIATCOVER 370
 #constant AICONDAICALLEDBYPLR 371
 #constant AICONDAIHASTARGET 372
+#constant AICONDDARKAIRUNNINGF 373
 Rem End Dark AI
 #constant AICONDHEADANGLEGREATER 401
 #constant AICONDHEADANGLELESS 402
@@ -1523,6 +1525,8 @@ rem AirMod - Done <<<
 #constant AIACTDECFRAME 303
 #constant AIACTANIMATE 304
 #constant AIACTADVFRAME 305
+#constant AIACTANIMATIONNORMAL 306
+#constant AIACTANIMATIONREVERSE 307
 #constant AIACTSETTARGET 351
 #constant AIACTROTATETOTARGET 352
 #constant AIACTLOOKATTARGET 353
@@ -3050,6 +3054,16 @@ rem
 rem
 if trueappname$="FPSC-MapEditor"
  `
+ rem FPGC - 100710 - if we cannot write to Program Files, we shoud find out NOW and report it
+ open to write 1,"testwrite.dat"
+ write string 1,"we can write to the FPSC folder! Good."
+ close file 1
+ if file exist("testwrite.dat")=1
+  delete file "testwrite.dat"
+ else
+  exit prompt "FPSC-MapEditor cannot write files to the Program Files area. Ensure you have UAC switched off and that you are running as an administrator user", "Init Error" : end
+ endif
+ `
  rem gather list of behaviours at start (if exists)
  global behaviourlistmax : behaviourlistmax=0
  behaviourlistmax=fillgloballistwithbehaviours_init()
@@ -3565,6 +3579,8 @@ _main_game_core:
  tcamx#=object position x(physicsplayerborble)
  tcamy#=object position y(physicsplayerborble)
  tcamz#=object position z(physicsplayerborble)
+ rem FPGC - 100710 - when no start marker (no player health) AI failed, so keep this simple
+ remstart
  if player(1).health>0
   rem player in world - enemies bate!
   `if playerdied=1 then ai add player physicsplayerborble,0 : playerdied=0
@@ -3576,6 +3592,8 @@ _main_game_core:
    `ai kill player
    playerdied=1
  endif
+ remend
+ AI Set Player Position tcamx#,tcamy#,tcamz#
  `
  Rem Hockeykid - 250210 - Dark AI Tell AI system if player crouching
  if crouchmode<>0
@@ -6937,6 +6955,19 @@ for e=1 to entityelementlist
    `
    rem Inactive entity, however characters have logic even when dead
    if entityprofile(entid).ischaracter=1
+    `
+    rem FPGC - 100710 - on occasion, character can be killed off screen (no anim performed)
+    rem so need to adjust position of any carried weapon to floor (other it floats)
+    tvweapobj=entityelement(e).attachmentobj
+    if tvweapobj>0
+     if object exist(tvweapobj)=1
+      if object in screen(tvweapobj)=0
+       unglue object tvweapobj
+       position object tvweapobj,object position x(tvweapobj),entityelement(e).y,object position z(tvweapobj)
+      endif
+     endif
+    endif
+    `
     if entityelement(e).eleprof.cantakeweapon=1
      tgunid=entityelement(e).currentweapon
      if tgunid>0
@@ -7575,15 +7606,15 @@ if entityelement(e).fireweapon=1
          distx#=tdamagex#-entityelement(e).x
          disty#=tdamagey#-entityelement(e).y
          distz#=tdamagez#-entityelement(e).z
-         dist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
+         dmgdist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
          rem direction from player to entity
          tix#=entityelement(e).x-tdamagex# : tiy#=entityelement(e).y-tdamagey# : tiz#=entityelement(e).z-tdamagez#
          tdd#=sqrt(abs(tix#*tix#)+abs(tiy#*tiy#)+abs(tiz#*tiz#))
          tix#=tix#/tdd# : tiy#=tiy#/tdd# : tiz#=tiz#/tdd#
          rem find point of impact
-         tix#=tix#*(dist#-10.0)
-         tiy#=tiy#*(dist#-10.0)
-         tiz#=tiz#*(dist#-10.0)
+         tix#=tix#*(dmgdist#-10.0)
+         tiy#=tiy#*(dmgdist#-10.0)
+         tiz#=tiz#*(dmgdist#-10.0)
          rem create a splat decal
          decalscalemodx=0 : rem FPSCV101 - fix
          decalorient=0 : decalx=tdamagex#+tix# : decaly=((entityelement(e).y+(object size y(entityelement(e).obj)/2))-rnd(6))+tiy# : decalz=tdamagez#+tiz#
@@ -8211,8 +8242,8 @@ if entityelement(e).ai.waypoint.state>0
   entityelement(e).mover.da=atanfull(tdx#,tdz#)
   distx#=waypointcoord(w).x-entityelement(e).x
   distz#=waypointcoord(w).z-entityelement(e).z
-  dist#=sqrt(abs(distx#*distx#)+abs(distz#*distz#))
-  if dist#<7.0*(entityelement(e).eleprof.speed/100.0)
+  wpdist#=sqrt(abs(distx#*distx#)+abs(distz#*distz#))
+  if wpdist#<7.0*(entityelement(e).eleprof.speed/100.0)
    rem decision on direction
    if entityelement(e).ai.waypoint.direction=1
     rem forward
@@ -8330,40 +8361,49 @@ if obj>0
  rem animation and slerp handling
  if entityelement(e).animset>0
   entityelement(e).animdo=entityelement(e).animset-1
-  entityelement(e).animtime=4
+  entityelement(e).animtime=12
   entityelement(e).animset=0
-  stop object obj : set object interpolation obj,25
-  tbaseframe=entityelement(e).animdo : gosub _entity_getactualframestart
-  set object frame obj,tactualframe
+  rem FPGC - 100710 - to defeat anim staggering (jittering between two constantly called animation calls)
+  rem we only start to interpolate at ANIMTIME=3 then 2 and then 1 so the first ANIMTIME=4 does not affect visual
+  rem see animtime code below
  endif
  if entityelement(e).animdo>=0
   rem handle transition into loop anim
-  if entityelement(e).animtime=1
-   set object interpolation obj,100
-   tbaseframe=entityelement(e).animdo : gosub _entity_getactualframestart : tfstart=tactualframe
-   tbaseframe=entityelement(e).animdo : gosub _entity_getactualframefinish : tffinish=tactualframe
-   rem hack as we know the anims (die anims) (multiplayer)
-   if gmultiplayergame=1
-    if entityelement(e).animdo=11 then entityelement(e).animonce=1
-    if entityelement(e).animdo=14 then entityelement(e).animonce=1
-    if entityelement(e).animdo=17 then entityelement(e).animonce=1
-    if entityelement(e).animdo=20 then entityelement(e).animonce=1
-   endif
-   if entityelement(e).animonce=1
-    loop object obj,tffinish-0.001,tffinish
-    set object frame obj,tfstart
-    entityelement(e).animonce=0
-    set object speed obj,100
-   else
-    loop object obj,tfstart,tffinish
-    if entityelement(e).animdir=1
-     set object speed obj,-125
+  if entityelement(e).animtime=11
+   rem FPGC - 100710 - defeats anim stagger
+   if object playing(obj)=1 then stop object obj 
+   set object interpolation obj,10
+   tbaseframe=entityelement(e).animdo : gosub _entity_getactualframestart
+   set object frame obj,tactualframe
+  else  
+   if entityelement(e).animtime=1
+    set object interpolation obj,100
+    tbaseframe=entityelement(e).animdo : gosub _entity_getactualframestart : tfstart=tactualframe
+    tbaseframe=entityelement(e).animdo : gosub _entity_getactualframefinish : tffinish=tactualframe
+    rem hack as we know the anims (die anims) (multiplayer)
+    if gmultiplayergame=1
+     if entityelement(e).animdo=11 then entityelement(e).animonce=1
+     if entityelement(e).animdo=14 then entityelement(e).animonce=1
+     if entityelement(e).animdo=17 then entityelement(e).animonce=1
+     if entityelement(e).animdo=20 then entityelement(e).animonce=1
+    endif
+    if entityelement(e).animonce=1
+     loop object obj,tffinish-0.001,tffinish
+     set object frame obj,tfstart
+     entityelement(e).animonce=0
+     set object speed obj,100
     else
-     set object speed obj,125
+     loop object obj,tfstart,tffinish
+     if entityelement(e).animdir=1
+      set object speed obj,-110*timeelapsed#
+     else
+      set object speed obj,110*timeelapsed#
+     endif
     endif
    endif
   endif
   if entityelement(e).animtime>0 then entityelement(e).animtime=entityelement(e).animtime-1
+  `
   rem monitor any animation (periodically)
   if timeelapsedrefreshentityanimspeeds=0
    if entityelement(e).animdir=1
@@ -8372,6 +8412,7 @@ if obj>0
     set object speed obj,110*timeelapsed#
    endif
   endif
+  `
  endif
  `
  rem slerp limbs back into place
@@ -9330,12 +9371,12 @@ _entity_spherecollision:
    distx#=entityelement(e).x-spherex#
    disty#=entityelement(e).y-spherey#
    distz#=entityelement(e).z-spherez#
-   dist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
+   spdist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
    obj=entityelement(e).obj
    if obj>0
-    if dist#<object size(obj)*2
+    if spdist#<object size(obj)*2
      idist#=intersect object(obj,spherex#,spherey#,spherez#,spherenx#,sphereny#,spherenz#)
-     if idist#>0 and idist#<=dist#
+     if idist#>0 and idist#<=spdist#
       spheree=e : exit
      endif
     endif
@@ -9357,12 +9398,12 @@ _entity_addforcesphere:
   distx#=entityelement(tte).x-spherex#
   disty#=entityelement(tte).y-spherey#
   distz#=entityelement(tte).z-spherez#
-  dist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
+  spdist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
   tblastradius#=400.0*sphereforce#
-  if dist#<tblastradius#
+  if spdist#<tblastradius#
    rem calculate force
-   tix#=distx#/dist# : tiy#=disty#/dist# : tiz#=distz#/dist#
-   tforce#=(tblastradius#-dist#)/tblastradius#
+   tix#=distx#/spdist# : tiy#=disty#/spdist# : tiz#=distz#/spdist#
+   tforce#=(tblastradius#-spdist#)/tblastradius#
    rem work out if direct or indirect damage (raycast)
    tdirectdamage=0
    if static raycast(spherex#,spherey#+2.5,spherez#,entityelement(tte).x,entityelement(tte).y+2.5,entityelement(tte).z)=0
@@ -9425,15 +9466,15 @@ _entity_addforcesphere:
  distx#=camera position x()-spherex#
  disty#=camera position y()-spherey#
  distz#=camera position z()-spherez#
- dist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
+ spdist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
  tblastradius#=400.0*sphereforce#
- if dist#<tblastradius#
+ if spdist#<tblastradius#
   rem damage power
-  tpower#=(tblastradius#-dist#)/tblastradius#
+  tpower#=(tblastradius#-spdist#)/tblastradius#
   rem work out if direct damage or indirect
   tdirectdamage=0
-  sphtx#=spherex#+((distx#/dist#)*20.0)
-  sphtz#=spherez#+((distz#/dist#)*20.0)
+  sphtx#=spherex#+((distx#/spdist#)*20.0)
+  sphtz#=spherez#+((distz#/spdist#)*20.0)
   if static raycast(sphtx#,spherey#+2.5,sphtz#,camera position x(),camera position y(),camera position z())=0
    tdirectdamage=1
   endif
@@ -10028,6 +10069,7 @@ conword$(AICONDAITARGETDISTFURTHER)="aitargetdistfurther"
 conword$(AICONDAIATCOVER)="aiatcover"
 conword$(AICONDAICALLEDBYPLR)="aicalledbyplr"
 conword$(AICONDAIHASTARGET)="aihastarget"
+conword$(AICONDDARKAIRUNNINGF)="runningforwards"
 rem Dark AI end
 
 rem Set all action keywords
@@ -10074,6 +10116,8 @@ actword$(AIACTINCFRAME)="incframe"
 actword$(AIACTDECFRAME)="decframe"
 actword$(AIACTANIMATE)="animate"
 actword$(AIACTADVFRAME)="advframe"
+actword$(AIACTANIMATIONNORMAL)="animationnormal"
+actword$(AIACTANIMATIONREVERSE)="animationreverse"
 actword$(AIACTRAGDOLL)="ragdoll"
 actword$(AIACTCARRYALL)="carryall"
 actword$(AIACTPLRASS)="associateplayer"
@@ -11289,8 +11333,8 @@ if aiindex>0
        distx#=object position x(tobj)-entityelement(e).x
        disty#=object position y(tobj)-entityelement(e).y
        distz#=object position z(tobj)-entityelement(e).z
-       dist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
-       if dist#>=conda then airesult=0
+       tddist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
+       if tddist#>=conda then airesult=0
       endif
       if entityelement(e).actualtarget=0 then airesult=0
      endif
@@ -11305,8 +11349,8 @@ if aiindex>0
        distx#=object position x(tobj)-entityelement(e).x
        disty#=object position y(tobj)-entityelement(e).y
        distz#=object position z(tobj)-entityelement(e).z
-       dist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
-       if dist#<=conda then airesult=0
+       tddist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
+       if tddist#<=conda then airesult=0
       endif
       if entityelement(e).actualtarget=0 then airesult=0
      endif
@@ -11358,6 +11402,14 @@ if aiindex>0
      if ai entity exist(entityelement(e).obj)
       if conda=1 and entityelement(e).actualtarget=0 then airesult=0
       if conda=0 and entityelement(e).actualtarget<>0 then airesult=0
+     endif
+    endcase
+    case AICONDDARKAIRUNNINGF:
+     conda=aiconditionseq(seq).valuea
+     taction=entityelement(e).darkai.action
+     if ai entity exist(entityelement(e).obj)
+      if entityelement(e).darkai.action=5 and conda=0 then airesult=0
+      if entityelement(e).darkai.action<>5 and conda=1 then airesult=0
      endif
     endcase
     `
@@ -11732,13 +11784,19 @@ if aiindex>0
        entityelement(e).destanimframe=0
        entityelement(e).animframe=0
        entityelement(e).animtime=0
-      endif
+      endif      
      endcase
      case AIACTADVFRAME:
       tmpframe=aiactionseq(seq).value
       tmpframe#=entityelement(e).destanimframe-entityelement(e).animframe
       tmpframe#=(tmpframe#/100.0)*tmpframe
       entityelement(e).animframe=entityelement(e).animframe+tmpframe#
+     endcase
+     case AIACTANIMATIONNORMAL:
+      entityelement(e).animdir=0
+     endcase
+     case AIACTANIMATIONREVERSE:
+      entityelement(e).animdir=1
      endcase
      `
      case AIACTSOUND:
@@ -12449,8 +12507,8 @@ if aiindex>0
         w=entityelement(e).ai.waypoint.current
         distx#=waypointcoord(w).x-entityelement(e).x
         distz#=waypointcoord(w).z-entityelement(e).z
-        dist#=sqrt(abs(distx#*distx#)+abs(distz#*distz#))
-        if dist#<=10.0*(entityelement(e).eleprof.speed/100.0)
+        wpdist#=sqrt(abs(distx#*distx#)+abs(distz#*distz#))
+        if wpdist#<=10.0*(entityelement(e).eleprof.speed/100.0)
          rem radius bigger to avoid catch twenty two
          tgoaheadandincdec=1
         endif
@@ -13513,7 +13571,7 @@ if aiindex>0
         ttarget=entityelement(e).ttarget
         if ttarget>0
          if ttarget = physicsplayerborble
-          if player(1).health>0
+          if player(1).health>0 or playerstartstrength=0
            entityelement(e).actualtarget=1
            entityelement(e).actualtargetx=mex#
            entityelement(e).actualtargety=mey#
@@ -13776,15 +13834,15 @@ if aiindex>0
           distx#=tdamagex#-entityelement(e).x
           disty#=tdamagey#-entityelement(e).y
           distz#=tdamagez#-entityelement(e).z
-          dist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
+          bldist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
           rem direction from player to entity
           tix#=entityelement(e).x-tdamagex# : tiy#=entityelement(e).y-tdamagey# : tiz#=entityelement(e).z-tdamagez#
           tdd#=sqrt(abs(tix#*tix#)+abs(tiy#*tiy#)+abs(tiz#*tiz#))
           tix#=tix#/tdd# : tiy#=tiy#/tdd# : tiz#=tiz#/tdd#
           rem find point of impact
-          tix#=tix#*(dist#-10.0)
-          tiy#=tiy#*(dist#-10.0)
-          tiz#=tiz#*(dist#-10.0)
+          tix#=tix#*(bldist#-10.0)
+          tiy#=tiy#*(bldist#-10.0)
+          tiz#=tiz#*(bldist#-10.0)
           rem create a splat decal
           decalscalemodx=0 : rem FPSCV101 - fix
           decalorient=0 : decalx=tdamagex#+tix# : decaly=((entityelement(e).y+(object size y(entityelement(e).obj)/2))-rnd(6))+tiy# : decalz=tdamagez#+tiz#
@@ -22128,19 +22186,19 @@ for l=1 to tnumlights
      distx#=infinilight().x-mex#
      disty#=infinilight().y-mey#
      distz#=infinilight().z-mez#
-     dist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
+     lgdist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
      tat#=atanfull(distx#,distz#)
      if tat#<0 then tat#=tat#+360
      tat#=abs(tat#-wrapvalue(mea#))
      if tat#>180 then tat#=360-tat#
      tokay=0
-     if dist#<600.0 then tokay=1
-     if dist#>=600.0
+     if lgdist#<600.0 then tokay=1
+     if lgdist#>=600.0
       if tat#<90.0 then tokay=1
      endif
      if tokay=1
-      if dist#<bestdist#
-       bestdist#=dist# : bestindex=currentindex
+      if lgdist#<bestdist#
+       bestdist#=lgdist# : bestindex=currentindex
       endif
      endif
      `
@@ -28787,8 +28845,9 @@ _ai_hud_view:
   `
   rem Global eventual reset of RAWTEXT
   if grawtextcount>0
-   dec grawtextcount
-   if grawtextcount=0
+   grawtextcount=grawtextcount-(timeelapsed#*5)
+   if grawtextcount<=0
+    grawtextcount=0
     grawtext$=""
    endif
   endif
@@ -40029,20 +40088,25 @@ _editor_undoredoprojectstate:
 rem set as modified
 projectmodified=1 : gosub _gridedit_changemodifiedflag
 
-rem control enabling of UNDO REDO menu items
-open file map 1, "FPSEXCHANGE"
-if currentundoredomarker>0
- set file map dword 1, 466, 1
-else
- set file map dword 1, 466, 0
+rem FPGC - 100710 - in art mode, this would be called hundreds of times (and it contains an interface 'wait')!
+if deferundoredoprojectstatetoend=0
+ `
+ rem control enabling of UNDO REDO menu items
+ open file map 1, "FPSEXCHANGE"
+ if currentundoredomarker>0
+  set file map dword 1, 466, 1
+ else
+  set file map dword 1, 466, 0
+ endif
+ if currentundoredomarker<array count(undoredolist())
+  set file map dword 1, 470, 1
+ else
+  set file map dword 1, 470, 0
+ endif
+ wait for file map event 1
+ close file map 1
+ `
 endif
-if currentundoredomarker<array count(undoredolist())
- set file map dword 1, 470, 1
-else
- set file map dword 1, 470, 0
-endif
-wait for file map event 1
-close file map 1
 
 return
 
@@ -40307,7 +40371,7 @@ tx=mx : ty=my : tlayer=layer
 inputsys.undoredoevent=1 : gridevent=inputsys.undoredoevent : gosub _editor_undoredoadd
 
 rem update neighbor tiles if in auto-mode
-if segmentprofile(gridselection).vis.overlay=0
+if segmentprofile(gridselection).vis.overlay=0 and singletilejustfloor=0
  upx=mx : upy=my : uplayer=layer : gosub _gridedit_updatetile
 endif
 
@@ -40370,7 +40434,7 @@ tx=mx : ty=my : tlayer=layer
 tmapid=0 : inputsys.undoredoevent=1 : gridevent=inputsys.undoredoevent : gosub _editor_undoredoadd
 
 rem update neighbor tiles if in auto-mode
-if segmentprofile(gridselection).vis.overlay=0
+if segmentprofile(gridselection).vis.overlay=0 and singletilejustfloor=0
  addremovenotadd=1
  upx=mx : upy=my : uplayer=gridlayer : gosub _gridedit_updatetile
  addremovenotadd=0
@@ -40590,6 +40654,9 @@ if inputsys.mmx>=0 and inputsys.mmy>=0 and inputsys.mmx<maxx and inputsys.mmy<ma
      rem flag that cut has been used (entity copy control)
      bufferholdscutdata=1
      `
+     rem FPGC - 100710 - in art mode, ensuer interface wait is called once (at end of loop)
+     deferundoredoprojectstatetoend=1
+     `
      rem blank out map data
      for layer=0 to bufferlayer
       for my=0 to buffermaxy
@@ -40618,6 +40685,10 @@ if inputsys.mmx>=0 and inputsys.mmy>=0 and inputsys.mmx<maxx and inputsys.mmy<ma
        next mx
       next my
      next layer
+     `
+     rem FPGC - 100710 - in art mode, ensuer interface wait is called once (at end of loop)
+     deferundoredoprojectstatetoend=0
+     gosub _editor_undoredoprojectstate
      `
      rem Update map area
      for ulayer=0 to bufferlayer
@@ -40665,6 +40736,9 @@ if inputsys.mmx>=0 and inputsys.mmy>=0 and inputsys.mmx<maxx and inputsys.mmy<ma
     `
     rem paste clipboard
     if inputsys.tselpaste=1
+     `
+     rem FPGC - 100710 - in art mode, ensuer interface wait is called once (at end of loop)
+     deferundoredoprojectstatetoend=1
      `
      rem Copy buffer to map
      tbuffer=0
@@ -40782,6 +40856,10 @@ if inputsys.mmx>=0 and inputsys.mmy>=0 and inputsys.mmx<maxx and inputsys.mmy<ma
       next my
      next layer
      `
+     rem FPGC - 100710 - in art mode, ensuer interface wait is called once (at end of loop)
+     deferundoredoprojectstatetoend=0
+     gosub _editor_undoredoprojectstate
+     `
      rem Update shroud after paste
      shroudrefresh=1 : gosub _gridedit_updatelayershades
      `
@@ -40789,6 +40867,9 @@ if inputsys.mmx>=0 and inputsys.mmy>=0 and inputsys.mmx<maxx and inputsys.mmy<ma
     `
     rem wipe out map covered by clipbboard selection
     if inputsys.tselwipe=1
+     `
+     rem FPGC - 100710 - in art mode, ensuer interface wait is called once (at end of loop)
+     deferundoredoprojectstatetoend=1
      `
      rem Wipe map of selection-area size
      tbuffer=0
@@ -40817,6 +40898,10 @@ if inputsys.mmx>=0 and inputsys.mmy>=0 and inputsys.mmx<maxx and inputsys.mmy<ma
        next mx
       next my
      next layer
+     `
+     rem FPGC - 100710 - in art mode, ensuer interface wait is called once (at end of loop)
+     deferundoredoprojectstatetoend=0
+     gosub _editor_undoredoprojectstate
      `
      rem Update map area
      for ulayer=0 to bufferlayer
@@ -40904,6 +40989,9 @@ if inputsys.mmx>=0 and inputsys.mmy>=0 and inputsys.mmx<maxx and inputsys.mmy<ma
   else
    tgrideditartwidthx=grideditartwidthx : tgrideditartwidthy=grideditartwidthy
   endif
+  `
+  rem FPGC - 100710 - in art mode, ensuer interface wait is called once (at end of loop)
+  if selstage=2 then deferundoredoprojectstatetoend=1
   `
   rem art preview/draw loop
   llokay=1
@@ -41038,6 +41126,12 @@ if inputsys.mmx>=0 and inputsys.mmy>=0 and inputsys.mmx<maxx and inputsys.mmy<ma
       `
       rem draw at location if flagged
       if selstage=2
+       `
+       rem FPGC - 100710 - skip area check on pure floor segments, except around edge (where they touch existing segments)
+       singletilejustfloor=tisfloortile
+       if twidthy=0 or twidthy=tgrideditartwidthy-1 then singletilejustfloor=0
+       if twidthx=0 or twidthx=tgrideditartwidthx-1 then singletilejustfloor=0   
+       `
        if selstagemode=1
         rem paint tile to map
         layer=gridlayer : mx=llx+twidthx : my=lly+twidthy
@@ -41052,6 +41146,7 @@ if inputsys.mmx>=0 and inputsys.mmy>=0 and inputsys.mmx<maxx and inputsys.mmy<ma
          gosub _gridedit_erasesingletile
         endif
        endif
+       singletilejustfloor=0
       endif
       `
      next twidthx
@@ -41070,6 +41165,9 @@ if inputsys.mmx>=0 and inputsys.mmy>=0 and inputsys.mmx<maxx and inputsys.mmy<ma
   rem end draw phase
   if selstage=2
    selstage=0 : selstagemode=0
+   rem FPGC - 100710 - in art mode, ensuer interface wait is called once (at end of loop)
+   deferundoredoprojectstatetoend=0
+   gosub _editor_undoredoprojectstate
   endif
   `
  endif
@@ -43993,12 +44091,12 @@ for ly=lystart to lyend
        perc#=0.0
        objx#=basex#+(x*100) : objy#=basey#+(y*100)
        dx#=(objx#-basex#)-otx# : dy#=(objy#-basey#)+oty#
-       dist#=sqrt(abs(dx#*dx#)+abs(dy#*dy#))
-       if dist#<=dista#
+       aldist#=sqrt(abs(dx#*dx#)+abs(dy#*dy#))
+       if aldist#<=dista#
         perc#=100.0
        else
-        if dist#<=distb#
-         perc#=100.0-((dist#-dista#)/1.5)
+        if aldist#<=distb#
+         perc#=100.0-((aldist#-dista#)/1.5)
         endif
        endif
        if gridlayershowall=1
@@ -47956,7 +48054,8 @@ _darkai_addai:
  `
  rem FPGC - 060510 - height measures characters EYE from FEET (for alternative visibility raycast)
  AI Set Entity Height obj,entityelement(e).eleprof.coneheight
- AI Set Entity Turn Speed obj,entityelement(e).eleprof.speed*2
+ `AI Set Entity Turn Speed obj,entityelement(e).eleprof.speed*2 ` FPGC - 100710 - all chars turn VERY slowly!
+ AI Set Entity Turn Speed obj,entityelement(e).eleprof.speed*6
  `
  ai set entity fire arc obj,20
  ai set entity view range obj,600
@@ -48342,8 +48441,9 @@ _darkai_control:
   endif
  endif
 
-rem Apply New Actions
- ai set entity speed obj,entityelement(e).eleprof.speed/2.0
+ rem Get entity position info 
+ tentx#=ai get entity x(obj)
+ tentz#=ai get entity z(obj)
 
  Rem Hockeykid - 050410 - reset call flag if times up
  if entityelement(e).darkai.called>0
@@ -48354,8 +48454,6 @@ rem Apply New Actions
  endif
 
  rem Apply Direction
- tentx#=ai get entity x(obj)
- tentz#=ai get entity z(obj)
  tmovx#=ai get entity move x(obj)
  tmovz#=ai get entity move z(obj)
  entityelement(e).mover.da=ai get entity angle y(obj)
@@ -48373,12 +48471,39 @@ rem Apply New Actions
   if conda#>180 then conda#=360-conda#
   if conda#<-180 then conda#=conda#+360
   entityelement(e).darkai.action=1
-  if conda#>80.0 then entityelement(e).darkai.action=4
-  if conda#<-80.0 then entityelement(e).darkai.action=3
+  rem FPGC - 100710 - do not trigger strafe flag (and subsequent animation) until establish proper strafe build-up
+  tstillstrafing=0
+  if conda#>80.0 then entityelement(e).darkai.strafebuildup=entityelement(e).darkai.strafebuildup+1 : tstillstrafing=1
+  if conda#<-80.0 then entityelement(e).darkai.strafebuildup=entityelement(e).darkai.strafebuildup-1 : tstillstrafing=1
+  if tstillstrafing=0 then entityelement(e).darkai.strafebuildup=0
+  if entityelement(e).darkai.strafebuildup<>0
+   if entityelement(e).darkai.strafebuildup>5 then entityelement(e).darkai.action=4
+   if entityelement(e).darkai.strafebuildup<-5 then entityelement(e).darkai.action=3
+  endif
   if conda#<-120.0 or conda#>120.0 then entityelement(e).darkai.action=2
   if entityelement(e).aimoved=1 then entityelement(e).aimoved=0
  endif
  if entityelement(e).darkai.ehit=-1 then entityelement(e).darkai.ehit=0
+ `
+ rem Work out distance to target (run if over 600 units away)
+ entityelement(e).mover.run=0
+ if entityelement(e).darkai.action=1
+ rem leelee
+  tenttargetx#=ai get entity destination x(obj)-tentx#
+  tenttargetz#=ai get entity destination z(obj)-tentz#
+  tenttarget#=sqrt(abs(tenttargetx#*tenttargetx#)+abs(tenttargetz#*tenttargetz#))
+  if tenttarget#>175
+   entityelement(e).mover.run=1 
+   entityelement(e).darkai.action=5
+  endif
+ endif
+ `  
+ rem Set entity move speed 
+ if entityelement(e).mover.run=1
+  ai set entity speed obj,entityelement(e).eleprof.speed*1.5
+ else
+  ai set entity speed obj,entityelement(e).eleprof.speed/2.0
+ endif
  `
  Rem Cross-Layer Interaction
  ttilex#=tentx#/100
@@ -48448,9 +48573,9 @@ _darkai_debug:
 return
 
 _ai_find_angle:
- dist# = sqrt((ex1#-ex2#)^2 + (ez1#-ez2#)^2)
+ fadist#=sqrt((ex1#-ex2#)^2 + (ez1#-ez2#)^2)
  if entityelement(e).eyeoffset=0 then entityelement(e).eyeoffset=80
- entityangle#=atanfull((ey1#+ey1eyeoffset)-(ey2#+entityelement(e).eyeoffset), dist#)
+ entityangle#=atanfull((ey1#+ey1eyeoffset)-(ey2#+entityelement(e).eyeoffset), fadist#)
 return
 
 _darkai_stop:
@@ -48518,10 +48643,10 @@ _darkai_find_safezone:
   distx#=aisafezone(i).x-entityelement(e).x
   disty#=aisafezone(i).y-entityelement(e).y
   distz#=aisafezone(i).z-entityelement(e).z
-  dist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
+  szdist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
   if aisafezone(i).occupied=0
-   if dist#<cloestdist#
-    cloestdist#=dist#
+   if szdist#<cloestdist#
+    cloestdist#=szdist#
     tbesti=i
    endif
   endif
@@ -48540,8 +48665,8 @@ _SafeZone_Update:
    distx#=aisafezone(i).x-entityelement(x).x
    disty#=aisafezone(i).y-entityelement(x).y
    distz#=aisafezone(i).z-entityelement(x).z
-   dist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
-   if dist#<=100
+   szdist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
+   if szdist#<=100
     aisafezone(i).occupied=1
    endif
   next i
@@ -48591,7 +48716,7 @@ Add_Targets:
   endif
  next i
  `if entityelement(e).darkai.team<>1 and ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position z(physicsplayerborble),1)>0 `280410 - old DarkAI
- if player(1).health>0
+ if player(1).health>0 or playerstartstrength=0
   for x=1 to FactionArrayMax
    `if aifaction(teamslot,x).neutral<>1 and aifaction(teamslot,x).ally<>1 and ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position y(physicsplayerborble),object position z(physicsplayerborble),1)>0
    if aifaction(teamslot,x).enemy=1 and ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position y(physicsplayerborble),object position z(physicsplayerborble),1)>0
