@@ -108,6 +108,7 @@ type darkaitype
  running as boolean
  action as integer
  strafebuildup as integer
+ runbuildup as integer
  useaim as integer
  aiy as float
  Rem Paths
@@ -26698,6 +26699,9 @@ _universe_construct_skip:
  rem if no old file, no old data so no skip
  if file exist("levelbank\testlevel\old.dat")=0 then universeconstructskip=0 : return
  `
+ rem FPGC - 130710 - if no universe DBO (due to FPSC cleaner), no skip
+ if file exist("levelbank\testlevel\universephy.dbo")=0 then universeconstructskip=0 : return
+ `
  rem check static entities/lights
  versionnumber=100
  open to read 1,"levelbank\testlevel\old.dat"
@@ -48531,13 +48535,17 @@ _darkai_control:
  rem Work out distance to target (run if over 600 units away)
  entityelement(e).mover.run=0
  if entityelement(e).darkai.action=1
- rem leelee
   tenttargetx#=ai get entity destination x(obj)-tentx#
   tenttargetz#=ai get entity destination z(obj)-tentz#
   tenttarget#=sqrt(abs(tenttargetx#*tenttargetx#)+abs(tenttargetz#*tenttargetz#))
   if tenttarget#>175
-   entityelement(e).mover.run=1 
-   entityelement(e).darkai.action=5
+   entityelement(e).darkai.runbuildup=entityelement(e).darkai.runbuildup+1
+   if entityelement(e).darkai.runbuildup>20
+    entityelement(e).mover.run=1 
+    entityelement(e).darkai.action=5
+   endif
+  else
+   entityelement(e).darkai.runbuildup=0
   endif
  endif
  `  

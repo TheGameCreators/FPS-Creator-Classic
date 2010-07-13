@@ -9,6 +9,8 @@ History
 V1.1.7
 ------
 
+ * Added extra check to ensure engine does a full rebuild of level if cleaner removed universe DBO
+ * Adjusted character running code for DAI so they need a walk build-up before launching into run
  * Overhauled some of the stock characters to allow them to speak (full DarkVOICES mouth support)
  * Test Game now remembers the ambient light setting to save the user constantly re-adjusting each test
  * Added ability for DAI characters to run if they are further than 175 units away from their destination
