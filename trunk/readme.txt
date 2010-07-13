@@ -9,6 +9,8 @@ History
 V1.1.7
 ------
 
+ * Overhauled some of the stock characters to allow them to speak (full DarkVOICES mouth support)
+ * Test Game now remembers the ambient light setting to save the user constantly re-adjusting each test
  * Added ability for DAI characters to run if they are further than 175 units away from their destination
  * Added new FPI actions ANIMATIONNORMAL and ANIMATIONREVERSE to reverse animations using ANIMATE
  * Added code to absorb the jitter seen when a character toggles quickly between two animations (interp=10%)

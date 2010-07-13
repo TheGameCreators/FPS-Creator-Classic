@@ -2273,12 +2273,14 @@ rem GUI Visual Settings
 type guivisualsettingstype
  updateflag as integer
  ambience as integer
+ ambienceoverride as integer
  shadows as integer
  shadowstrength as integer
  shadowshades as integer
  dynamiclightcount as integer
 endtype
 guivisualsettings as guivisualsettingstype
+guivisualsettings.ambienceoverride=-1
 
 rem HUD structure
 type hudtype
@@ -3788,6 +3790,16 @@ if gtestgamemodefromeditor=1
  `
  rem FPGC - 050909 - load resources collected so far (from previous test games)
  loadresource()
+ `
+ rem FPGC - 130710 - if in test mode, load ambient setting override
+ guivisualsettings.ambienceoverride=-1
+ if gtestgamemodefromeditor=1
+  if file exist("editors\gridedit\testambience.txt")=1
+   open to read 1,"editors\gridedit\testambience.txt"
+   read string 1,a$ : guivisualsettings.ambienceoverride=val(a$)
+   close file 1
+  endif
+ endif
  `
 endif
 
@@ -22007,6 +22019,27 @@ rem Irrespective of dynamic light setting
 if inkey$()="," and guivisualsettings.ambience>0 then dec guivisualsettings.ambience : guivisualsettings.updateflag=1
 if inkey$()="." and guivisualsettings.ambience<100 then inc guivisualsettings.ambience : guivisualsettings.updateflag=1
 
+rem FPGC - 130710 - override ambient light
+if guivisualsettings.ambienceoverride<>-1
+ if guivisualsettings.ambience<guivisualsettings.ambienceoverride
+  inc guivisualsettings.ambience,10
+  if guivisualsettings.ambience>guivisualsettings.ambienceoverride
+   guivisualsettings.ambience=guivisualsettings.ambienceoverride
+  endif
+  guivisualsettings.updateflag=1
+ else
+  if guivisualsettings.ambience>guivisualsettings.ambienceoverride
+   dec guivisualsettings.ambience,10
+   if guivisualsettings.ambience<guivisualsettings.ambienceoverride
+    guivisualsettings.ambience=guivisualsettings.ambienceoverride
+   endif
+   guivisualsettings.updateflag=1
+  else
+   guivisualsettings.ambienceoverride=-1
+  endif
+ endif
+endif
+
 return
 
 _lighting_control:
@@ -26394,6 +26427,12 @@ _gameflow_default:
       `
       rem If arena, pop up game win/lose screens (and repeat game choice)
       if gtestgamemodefromeditor<>0
+       `
+       rem FPGC - 130710 - if in test mode, save ambient setting from config file
+       if file exist("editors\gridedit\testambience.txt")=1 then delete file "editors\gridedit\testambience.txt"
+       open to write 1,"editors\gridedit\testambience.txt"
+       write string 1,str$(guivisualsettings.ambience)
+       close file 1
        `
        rem Quick Exit from test arena mode
        repeatsamelevel=0
@@ -47631,6 +47670,8 @@ function timestampactivity(i,desc$)
 endfunction
 
 function loadresource()
+ `
+ rem Load previously captured resource data
  memoryusagetable$=rootdir$+"editors\gridedit\memusedtable.dat"
  if file exist(memoryusagetable$)=1
   open to read 1,memoryusagetable$
@@ -47649,6 +47690,8 @@ function loadresource()
 endfunction
 
 function saveresource()
+ `
+ rem Save out resource captures
  memoryusagetable$=rootdir$+"editors\gridedit\memusedtable.dat"
  if file exist(memoryusagetable$)=1 then delete file memoryusagetable$
  open to write 1,memoryusagetable$
