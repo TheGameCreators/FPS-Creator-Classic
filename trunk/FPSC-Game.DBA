@@ -6972,11 +6972,15 @@ for e=1 to entityelementlist
     rem FPGC - 100710 - on occasion, character can be killed off screen (no anim performed)
     rem so need to adjust position of any carried weapon to floor (other it floats)
     tvweapobj=entityelement(e).attachmentobj
-    if tvweapobj>0
-     if object exist(tvweapobj)=1
-      if object in screen(tvweapobj)=0
-       unglue object tvweapobj
-       position object tvweapobj,object position x(tvweapobj),entityelement(e).y,object position z(tvweapobj)
+    if object exist(obj)=1
+     if object in screen(obj)=0
+      if tvweapobj>0
+       if object exist(tvweapobj)=1
+        unglue object tvweapobj
+        if object position y(tvweapobj)>entityelement(e).y+5
+         position object tvweapobj,object position x(tvweapobj),entityelement(e).y,object position z(tvweapobj)
+        endif
+       endif
       endif
      endif
     endif
@@ -7807,7 +7811,7 @@ return
 
 _entity_doscorch:
  rem material damage
-  rem AirMod - Line Modified for no scorch mode
+ rem AirMod - Line Modified for no scorch mode
  if tbullethitmaterial>0 and gun(gunid).settings.noscorch = 0
   tscorchsize2#=4.0+(rnd(10)/10.0) : tscorchtype2=11+tbullethitmaterial
   if tscorchtype2>15 then tscorchtype2=12 : rem FPSCV101 - fix

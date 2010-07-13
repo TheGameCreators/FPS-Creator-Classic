@@ -9,6 +9,10 @@ History
 V1.1.7
 ------
 
+ * Dropped weapons would sometimes rotate and reposition needlessly, fixed to high weapons out of view
+ * NOTE: Fix in U76 solves the issue of missing decal debris and material scorches in static scene
+ * New U76 DLL for Basic3D which fixes material/arbitary value return from raycast (cleared too late)
+ * Replaced DUST decal back to original as it was more apprpriate to wall and ceiling impacts
  * Added extra check to ensure engine does a full rebuild of level if cleaner removed universe DBO
  * Adjusted character running code for DAI so they need a walk build-up before launching into run
  * Overhauled some of the stock characters to allow them to speak (full DarkVOICES mouth support)
