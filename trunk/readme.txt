@@ -9,6 +9,8 @@ History
 V1.1.7
 ------
 
+ * Fixed very deep monster slowdown issue with ADDTARGET subroutine (reduced and eliminated CAN SEE calls)
+ * Due to user requests, set LOADREPORT to one will restore old baseline debug information in test game
  * Dropped weapons would sometimes rotate and reposition needlessly, fixed to high weapons out of view
  * NOTE: Fix in U76 solves the issue of missing decal debris and material scorches in static scene
  * New U76 DLL for Basic3D which fixes material/arbitary value return from raycast (cleared too late)

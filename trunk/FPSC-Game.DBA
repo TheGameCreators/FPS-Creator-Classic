@@ -434,6 +434,7 @@ global gameperfentities3 as DWORD
 global gameperfentities4 as DWORD
 global gameperfentities5 as DWORD
 global gameperfentities as DWORD
+global gameperfai as DWORD
 global gameperfgun as DWORD
 global gameperfmisc as DWORD
 global gameperfdebug as DWORD
@@ -3573,10 +3574,6 @@ _main_game_core:
  inc gameperfphysics, perftimer()-gameperftimestamp
  gameperftimestamp=perftimer()
  `
- rem Measure overall performance counts
- inc gameperftotalcount, perftimer()-gameperftotalcountTOP
- gameperftotalcountTOP=perftimer()
- `
  Rem Hockeykid - 250210 - set players position to the dark ai
  rem lee - 090310 - adjusted player AI position to include Y coordinate
  tcamx#=object position x(physicsplayerborble)
@@ -3624,6 +3621,13 @@ _main_game_core:
    next y
   next x
  endif
+ `
+ rem Record AI usage
+ inc gameperfai, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
+ `
+ rem Measure overall performance counts
+ inc gameperftotalcount, perftimer()-gameperftotalcountTOP
+ gameperftotalcountTOP=perftimer()
  `
  rem Update screen
  gosub _main_sync
@@ -6229,11 +6233,13 @@ if gameperftimetracker>av#
  i=14 : perf(i) = gameperfentities3/av# : gameperfentities3=0
  i=15 : perf(i) = gameperfentities4/av# : gameperfentities4=0
  i=16 : perf(i) = gameperfentities5/av# : gameperfentities5=0
+ i=17 : perf(i) = gameperfai/av# : gameperfai=0
 endif
 
 rem Optional additional statistics
 rem FPGC - 060710 - removed old debug text in favour of graphical readout (below)
-if debugviewmode=0 and 0
+rem FPGC - 140710 - some users want the old debug info back, so add under LOADREPORT flag
+if debugviewmode=0 and gloadreportstate=1
  `
  rem Appreviated for game scene (temp)
  t$=""
@@ -6321,7 +6327,7 @@ if testgametabtoggle=1
 else
  `
  rem FPGC - 060710 - replace text based debug info with more graphics (cooler and more relevent)
- if debugviewmode=0
+ if debugviewmode=0 and gloadreportstate=0
   `
   rem draw resource meter
   img=effectmenuimagestart+33 : rmposx=(screen width()-548)/2 : rmposy=screen height()-20
@@ -6781,6 +6787,9 @@ if gshowdebugtextingamestate=1
  endif
 endif
 
+rem Entity Performance
+inc gameperfentities1, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
+
 rem Go through all entities for LOGIC
 superstealpriority=0
 tonestealperaiphase=0
@@ -6791,7 +6800,6 @@ for e=1 to entityelementlist
  obj=entityelement(e).obj
  rem AirMod - Added for Advanced Blood
  gosub _entity_controlblood
-
  obje=e
  if entityelement(e).active=1 and entityelement(e).dormant=0
   `
@@ -6826,7 +6834,9 @@ for e=1 to entityelementlist
    endif
 
    Rem Hockeykid - 250210 - Dark AI main control subroutine call
+`   inc gameperfentities2, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
    gosub _darkai_control
+`   inc gameperfentities3, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
    `
    rem logic timeslice
    tlogic#=entityelement(e).logiccount-timeelapsed#
@@ -7089,7 +7099,7 @@ if logicpriorityfurtheste>0
 endif
 
 rem Entity Performance
-inc gameperfentities1, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
+inc gameperfentities4, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
 
 rem Go through all entities for MOVEMENT
 for e=1 to entityelementlist
@@ -7102,17 +7112,12 @@ for e=1 to entityelementlist
     gosub _entity_controlwaypoints
     gosub _entity_controlforce
     gosub _entity_controlcollision
-    inc gameperfentities2, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
     gosub _entity_controlmovements
-    inc gameperfentities3, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
     gosub _entity_controldelayeddamage
    endif
   endif
  endif
 next e
-
-rem Entity Performance
-inc gameperfentities4, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
 
 rem Calculate any logic drop increments/decrements
 rem V110 - 290508 - give more MS to entity logic (it is a drainer in X9)
@@ -48143,18 +48148,12 @@ _darkai_control:
  if obj=0 then return
  if ai entity exist(obj)=0 then return
 
-` leenote - 060510 - entity know which container they are in at all times, no need to force this!
-` for y=0 to 19
-`  if object position y(entityelement(e).obj) > container(y).y#-50.0 and object position y(entityelement(e).obj) < container(y).y#+50.0
-`   k=y
-`   ai set entity container obj,k : entitycontain=k : exit
-`  endif
-` next y
-
  Rem reset ttarget(s)
  ttargetvisible=0
  ttargetvisibleduck=0
+ inc gameperfentities2, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
  Gosub Add_Targets
+ inc gameperfentities3, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
 
  rem Collect Sensory Information
  if ai get entity target id(obj,1)<>0
@@ -48165,7 +48164,7 @@ _darkai_control:
  `ai get entity target id(obj,1)
  tsound=ai get entity heard sound(obj)
  ttargets=ai get entity count targets(obj)
-
+   
  rem Collect Target Information (280410 - added tobjtarget<65535 to prevent crash)
  if tobjtarget>0 and tobjtarget<65535
   if object exist(tobjtarget)=1
@@ -48184,7 +48183,7 @@ _darkai_control:
    ttargetvisibleduck=ai get entity can see(obj,ttargetx#,ttargety#,ttargetz#,0)
   endif
  endif
- `
+ `   
  rem Collect Status Information
  tentid=entityelement(e).bankindex
  tducking=ai get entity is ducking(obj)
@@ -48729,57 +48728,83 @@ _SafeZone_Update:
 Return
 
 Add_Targets:
- arraycount=array count(ischaracter())
- teamslot=AIFindTeam(entityelement(e).darkai.team)
- for i=1 to arraycount
-  y=ischaracter(i)
-  if entityelement(y).obj>0
-   if ai entity exist(entityelement(y).obj)
-    foundenemy=0
-    for x=1 to FactionArrayMax
-     `if entityelement(y).obj<>entityelement(e).obj and entityelement(y).darkai.team<>entityelement(e).darkai.team and aifaction(teamslot,x).neutral<>entityelement(y).darkai.team and aifaction(teamslot,x).ally<>entityelement(y).darkai.team
-       `if ai get entity can see(entityelement(e).obj,object position x(entityelement(y).obj),object position z(entityelement(y).obj),1)>0 `280410 - old DarkAI
+ `
+ rem FPGC - 140710 - this subroutine caused EXTREME slowdown (too many can see calls)
+ `lee1 as DWORD : lee1=0
+ `lee2 as DWORD : lee2=0
+ `lee3 as DWORD : lee3=0
+ `lee4 as DWORD : lee4=0
+ `lee5 as DWORD : lee5=0
+ `lee6 as DWORD : lee6=0
+ `leet as DWORD
+ `leet=perftimer()
+ if ai entity exist(entityelement(e).obj)=1
+  arraycount=array count(ischaracter())
+  teamslot=AIFindTeam(entityelement(e).darkai.team)
+  `lee1=perftimer()-leet : leet=perftimer()
+  for i=1 to arraycount
+   y=ischaracter(i)
+   if entityelement(y).obj>0
+    if ai entity exist(entityelement(y).obj)
+     foundenemy=0
+     `inc lee2,perftimer()-leet : leet=perftimer()
+     for x=1 to FactionArrayMax
       if entityelement(y).obj<>entityelement(e).obj and entityelement(y).darkai.team<>entityelement(e).darkai.team and aifaction(teamslot,x).enemy=entityelement(y).darkai.team
        if ai get entity can see(entityelement(e).obj,object position x(entityelement(y).obj),object position y(entityelement(y).obj),object position z(entityelement(y).obj),1)>0
         ai entity add target entityelement(e).obj,entityelement(y).obj
        endif
       endif
       if entityelement(y).darkai.team=aifaction(teamslot,x).enemy then foundenemy=1
-    next x
-    if foundenemy=0
-     ai entity remove target entityelement(e).obj,entityelement(y).obj
-     if entityelement(e).actualtarget>1
-      c=entityelement(e).actualtarget-1
-      if entityelement(c).obj=entityelement(y).obj then entityelement(e).actualtarget=0
+     next x
+     `inc lee3,perftimer()-leet : leet=perftimer()
+     if foundenemy=0
+      ai entity remove target entityelement(e).obj,entityelement(y).obj
+      if entityelement(e).actualtarget>1
+       c=entityelement(e).actualtarget-1
+       if entityelement(c).obj=entityelement(y).obj then entityelement(e).actualtarget=0
+      endif
      endif
+     `inc lee4,perftimer()-leet : leet=perftimer()
+     `
+     Rem If entityelement(y).actualtarget>0 and the target no longer exist on the list reset flag
+     if ai entity exist(entityelement(y).obj)
+      tokay=0
+      if ai get entity count targets(entityelement(y).obj)=0 then entityelement(y).actualtarget=0
+      if entityelement(y).actualtarget>1 and ai get entity count targets(entityelement(y).obj)>0
+       tcount=ai get entity count targets(entityelement(y).obj)
+       for x=1 to tcount
+        c=entityelement(y).actualtarget-1
+        if entityelement(c).obj=ai get entity target id(entityelement(y).obj,x) then tokay=1 : exit
+       next x
+       if tokay=0 then entityelement(y).actualtarget=0
+      endif
+     endif
+     `inc lee5,perftimer()-leet : leet=perftimer()
+     `
     endif
-    `
-    Rem If entityelement(y).actualtarget>0 and the target no longer exist on the list reset flag
-    if ai entity exist(entityelement(y).obj)
-     tokay=0
-     if ai get entity count targets(entityelement(y).obj)=0 then entityelement(y).actualtarget=0
-     if entityelement(y).actualtarget>1 and ai get entity count targets(entityelement(y).obj)>0
-      tcount=ai get entity count targets(entityelement(y).obj)
-      for x=1 to tcount
-       c=entityelement(y).actualtarget-1
-       if entityelement(c).obj=ai get entity target id(entityelement(y).obj,x) then tokay=1 : exit
-      next x
-      if tokay=0 then entityelement(y).actualtarget=0
-     endif
+   endif
+  next i
+  `leet=perftimer()
+  if player(1).health>0 or playerstartstrength=0
+   rem FPGC - 150710 - previous code would call 'ai get entity can see' 'FactionArrayMax' times, only needs calling once for (E).OBJ
+   tenemytargetflagged=0
+   for x=1 to FactionArrayMax
+    if aifaction(teamslot,x).enemy=1 
+     tenemytargetflagged=1
+    endif
+   next x
+   if tenemytargetflagged=1
+    if ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position y(physicsplayerborble),object position z(physicsplayerborble),1)>0
+     ai entity add target entityelement(e).obj,physicsplayerborble
     endif
    endif
   endif
- next i
- `if entityelement(e).darkai.team<>1 and ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position z(physicsplayerborble),1)>0 `280410 - old DarkAI
- if player(1).health>0 or playerstartstrength=0
-  for x=1 to FactionArrayMax
-   `if aifaction(teamslot,x).neutral<>1 and aifaction(teamslot,x).ally<>1 and ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position y(physicsplayerborble),object position z(physicsplayerborble),1)>0
-   if aifaction(teamslot,x).enemy=1 and ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position y(physicsplayerborble),object position z(physicsplayerborble),1)>0
-    ai entity add target entityelement(e).obj,physicsplayerborble
-   endif
-  next x
+  `inc lee6,perftimer()-leet : leet=perftimer()
  endif
-Return
+ `set cursor 0,50+(e*15)
+ `print e;" 1:";lee1;" 2:";lee2;" 3:";lee3;" 4:";lee4;" 5:";lee5;" 6:";lee6
+ `
+return
 
 
 _Character_Array:
