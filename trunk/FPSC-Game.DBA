@@ -16172,7 +16172,11 @@ if playerstarthasweapon>0
    if weaponslot(tww).pref=playerstarthasweapon then exit
   endif
  next tww
- if tww>10
+ if tww<10
+  rem FPGC - 160710 - in standalone game, starting gun did not get added to GOT slot
+  weaponslot(tww).got=playerstarthasweapon
+  weaponhud(tww)=gun(playerstarthasweapon).hudimage
+ else
   for tww=1 to 10
    if weaponslot(tww).pref=0
     weaponslot(tww).pref=playerstarthasweapon
@@ -17989,6 +17993,7 @@ if gunmode=103
      play sound sndid,fireloopend : rem some sound bug
      loop sound sndid,0,fireloopend
      gunmodeloopsnd=sndid : gunmodeloopstarted=timer()
+     gunmodeloopvolume=100 : set sound volume gunmodeloopsnd,gunmodeloopvolume
     endif
    endif
   endif
@@ -18158,11 +18163,18 @@ if gunmodeloopsnd>0
    if sound exist(gunmodeloopsnd)=1
     if sound playing(gunmodeloopsnd)=1
       Rem Hockeykid - 260210 - changed line to stop sounds from cutting off
-     `stop sound gunmodeloopsnd
-      pause sound gunmodeloopsnd : resume sound gunmodeloopsnd
+      rem FPGC - 160710 - ah but we WANT to cut off the 'loop sound' if its still playing outside 101-107 (the autobit)
+      `pause sound gunmodeloopsnd : resume sound gunmodeloopsnd
+      if gunmodeloopvolume>0
+       dec gunmodeloopvolume,2
+       if gunmodeloopvolume<0 then gunmodeloopvolume=0
+       set sound volume gunmodeloopsnd,gunmodeloopvolume
+      else
+       stop sound gunmodeloopsnd
+       gunmodeloopsnd=0 : gunmodeloopstarted=0
+      endif
     endif
    endif
-   gunmodeloopsnd=0 : gunmodeloopstarted=0
   endif
  endif
 endif

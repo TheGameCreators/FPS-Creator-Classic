@@ -9,6 +9,8 @@ History
 V1.1.7
 ------
 
+ * Standalone games now fill weapon slot with starting weapon held in player start marker (press '1' bug)
+ * When player weapon fire is forced to end (out of ammo), now fades out loop sound instead of abrupt end
  * Updated DarkAI DLL to skip CAN SEE call if current entity coordinate reading as -1.#INF000
  * Fixed very deep monster slowdown issue with ADDTARGET subroutine (reduced and eliminated CAN SEE calls)
  * Due to user requests, set LOADREPORT to one will restore old baseline debug information in test game
