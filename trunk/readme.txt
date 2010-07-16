@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
 
+ * Updated DarkAI DLL to skip CAN SEE call if current entity coordinate reading as -1.#INF000
  * Fixed very deep monster slowdown issue with ADDTARGET subroutine (reduced and eliminated CAN SEE calls)
  * Due to user requests, set LOADREPORT to one will restore old baseline debug information in test game
  * Dropped weapons would sometimes rotate and reposition needlessly, fixed to high weapons out of view
