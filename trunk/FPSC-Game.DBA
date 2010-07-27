@@ -27584,7 +27584,6 @@ for e=1 to entityelementlist
        next tlimb
       endif
      endif
-     `
      rem FPGC - 180410 - create an AI obstacle from the static entity (+sizey ensures if sunk into floor they still work)
      taddtocontainer=(object position y(useobj)+object size y(useobj))/100.0
      if taddtocontainer<0 then taddtocontainer=0
@@ -27597,7 +27596,6 @@ for e=1 to entityelementlist
       if taddtocontainer2>19 then taddtocontainer2=19
       AI ADD STATIC OBSTACLE useobj,1,taddtocontainer2
      endif
-     `
      rem then delete the un-needed static entity
      delete object useobj
     endif

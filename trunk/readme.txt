@@ -9,6 +9,9 @@ History
 V1.1.7
 ------
 
+ * Fixed issue caused by some static entities drastically slowing down obstacle generation process
+ * Updated DarkAI DLL to reduce fidelity of static obstacle creation (from 0.001 to 5.0) - for performance
+ * NOTE: V117 drops support for Win2000 operating systems due to new DLL requirements
  * Totally removed the old editor preview mode from code, impossible to get it via shortcuts now
  * Standalone games now fill weapon slot with starting weapon held in player start marker (press '1' bug)
  * When player weapon fire is forced to end (out of ammo), now fades out loop sound instead of abrupt end
