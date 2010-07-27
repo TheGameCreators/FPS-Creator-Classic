@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
 
+ * Fixed bug causing AI to still be able to move and rotate when knocked onto the floor
  * Fixed issue caused by some static entities drastically slowing down obstacle generation process
  * Updated DarkAI DLL to reduce fidelity of static obstacle creation (from 0.001 to 5.0) - for performance
  * NOTE: V117 drops support for Win2000 operating systems due to new DLL requirements

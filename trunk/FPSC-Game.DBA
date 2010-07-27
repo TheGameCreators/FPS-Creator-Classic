@@ -111,6 +111,8 @@ type darkaitype
  runbuildup as integer
  useaim as integer
  aiy as float
+ throwing as integer
+ active as integer
  Rem Paths
  path as integer
  Rem Action mode
@@ -9813,11 +9815,11 @@ _entity_deducthealth:
  `
  rem FPGC - 080710 - DarkAI characters CANNOT be thrown back (they mess up AI consistency, i.e. they move, rotate while lying on floor :)
  tobj=entityelement(e).obj
- if tobj>0
-  if timpacttype=2 and ai entity exist(tobj)=1
-   timpacttype=1
-  endif
- endif
+ `if tobj>0
+  `if timpacttype=2 and ai entity exist(tobj)=1
+   `timpacttype=1
+  `endif
+ `endif
  `
  rem play and sounds that are due (entity hurt, damage, destroy)
  gosub _ode_triggermaterialsound
@@ -9868,6 +9870,7 @@ _entity_deducthealth:
         if tdir=2 then aifile$="people\throwfore.fpi"
         if tdir=3 then aifile$="people\throwleft.fpi"
         if tdir=4 then aifile$="people\throwright.fpi"
+        if ai entity exist(entityelement(e).obj) then Gosub _ai_findlibindex : entityelement(e).darkai.throwing=libindex : ai set entity active entityelement(e).obj,0
        endif
        gosub _entity_setnewai
        `
@@ -10378,6 +10381,7 @@ return
 _ai_control:
 
 if aiindex>0
+ if entityelement(e).darkai.throwing>0 and entityelement(e).darkai.throwing<>aiindex then entityelement(e).darkai.throwing=0 : ai set entity active entityelement(e).obj,entityelement(e).darkai.active
  `
  rem used to update timestamps if resumegame happens
  tensureentitytimestampsupdated=0
@@ -13570,6 +13574,7 @@ if aiindex>0
       case AIACTAIACTIVE:
       if ai entity exist(entityelement(e).obj)
        ai set entity active entityelement(e).obj,aiactionseq(seq).value
+       entityelement(e).darkai.active=aiactionseq(seq).value
        if aiactionseq(seq).value=0 then entityelement(e).darkai.aistop=1
        if aiactionseq(seq).value<>0 then entityelement(e).darkai.aistop=0
       endif
@@ -25186,6 +25191,7 @@ _entity_configueelementforuse:
  entityelement(e).mover.da=entityelement(e).ry
  entityelement(e).ai.waypoint.state=0
  entityelement(e).ai.state=0
+ entityelement(e).darkai.active=1
  `
  rem FPGC - 030710 - reset extra entity flags
  entityelement(e).alttextureused=0
