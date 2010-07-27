@@ -37354,7 +37354,11 @@ _editor_showhelppage:
  set text font "Verdana"
 return
 
+rem FPGC - 260710 - removed map preview for all time (hardly used, not very friendly)
 _editor_previewmap:
+return
+
+_editor_previewmap_legacy:
 
 rem Hide all objects
 for obj=1 to universebuildobjstartoffset-1

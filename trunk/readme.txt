@@ -9,6 +9,7 @@ History
 V1.1.7
 ------
 
+ * Totally removed the old editor preview mode from code, impossible to get it via shortcuts now
  * Standalone games now fill weapon slot with starting weapon held in player start marker (press '1' bug)
  * When player weapon fire is forced to end (out of ammo), now fades out loop sound instead of abrupt end
  * Updated DarkAI DLL to skip CAN SEE call if current entity coordinate reading as -1.#INF000
