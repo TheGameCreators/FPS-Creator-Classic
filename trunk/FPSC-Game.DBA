@@ -8393,11 +8393,11 @@ if obj>0
   rem handle transition into loop anim
   if entityelement(e).animtime=11
    rem FPGC - 100710 - defeats anim stagger
-   if object playing(obj)=1 then stop object obj 
+   if object playing(obj)=1 then stop object obj
    set object interpolation obj,10
    tbaseframe=entityelement(e).animdo : gosub _entity_getactualframestart
    set object frame obj,tactualframe
-  else  
+  else
    if entityelement(e).animtime=1
     set object interpolation obj,100
     tbaseframe=entityelement(e).animdo : gosub _entity_getactualframestart : tfstart=tactualframe
@@ -11806,7 +11806,7 @@ if aiindex>0
        entityelement(e).destanimframe=0
        entityelement(e).animframe=0
        entityelement(e).animtime=0
-      endif      
+      endif
      endcase
      case AIACTADVFRAME:
       tmpframe=aiactionseq(seq).value
@@ -17653,7 +17653,7 @@ else
   gshow=gun(gunid).emptyaction.show
   gidle=gun(gunid).emptyaction.idle
   gmove=gun(gunid).emptyaction.move
-  gautomatic=gun(gunid).emptyaction.automatic
+  gautomatic=gun(gunid).action.automatic
   gstartreload=gun(gunid).emptyaction.startreload
   greloadloop=gun(gunid).emptyaction.reloadloop
   gendreload=gun(gunid).emptyaction.endreload
@@ -18162,17 +18162,21 @@ if gunmodeloopsnd>0
   if gunmode<101 or gunmode>107
    if sound exist(gunmodeloopsnd)=1
     if sound playing(gunmodeloopsnd)=1
-      Rem Hockeykid - 260210 - changed line to stop sounds from cutting off
-      rem FPGC - 160710 - ah but we WANT to cut off the 'loop sound' if its still playing outside 101-107 (the autobit)
-      `pause sound gunmodeloopsnd : resume sound gunmodeloopsnd
-      if gunmodeloopvolume>0
-       dec gunmodeloopvolume,2
-       if gunmodeloopvolume<0 then gunmodeloopvolume=0
-       set sound volume gunmodeloopsnd,gunmodeloopvolume
-      else
-       stop sound gunmodeloopsnd
-       gunmodeloopsnd=0 : gunmodeloopstarted=0
-      endif
+     Rem Hockeykid - 260210 - changed line to stop sounds from cutting off
+     rem FPGC - 160710 - ah but we WANT to cut off the 'loop sound' if its still playing outside 101-107 (the autobit)
+     `pause sound gunmodeloopsnd : resume sound gunmodeloopsnd
+     if gunmodeloopvolume>0
+      dec gunmodeloopvolume,2
+      if gunmodeloopvolume<0 then gunmodeloopvolume=0
+      set sound volume gunmodeloopsnd,gunmodeloopvolume
+     else
+      stop sound gunmodeloopsnd
+      gunmodeloopsnd=0 : gunmodeloopstarted=0
+     endif
+     Rem Hockeykid - 260710 - Sort of hot fix for odd bug causing automatic guns that use the empty feature to loop the fire sound on their last bullet
+     if timer()-gunmodeloopvolumeempty>300 and gunmodeloopvolumeempty>0 then stop sound gunmodeloopsnd : gunmodeloopsnd=0 : gunmodeloopstarted=0 : gunmodeloopvolume=0
+     if gun(gunid).settings.isempty=0 and gunmodeloopvolumeempty<>0 then gunmodeloopvolumeempty=0
+     if gun(gunid).settings.isempty=1 and gunmodeloopvolumeempty=0 then gunmodeloopvolumeempty=timer()
     endif
    endif
   endif
@@ -41194,7 +41198,7 @@ if inputsys.mmx>=0 and inputsys.mmy>=0 and inputsys.mmx<maxx and inputsys.mmy<ma
        rem FPGC - 100710 - skip area check on pure floor segments, except around edge (where they touch existing segments)
        singletilejustfloor=tisfloortile
        if twidthy=0 or twidthy=tgrideditartwidthy-1 then singletilejustfloor=0
-       if twidthx=0 or twidthx=tgrideditartwidthx-1 then singletilejustfloor=0   
+       if twidthx=0 or twidthx=tgrideditartwidthx-1 then singletilejustfloor=0
        `
        if selstagemode=1
         rem paint tile to map
@@ -48176,7 +48180,7 @@ _darkai_control:
  `ai get entity target id(obj,1)
  tsound=ai get entity heard sound(obj)
  ttargets=ai get entity count targets(obj)
-   
+
  rem Collect Target Information (280410 - added tobjtarget<65535 to prevent crash)
  if tobjtarget>0 and tobjtarget<65535
   if object exist(tobjtarget)=1
@@ -48195,7 +48199,7 @@ _darkai_control:
    ttargetvisibleduck=ai get entity can see(obj,ttargetx#,ttargety#,ttargetz#,0)
   endif
  endif
- `   
+ `
  rem Collect Status Information
  tentid=entityelement(e).bankindex
  tducking=ai get entity is ducking(obj)
@@ -48503,7 +48507,7 @@ _darkai_control:
   endif
  endif
 
- rem Get entity position info 
+ rem Get entity position info
  tentx#=ai get entity x(obj)
  tentz#=ai get entity z(obj)
 
@@ -48556,15 +48560,15 @@ _darkai_control:
   if tenttarget#>175
    entityelement(e).darkai.runbuildup=entityelement(e).darkai.runbuildup+1
    if entityelement(e).darkai.runbuildup>20
-    entityelement(e).mover.run=1 
+    entityelement(e).mover.run=1
     entityelement(e).darkai.action=5
    endif
   else
    entityelement(e).darkai.runbuildup=0
   endif
  endif
- `  
- rem Set entity move speed 
+ `
+ rem Set entity move speed
  if entityelement(e).mover.run=1
   ai set entity speed obj,entityelement(e).eleprof.speed*1.5
  else
@@ -48801,7 +48805,7 @@ Add_Targets:
    rem FPGC - 150710 - previous code would call 'ai get entity can see' 'FactionArrayMax' times, only needs calling once for (E).OBJ
    tenemytargetflagged=0
    for x=1 to FactionArrayMax
-    if aifaction(teamslot,x).enemy=1 
+    if aifaction(teamslot,x).enemy=1
      tenemytargetflagged=1
     endif
    next x
