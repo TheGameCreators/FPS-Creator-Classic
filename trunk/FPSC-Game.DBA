@@ -17659,6 +17659,8 @@ else
   gendreload=gun(gunid).emptyaction.endreload
   gcock=gun(gunid).emptyaction.cock
   ghide=gun(gunid).emptyaction.hide
+  gstart=gun(gunid).action.start
+  gfinish=gun(gunid).action.finish
  else
   gshow=gun(gunid).action.show
   gidle=gun(gunid).action.idle
@@ -18162,21 +18164,18 @@ if gunmodeloopsnd>0
   if gunmode<101 or gunmode>107
    if sound exist(gunmodeloopsnd)=1
     if sound playing(gunmodeloopsnd)=1
-     Rem Hockeykid - 260210 - changed line to stop sounds from cutting off
-     rem FPGC - 160710 - ah but we WANT to cut off the 'loop sound' if its still playing outside 101-107 (the autobit)
-     `pause sound gunmodeloopsnd : resume sound gunmodeloopsnd
-     if gunmodeloopvolume>0
-      dec gunmodeloopvolume,2
-      if gunmodeloopvolume<0 then gunmodeloopvolume=0
-      set sound volume gunmodeloopsnd,gunmodeloopvolume
-     else
-      stop sound gunmodeloopsnd
-      gunmodeloopsnd=0 : gunmodeloopstarted=0
-     endif
-     Rem Hockeykid - 260710 - Sort of hot fix for odd bug causing automatic guns that use the empty feature to loop the fire sound on their last bullet
-     if timer()-gunmodeloopvolumeempty>300 and gunmodeloopvolumeempty>0 then stop sound gunmodeloopsnd : gunmodeloopsnd=0 : gunmodeloopstarted=0 : gunmodeloopvolume=0
-     if gun(gunid).settings.isempty=0 and gunmodeloopvolumeempty<>0 then gunmodeloopvolumeempty=0
-     if gun(gunid).settings.isempty=1 and gunmodeloopvolumeempty=0 then gunmodeloopvolumeempty=timer()
+      Rem Hockeykid - 260210 - changed line to stop sounds from cutting off
+      rem FPGC - 160710 - ah but we WANT to cut off the 'loop sound' if its still playing outside 101-107 (the autobit)
+      Rem Hockeykid - 270719 - This does just that and sounds a lot better. (I fixed the issue I was having before ;) )
+      pause sound gunmodeloopsnd : resume sound gunmodeloopsnd
+      `if gunmodeloopvolume>0
+       `dec gunmodeloopvolume,2
+       `if gunmodeloopvolume<0 then gunmodeloopvolume=0
+       `set sound volume gunmodeloopsnd,gunmodeloopvolume
+      `else
+       `stop sound gunmodeloopsnd
+       gunmodeloopsnd=0 : gunmodeloopstarted=0
+      `endif
     endif
    endif
   endif
