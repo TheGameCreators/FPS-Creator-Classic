@@ -9,6 +9,10 @@ History
 V1.1.7
 ------
 
+ * NOTE: Added new ADDENDUM.RTF document to the DOCS folder (extra info on new features)
+ * Added new flag 'disablepeeking' to SETUP.INI to deactivate peeking controls
+ * Added polygon count value to the polygon bar of the full resource tab
+ * Added NORAGDOLL flag to FPE fields, and adjusted all Talker characters to use this flag
  * Fixed bug causing AI to still be able to move and rotate when knocked onto the floor
  * Fixed issue caused by some static entities drastically slowing down obstacle generation process
  * Updated DarkAI DLL to reduce fidelity of static obstacle creation (from 0.001 to 5.0) - for performance

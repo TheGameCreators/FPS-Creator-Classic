@@ -1001,6 +1001,7 @@ type entityprofiletype
  decaloffsetangle as float
  decaloffsetdist as float
  decaloffsety as float
+ noragdoll as integer
  reserve1 as integer
  reserve2 as integer
  reserve3 as integer
@@ -2561,6 +2562,7 @@ global gpostprocessing : gpostprocessing=0
 global gpostprocessingnotransparency : gpostprocessingnotransparency=0
 global gdepthcameraid : gdepthcameraid=0
 global gshowaioutlines : gshowaioutlines=0
+global gdisablepeeking : gdisablepeeking=0
 global gsystemmemorycapoff : gsystemmemorycapoff=0
 global gentitytogglingoff : gentitytogglingoff=0
 global gextracollisionbuilddisabled : gextracollisionbuilddisabled=1
@@ -2739,6 +2741,7 @@ if file exist(tfile$)=1
     tryfield$="newblossershaders" : if field$=tryfield$ then gnewblossershaders=value1
     tryfield$="postprocessing" : if field$=tryfield$ then gpostprocessing=value1
     tryfield$="showaioutlines" : if field$=tryfield$ then gshowaioutlines=value1
+    tryfield$="disablepeeking" : if field$=tryfield$ then gdisablepeeking=value1
     `
     tryfield$="usesky" : if field$=tryfield$ then guseskystate=value1
     tryfield$="usefloor" : if field$=tryfield$ then gusefloorstate=value1
@@ -6325,6 +6328,9 @@ if testgametabtoggle=1
  `
  rem FPS reading in resource meter panel
  printvalue(rmposx+199,rmposy+19,screen fps())
+ `
+ rem FPGC - 280710 - print polygon count over polygon bar
+ printvalue(rmposx+190,rmposy+80+(0*53),perf(1))
  `
 else
  `
@@ -12019,7 +12025,8 @@ if aiindex>0
      `
      case AIACTRAGDOLL:
       rem FPGC - 210210 - by popular demand, ragdoll via script
-      if entityprofile(entid).ischaracter=1
+      rem FPGC - 280710 - added flag to ensure non-supported models NEVER use ragdoll (bone splat issue)
+      if entityprofile(entid).ischaracter=1 and entityprofile(entid).noragdoll=0
        if entityelement(e).ragdollon=0
         entityelement(e).ragdollon=1
         ODE Create Ragdoll from bone model obj,0.6 : rem was 0.8 up to 171007 (was 0.6 on 300707)
@@ -23414,6 +23421,7 @@ if file exist(tprofile$)=0
  entityprofile(entid).decaloffsetangle=0
  entityprofile(entid).decaloffsetdist=0
  entityprofile(entid).decaloffsety=0
+ entityprofile(entid).noragdoll=0
  `
  rem Load entity Data from file
  dim data$(400)
@@ -23519,6 +23527,10 @@ if file exist(tprofile$)=0
     if field$=tryfield$ then entityprofile(entid).phyfriction=value1
     tryfield$="explodable"
     if field$=tryfield$ then entityprofile(entid).explodable=value1
+    `
+    rem FPGC - 280710 - added NORAGDOLL to entity profile
+    tryfield$="noragdoll"
+    if field$=tryfield$ then entityprofile(entid).noragdoll=value1    
     `
     rem cone of sight
     tryfield$="coneheight"
@@ -23888,6 +23900,28 @@ else
  delete memblock 1
  undim tempe(0)
  `
+endif
+`
+rem FPGC - 280710 - if from legacy model pack, force NORAGDOLL
+entnoslash$=ent$
+if mid$(entnoslash$,1)="\" then entnoslash$=right$(entnoslash$,len(entnoslash$)-1)
+if entityprofile(entid).ischaracter=1
+ tlegacypackentity=0
+ t$="model pack 4" : if lower$(left$(entnoslash$,len(t$)))=t$ then tlegacypackentity=1
+ t$="cartoonfantasypack" : if lower$(left$(entnoslash$,len(t$)))=t$ then tlegacypackentity=1
+ t$="dungeonpack" : if lower$(left$(entnoslash$,len(t$)))=t$ then tlegacypackentity=1
+ t$="egyptian characters" : if lower$(left$(entnoslash$,len(t$)))=t$ then tlegacypackentity=1
+ t$="fantasy characters" : if lower$(left$(entnoslash$,len(t$)))=t$ then tlegacypackentity=1
+ t$="fantasypack" : if lower$(left$(entnoslash$,len(t$)))=t$ then tlegacypackentity=1
+ t$="freaks and abominations" : if lower$(left$(entnoslash$,len(t$)))=t$ then tlegacypackentity=1
+ t$="medievalpack" : if lower$(left$(entnoslash$,len(t$)))=t$ then tlegacypackentity=1
+ t$="romanpack" : if lower$(left$(entnoslash$,len(t$)))=t$ then tlegacypackentity=1
+ t$="tropical pack" : if lower$(left$(entnoslash$,len(t$)))=t$ then tlegacypackentity=1
+ t$="vikingpack" : if lower$(left$(entnoslash$,len(t$)))=t$ then tlegacypackentity=1
+ if tlegacypackentity=1
+  rem No Ragdoll (X9 packs not designed with ragdoll bone structures in mind)
+  entityprofile(entid).noragdoll=1
+ endif
 endif
 `
 rem FPGC - 260310 - new field as we now have pure lights and entity lights
@@ -29574,6 +29608,7 @@ setuparr$(i)="aspectratio="+str$( gaspectratio ) : inc i
 setuparr$(i)="newblossershaders="+str$( gnewblossershaders ) : inc i
 setuparr$(i)="postprocessing="+str$( gpostprocessing ) : inc i
 setuparr$(i)="showaioutlines="+str$( gshowaioutlines ) : inc i
+setuparr$(i)="disablepeeking="+str$( gdisablepeeking ) : inc i
 `
 setuparr$(i)="" : inc i
 setuparr$(i)="[GAMEMULTIPLAYER]" : inc i
@@ -30526,14 +30561,17 @@ movement=0
 if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
  `
  rem Peek controls (and adjustment)
- if ((plrkeyQ)=1 or (plrkeyE)=1) and onladder=0
-  if peekfreeze=0
-   if (plrkeyQ)=1 and peeklean#>-10.0 then peeklean#=peeklean#-4.0 : movement=1
-   if (plrkeyE)=1 and peeklean#<10.0 then peeklean#=peeklean#+4.0 : movement=1
+ if gdisablepeeking=0
+  rem FPGC - 280710 - added flag to disable peek controls if required
+  if ((plrkeyQ)=1 or (plrkeyE)=1) and onladder=0
+   if peekfreeze=0
+    if (plrkeyQ)=1 and peeklean#>-10.0 then peeklean#=peeklean#-4.0 : movement=1
+    if (plrkeyE)=1 and peeklean#<10.0 then peeklean#=peeklean#+4.0 : movement=1
+   endif
+  else
+   peeklean#=curvevalue(0,peeklean#,4.0)
+   if abs(peeklean#)<1.0 then peeklean#=0.0 : peekfreeze=0
   endif
- else
-  peeklean#=curvevalue(0,peeklean#,4.0)
-  if abs(peeklean#)<1.0 then peeklean#=0.0 : peekfreeze=0
  endif
  `
  rem Gun Zoom Control
@@ -44986,6 +45024,7 @@ if file exist(tfile$)=1
     tryfield$="newblossershaders" : if field$=tryfield$ then gnewblossershaders=value1
     tryfield$="postprocessing" : if field$=tryfield$ then gpostprocessing=value1
     tryfield$="showaioutlines" : if field$=tryfield$ then gshowaioutlines=value1
+    tryfield$="disablepeeking" : if field$=tryfield$ then gdisablepeeking=value1
     `
     rem arena settings
     tryfield$="gameobjectivetype" : if field$=tryfield$ then ggameobjectivetype=value1
@@ -45377,6 +45416,7 @@ _interface_savebuildgame:
  setuparr$(i)="newblossershaders="+str$( gnewblossershaders ) : inc i
  setuparr$(i)="postprocessing="+str$( gpostprocessing ) : inc i
  setuparr$(i)="showaioutlines="+str$( gshowaioutlines ) : inc i
+ setuparr$(i)="disablepeeking="+str$( gdisablepeeking ) : inc i
  setuparr$(i)="" : inc i
  setuparr$(i)="multiplayergame="+str$(gmultiplayergame) : inc i
  setuparr$(i)="gameobjectivetype="+str$(ggameobjectivetype) : inc i
@@ -45789,6 +45829,7 @@ setuparr$(i)="aspectratio="+str$( gaspectratio ) : inc i
 setuparr$(i)="newblossershaders="+str$( gnewblossershaders ) : inc i
 setuparr$(i)="postprocessing="+str$( gpostprocessing ) : inc i
 setuparr$(i)="showaioutlines="+str$( gshowaioutlines ) : inc i
+setuparr$(i)="disablepeeking="+str$( gdisablepeeking ) : inc i
 `
 setuparr$(i)="" : inc i
 setuparr$(i)="[GAMEMULTIPLAYER]" : inc i
