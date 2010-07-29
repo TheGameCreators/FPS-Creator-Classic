@@ -9,6 +9,8 @@ History
 V1.1.7
 ------
 
+ * Solved issue of switches not performing their fixed rotation in test game
+ * Entities that use the FIXROTY field auto-default to switch off physics (physics cannot pivot an object)
  * NOTE: Added new ADDENDUM.RTF document to the DOCS folder (extra info on new features)
  * Added new flag 'disablepeeking' to SETUP.INI to deactivate peeking controls
  * Added polygon count value to the polygon bar of the full resource tab

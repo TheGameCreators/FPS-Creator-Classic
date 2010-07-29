@@ -29731,7 +29731,12 @@ for e=1 to entityelementmax
     entityelement(e).eleprof.physics=2
    endif
    if entityelement(e).eleprof.isimmobile=1
-    entityelement(e).eleprof.physics=3
+    rem FPGC - 290710 - contravertial change, if using PIVOT, physics cannot reflect this, so switch off physics
+    if entityprofile(entid).fixnewy<>0
+     entityelement(e).eleprof.physics=0
+    else
+     entityelement(e).eleprof.physics=3
+    endif
    endif
   endif
   if entityelement(e).obj=0
