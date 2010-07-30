@@ -6330,7 +6330,7 @@ if testgametabtoggle=1
  printvalue(rmposx+199,rmposy+19,screen fps())
  `
  rem FPGC - 280710 - print polygon count over polygon bar
- printvalue(rmposx+190,rmposy+80+(0*53),perf(1))
+ printvalue(rmposx+190,rmposy+60+(0*53),perf(1))
  `
 else
  `
