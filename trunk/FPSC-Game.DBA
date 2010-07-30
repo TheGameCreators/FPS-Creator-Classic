@@ -1297,6 +1297,8 @@ type entitytype
  floatvalue as float
  possibletarget as integer
  actualtarget as integer
+ realtarget as integer
+ targetinway as integer
  losttargetcount as integer
  actualtargetx as float
  actualtargety as float
@@ -11373,33 +11375,45 @@ if aiindex>0
     case AICONDAITARGETDISTWITHIN:
      if ai entity exist(entityelement(e).obj)
       conda=aiconditionseq(seq).valuea
-      if entityelement(e).actualtarget>0
-       tte=entityelement(e).actualtarget-1
-       if entityelement(e).actualtarget>1 then tobj=entityelement(tte).obj
-       if entityelement(e).actualtarget=1 then tobj=physicsplayerborble
+      Rem Hockeykid - 300710 - Do not allow the objects in the way (glass etc) to mix up the ai
+      if entityelement(e).targetinway>0
+       target=entityelement(e).realtarget
+      else
+       target=entityelement(e).actualtarget
+      endif
+      if target>0
+       tte=target-1
+       if target>1 then tobj=entityelement(tte).obj
+       if target=1 then tobj=physicsplayerborble
        distx#=object position x(tobj)-entityelement(e).x
        disty#=object position y(tobj)-entityelement(e).y
        distz#=object position z(tobj)-entityelement(e).z
        tddist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
        if tddist#>=conda then airesult=0
       endif
-      if entityelement(e).actualtarget=0 then airesult=0
+      if target=0 then airesult=0
      endif
     endcase
     case AICONDAITARGETDISTFURTHER:
      if ai entity exist(entityelement(e).obj)
       conda=aiconditionseq(seq).valuea
-      if entityelement(e).actualtarget>0
-       tte=entityelement(e).actualtarget-1
-       if entityelement(e).actualtarget>1 then tobj=entityelement(tte).obj
-       if entityelement(e).actualtarget=1 then tobj=physicsplayerborble
+      Rem Hockeykid - 300710 - Do not allow the objects in the way (glass etc) to mix up the ai
+      if entityelement(e).targetinway>0
+       target=entityelement(e).realtarget
+      else
+       target=entityelement(e).actualtarget
+      endif
+      if target>0
+       tte=target-1
+       if target>1 then tobj=entityelement(tte).obj
+       if target=1 then tobj=physicsplayerborble
        distx#=object position x(tobj)-entityelement(e).x
        disty#=object position y(tobj)-entityelement(e).y
        distz#=object position z(tobj)-entityelement(e).z
        tddist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
        if tddist#<=conda then airesult=0
       endif
-      if entityelement(e).actualtarget=0 then airesult=0
+      if target=0 then airesult=0
      endif
     endcase
     case AICONDAIATPOINT:
@@ -13610,6 +13624,8 @@ if aiindex>0
       case AIACTAICLEARTARGET:
        if ai entity exist(entityelement(e).obj)
         entityelement(e).actualtarget=0
+        entityelement(e).targetinway=0
+        entityelement(e).realtarget=0
        endif
       endcase
       case AIACTAISETTARGET:
@@ -13618,7 +13634,9 @@ if aiindex>0
        if ai entity exist(obj)
         entityelement(e).ttarget=AI Get Entity Target ID (obj,1)
         ttarget=entityelement(e).ttarget
+
         if ttarget>0
+         entityelement(e).targetinway=0
          if ttarget = physicsplayerborble
           if player(1).health>0 or playerstartstrength=0
            entityelement(e).actualtarget=1
@@ -13642,6 +13660,7 @@ if aiindex>0
             if entityelement(e).actualtarget>0
              tte=entityelement(e).actualtarget-1
              entityelement(e).actualtargety=entityelement(tte).y
+             entityelement(e).actualtargetx=entityelement(tte).x
              entityelement(e).actualtargetz=entityelement(tte).z
              entityelement(e).losttargetcount=0
             endif
@@ -13649,6 +13668,25 @@ if aiindex>0
           endif
           `
          endif
+         tmpx#=entityelement(e).x
+         tmpy#=entityelement(e).y
+         tmpz#=entityelement(e).z
+         `
+         tmpx2#=entityelement(e).actualtargetx
+         tmpy2#=entityelement(e).actualtargety
+         tmpz2#=entityelement(e).actualtargetz
+         `
+         tvisibility=0 : gosub _target_determinevisibility
+         if tvisibilityifbreak>0
+          tte=tvisibilityifbreak
+          entityelement(e).realtarget=entityelement(e).actualtarget
+          entityelement(e).actualtarget=tte+1
+          entityelement(e).targetinway=1
+          entityelement(e).actualtargety=entityelement(tte).y
+          entityelement(e).actualtargetx=entityelement(tte).x
+          entityelement(e).actualtargetz=entityelement(tte).z
+         endif
+         `
         endif
        endif
       endcase
@@ -48869,9 +48907,15 @@ Add_Targets:
       next x
       if foundenemy=0
        ai entity remove target entityelement(e).obj,entityelement(y).obj
-       if entityelement(e).actualtarget>1
-        c=entityelement(e).actualtarget-1
-        if entityelement(c).obj=entityelement(y).obj then entityelement(e).actualtarget=0
+       Rem Hockeykid - 300710 - Do not allow the objects in the way (glass etc) to mix up the ai
+       if entityelement(e).targetinway>0
+        target=entityelement(e).realtarget
+       else
+        target=entityelement(e).actualtarget
+       endif
+       if target>1
+        c=target-1
+        if entityelement(c).obj=entityelement(y).obj then entityelement(e).actualtarget=0 : entityelement(e).realtarget=0 : entityelement(e).targetinway=0
        endif
       endif
       `
@@ -48881,11 +48925,17 @@ Add_Targets:
        if ai get entity count targets(entityelement(y).obj)=0 then entityelement(y).actualtarget=0
        if entityelement(y).actualtarget>1 and ai get entity count targets(entityelement(y).obj)>0
         tcount=ai get entity count targets(entityelement(y).obj)
+        Rem Hockeykid - 300710 - Do not allow the objects in the way (glass etc) to mix up the ai
+        if entityelement(y).targetinway>0
+         target=entityelement(y).realtarget
+        else
+         target=entityelement(y).actualtarget
+        endif
         for x=1 to tcount
-         c=entityelement(y).actualtarget-1
+         c=target-1
          if entityelement(c).obj=ai get entity target id(entityelement(y).obj,x) then tokay=1 : exit
         next x
-        if tokay=0 then entityelement(y).actualtarget=0
+        if tokay=0 then entityelement(y).actualtarget=0 : entityelement(e).realtarget=0 : entityelement(e).targetinway=0
        endif
       endif
       `
@@ -48921,6 +48971,45 @@ _Character_Array:
   endif
  next e
 Return
+
+_target_determinevisibility:
+
+rem used by an entity when looking at their target
+rem determine if target exposed to be visible to tmpx#,tmpy#,tmpz#,dist# and (e)
+tvisibility=1
+tvisibilityifbreak=0 : tvisibilityifbreakdist#=9999.99
+
+rem deduct from 100 percent visible, if drop below zero, enemy cannot see plr
+visprobcount=100
+
+rem instant block if other object obstructs it
+for tte=1 to entityelementlist
+ if tte<>e and entityelement(tte).obj<>ttarget
+  Rem don't allow the engine to run and intersect object on a DAI entity or character, this could mess with targeting
+  tentid=entityelement(tte).bankindex
+  if entityprofile(tentid).ischaracter=0 and entityelement(tte).active=1 and entityelement(tte).dormant=0 and entityelement(tte).collisionactive=1 and ai entity exist(entityelement(tte).obj)=0
+   tdistx#=entityelement(e).x-entityelement(tte).x
+   tdisty#=entityelement(e).y-entityelement(tte).y
+   tdistz#=entityelement(e).z-entityelement(tte).z
+   ttdist#=sqrt(abs(tdistx#*tdistx#)+abs(tdisty#*tdisty#)+abs(tdistz#*tdistz#))
+   if ttdist#<=dist# and entityelement(tte).obj>0
+    ttdst#=intersect object(entityelement(tte).obj,tmpx#,tmpy#,tmpz#,tmpx2#,tmpy2#,tmpz2#)
+    if ttdst#>0
+     if entityelement(tte).eleprof.transparency=0 then tvisibility=0
+     if entityelement(tte).eleprof.transparency>0
+      if ttdst#<tvisibilityifbreakdist#
+       tvisibilityifbreak=tte
+       tvisibilityifbreakdist#=ttdst#
+      endif
+     endif
+     `if tvisibility=0 then tte=entityelementlist+1
+    endif
+   endif
+  endif
+ endif
+next tte
+
+return
 
 Function AIUpdateSounds()
  arraycount=array count(aisound())
