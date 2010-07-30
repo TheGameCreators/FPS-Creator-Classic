@@ -3433,8 +3433,10 @@ _main_game_freeleveldata:
   next o
   `
   Rem Hockeykid - 250210 - RESET DARKAI
-  ai reset : darkaiplayer=0
-
+  rem FPGC - 300710 - DarkAI only in single player
+  if gmultiplayergame=0
+   ai reset : darkaiplayer=0
+  endif
   `
   rem FREE ANY DATA
   Rem AI Undim
@@ -3579,52 +3581,58 @@ _main_game_core:
  inc gameperfphysics, perftimer()-gameperftimestamp
  gameperftimestamp=perftimer()
  `
- Rem Hockeykid - 250210 - set players position to the dark ai
- rem lee - 090310 - adjusted player AI position to include Y coordinate
- tcamx#=object position x(physicsplayerborble)
- tcamy#=object position y(physicsplayerborble)
- tcamz#=object position z(physicsplayerborble)
- rem FPGC - 100710 - when no start marker (no player health) AI failed, so keep this simple
- remstart
- if player(1).health>0
-  rem player in world - enemies bate!
-  `if playerdied=1 then ai add player physicsplayerborble,0 : playerdied=0
+ rem FPGC - 300710 - DarkAI only in single player
+ if gmultiplayergame=0
+  `
+  Rem Hockeykid - 250210 - set players position to the dark ai
+  rem lee - 090310 - adjusted player AI position to include Y coordinate
+  tcamx#=object position x(physicsplayerborble)
+  tcamy#=object position y(physicsplayerborble)
+  tcamz#=object position z(physicsplayerborble)
+  rem FPGC - 100710 - when no start marker (no player health) AI failed, so keep this simple
+  remstart
+  if player(1).health>0
+   rem player in world - enemies bate!
+   `if playerdied=1 then ai add player physicsplayerborble,0 : playerdied=0
+   AI Set Player Position tcamx#,tcamy#,tcamz#
+   `AI Set Player Position tcamx#,tcamz# `280410 - old DarkAI
+  else
+   rem player is heaven - out of reach of enemies
+   AI Set Player Position 0,150000,0 `(lee-100310-later DarkAI command)
+    `ai kill player
+    playerdied=1
+  endif
+  remend
   AI Set Player Position tcamx#,tcamy#,tcamz#
-  `AI Set Player Position tcamx#,tcamz# `280410 - old DarkAI
- else
-  rem player is heaven - out of reach of enemies
-  AI Set Player Position 0,150000,0 `(lee-100310-later DarkAI command)
-   `ai kill player
-   playerdied=1
- endif
- remend
- AI Set Player Position tcamx#,tcamy#,tcamz#
- `
- Rem Hockeykid - 250210 - Dark AI Tell AI system if player crouching
- if crouchmode<>0
-  ai set player ducking 1
- else
-  ai set player ducking 0
- endif
- `
- Rem Hockeykid - 050410 - Update AI Safe zones
- Gosub _SafeZone_Update
- Rem Hockeykid - 300310 - Update AI sound
- AIUpdateSounds()
- `
- Rem Hockeykid - 250210 - Update AI
- AI Update
- `
- rem FPGC - 060710 - hide any debug text behind the AI debug flag so final games do not get
- rem extra debug text in their test game and standalone game sessions
- if gshowaioutlines=1
-  for x=1 to 20
-   for y=1 to 20
-    if aifaction(x,y).enemy<>0 then print "Team:"+str$(aifaction(x,1).team)+" Enemy:"+str$(aifaction(x,y).enemy)
-    if aifaction(x,y).ally<>0 then print "Team:"+str$(aifaction(x,1).team)+" Ally:"+str$(aifaction(x,y).ally)
-    if aifaction(x,y).neutral<>0 then print "Team:"+str$(aifaction(x,1).team)+" Neutral:"+str$(aifaction(x,y).neutral)
-   next y
-  next x
+  `
+  Rem Hockeykid - 250210 - Dark AI Tell AI system if player crouching
+  if crouchmode<>0
+   ai set player ducking 1
+  else
+   ai set player ducking 0
+  endif
+  `
+  Rem Hockeykid - 050410 - Update AI Safe zones
+  Gosub _SafeZone_Update
+  `
+  Rem Hockeykid - 300310 - Update AI sound
+  AIUpdateSounds()
+  `
+  Rem Hockeykid - 250210 - Update AI
+  AI Update
+  `
+  rem FPGC - 060710 - hide any debug text behind the AI debug flag so final games do not get
+  rem extra debug text in their test game and standalone game sessions
+  if gshowaioutlines=1
+   for x=1 to 20
+    for y=1 to 20
+     if aifaction(x,y).enemy<>0 then print "Team:"+str$(aifaction(x,1).team)+" Enemy:"+str$(aifaction(x,y).enemy)
+     if aifaction(x,y).ally<>0 then print "Team:"+str$(aifaction(x,1).team)+" Ally:"+str$(aifaction(x,y).ally)
+     if aifaction(x,y).neutral<>0 then print "Team:"+str$(aifaction(x,1).team)+" Neutral:"+str$(aifaction(x,y).neutral)
+    next y
+   next x
+  endif
+  `
  endif
  `
  rem Record AI usage
@@ -3668,7 +3676,10 @@ _main_game_core:
  rem Exit Conditions for test game
  if grealgameviewstate=0
   Rem Hockeykid - 260210 - Added ai reset to avoid Dark AI from creating a silent crash
-  if control_escapekey()=1 then ai reset : continueokay=1 : levelwon=2 : rem QUIT
+  if control_escapekey()=1
+   if gmultiplayergame=0 then ai reset
+   continueokay=1 : levelwon=2 : rem QUIT
+  endif
  endif
  `
 return
@@ -6310,7 +6321,8 @@ for rmi=0 to 4
  resourcemeter(rmi)=resourcemeter#(rmi)
 next rmi
 
-rem Resource Meter Panel
+rem Resource Meter Panel (FPGC - 300710 - ensured multiplayer does not show resource panels)
+if gmultiplayergame=0
 if testgametabtoggle=1
  `
  rem draw resource meter
@@ -6352,6 +6364,7 @@ else
   `
  endif
  `
+endif
 endif
 
 rem Current keypress
@@ -8856,20 +8869,13 @@ _entity_controlmovements:
    entityelement(e).z=entityelement(e).z+tiz#
    entityelement(e).mover.stepcount=tstep#-tbit#
    `
-   if ai entity exist(entityelement(e).obj)
-    if ai get entity x(entityelement(e).obj)<>entityelement(e).x or ai get entity z(entityelement(e).obj)<>entityelement(e).z or entityelement(e).darkai.aiy<>entityelement(e).y
-     ai set entity position entityelement(e).obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
-     entityelement(e).aimovex=entityelement(e).x : entityelement(e).aimovez=entityelement(e).z : entityelement(e).aimoved=1
-     Remstart
-     if ai get entity is moving(entityelement(e).obj) and entityelement(e).ai.waypoint.state>0 and entityelement(e).ai.waypoint.state<99
-      entityelement(e).mover.dx=entityelement(e).x
-      entityelement(e).mover.dy=entityelement(e).y
-      entityelement(e).mover.dz=entityelement(e).z
-      entityelement(e).ai.waypoint.state=99
-      entityelement(e).mover.moved=1
-      entityelement(e).mover.run=0
+   rem FPGC - 300710 - DarkAI only in single player
+   if gmultiplayergame=0
+    if ai entity exist(entityelement(e).obj)
+     if ai get entity x(entityelement(e).obj)<>entityelement(e).x or ai get entity z(entityelement(e).obj)<>entityelement(e).z or entityelement(e).darkai.aiy<>entityelement(e).y
+      ai set entity position entityelement(e).obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
+      entityelement(e).aimovex=entityelement(e).x : entityelement(e).aimovez=entityelement(e).z : entityelement(e).aimoved=1
      endif
-     Remend
     endif
    endif
    `
@@ -8883,6 +8889,7 @@ _entity_controlmovements:
     gosub _entity_move_avoidentities
    endif
   endif
+  `
   Rem Hockeykid - 250210 - Dark AI added flag/if to allow ai system to take control
   if tavoidedentity=0 and ai entity exist(entityelement(e).obj)=0
    if entityelement(e).mover.slidevel<>0
@@ -21003,44 +21010,47 @@ return
 
 _flakelement_create:
 
-for tf=1 to flakelementmax
- if flakelement(tf).active=0 then exit
-next tf
-if tf<flakelementmax
- rem found free flak element
- flakelement(tf).flakid=flakid
- flakelement(tf).profile=flak(flakid).profile
- rem activate new flak element
- flakelement(tf).active=1
- flakelement(tf).range=0
- flakelement(tf).xpos=flakx
- flakelement(tf).ypos=flaky
- flakelement(tf).zpos=flakz
- flakelement(tf).owner=flakowner
- rem create projectile
- flakelement(tf).obj=flakelementoffset+tf
- tfobj=flakelement(tf).obj
- if object exist(tfobj)=1 then delete object tfobj
- objecteffect(tfobj)=0
- instance object tfobj,flak(flakid).obj
- rem use ORIENT to get correct rotation and intertias
- if flakowner=0
-  set object to camera orientation tfobj
+rem FPGC - 300710 - duel function weapons in arena mode, should not allow absent flak to proceed
+if flak(flakid).obj>0
+ for tf=1 to flakelementmax
+  if flakelement(tf).active=0 then exit
+ next tf
+ if tf<flakelementmax
+  rem found free flak element
+  flakelement(tf).flakid=flakid
+  flakelement(tf).profile=flak(flakid).profile
+  rem activate new flak element
+  flakelement(tf).active=1
+  flakelement(tf).range=0
+  flakelement(tf).xpos=flakx
+  flakelement(tf).ypos=flaky
+  flakelement(tf).zpos=flakz
+  flakelement(tf).owner=flakowner
+  rem create projectile
+  flakelement(tf).obj=flakelementoffset+tf
+  tfobj=flakelement(tf).obj
+  if object exist(tfobj)=1 then delete object tfobj
+  objecteffect(tfobj)=0
+  instance object tfobj,flak(flakid).obj
+  rem use ORIENT to get correct rotation and intertias
+  if flakowner=0
+   set object to camera orientation tfobj
+  else
+   rotate object tfobj,flakpitch,flakangle,0
+  endif
+  move object tfobj,flakelement(tf).profile.zinc
+  flakelement(tf).profile.xinc=object position x(tfobj)*2
+  flakelement(tf).profile.yinc=flakelement(tf).profile.yinc+(object position y(tfobj)*2)
+  flakelement(tf).profile.zinc=object position z(tfobj)*2
+  flakelement(tf).xpos=flakelement(tf).xpos+(flakelement(tf).profile.xinc*flakspeed#)
+  flakelement(tf).ypos=flakelement(tf).ypos+(flakelement(tf).profile.yinc*flakspeed#)
+  flakelement(tf).zpos=flakelement(tf).zpos+(flakelement(tf).profile.zinc*flakspeed#)
+  position object tfobj,99999,99999,99999
+  rem show flak object
+  show object tfobj
  else
-  rotate object tfobj,flakpitch,flakangle,0
+  rem no more free flak
  endif
- move object tfobj,flakelement(tf).profile.zinc
- flakelement(tf).profile.xinc=object position x(tfobj)*2
- flakelement(tf).profile.yinc=flakelement(tf).profile.yinc+(object position y(tfobj)*2)
- flakelement(tf).profile.zinc=object position z(tfobj)*2
- flakelement(tf).xpos=flakelement(tf).xpos+(flakelement(tf).profile.xinc*flakspeed#)
- flakelement(tf).ypos=flakelement(tf).ypos+(flakelement(tf).profile.yinc*flakspeed#)
- flakelement(tf).zpos=flakelement(tf).zpos+(flakelement(tf).profile.zinc*flakspeed#)
- position object tfobj,99999,99999,99999
- rem show flak object
- show object tfobj
-else
- rem no more free flak
 endif
 
 return
@@ -33041,7 +33051,12 @@ _multi_control:
      multiplayeridlink(freeel)=dwid
      multiplayeri(freeel)=i-1
      multiplayerisnew(freeel)=3
-     tname$=MULTIPLAYER GET PLAYER NAME( i-1 )
+     rem FPGC - 200710 - solves a join crash
+     if i>0
+      tname$=MULTIPLAYER GET PLAYER NAME( i-1 )
+     else
+      tname$="---"
+     endif
      for c=1 to len(tname$)
       if asc(mid$(tname$,c))=10 or asc(mid$(tname$,c))=13
        tname$=left$(tname$,c-1)
@@ -33134,6 +33149,7 @@ _multi_control:
        entityelement(te).x=statex(el)
        entityelement(te).y=statey(el)
        entityelement(te).z=statez(el)
+       if showfpsinrealgame=2 then print " X:";statex(el);" Y:";statey(el);" Z:";statez(el)
        entityelement(te).mover.da=stateviewy(el)
        if stateanim(el)<>1+entityelement(te).animdo
         entityelement(te).animonce=0
@@ -48128,11 +48144,17 @@ Rem Hockeykid - 250210 - Dark AI create/declare constants
 _darkai_init:
  `
  rem clears the AI system of all data
- AI Start : AI Reset
+ AI Start
+ AI Reset
  `
- Rem Create team 1
- w=AIFindEmptyTeam()
- aifaction(w,1).team=1
+ rem FPGC - 300710 - DarkAI only in single player (we still call START and create containers as AI code intersects MP code)
+ if gmultiplayergame=0
+  `
+  Rem Create team 1
+  w=AIFindEmptyTeam()
+  aifaction(w,1).team=1
+  `
+ endif
  `
  rem N-CORE threading (if available, and if no debug in progress)
  `seems to conflict with new script based approach, ah well
@@ -48161,77 +48183,85 @@ _darkai_free:
  `
  rem after each level, reset AI so a new level can be loaded
  rem it also frees the OBS file loaded for the obstacle data
- AI Reset
+ rem FPGC - 300710 - DarkAI only in single player
+ if gmultiplayergame=0
+  AI Reset
+ endif
  `
 return
 
 _darkai_addai:
- if ai entity exist(obj)
-  ai kill entity obj
- endif
- tcont=0
- for y=0 to 19
-  if entityelement(e).y >= container(y).y#-50.0 and entityelement(e).y <= container(y).y#+50.0
-   tcont=y : exit
+
+ rem FPGC - 300710 - DarkAI only in single player
+ if gmultiplayergame=0
+  if ai entity exist(obj)
+   ai kill entity obj
   endif
- next y
- entityelement(e).darkai.team=team
- if entityelement(e).darkai.team<>1
-  ai add enemy obj,0,tcont
- else
-  ai add friendly obj,0,tcont
+  tcont=0
+  for y=0 to 19
+   if entityelement(e).y >= container(y).y#-50.0 and entityelement(e).y <= container(y).y#+50.0
+    tcont=y : exit
+   endif
+  next y
+  entityelement(e).darkai.team=team
+  if entityelement(e).darkai.team<>1
+   ai add enemy obj,0,tcont
+  else
+   ai add friendly obj,0,tcont
+  endif
+  `
+  AI Set Entity Can Select targets obj,0
+  ai set entity view arc obj,entityelement(e).eleprof.coneangle*0.7,entityelement(e).eleprof.coneangle
+  `
+  rem FPGC - 060510 - height measures characters EYE from FEET (for alternative visibility raycast)
+  AI Set Entity Height obj,entityelement(e).eleprof.coneheight
+  `AI Set Entity Turn Speed obj,entityelement(e).eleprof.speed*2 ` FPGC - 100710 - all chars turn VERY slowly!
+  AI Set Entity Turn Speed obj,entityelement(e).eleprof.speed*6
+  `
+  ai set entity fire arc obj,20
+  ai set entity view range obj,600
+  ai set entity attack distance obj,200-rnd(50)+rnd(50)
+  ai set entity aggressive obj
+  entityelement(e).darkai.hearingrange=700
+  `ai set entity hearing range obj,700
+  `ai set entity hearing threshold obj,10
+  ai set entity can roam obj,1
+  REM DAI SPEED
+  ai set entity speed obj,entityelement(e).eleprof.speed/2.0
+  ai set entity position obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
+  tcontainerid=entityelement(e).y+50
+  if tcontainerid<0 then tcontainerid=0
+  if tcontainerid>19 then tcontainerid=19
+  ai set entity idle position obj,entityelement(e).x,entityelement(e).z,tcontainerid
+  ai set entity angle y obj,entityelement(e).ry
+  targetcontainer=(entityelement(e).y+25)/100
+  if targetcontainer<0 then targetcontainer=0
+  if targetcontainer>19 then targetcontainer=19
+  ai entity go to position obj,entityelement(e).x,entityelement(e).z,targetcontainer
+  ai set entity can duck obj,1
+  ai set entity avoid distance obj,300
+  ai set entity can strafe obj,1
+  ai set entity control obj,0
  endif
- `
- AI Set Entity Can Select targets obj,0
- ai set entity view arc obj,entityelement(e).eleprof.coneangle*0.7,entityelement(e).eleprof.coneangle
- `
- rem FPGC - 060510 - height measures characters EYE from FEET (for alternative visibility raycast)
- AI Set Entity Height obj,entityelement(e).eleprof.coneheight
- `AI Set Entity Turn Speed obj,entityelement(e).eleprof.speed*2 ` FPGC - 100710 - all chars turn VERY slowly!
- AI Set Entity Turn Speed obj,entityelement(e).eleprof.speed*6
- `
- ai set entity fire arc obj,20
- ai set entity view range obj,600
- ai set entity attack distance obj,200-rnd(50)+rnd(50)
- ai set entity aggressive obj
- entityelement(e).darkai.hearingrange=700
- `ai set entity hearing range obj,700
- `ai set entity hearing threshold obj,10
- ai set entity can roam obj,1
- REM DAI SPEED
- ai set entity speed obj,entityelement(e).eleprof.speed/2.0
- `ai set entity position obj,entityelement(e).x,entityelement(e).z `280410 - old DarkAI
- ai set entity position obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
- `ai set entity idle position obj,entityelement(e).x,entityelement(e).z `280410 - old DarkAI
- tcontainerid=entityelement(e).y+50
- if tcontainerid<0 then tcontainerid=0
- if tcontainerid>19 then tcontainerid=19
- ai set entity idle position obj,entityelement(e).x,entityelement(e).z,tcontainerid
- ai set entity angle y obj,entityelement(e).ry
- targetcontainer=(entityelement(e).y+25)/100
- if targetcontainer<0 then targetcontainer=0
- if targetcontainer>19 then targetcontainer=19
- ai entity go to position obj,entityelement(e).x,entityelement(e).z,targetcontainer
- ai set entity can duck obj,1
- ai set entity avoid distance obj,300
- ai set entity can strafe obj,1
- ai set entity control obj,0
 Return
 
-Rem Hockeykid - 250210 - Dark AI control subroutine
 _darkai_control:
-
+ `
+ Rem Hockeykid - 250210 - Dark AI control subroutine
  obj=entityelement(e).obj
  if obj=0 then return
  if ai entity exist(obj)=0 then return
-
+ `
+ rem FPGC - 300710 - DarkAI only in single player
+ if gmultiplayergame=1 then return
+ `
  Rem reset ttarget(s)
  ttargetvisible=0
  ttargetvisibleduck=0
  inc gameperfentities2, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
  Gosub Add_Targets
  inc gameperfentities3, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
-
+ `
  rem Collect Sensory Information
  if ai get entity target id(obj,1)<>0
   tobjtarget=entityelement(e).ttarget
@@ -48692,14 +48722,17 @@ _darkai_control:
 return
 
 _darkai_debug:
- rem FPGC - 310310 - added SETUP.INI flag to control whether we see AI outlines
- if gshowaioutlines=1
-  for layer=0 to 19
-   AI Debug Show Obstacle Bounds layer,6+(layer*100)
-   AI Debug Show Waypoints layer,15+(layer*100)
-  next layer
-  Rem debug view cones
-  ai debug show view arcs 550
+ rem FPGC - 300710 - DarkAI only in single player
+ if gmultiplayergame=0
+  rem FPGC - 310310 - added SETUP.INI flag to control whether we see AI outlines
+  if gshowaioutlines=1
+   for layer=0 to 19
+    AI Debug Show Obstacle Bounds layer,6+(layer*100)
+    AI Debug Show Waypoints layer,15+(layer*100)
+   next layer
+   Rem debug view cones
+   ai debug show view arcs 550
+  endif
  endif
 return
 
@@ -48710,59 +48743,69 @@ _ai_find_angle:
 return
 
 _darkai_stop:
- targetcontainer=(entityelement(e).y+25)/100
- if targetcontainer<0 then targetcontainer=0
- if targetcontainer>19 then targetcontainer=19
- ai entity go to position entityelement(e).obj,entityelement(e).x,entityelement(e).z,targetcontainer
-return
-
-_darkai_stopfollow:
- if entityelement(e).darkai.team=1
-  ai entity separate entityelement(e).obj
-  if entityelement(e).darkai.control=1 then ai set entity control entityelement(e).obj,0 : entityelement(e).darkai.control=0
+ rem FPGC - 300710 - DarkAI only in single player
+ if gmultiplayergame=0
   targetcontainer=(entityelement(e).y+25)/100
   if targetcontainer<0 then targetcontainer=0
   if targetcontainer>19 then targetcontainer=19
   ai entity go to position entityelement(e).obj,entityelement(e).x,entityelement(e).z,targetcontainer
-  entityelement(e).darkai.follow=0
  endif
+return
 
+_darkai_stopfollow:
+ rem FPGC - 300710 - DarkAI only in single player
+ if gmultiplayergame=0
+  if entityelement(e).darkai.team=1
+   ai entity separate entityelement(e).obj
+   if entityelement(e).darkai.control=1 then ai set entity control entityelement(e).obj,0 : entityelement(e).darkai.control=0
+   targetcontainer=(entityelement(e).y+25)/100
+   if targetcontainer<0 then targetcontainer=0
+   if targetcontainer>19 then targetcontainer=19
+   ai entity go to position entityelement(e).obj,entityelement(e).x,entityelement(e).z,targetcontainer
+   entityelement(e).darkai.follow=0
+  endif
+ endif
 return
 
 _darkai_callteam:
- arraycount=array count(ischaracter())
- maxdist#=maxdist#^2
- for i=1 to arraycount
-  y=ischaracter(i)
-  if ai entity exist(entityelement(y).obj)
-   if entityelement(y).obj<>entityelement(e).obj and entityelement(y).darkai.team=entityelement(e).darkai.team
-    dst#=(entityelement(y).x-entityelement(e).x)^2+(entityelement(y).z-entityelement(e).z)^2
-    if dst#<=maxdist#
-     if entityelement(y).darkai.called=0 then entityelement(y).darkai.called=entityelement(e).obj : entityelement(y).darkai.calldelay=timer()
+ rem FPGC - 300710 - DarkAI only in single player
+ if gmultiplayergame=0
+  arraycount=array count(ischaracter())
+  maxdist#=maxdist#^2
+  for i=1 to arraycount
+   y=ischaracter(i)
+   if ai entity exist(entityelement(y).obj)
+    if entityelement(y).obj<>entityelement(e).obj and entityelement(y).darkai.team=entityelement(e).darkai.team
+     dst#=(entityelement(y).x-entityelement(e).x)^2+(entityelement(y).z-entityelement(e).z)^2
+     if dst#<=maxdist#
+      if entityelement(y).darkai.called=0 then entityelement(y).darkai.called=entityelement(e).obj : entityelement(y).darkai.calldelay=timer()
+     endif
     endif
    endif
-  endif
- next i
+  next i
+ endif
 Return
 
 _darkai_plrcallteam:
- arraycount=array count(ischaracter())
- maxdist#=maxdist#^2
- x#=Object Position X(physicsplayerborble)
- y#=Object Position Y(physicsplayerborble)
- z#=Object Position Z(physicsplayerborble)
- `
- for i=1 to arraycount
-  y=ischaracter(i)
-  if ai entity exist(entityelement(y).obj)
-   if entityelement(y).darkai.team=1
-    dst#=(entityelement(y).x-x#)^2+(entityelement(y).z-z#)^2
-    if dst#<=maxdist#
-     if entityelement(y).darkai.called=0 then entityelement(y).darkai.called=physicsplayerborble : entityelement(y).darkai.calldelay=timer()
+ rem FPGC - 300710 - DarkAI only in single player
+ if gmultiplayergame=0
+  arraycount=array count(ischaracter())
+  maxdist#=maxdist#^2
+  x#=Object Position X(physicsplayerborble)
+  y#=Object Position Y(physicsplayerborble)
+  z#=Object Position Z(physicsplayerborble)
+  for i=1 to arraycount
+   y=ischaracter(i)
+   if ai entity exist(entityelement(y).obj)
+    if entityelement(y).darkai.team=1
+     dst#=(entityelement(y).x-x#)^2+(entityelement(y).z-z#)^2
+     if dst#<=maxdist#
+      if entityelement(y).darkai.called=0 then entityelement(y).darkai.called=physicsplayerborble : entityelement(y).darkai.calldelay=timer()
+     endif
     endif
    endif
-  endif
- next i
+  next i
+ endif
 Return
 
 _darkai_find_safezone:
@@ -48806,87 +48849,69 @@ Return
 
 Add_Targets:
  `
- rem FPGC - 140710 - this subroutine caused EXTREME slowdown (too many can see calls)
- `lee1 as DWORD : lee1=0
- `lee2 as DWORD : lee2=0
- `lee3 as DWORD : lee3=0
- `lee4 as DWORD : lee4=0
- `lee5 as DWORD : lee5=0
- `lee6 as DWORD : lee6=0
- `leet as DWORD
- `leet=perftimer()
- if ai entity exist(entityelement(e).obj)=1
-  arraycount=array count(ischaracter())
-  teamslot=AIFindTeam(entityelement(e).darkai.team)
-  `lee1=perftimer()-leet : leet=perftimer()
-  for i=1 to arraycount
-   y=ischaracter(i)
-   if entityelement(y).obj>0
-    if ai entity exist(entityelement(y).obj)
-     foundenemy=0
-     `inc lee2,perftimer()-leet : leet=perftimer()
-     for x=1 to FactionArrayMax
-      if entityelement(y).obj<>entityelement(e).obj and entityelement(y).darkai.team<>entityelement(e).darkai.team and aifaction(teamslot,x).enemy=entityelement(y).darkai.team
-       if ai get entity can see(entityelement(e).obj,object position x(entityelement(y).obj),object position y(entityelement(y).obj),object position z(entityelement(y).obj),1)>0
-        ai entity add target entityelement(e).obj,entityelement(y).obj
+ rem FPGC - 300710 - DarkAI only in single player
+ if gmultiplayergame=0
+  if ai entity exist(entityelement(e).obj)=1
+   arraycount=array count(ischaracter())
+   teamslot=AIFindTeam(entityelement(e).darkai.team)
+   for i=1 to arraycount
+    y=ischaracter(i)
+    if entityelement(y).obj>0
+     if ai entity exist(entityelement(y).obj)
+      foundenemy=0
+      for x=1 to FactionArrayMax
+       if entityelement(y).obj<>entityelement(e).obj and entityelement(y).darkai.team<>entityelement(e).darkai.team and aifaction(teamslot,x).enemy=entityelement(y).darkai.team
+        if ai get entity can see(entityelement(e).obj,object position x(entityelement(y).obj),object position y(entityelement(y).obj),object position z(entityelement(y).obj),1)>0
+         ai entity add target entityelement(e).obj,entityelement(y).obj
+        endif
+       endif
+       if entityelement(y).darkai.team=aifaction(teamslot,x).enemy then foundenemy=1
+      next x
+      if foundenemy=0
+       ai entity remove target entityelement(e).obj,entityelement(y).obj
+       if entityelement(e).actualtarget>1
+        c=entityelement(e).actualtarget-1
+        if entityelement(c).obj=entityelement(y).obj then entityelement(e).actualtarget=0
        endif
       endif
-      if entityelement(y).darkai.team=aifaction(teamslot,x).enemy then foundenemy=1
-     next x
-     `inc lee3,perftimer()-leet : leet=perftimer()
-     if foundenemy=0
-      ai entity remove target entityelement(e).obj,entityelement(y).obj
-      if entityelement(e).actualtarget>1
-       c=entityelement(e).actualtarget-1
-       if entityelement(c).obj=entityelement(y).obj then entityelement(e).actualtarget=0
+      `
+      Rem If entityelement(y).actualtarget>0 and the target no longer exist on the list reset flag
+      if ai entity exist(entityelement(y).obj)
+       tokay=0
+       if ai get entity count targets(entityelement(y).obj)=0 then entityelement(y).actualtarget=0
+       if entityelement(y).actualtarget>1 and ai get entity count targets(entityelement(y).obj)>0
+        tcount=ai get entity count targets(entityelement(y).obj)
+        for x=1 to tcount
+         c=entityelement(y).actualtarget-1
+         if entityelement(c).obj=ai get entity target id(entityelement(y).obj,x) then tokay=1 : exit
+        next x
+        if tokay=0 then entityelement(y).actualtarget=0
+       endif
       endif
+      `
      endif
-     `inc lee4,perftimer()-leet : leet=perftimer()
-     `
-     Rem If entityelement(y).actualtarget>0 and the target no longer exist on the list reset flag
-     if ai entity exist(entityelement(y).obj)
-      tokay=0
-      if ai get entity count targets(entityelement(y).obj)=0 then entityelement(y).actualtarget=0
-      if entityelement(y).actualtarget>1 and ai get entity count targets(entityelement(y).obj)>0
-       tcount=ai get entity count targets(entityelement(y).obj)
-       for x=1 to tcount
-        c=entityelement(y).actualtarget-1
-        if entityelement(c).obj=ai get entity target id(entityelement(y).obj,x) then tokay=1 : exit
-       next x
-       if tokay=0 then entityelement(y).actualtarget=0
-      endif
+    endif
+   next i
+   if player(1).health>0 or playerstartstrength=0
+    rem FPGC - 150710 - previous code would call 'ai get entity can see' 'FactionArrayMax' times, only needs calling once for (E).OBJ
+    tenemytargetflagged=0
+    for x=1 to FactionArrayMax
+     if aifaction(teamslot,x).enemy=1
+      tenemytargetflagged=1
      endif
-     `inc lee5,perftimer()-leet : leet=perftimer()
-     `
-    endif
-   endif
-  next i
-  `leet=perftimer()
-  if player(1).health>0 or playerstartstrength=0
-   rem FPGC - 150710 - previous code would call 'ai get entity can see' 'FactionArrayMax' times, only needs calling once for (E).OBJ
-   tenemytargetflagged=0
-   for x=1 to FactionArrayMax
-    if aifaction(teamslot,x).enemy=1
-     tenemytargetflagged=1
-    endif
-   next x
-   if tenemytargetflagged=1
-    if ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position y(physicsplayerborble),object position z(physicsplayerborble),1)>0
-     ai entity add target entityelement(e).obj,physicsplayerborble
+    next x
+    if tenemytargetflagged=1
+     if ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position y(physicsplayerborble),object position z(physicsplayerborble),1)>0
+      ai entity add target entityelement(e).obj,physicsplayerborble
+     endif
     endif
    endif
   endif
-  `inc lee6,perftimer()-leet : leet=perftimer()
  endif
- `set cursor 0,50+(e*15)
- `print e;" 1:";lee1;" 2:";lee2;" 3:";lee3;" 4:";lee4;" 5:";lee5;" 6:";lee6
  `
 return
 
-
 _Character_Array:
-
- `
  for e=1 to entityelementlist
   entid=entityelement(e).bankindex
   if entityprofile(entid).ischaracter=1
@@ -48895,8 +48920,6 @@ _Character_Array:
    ischaracter(xp)=e
   endif
  next e
-
- `
 Return
 
 Function AIUpdateSounds()
@@ -48916,7 +48939,6 @@ Function AIHeardSound(obje)
  arraycount=array count(aisound())
  hearing=entityelement(obje).darkai.hearingrange^2
  teamslot=AIFindTeam(entityelement(obje).darkai.team)
- `
  for i=1 to arraycount
   tokay=1
   for x=1 to FactionArrayMax
@@ -48934,13 +48956,16 @@ Function AIHeardSound(obje)
 Endfunction output
 
 Function AIMoveToSound(obj,obje)
- if entityelement(obje).darkai.hearingrange=0 then entityelement(obje).darkai.hearingrange=700
- sound=AIHeardSound(obje)
- if sound>0
-  targetcontainer=(aisound(sound).y+25)/100
-  if targetcontainer<0 then targetcontainer=0
-  if targetcontainer>19 then targetcontainer=19
-  ai entity go to position obj,aisound(sound).x,aisound(sound).z,targetcontainer
+ rem FPGC - 300710 - DarkAI only in single player
+ if gmultiplayergame=0
+  if entityelement(obje).darkai.hearingrange=0 then entityelement(obje).darkai.hearingrange=700
+  sound=AIHeardSound(obje)
+  if sound>0
+   targetcontainer=(aisound(sound).y+25)/100
+   if targetcontainer<0 then targetcontainer=0
+   if targetcontainer>19 then targetcontainer=19
+   ai entity go to position obj,aisound(sound).x,aisound(sound).z,targetcontainer
+  endif
  endif
 Endfunction
 
