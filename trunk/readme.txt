@@ -9,6 +9,8 @@ History
 V1.1.7
 ------
 
+ * Fixed bug causing the AI to keep their backs bent after their target has died
+ * Fixed bug causing cross layer shooting to not work on AI vs AI action
  * Solved issue in ODE which caused player to be pushed through floor
  * Solved issue of switches not performing their fixed rotation in test game
  * Entities that use the FIXROTY field auto-default to switch off physics (physics cannot pivot an object)
