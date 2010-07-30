@@ -10395,7 +10395,7 @@ return
 _ai_control:
 
 if aiindex>0
- if entityelement(e).darkai.throwing>0 and entityelement(e).darkai.throwing<>aiindex then entityelement(e).darkai.throwing=0 : ai set entity active entityelement(e).obj,entityelement(e).darkai.active
+ if entityelement(e).darkai.throwing>0 and entityelement(e).darkai.throwing<>aiindex then entityelement(e).darkai.throwing=0 and ai entity exist(entityelement(e).obj) : ai set entity active entityelement(e).obj,entityelement(e).darkai.active
  `
  rem used to update timestamps if resumegame happens
  tensureentitytimestampsupdated=0
