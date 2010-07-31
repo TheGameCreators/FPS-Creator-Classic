@@ -1130,6 +1130,27 @@ type movertype
  slidevel as float
 endtype
 
+rem Decal Particle Structure
+type decalparticletype
+ offsety as float
+ scale as integer
+ randomstartx as float
+ randomstarty as float
+ randomstartz as float
+ linearmotionx as float
+ linearmotiony as float
+ linearmotionz as float
+ randommotionx as float
+ randommotiony as float
+ randommotionz as float
+ mirrormode as integer
+ camerazshift as float
+ scaleonlyx as float
+ lifeincrement as float
+ alphaintensity as float
+endtype
+global gotparticle as decalparticletype
+
 rem Entity Element Custom Profile Data
 type entityeleproftype
  name$ as string
@@ -1172,6 +1193,8 @@ type entityeleproftype
  light as entitylighttype
  trigger as entitytriggertype
  basedecal$ as string
+ particleoverride as integer
+ particle as decalparticletype
  soundset$ as string
  soundset1$ as string
  spawnatstart as integer
@@ -2073,26 +2096,12 @@ type decaltype
  name$ as string
  across as integer
  down as integer
- offsety as float
  framemax as integer
- scale as integer
- randomstartx as float
- randomstarty as float
- randomstartz as float
- linearmotionx as float
- linearmotiony as float
- linearmotionz as float
- randommotionx as float
- randommotiony as float
- randommotionz as float
- mirrormode as integer
- camerazshift as float
- scaleonlyx as float
- lifeincrement as float
- alphaintensity as float
+ particle as decalparticletype
 endtype
 global decalmax=10
 dim decal(decalmax) as decaltype
+decal(1).name$=""
 
 rem Decal Element Structure (reusable instances)
 type decalelementtype
@@ -2108,6 +2117,7 @@ type decalelementtype
  originator as integer
  scalemodx as float
  scalemody as float
+ particle as decalparticletype
  particleix as float
  particleiy as float
  particleiz as float
@@ -21373,24 +21383,24 @@ return
 _decal_loaddata:
 `
 rem FPGC - 310310 - establish some defaults
-decal(decalid).across         = 4
-decal(decalid).down           = 4
-decal(decalid).offsety        = 0
-decal(decalid).scale          = 0
-decal(decalid).randomstartx   = 0
-decal(decalid).randomstarty   = 0
-decal(decalid).randomstartz   = 0
-decal(decalid).linearmotionx  = 0
-decal(decalid).linearmotiony  = 0
-decal(decalid).linearmotionz  = 0
-decal(decalid).randommotionx  = 0
-decal(decalid).randommotiony  = 0
-decal(decalid).randommotionz  = 0
-decal(decalid).mirrormode     = 0
-decal(decalid).camerazshift   = 500
-decal(decalid).scaleonlyx     = 100
-decal(decalid).lifeincrement  = 100
-decal(decalid).alphaintensity = 100
+decal(decalid).across                  = 4
+decal(decalid).down                    = 4
+decal(decalid).particle.offsety        = 0
+decal(decalid).particle.scale          = 0
+decal(decalid).particle.randomstartx   = 0
+decal(decalid).particle.randomstarty   = 0
+decal(decalid).particle.randomstartz   = 0
+decal(decalid).particle.linearmotionx  = 0
+decal(decalid).particle.linearmotiony  = 0
+decal(decalid).particle.linearmotionz  = 0
+decal(decalid).particle.randommotionx  = 0
+decal(decalid).particle.randommotiony  = 0
+decal(decalid).particle.randommotionz  = 0
+decal(decalid).particle.mirrormode     = 0
+decal(decalid).particle.camerazshift   = 500
+decal(decalid).particle.scaleonlyx     = 100
+decal(decalid).particle.lifeincrement  = 100
+decal(decalid).particle.alphaintensity = 100
 `
 dim data$(100)
 filename$="gamecore\decals\"+decal$+"\decalspec.txt"
@@ -21418,24 +21428,24 @@ for l=0 to 99
    rem decal
    if field$="across" then decal(decalid).across=value1
    if field$="down" then decal(decalid).down=value1
-   if field$="offsety" then decal(decalid).offsety=value1
-   if field$="scale" then decal(decalid).scale=value1
    `
    rem FPGC - 310310 - additional fields for decal based particle function
-   if field$="randomstartx" then decal(decalid).randomstartx=value1
-   if field$="randomstarty" then decal(decalid).randomstarty=value1
-   if field$="randomstartz" then decal(decalid).randomstartz=value1
-   if field$="linearmotionx" then decal(decalid).linearmotionx=value1
-   if field$="linearmotiony" then decal(decalid).linearmotiony=value1
-   if field$="linearmotionz" then decal(decalid).linearmotionz=value1
-   if field$="randommotionx" then decal(decalid).randommotionx=value1
-   if field$="randommotiony" then decal(decalid).randommotiony=value1
-   if field$="randommotionz" then decal(decalid).randommotionz=value1
-   if field$="mirrormode" then decal(decalid).mirrormode=value1
-   if field$="camerazshift" then decal(decalid).camerazshift=value1
-   if field$="scaleonlyx" then decal(decalid).scaleonlyx=value1
-   if field$="lifeincrement" then decal(decalid).lifeincrement=value1
-   if field$="alphaintensity" then decal(decalid).alphaintensity=value1
+   if field$="offsety" then decal(decalid).particle.offsety=value1
+   if field$="scale" then decal(decalid).particle.scale=value1
+   if field$="randomstartx" then decal(decalid).particle.randomstartx=value1
+   if field$="randomstarty" then decal(decalid).particle.randomstarty=value1
+   if field$="randomstartz" then decal(decalid).particle.randomstartz=value1
+   if field$="linearmotionx" then decal(decalid).particle.linearmotionx=value1
+   if field$="linearmotiony" then decal(decalid).particle.linearmotiony=value1
+   if field$="linearmotionz" then decal(decalid).particle.linearmotionz=value1
+   if field$="randommotionx" then decal(decalid).particle.randommotionx=value1
+   if field$="randommotiony" then decal(decalid).particle.randommotiony=value1
+   if field$="randommotionz" then decal(decalid).particle.randommotionz=value1
+   if field$="mirrormode" then decal(decalid).particle.mirrormode=value1
+   if field$="camerazshift" then decal(decalid).particle.camerazshift=value1
+   if field$="scaleonlyx" then decal(decalid).particle.scaleonlyx=value1
+   if field$="lifeincrement" then decal(decalid).particle.lifeincrement=value1
+   if field$="alphaintensity" then decal(decalid).particle.alphaintensity=value1
    `
   endif
  endif
@@ -21443,7 +21453,7 @@ next l
 undim data$()
 
 rem default scale is 100
-if decal(decalid).scale=0 then decal(decalid).scale=100
+if decal(decalid).particle.scale=0 then decal(decalid).particle.scale=100
 
 rem Some pre-game calculations
 decal(decalid).framemax=decal(decalid).across*decal(decalid).down
@@ -21501,6 +21511,7 @@ if array count(filelist$())>0
       dim decal(decalmax) as decaltype
      endif
      decal(decalid).name$=newdecal$
+     decal(decalid).across=0
      inc decalid
     endif
    endif
@@ -21537,6 +21548,25 @@ next decalid
 
 return
 
+_decal_getparticlefile:
+ `
+ rem FPGC - 310710 - if not scanned decal folder, do this now (before we can retrieve particle data)
+ if decal(1).name$="" then gosub _decal_scaninallref
+ `
+ rem FPGC - 310710 - takes particlefile$, fill gotparticle with data
+ for decalid=1 to decalmax
+  if lower$(decal(decalid).name$)=lower$(particlefile$)
+   if decal(decalid).across=0
+    decal(decalid).active=1
+    gosub _decal_loaddata
+   endif
+   gotparticle=decal(decalid).particle
+   exit
+  endif
+ next decalid
+ `
+return
+
 `
 ` decal ELEMENTS HANDLING
 `
@@ -21564,21 +21594,28 @@ if d<decalelementmax
  decalelement(d).frame=0
  decalelement(d).orient=decalorient
  decalelement(d).originator=originatore
+ rem FPGC - 300710 - particle settings now per instance
+ decalelement(d).particle=decal(decalid).particle
+ if originatore>0
+  if entityelement(originatore).eleprof.particleoverride=1
+   decalelement(d).particle=entityelement(originatore).eleprof.particle
+  endif
+ endif
  if decalelement(d).orient=7
   rem FPGC - 300310 - decal based particle adjust the Y pos, mirror and IX
-  decalelement(d).xpos=decalelement(d).xpos-((rnd(decal(decalid).randomstartx)-(decal(decalid).randomstartx/2))/100.0)
-  decalelement(d).ypos=decalelement(d).ypos-((rnd(decal(decalid).randomstarty)-(decal(decalid).randomstarty/2))/100.0)
-  decalelement(d).zpos=decalelement(d).zpos-((rnd(decal(decalid).randomstartz)-(decal(decalid).randomstartz/2))/100.0)
-  decalelement(d).particleix=((decal(decalid).randommotionx/2)-rnd(decal(decalid).randommotionx))/100.0
-  decalelement(d).particleiy=((decal(decalid).randommotiony/2)-rnd(decal(decalid).randommotiony))/100.0
-  decalelement(d).particleiz=((decal(decalid).randommotionz/2)-rnd(decal(decalid).randommotionz))/100.0
-  if decal(decalid).mirrormode=0 then decalelement(d).particlemirror=0
-  if decal(decalid).mirrormode=1 then decalelement(d).particlemirror=1
-  if decal(decalid).mirrormode=2 then decalelement(d).particlemirror=rnd(1)
+  decalelement(d).xpos=decalelement(d).xpos-((rnd(decalelement(d).particle.randomstartx)-(decalelement(d).particle.randomstartx/2))/100.0)
+  decalelement(d).ypos=decalelement(d).ypos-((rnd(decalelement(d).particle.randomstarty)-(decalelement(d).particle.randomstarty/2))/100.0)
+  decalelement(d).zpos=decalelement(d).zpos-((rnd(decalelement(d).particle.randomstartz)-(decalelement(d).particle.randomstartz/2))/100.0)
+  decalelement(d).particleix=((decalelement(d).particle.randommotionx/2)-rnd(decalelement(d).particle.randommotionx))/100.0
+  decalelement(d).particleiy=((decalelement(d).particle.randommotiony/2)-rnd(decalelement(d).particle.randommotiony))/100.0
+  decalelement(d).particleiz=((decalelement(d).particle.randommotionz/2)-rnd(decalelement(d).particle.randommotionz))/100.0
+  if decal(decalid).particle.mirrormode=0 then decalelement(d).particlemirror=0
+  if decal(decalid).particle.mirrormode=1 then decalelement(d).particlemirror=1
+  if decal(decalid).particle.mirrormode=2 then decalelement(d).particlemirror=rnd(1)
  endif
  rem prepare decal object
  tobj=decalelement(d).obj
- ty=decal(decalid).offsety
+ ty=decal(decalid).particle.offsety
  position object tobj,decalelement(d).xpos,decalelement(d).ypos+ty,decalelement(d).zpos
  rem face camera or leave as is
  if decalelement(d).orient=0
@@ -21601,17 +21638,17 @@ if d<decalelementmax
  if decalelement(d).orient=7
   rem FPGC - 300310 - spawn a decal based particle fragment (for new flame and fire) (once)
   point object tobj,camera position x(),camera position y(),camera position z()
-  move object tobj,decal(decalid).camerazshift/100.0
+  move object tobj,decalelement(d).particle.camerazshift/100.0
  endif
  enable object zbias tobj,0.0,0.0
  rem texture for this decal type
  texture object tobj,decal(decalid).imageid
  rem scale the decal
  if decalscalemodx=0
-  decalelement(d).scalemodx=decal(decalid).scale*(decal(decalid).scaleonlyx/100.0)
-  decalelement(d).scalemody=decal(decalid).scale
+  decalelement(d).scalemodx=decalelement(d).particle.scale*(decalelement(d).particle.scaleonlyx/100.0)
+  decalelement(d).scalemody=decalelement(d).particle.scale
  else
-  decalelement(d).scalemodx=decalscalemodx*(decal(decalid).scaleonlyx/100.0)
+  decalelement(d).scalemodx=decalscalemodx*(decalelement(d).particle.scaleonlyx/100.0)
   decalelement(d).scalemody=decalscalemody
  endif
  `scale object tobj,decalelement(d).scalemodx,decalelement(d).scalemody,100
@@ -21660,9 +21697,9 @@ for f=1 to decalelementmax
     decalelement(f).xpos=decalelement(f).xpos+(((decalelement(f).particleix/100.0)*100.0)*timeelapsed#)
     decalelement(f).ypos=decalelement(f).ypos+(((decalelement(f).particleiy/100.0)*100.0)*timeelapsed#)
     decalelement(f).zpos=decalelement(f).zpos+(((decalelement(f).particleiz/100.0)*100.0)*timeelapsed#)
-    decalelement(f).xpos=decalelement(f).xpos+((decal(decalid).linearmotionx/100.0)*timeelapsed#)
-    decalelement(f).ypos=decalelement(f).ypos+((decal(decalid).linearmotiony/100.0)*timeelapsed#)
-    decalelement(f).zpos=decalelement(f).zpos+((decal(decalid).linearmotionz/100.0)*timeelapsed#)
+    decalelement(f).xpos=decalelement(f).xpos+((decalelement(f).particle.linearmotionx/100.0)*timeelapsed#)
+    decalelement(f).ypos=decalelement(f).ypos+((decalelement(f).particle.linearmotiony/100.0)*timeelapsed#)
+    decalelement(f).zpos=decalelement(f).zpos+((decalelement(f).particle.linearmotionz/100.0)*timeelapsed#)
    endif
    rem animation
    decalid=decalelement(f).decalid
@@ -21672,7 +21709,7 @@ for f=1 to decalelementmax
    decalelement(f).framedelay=decalelement(f).framedelay+(timeelapsed#*2)
    if decalelement(f).framedelay>=1
     decalelement(f).framedelay=0
-    decalelement(f).frame=decalelement(f).frame+(decal(decalid).lifeincrement/100.0)
+    decalelement(f).frame=decalelement(f).frame+(decalelement(f).particle.lifeincrement/100.0)
    endif
    if decalelement(f).frame>decal(decalid).framemax-1
     rem no more animation
@@ -21696,13 +21733,13 @@ for f=1 to decalelementmax
     endif
     if decalelement(f).orient=7
      rem FPGC - 300310 - decal based particle faces camera always and moves
-     ty=decal(decalid).offsety
+     ty=decal(decalid).particle.offsety
      position object tobj,decalelement(f).xpos,decalelement(f).ypos+ty,decalelement(f).zpos
      point object tobj,camera position x(),camera position y(),camera position z()
      rem also affect the alpha of the decal
      pt#=decal(decalid).framemax
      p#=(decal(decalid).framemax-decalelement(f).frame)/pt#
-     set alpha mapping on tobj,sin(p#*180)*decal(decalid).alphaintensity
+     set alpha mapping on tobj,sin(p#*180)*decalelement(f).particle.alphaintensity
     endif
     rem animation UVs
     if decalelement(f).orient=7
@@ -24031,7 +24068,7 @@ entityelementlist=e
 
 rem Save entity element list
 dw as DWORD
-versionnumbersave=107
+versionnumbersave=217
 if file exist(elementsfilename$)=1 then delete file elementsfilename$
 open to write 1,elementsfilename$
  write file 1,versionnumbersave
@@ -24154,9 +24191,54 @@ open to write 1,elementsfilename$
    endif
    if versionnumbersave>=199
     rem X10 specific version - any new save data must be higher than 200
+    a=0
+    write file 1,a : `entityelement(e).eleprof.ex.alignment=a
+    write file 1,a : `entityelement(e).eleprof.ex.initmode=a
+    write file 1,a : `entityelement(e).eleprof.ex.seemode=a
+    write file 1,a : `entityelement(e).eleprof.ex.trigmode=a
+    write file 1,a : `entityelement(e).eleprof.ex.hurtmode=a
+    write file 1,a : `entityelement(e).eleprof.ex.hurtvalue=a
+    write file 1,a : `entityelement(e).eleprof.ex.canstrafe=a
+    write file 1,a : `entityelement(e).eleprof.ex.canduck=a
+    write file 1,a : `entityelement(e).eleprof.ex.canhear=a
+    write file 1,a : `entityelement(e).eleprof.ex.loadedweapon=a
+    write file 1,a : `entityelement(e).eleprof.ex.attackrange=a
+    write file 1,a : `entityelement(e).eleprof.ex.viewrange=a
+    write file 1,a : `entityelement(e).eleprof.ex.maxrange=a
+    write file 1,a : `entityelement(e).eleprof.ex.texturearray=a
+    write file 1,a : `entityelement(e).eleprof.ex.showhealthbar=a
+    write file 1,a : `entityelement(e).eleprof.ex.lungcapacity=a
+    write file 1,a : `entityelement(e).eleprof.ex.glassstyle=a
    endif
    if versionnumbersave>=200
     rem X10 specific version - any new save data must be higher than 200
+    a=0
+    write file 1,a : `entityelement(e).eleprof.ex.score=a
+    write file 1,a : `entityelement(e).eleprof.ex.showallyicon=a
+    write file 1,a : `entityelement(e).eleprof.ex.factor=a
+    write file 1,a : `entityelement(e).eleprof.ex.impactforce=a
+    write file 1,a : `entityelement(e).eleprof.ex.decaytime=a
+    write file 1,a : `entityelement(e).eleprof.ex.jumpheight=a  
+   endif
+   if versionnumbersave>=217
+    rem FPGC - 300710 - save new entity element data
+    a=entityelement(e).eleprof.particleoverride : write file 1,a
+    a=entityelement(e).eleprof.particle.offsety : write file 1,a
+    a=entityelement(e).eleprof.particle.scale : write file 1,a
+    a=entityelement(e).eleprof.particle.randomstartx : write file 1,a
+    a=entityelement(e).eleprof.particle.randomstarty : write file 1,a
+    a=entityelement(e).eleprof.particle.randomstartz : write file 1,a
+    a=entityelement(e).eleprof.particle.linearmotionx : write file 1,a
+    a=entityelement(e).eleprof.particle.linearmotiony : write file 1,a
+    a=entityelement(e).eleprof.particle.linearmotionz : write file 1,a
+    a=entityelement(e).eleprof.particle.randommotionx : write file 1,a
+    a=entityelement(e).eleprof.particle.randommotiony : write file 1,a
+    a=entityelement(e).eleprof.particle.randommotionz : write file 1,a
+    a=entityelement(e).eleprof.particle.mirrormode : write file 1,a
+    a=entityelement(e).eleprof.particle.camerazshift : write file 1,a
+    a=entityelement(e).eleprof.particle.scaleonlyx : write file 1,a
+    a=entityelement(e).eleprof.particle.lifeincrement : write file 1,a
+    a=entityelement(e).eleprof.particle.alphaintensity : write file 1,a
    endif
   next e
  endif
@@ -24186,7 +24268,7 @@ if elementsfilename$="" then elementsfilename$="mapbank\testmap\map.ele"
 rem load entity element list
 dw as DWORD
 failedtoload=0
-versionnumbersupported=200
+versionnumbersupported=217
 if file exist(elementsfilename$)=1
  `
  open to read 1,elementsfilename$
@@ -24354,6 +24436,26 @@ if file exist(elementsfilename$)=1
       read file 1,a : `entityelement(e).eleprof.ex.decaytime=a
       read file 1,a : `entityelement(e).eleprof.ex.jumpheight=a
      endif
+     if versionnumberload>=217
+      rem FPGC - 300710 - save new entity element data
+      read file 1,a : entityelement(e).eleprof.particleoverride=a
+      read file 1,a : entityelement(e).eleprof.particle.offsety=a
+      read file 1,a : entityelement(e).eleprof.particle.scale=a
+      read file 1,a : entityelement(e).eleprof.particle.randomstartx=a
+      read file 1,a : entityelement(e).eleprof.particle.randomstarty=a
+      read file 1,a : entityelement(e).eleprof.particle.randomstartz=a
+      read file 1,a : entityelement(e).eleprof.particle.linearmotionx=a
+      read file 1,a : entityelement(e).eleprof.particle.linearmotiony=a
+      read file 1,a : entityelement(e).eleprof.particle.linearmotionz=a
+      read file 1,a : entityelement(e).eleprof.particle.randommotionx=a
+      read file 1,a : entityelement(e).eleprof.particle.randommotiony=a
+      read file 1,a : entityelement(e).eleprof.particle.randommotionz=a
+      read file 1,a : entityelement(e).eleprof.particle.mirrormode=a
+      read file 1,a : entityelement(e).eleprof.particle.camerazshift=a
+      read file 1,a : entityelement(e).eleprof.particle.scaleonlyx=a
+      read file 1,a : entityelement(e).eleprof.particle.lifeincrement=a
+      read file 1,a : entityelement(e).eleprof.particle.alphaintensity=a
+     endif
      `
      rem fill in the blanks if load older version
      ttentid=entityelement(e).bankindex
@@ -24386,6 +24488,10 @@ if file exist(elementsfilename$)=1
       rem Version 1.06 - BETA10
       entityelement(e).eleprof.spawnatstart=entityprofile(ttentid).spawnatstart
       entityelement(e).eleprof.spawnlife=entityprofile(ttentid).spawnlife
+     endif
+     if versionnumberload<217
+      rem FPGC - 300710 - older levels dont use particle override
+      entityelement(e).eleprof.particleoverride=0
      endif
     next e
    endif
@@ -24811,6 +24917,12 @@ _entity_fillelementfromprofile:
  entityelement(e).eleprof.soundset$=entityprofile(entid).soundset$
  entityelement(e).eleprof.soundset1$=entityprofile(entid).soundset1$
  `
+ rem FPGC - 310710 - default decal particle settings
+ particlefile$=entityelement(e).eleprof.basedecal$
+ gosub _decal_getparticlefile
+ entityelement(e).eleprof.particleoverride=1
+ entityelement(e).eleprof.particle=gotparticle
+ `
  rem Marker Data
  entityelement(e).eleprof.markerindex=entityprofile(entid).markerindex
  entityelement(e).eleprof.light=entityprofile(entid).light
@@ -24914,6 +25026,12 @@ _entity_fillgrideleproffromprofile:
  grideleprof.basedecal$=entitydecal$(entid,0)
  grideleprof.soundset$=entityprofile(entid).soundset$
  grideleprof.soundset1$=entityprofile(entid).soundset1$
+ `
+ rem FPGC - 310710 - decal particle settings
+ particlefile$=grideleprof.basedecal$
+ gosub _decal_getparticlefile
+ grideleprof.particleoverride=1
+ grideleprof.particle=gotparticle
  `
  rem Marker Data
  grideleprof.markerindex=entityprofile(entid).markerindex
@@ -46108,7 +46226,7 @@ _interface_openpropertywindow:
   else
    rem Setup usage flags
    tsimplecharview=0
-   tflaglives=0 : tflaglight=0 : tflagobjective=0 : tflagtdecal=0 : tflagspawn=0 : tflagifused=0
+   tflaglives=0 : tflaglight=0 : tflagobjective=0 : tflagtdecal=0 : tflagdecalparticle=0 : tflagspawn=0 : tflagifused=0
    tflagvis=0 : tflagchar=0 : tflagweap=0 : tflagammo=0 : tflagai=1 : tflagsound=0 : tflagsoundset=0 : tflagnosecond=0
    tflagmobile=0 : tflaghurtfall=0 : tflaghasweapon=0 : tflagammoclip=0 : tflagstats=0 : tflagquantity=0
    tflagvideo=0
@@ -46160,7 +46278,7 @@ _interface_openpropertywindow:
        endif
       endif
       if entityprofile(gridentity).ismarker=3 then tflagobjective=1 : tflagnosecond=1 : tflagifused=1
-      if entityprofile(gridentity).ismarker=4 then tflagtdecal=1
+      if entityprofile(gridentity).ismarker=4 then tflagtdecal=1 : tflagdecalparticle=1
       if entityprofile(gridentity).ismarker=3
        if entityprofile(gridentity).markerindex=1
         rem video
@@ -46387,8 +46505,33 @@ _interface_openpropertywindow:
    rem Decal data
    if tflagtdecal=1
     propfield(group)=controlindex
-    inc group : startgroup(strarr$(464)) : controlindex=0
-    setpropertyfile2(group,grideleprof.basedecal$,strarr$(465),strarr$(252),"gamecore\decals\") : inc controlindex
+    `
+    rem FPGC - 300710 - could never change base decal, so comment out this property (entity denotes decal choice)
+    `inc group : startgroup(strarr$(464)) : controlindex=0
+    `setpropertyfile2(group,grideleprof.basedecal$,strarr$(465),strarr$(252),"gamecore\decals\") : inc controlindex
+    `
+    rem Decal Particle data
+    if tflagdecalparticle=1
+     inc group : startgroup("Decal Particle") : controlindex=0
+     setpropertylist2(group,controlindex,str$(grideleprof.particleoverride),"Custom Settings","Whether you wish to override default settings",0) : inc controlindex
+     setpropertystring2(group,str$(grideleprof.particle.offsety),"OffsetY","Vertical adjustment of start position") : inc controlindex
+     setpropertystring2(group,str$(grideleprof.particle.scale),"Scale","A value from 0 to 100, denoting size of particle") : inc controlindex
+     setpropertystring2(group,str$(grideleprof.particle.randomstartx),"Random Start X","Random start area") : inc controlindex
+     setpropertystring2(group,str$(grideleprof.particle.randomstarty),"Random Start Y","Random start area") : inc controlindex
+     setpropertystring2(group,str$(grideleprof.particle.randomstartz),"Random Start Z","Random start area") : inc controlindex
+     setpropertystring2(group,str$(grideleprof.particle.linearmotionx),"Linear Motion X","Constant motion direction") : inc controlindex
+     setpropertystring2(group,str$(grideleprof.particle.linearmotiony),"Linear Motion Y","Constant motion direction") : inc controlindex
+     setpropertystring2(group,str$(grideleprof.particle.linearmotionz),"Linear Motion Z","Constant motion direction") : inc controlindex
+     setpropertystring2(group,str$(grideleprof.particle.randommotionx),"Random Motion X","Random motion direction") : inc controlindex
+     setpropertystring2(group,str$(grideleprof.particle.randommotiony),"Random Motion Y","Random motion direction") : inc controlindex
+     setpropertystring2(group,str$(grideleprof.particle.randommotionz),"Random Motion Z","Random motion direction") : inc controlindex
+     setpropertystring2(group,str$(grideleprof.particle.mirrormode),"Mirror Mode","Set to one to reverse the particle") : inc controlindex
+     setpropertystring2(group,str$(grideleprof.particle.camerazshift),"Camera Z Shift","Shift particle towards camera") : inc controlindex
+     setpropertystring2(group,str$(grideleprof.particle.scaleonlyx),"Scale Only X","Percentage X over Y scale") : inc controlindex
+     setpropertystring2(group,str$(grideleprof.particle.lifeincrement),"Life Increment","Control lifespan of particle") : inc controlindex
+     setpropertystring2(group,str$(grideleprof.particle.alphaintensity),"Alpha Intensity","Control alpha percentage of particle") : inc controlindex
+    endif
+    `
    endif
    `
    rem Sound or Video data
@@ -46544,6 +46687,26 @@ _interface_copydatatoentity:
    if lower$(tfield$)=lower$(strarr$(456)) then grideleprof.hurtfall=val(tdata$)
    if lower$(tfield$)=lower$(strarr$(458)) then grideleprof.isobjective=val(tdata$)
    if lower$(tfield$)=lower$(strarr$(464)) then grideleprof.basedecal$=tdata$
+   `
+   rem FPGC - 300710 - read data changes back into grideleprof
+   if lower$(tfield$)="custom settings" then grideleprof.particleoverride=val(tdata$) 
+   if lower$(tfield$)="offsety" then grideleprof.particle.offsety=val(tdata$) 
+   if lower$(tfield$)="scale" then grideleprof.particle.scale=val(tdata$)
+   if lower$(tfield$)="random start x" then grideleprof.particle.randomstartx=val(tdata$)
+   if lower$(tfield$)="random start y" then grideleprof.particle.randomstarty=val(tdata$)
+   if lower$(tfield$)="random start z" then grideleprof.particle.randomstartz=val(tdata$)
+   if lower$(tfield$)="linear motion x" then grideleprof.particle.linearmotionx=val(tdata$)
+   if lower$(tfield$)="linear motion y" then grideleprof.particle.linearmotiony=val(tdata$)
+   if lower$(tfield$)="linear motion z" then grideleprof.particle.linearmotionz=val(tdata$)
+   if lower$(tfield$)="random motion x" then grideleprof.particle.randommotionx=val(tdata$)
+   if lower$(tfield$)="random motion y" then grideleprof.particle.randommotiony=val(tdata$)
+   if lower$(tfield$)="random motion z" then grideleprof.particle.randommotionz=val(tdata$)
+   if lower$(tfield$)="mirror mode" then grideleprof.particle.mirrormode=val(tdata$)
+   if lower$(tfield$)="camera z shift" then grideleprof.particle.camerazshift=val(tdata$)
+   if lower$(tfield$)="scale only x" then grideleprof.particle.scaleonlyx=val(tdata$)
+   if lower$(tfield$)="life increment" then grideleprof.particle.lifeincrement=val(tdata$)
+   if lower$(tfield$)="alpha intensity" then grideleprof.particle.alphaintensity=val(tdata$)
+   `
    if lower$(tfield$)=lower$(strarr$(467)) then grideleprof.soundset$=tdata$
    if lower$(tfield$)=lower$(strarr$(468)) then grideleprof.soundset1$=tdata$
    if lower$(tfield$)=lower$(strarr$(469)) then grideleprof.soundset$=tdata$

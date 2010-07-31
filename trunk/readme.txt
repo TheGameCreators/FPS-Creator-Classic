@@ -9,6 +9,8 @@ History
 V1.1.7
 ------
 
+ * Decal particle settings populated by base decal settings (for tweaking)
+ * Added decal particle settings right into entity properties (custom override)
  * Fixed DBP Basic3D DLL bug causing play object obj,start,end to overrun
  * Fixed bug causing the AI to keep their backs bent after their target has died
  * Fixed bug causing cross layer shooting to not work on AI vs AI action
