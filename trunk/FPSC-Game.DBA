@@ -1995,6 +1995,7 @@ type gunsettingstype
  noautoreload as boolean
  nofullreload as boolean
  chamberedround as boolean
+ altchamberedround as boolean
  movespeedmod as boolean
  zoomgunlagSpeed as float
  zoomgunlagXmax as float
@@ -7626,6 +7627,22 @@ if entityelement(e).fireweapon=1
      dst#=intersect object(hudbankoffset+2,x1#,y1#,z1#,x2#,y2#,z2#)
      if dst#<>0 or tdd#<125.0
       tbullethitstatic=0
+     endif
+    endif
+    `
+    if tbullethitstatic>0
+     tsoundtrigger=0 : tsoundmaterial=0
+     if tbullethitmaterial>=0
+      tmatindex=tbullethitmaterial
+      if tmatindex>=0 and tmatindex<=gmaterialmax
+       tsoundmaterial=1+tmatindex
+       tsoundtrigger=material(tmatindex).impactid
+       tsx#=x# : tsy#=y# : tsz#=z#
+       tspd#=(material(tmatindex).freq*2)+rnd(material(tmatindex).freq)
+       rem if material sound triggered
+       gosub _ode_triggermaterialsound
+       gosub _decal_triggermaterialdebris
+      endif
      endif
     endif
     `
@@ -17400,13 +17417,10 @@ if gunmode<100
   `if gunmode<11
   rem AirMod - No Full Reload Feature
   gunfull=1
-  if gun(gunid).settings.chamberedround > 0
-   if (gun(gunid).settings.alternate = 0 and weaponammo(weaponammoindex) < gun(gunid).settings.reloadqty+1) then gunfull = 0
-   if (gun(gunid).settings.alternate = 1 and weaponammo(weaponammoindex+10) < gun(gunid).settings.altreloadqty+1) then gunfull = 0
-  else
-   if (gun(gunid).settings.alternate = 0 and weaponammo(weaponammoindex) < gun(gunid).settings.reloadqty) then gunfull = 0
-   if (gun(gunid).settings.alternate = 1 and weaponammo(weaponammoindex+10) < gun(gunid).settings.altreloadqty) then gunfull = 0
-  endif
+  if (gun(gunid).settings.alternate = 0 and weaponammo(weaponammoindex) < gun(gunid).settings.reloadqty+1 and gun(gunid).settings.chamberedround > 0) then gunfull = 0
+  if (gun(gunid).settings.alternate = 1 and weaponammo(weaponammoindex+10) < gun(gunid).settings.altreloadqty+1 and gun(gunid).settings.altchamberedround > 0) then gunfull = 0
+  if (gun(gunid).settings.alternate = 0 and weaponammo(weaponammoindex) < gun(gunid).settings.reloadqty and gun(gunid).settings.chamberedround=0) then gunfull = 0
+  if (gun(gunid).settings.alternate = 1 and weaponammo(weaponammoindex+10) < gun(gunid).settings.altreloadqty and gun(gunid).settings.altchamberedround=0) then gunfull = 0
   rem V110 - 220508 - and also for when walking/running
   if gunmode<30
    `if gunclick=2 then gunmode=121
@@ -17724,18 +17738,31 @@ if gun(gunid).settings.alternate<>0
  ghide=gun(gunid).altaction.hide
 else
  if gun(gunid).settings.hasempty=1 and gun(gunid).settings.isempty=1
-  if gunzoommode <> 0 and gun(gunid).settings.simplezoom <> 0 and gun(gunid).settings.simplezoomanim <> 0 then gunzoommode=0 : gunmode = 2003
+  if gunzoommode=10 and gun(gunid).settings.simplezoom <> 0
+   gunzoommode=11
+   if gun(gunid).settings.simplezoomanim <> 0
+    gunmode = 2003
+    gstart=gun(gunid).zoomaction.start
+    gfinish=gun(gunid).zoomaction.finish
+    gautomatic=gun(gunid).zoomaction.automatic
+   else
+    gstart=gun(gunid).action.start
+    gfinish=gun(gunid).action.finish
+    gautomatic=gun(gunid).action.automatic
+   endif
+  else
+   gstart=gun(gunid).action.start
+   gfinish=gun(gunid).action.finish
+   gautomatic=gun(gunid).action.automatic
+  endif
   gshow=gun(gunid).emptyaction.show
   gidle=gun(gunid).emptyaction.idle
   gmove=gun(gunid).emptyaction.move
-  gautomatic=gun(gunid).action.automatic
   gstartreload=gun(gunid).emptyaction.startreload
   greloadloop=gun(gunid).emptyaction.reloadloop
   gendreload=gun(gunid).emptyaction.endreload
   gcock=gun(gunid).emptyaction.cock
   ghide=gun(gunid).emptyaction.hide
-  gstart=gun(gunid).action.start
-  gfinish=gun(gunid).action.finish
  else
   gshow=gun(gunid).action.show
   gidle=gun(gunid).action.idle
@@ -19202,6 +19229,8 @@ for l=0 to 299
    if field$="altflak" then gun(gunid).settings.flakname$=value$
    rem AirMod - Chambered Round
    if field$="chamberedround" then gun(gunid).settings.chamberedround=value1
+   rem Hockeykid - Alt Chambered Round to avoid altflak from chambering a round
+   if field$="altchamberedround" then gun(gunid).settings.altchamberedround=value1
    rem AirMod - Auto and Full Reload
    if field$="noautoreload" then gun(gunid).settings.noautoreload=value1
    if field$="nofullreload" then gun(gunid).settings.nofullreload=value1
@@ -24218,7 +24247,7 @@ open to write 1,elementsfilename$
     write file 1,a : `entityelement(e).eleprof.ex.factor=a
     write file 1,a : `entityelement(e).eleprof.ex.impactforce=a
     write file 1,a : `entityelement(e).eleprof.ex.decaytime=a
-    write file 1,a : `entityelement(e).eleprof.ex.jumpheight=a  
+    write file 1,a : `entityelement(e).eleprof.ex.jumpheight=a
    endif
    if versionnumbersave>=217
     rem FPGC - 300710 - save new entity element data
@@ -46689,8 +46718,8 @@ _interface_copydatatoentity:
    if lower$(tfield$)=lower$(strarr$(464)) then grideleprof.basedecal$=tdata$
    `
    rem FPGC - 300710 - read data changes back into grideleprof
-   if lower$(tfield$)="custom settings" then grideleprof.particleoverride=val(tdata$) 
-   if lower$(tfield$)="offsety" then grideleprof.particle.offsety=val(tdata$) 
+   if lower$(tfield$)="custom settings" then grideleprof.particleoverride=val(tdata$)
+   if lower$(tfield$)="offsety" then grideleprof.particle.offsety=val(tdata$)
    if lower$(tfield$)="scale" then grideleprof.particle.scale=val(tdata$)
    if lower$(tfield$)="random start x" then grideleprof.particle.randomstartx=val(tdata$)
    if lower$(tfield$)="random start y" then grideleprof.particle.randomstarty=val(tdata$)

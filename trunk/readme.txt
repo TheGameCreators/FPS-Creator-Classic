@@ -9,6 +9,8 @@ History
 V1.1.7
 ------
 
+ * Added debris decal for characters when they miss their shot and hit a piece of level geometry 
+ * Added new gunspec command "altchamberedround=x" works just like chamberedround=x but applies to the alternate firing mode 
  * Decal particle settings populated by base decal settings (for tweaking)
  * Added decal particle settings right into entity properties (custom override)
  * Fixed DBP Basic3D DLL bug causing play object obj,start,end to overrun
