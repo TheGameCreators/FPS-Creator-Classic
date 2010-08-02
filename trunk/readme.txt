@@ -8,7 +8,11 @@ History
 
 V1.1.7
 ------
-
+ 
+ * Added new gunspec command empty run=x,y for running with a empty weapon 
+ * Added new gunspec command alt run=x,y for running with an alternate weapon
+ * Added new gunspec command run=x,y for running
+ * Added support for new run animations
  * Added debris decal for characters when they miss their shot and hit a piece of level geometry 
  * Added new gunspec command "altchamberedround=x" works just like chamberedround=x but applies to the alternate firing mode 
  * Decal particle settings populated by base decal settings (for tweaking)

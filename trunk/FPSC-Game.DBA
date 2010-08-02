@@ -2034,6 +2034,8 @@ type gunactionstype
  finish3 as gunanimtype
  to as gunanimtype
  from as gunanimtype
+ Rem Hockeykid - Support for running animations
+ run as gunanimtype
 endtype
 
 rem Gun Data Structure (is 10 our maximum for the entire game, ie weapon slots max?)
@@ -17723,11 +17725,20 @@ gcock as gunanimtype
 ghide as gunanimtype
 gblock as gunanimtype
 `
-
+`if gunmode<21 or gunmode>26 then usingrun=0
 if gun(gunid).settings.alternate<>0
  gshow=gun(gunid).altaction.show
  gidle=gun(gunid).altaction.idle
- gmove=gun(gunid).altaction.move
+ if isrunning=0 and usingrun<>-1
+  gmove=gun(gunid).altaction.move : usingrun=-1
+  if gunmode>=21 and gunmode<=26 then gunmode=21
+ endif
+ if isrunning=1 and usingrun<>1
+  gmove=gun(gunid).altaction.run : usingrun=1
+  if gunmode>=21 and gunmode<=26 then gunmode=21
+ endif
+ if usingrun=-1 then gmove=gun(gunid).altaction.move
+ if usingrun=1 then gmove=gun(gunid).altaction.run
  gstart=gun(gunid).altaction.start
  gautomatic=gun(gunid).altaction.automatic
  gfinish=gun(gunid).altaction.finish
@@ -17758,7 +17769,16 @@ else
   endif
   gshow=gun(gunid).emptyaction.show
   gidle=gun(gunid).emptyaction.idle
-  gmove=gun(gunid).emptyaction.move
+  if isrunning=0 and usingrun<>-1
+   gmove=gun(gunid).emptyaction.move : usingrun=-1
+   if gunmode>=21 and gunmode<=26 then gunmode=21
+  endif
+  if isrunning=1 and usingrun<>1
+   gmove=gun(gunid).emptyaction.run : usingrun=1
+   if gunmode>=21 and gunmode<=26 then gunmode=21
+  endif
+  if usingrun=-1 then gmove=gun(gunid).emptyaction.move
+  if usingrun=1 then gmove=gun(gunid).emptyaction.run
   gstartreload=gun(gunid).emptyaction.startreload
   greloadloop=gun(gunid).emptyaction.reloadloop
   gendreload=gun(gunid).emptyaction.endreload
@@ -17767,7 +17787,16 @@ else
  else
   gshow=gun(gunid).action.show
   gidle=gun(gunid).action.idle
-  gmove=gun(gunid).action.move
+  if isrunning=0 and usingrun<>-1
+   gmove=gun(gunid).action.move : usingrun=-1
+   if gunmode>=21 and gunmode<=26 then gunmode=21
+  endif
+  if isrunning=1 and usingrun<>1
+   gmove=gun(gunid).action.run : usingrun=1
+   if gunmode>=21 and gunmode<=26 then gunmode=21
+  endif
+  if usingrun=-1 then gmove=gun(gunid).action.move
+  if usingrun=1 then gmove=gun(gunid).action.run
   gautomatic=gun(gunid).action.automatic
   gstartreload=gun(gunid).action.startreload
   greloadloop=gun(gunid).action.reloadloop
@@ -17808,7 +17837,7 @@ endif
 if gunzoommode <> 0 and gun(gunid).settings.simplezoom <> 0 and gun(gunid).settings.simplezoomanim <> 0 and gun(gunid).settings.isempty=0
  gshow=gun(gunid).zoomaction.show
  gidle=gun(gunid).zoomaction.idle
- gmove=gun(gunid).zoomaction.move
+ gmove=gun(gunid).zoomaction.move : usingrun=0
  gstart=gun(gunid).zoomaction.start
  gautomatic=gun(gunid).zoomaction.automatic
  gfinish=gun(gunid).zoomaction.finish
@@ -19359,6 +19388,11 @@ for l=0 to 299
    if field$="end reload" then gun(gunid).action.endreload.s=value1 : gun(gunid).action.endreload.e=value2
    if field$="cock" then gun(gunid).action.cock.s=value1 : gun(gunid).action.cock.e=value2
    if field$="putaway" then gun(gunid).action.hide.s=value1 : gun(gunid).action.hide.e=value2
+   Rem Hockeykid - 020810 - Support for running animations
+   if field$="run" then gun(gunid).action.run.s=value1 : gun(gunid).action.run.e=value2
+   if field$="alt run" then gun(gunid).altaction.run.s=value1 : gun(gunid).altaction.run.e=value2
+   if field$="zoom run" then gun(gunid).zoomaction.run.s=value1 : gun(gunid).zoomaction.run.e=value2
+   if field$="empty run" then gun(gunid).emptyaction.run.s=value1 : gun(gunid).emptyaction.run.e=value2
    if field$="keyframe ratio" then keyframeratio=value1
    rem AirMod - Melee Block Move
    if field$="block" then gun(gunid).action.block.s=value1 : gun(gunid).action.block.e=value2
@@ -19434,6 +19468,11 @@ endif
 Rem alt fire loop
 if gun(gunid).sound.altfireloopend=-1 then gun(gunid).sound.altfireloopend=gun(gunid).sound.fireloopend
 
+Rem No run animations
+if gun(gunid).action.run.e=0 then gun(gunid).action.run=gun(gunid).action.move
+if gun(gunid).altaction.run.e=0 then gun(gunid).altaction.run=gun(gunid).altaction.move
+if gun(gunid).zoomaction.run.e=0 then gun(gunid).zoomaction.run=gun(gunid).zoomaction.move
+
 rem If no COCK animation, fill with end of reload data
 if gun(gunid).action.cock.e=0
  gun(gunid).action.cock.s=gun(gunid).action.endreload.e
@@ -19448,6 +19487,7 @@ if gun(gunid).emptyaction.cock.e=0 and gun(gunid).emptyaction.endreload.e=0 then
 if gun(gunid).emptyaction.startreload.e=0 then gun(gunid).emptyaction.startreload=gun(gunid).action.startreload
 if gun(gunid).emptyaction.reloadloop.e=0 then gun(gunid).emptyaction.reloadloop=gun(gunid).action.reloadloop
 if gun(gunid).emptyaction.endreload.e=0 then gun(gunid).emptyaction.endreload=gun(gunid).action.endreload
+if gun(gunid).emptyaction.run.e=0 then gun(gunid).emptyaction.run=gun(gunid).emptyaction.move
 
 rem If no COCK animation, fill with end of reload data
 if gun(gunid).emptyaction.cock.e=0 `and gun(gunid).emptyaction.endreload.e>0 and gun(gunid).emptyaction.endreload.e<>gun(gunid).action.endreload.e
@@ -30835,12 +30875,12 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
  `
  rem Control camera movement
  if crouchmode<>0
-  basespeed#=20
+  basespeed#=20 : isrunning=0
  else
   if (plrkeySHIFT)=1 or (plrkeySHIFT2)=1
-   basespeed#=55
+   basespeed#=55 : isrunning=1
   else
-   basespeed#=35
+   basespeed#=35 : isrunning=0
   endif
   rem AirMod - Slow player for simple zoom
   if (gunzoommode <> 0 and gun(gunid).settings.simplezoom <> 0) then basespeed#=35-(20*gun(gunid).settings.zoomwalkspeed)
