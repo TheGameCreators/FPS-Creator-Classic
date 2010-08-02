@@ -9,6 +9,13 @@ History
 V1.1.7
 ------
  
+ * Enhanced AirMOD 'accurate object pickup' to skip if only 1 object in view
+ * Added code to switch off postprocessing if GPU is lower than PS2.0
+ * NOTE: If your dynamic entities are black, ensure they are captured by a dynamic light and well in its range
+ * Fixed problem of mouse pointer leaking into any secondary displays
+ * Fixed health numeric in arena game, now shows under the health label
+ * Fixed shadows in arena game, now appears at the characters feet
+ * Fixed issue causing arena games to crash if exit out and re-play game
  * Added new gunspec command empty run=x,y for running with a empty weapon 
  * Added new gunspec command alt run=x,y for running with an alternate weapon
  * Added new gunspec command run=x,y for running

@@ -2846,6 +2846,12 @@ endif
 rem Indicate a time stamp for app start time
 timestampactivity(0,"Flag to produce log files set in SETUP.INI (producelogfiles=1)")
 
+rem FPGC - 020810 - sub-PS2.0 cards CANNOT have post processing
+if gpostprocessing>0
+ tpsv#=get maximum pixel shader version()
+ if tpsv#<2.0 then gpostprocessing=0
+endif
+
 rem USERDETAILS Info`
 global language$ : language$=""
 tfile$="userdetails.ini"
@@ -3100,6 +3106,9 @@ endif
 rem
 rem GAME MAIN
 rem
+
+rem FPGC - 020810 - Game uses AI
+gosub _darkai_start
 
 rem Create controls for debug view
 global gamedebugrefresh : gamedebugrefresh=0
@@ -3448,10 +3457,7 @@ _main_game_freeleveldata:
   next o
   `
   Rem Hockeykid - 250210 - RESET DARKAI
-  rem FPGC - 300710 - DarkAI only in single player
-  if gmultiplayergame=0
-   ai reset : darkaiplayer=0
-  endif
+  ai reset : darkaiplayer=0
   `
   rem FREE ANY DATA
   Rem AI Undim
@@ -7358,7 +7364,12 @@ for e=1 to entityelementlist
        if dst#>0
         dst#=dst#-5.0
         tmvszy#=(object size y(obj)/2)*(entityprofile(entid).scale/100.0)
-        tmvy#=object position y(obj)-tmvszy#
+        if gmultiplayergame=1
+         rem FPGC - 020810 - arena game does not use ODE characters, so place shadow at obj y base
+         tmvy#=object position y(obj)
+        else
+         tmvy#=object position y(obj)-tmvszy#
+        endif
         rem X9 V109 - 14030 - Account for RAISEFACTOR when setting shadow position
         `position object entityelement(e).attachmentblobobj,object position x(obj),(tmvy#-dst#)+0.5,object position z(obj)
         position object entityelement(e).attachmentblobobj,object position x(obj),(tmvy#-dst#-entityprofile(entid).raisefactor)+0.5,object position z(obj)
@@ -28806,12 +28817,15 @@ _ai_hud_view:
  endif
  `
  rem FPGC - 160909 - intercept HUD creation on some occasions
- for hudid=1 to hudmax
-  if hud(hudid).maintype=1 or hud(hudid).maintype=4 or hud(hudid).maintype=6 or hud(hudid).maintype=7
-   if hud(hudid).typemode=1 and playerstartlives=0 then hud(hudid).hide=1
-   if hud(hudid).typemode=2 and playerstartstrength=0 then hud(hudid).hide=1
-  endif
- next hudid
+ if gmultiplayergame=0
+  rem FPGC - 020810 - but only for single player
+  for hudid=1 to hudmax
+   if hud(hudid).maintype=1 or hud(hudid).maintype=4 or hud(hudid).maintype=6 or hud(hudid).maintype=7
+    if hud(hudid).typemode=1 and playerstartlives=0 then hud(hudid).hide=1
+    if hud(hudid).typemode=2 and playerstartstrength=0 then hud(hudid).hide=1
+   endif
+  next hudid
+ endif
  `
  rem Fill HUD with data based on type
  for hudid=1 to hudmax
@@ -31593,6 +31607,7 @@ _ode_playerpickup:
 
 rem Track which object closest
 tclosestpickable=0
+tcountclosestpickables=0
 if tclosestpickable=0
  bestdst#=99999.9 : bestay#=360 : beste=0
  for e=1 to entityelementmax
@@ -31612,6 +31627,7 @@ if tclosestpickable=0
      if tda#<15 and tday#<70
       if td#<camerareachmax#
        if entityelement(e).eleprof.phyweight<cameracarryweight#
+        inc tcountclosestpickables
         if tday#<bestay#
          bestdst#=sqrt(abs(tdx#*tdx#)+abs(tdz#*tdz#))
          minsize#=25.0+(object size(tobj)/2)
@@ -31632,8 +31648,37 @@ endif
 
 rem AirMod - Make sure we are looking directly at object, so we don't pickup little things lying on ground >>>
 if tclosestpickable > 0
- tpickobject = pick object(screen width()/2,screen height()/2,entityelement(beste).obj,entityelement(beste).obj)
- if tpickobject = 0 then tclosestpickable=0
+ rem FPGC - 020810 - too accurate, causes difficulties locking on object right in front of user
+ rem so only use this airmod enhancemement if there is more than one object to choose between
+ rem and even then the best might not be the one in the center (so you end up not picking anything up), so..
+ `tpickobject = pick object(screen width()/2,screen height()/2,entityelement(beste).obj,entityelement(beste).obj)
+ if tcountclosestpickables>1
+  for e=1 to entityelementmax
+   if (entityelement(e).eleprof.physics=1 or entityelement(e).eleprof.physics=101) and entityelement(e).active=1
+    tobj=entityelement(e).obj
+    if tobj>0
+     if object exist(tobj)=1
+      tdx#=object position x(tobj)-camerapositionx
+      tdy#=(object position y(tobj)+(object size(tobj)/2))-camerapositiony
+      tdz#=object position z(tobj)-camerapositionz
+      td#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+      tda#=wrapvalue(atanfull(tdx#,tdz#)-camera angle y())
+      tday#=wrapvalue(atanfull(tdy#,td#)+camera angle x())
+      if tda#>180 then tda#=360-tda#
+      if tday#>180 then tday#=360-tday#
+      if tda#<15 and tday#<70
+       if td#<camerareachmax#
+        if entityelement(e).eleprof.phyweight<cameracarryweight#
+         tpickobject = pick object(screen width()/2,screen height()/2,tobj,tobj)
+         if tpickobject <> 0 then tclosestpickable=e : e=entityelementmax+1 : exit
+        endif
+       endif
+      endif
+     endif
+    endif
+   endif
+  next e
+ endif
 endif
 rem AirMod - Done <<<
 
@@ -37839,6 +37884,8 @@ endfunction mymousey
 function inputpositionmouse(x,y)
  mymousex=x
  mymousey=y
+ rem FPGC - 020810 - keep windows mouse center of primary screen (avoids multimonitor issues)
+ position mouse mymousex,mymousey
 endfunction
 function inputupdatemouse()
  mymousex=mymousex+mousemovex()
@@ -48413,11 +48460,17 @@ Rem Hockeykid - 250210 - Dark AI create/declare constants
 #constant STATE_RETREAT 3
 #constant STATE_CUSTOM 4
 
+_darkai_start:
+ `
+ rem Moved AI START to VERY beginning as AI ENTITY EXIST gets called VERY early
+ AI Start
+ `
+return
+
 _darkai_init:
  `
  rem clears the AI system of all data
- AI Start
- AI Reset
+ AI Reset : darkaiplayer=0
  `
  rem FPGC - 300710 - DarkAI only in single player (we still call START and create containers as AI code intersects MP code)
  if gmultiplayergame=0
