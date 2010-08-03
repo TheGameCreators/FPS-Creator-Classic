@@ -9,6 +9,7 @@ History
 V1.1.8
 ------
 
+ * Added new FPI action AIREMOVE to remove a Dark AI entity from the Dark AI system
  * Added new gunspec command for the ammo pooling feature for use with alternate weapons altpoolammo=x x is equal to a name you would like to use for the ammo pool
  * Added new gunspec command for the ammo pooling feature poolammo=x x is equal to a name you would like to use for the ammo pool
  * Added support for ammo pooling

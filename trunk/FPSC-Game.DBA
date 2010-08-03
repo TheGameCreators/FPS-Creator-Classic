@@ -1659,8 +1659,7 @@ Rem Hockeykid - 250210 - Dark AI constants
 #constant AIACTAIALLYFOLLOW 1059
 #constant AIACTAISETTARGET 1061
 #constant AIACTAIMOVERANDOM 1062
-#constant AIACTALLYKILL 1063
-#constant AIACTENEMYKILL 1064
+#constant AIACTAIREMOVE 1063
 #constant AIACTAIMOVEMENT 1065
 #constant AIACTAIACTIVE 1066
 #constant AIACTTOGGLEACTIVE 1067
@@ -10385,8 +10384,7 @@ actword$(AIACTADDAITEAM)="addaiteam"
 actword$(AIACTAIALLYFOLLOW)="allyfollow"
 actword$(AIACTAISETTARGET)="aisettarget"
 actword$(AIACTAIMOVERANDOM)="aimoverandom"
-actword$(AIACTALLYKILL)="killally"
-actword$(AIACTENEMYKILL)="killenemy"
+actword$(AIACTAIREMOVE)="airemove"
 actword$(AIACTAIMOVEMENT)="allowmove"
 actword$(AIACTAIACTIVE)="setaiactive"
 actword$(AIACTTOGGLEACTIVE)="alwaysactive"
@@ -13748,25 +13746,18 @@ if aiindex>0
         endif
        endif
       endcase
-   case AIACTAIENABLEFULLAIM:
-    if ai entity exist(entityelement(e).obj)
-     entid=entityelement(e).bankindex
-     entityelement(e).darkai.useaim=aiactionseq(seq).value
-     if entityprofile(entid).spine=-1 or entityprofile(entid).spine2=-1 then entityelement(e).darkai.useaim=0
-     if entityelement(e).darkai.useaim=0 then entityelement(e).spiner=0
-    endif
-   endcase
-   case AIACTALLYKILL:
-    remstart  allyadd=entityelement(e).obj
-      if ai entity exist(allyadd)
-         ai kill entity allyadd
-      endif remend
+     case AIACTAIENABLEFULLAIM:
+      if ai entity exist(entityelement(e).obj)
+       entid=entityelement(e).bankindex
+       entityelement(e).darkai.useaim=aiactionseq(seq).value
+       if entityprofile(entid).spine=-1 or entityprofile(entid).spine2=-1 then entityelement(e).darkai.useaim=0
+       if entityelement(e).darkai.useaim=0 then entityelement(e).spiner=0
+      endif
      endcase
-   case AIACTENEMYKILL:
-     remstart enemyadd=entityelement(e).obj
-      if ai entity exist(enemyadd)
-         ai kill entity enemyadd
-      endif remend
+     case AIACTAIREMOVE:
+      if ai entity exist(entityelement(e).obj)
+       ai kill entity entityelement(e).obj
+      endif
      endcase
      case AIACTAIMOVERANDOM:
       if ai entity exist(entityelement(e).obj)
