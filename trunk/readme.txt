@@ -9,6 +9,9 @@ History
 V1.1.7
 ------
  
+ * Updated addendum document to include missing TODO sections
+ * Added DECALPARTICLE script given early interest in particles
+ * Added extra error information if SET DIR fails to find path
  * Enhanced AirMOD 'accurate object pickup' to skip if only 1 object in view
  * Added code to switch off postprocessing if GPU is lower than PS2.0
  * NOTE: If your dynamic entities are black, ensure they are captured by a dynamic light and well in its range
