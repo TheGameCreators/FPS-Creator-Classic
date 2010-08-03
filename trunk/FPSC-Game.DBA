@@ -28,6 +28,8 @@ rem
 rem Credit to Airslide for help with Dark AI when it went into Fenix Mod
 rem Credit to Hockeykid for his continued help integrating Dark AI
 
+rem Robert Knox - 030810 - Added this comment to test the SVN ;)
+
 rem Special build flags for 'genre' switch
 global fpgchud$ : fpgchud$=""
 global fpgchuds$ : fpgchuds$=""
