@@ -14,6 +14,14 @@ V1.1.8
 V1.1.7
 ------
  
+ * Added new gunspec command for the ammo pooling feature for use with alternate weapons altpoolammo=x x is equal to a name you would like to use for the ammo pool
+ * Added new gunspec command for the ammo pooling feature poolammo=x x is equal to a name you would like to use for the ammo pool
+ * Added support for ammo pooling
+ * Added new gunspec command for the running feature disablerunandshoot=x
+ * Added new gunspec command for the empty feature empty shotgun=x works just like shotgun=x but applies to the empty feature
+ * Added new gunspec command for the empty feature empty reload loop=x
+ * Added new gunspec command for the empty feature empty end reload=x
+ * Added new gunspec command for the empty feature empty start reload=x
  * Updated addendum document to include missing TODO sections
  * Added DECALPARTICLE script given early interest in particles
  * Added extra error information if SET DIR fails to find path

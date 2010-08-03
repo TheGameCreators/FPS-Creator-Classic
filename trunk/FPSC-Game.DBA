@@ -1900,6 +1900,9 @@ endtype
 
 rem Gun Settings Data Structure
 type gunsettingstype
+ disablerunandshoot as integer
+ altpoolindex as integer
+ poolindex as integer
  isempty as integer
  muzzleflash as integer
  muzzlex# as float
@@ -1940,6 +1943,7 @@ type gunsettingstype
  firerate as integer
  altfirerate as integer
  shotgun as integer
+ emptyshotgun as integer
  rotx# as float
  roty# as float
  rotz# as float
@@ -2078,6 +2082,13 @@ dim brassfallcount(30)
 global autoloadgun=0
 global gunslotmax=0
 global gunmax
+
+type ammopooltype
+ name$ as string
+ ammo as integer
+ used as integer
+endtype
+dim ammopool(100) as ammopooltype
 
 rem Flak Elements Data Structure
 type flakelementtype
@@ -3459,7 +3470,10 @@ _main_game_freeleveldata:
   next o
   `
   Rem Hockeykid - 250210 - RESET DARKAI
-  ai reset : darkaiplayer=0
+  rem FPGC - 300710 - DarkAI only in single player
+  if gmultiplayergame=0
+   ai reset : darkaiplayer=0
+  endif
   `
   rem FREE ANY DATA
   Rem AI Undim
@@ -7066,7 +7080,9 @@ for e=1 to entityelementlist
        if gotweapon>0
         if gun(tgunid).settings.weaponisammo=0
          tqty=gun(tgunid).settings.reloadqty*entityelement(e).eleprof.quantity
-         weaponclipammo(gotweapon)=weaponclipammo(gotweapon)+tqty
+         `weaponclipammo(gotweapon)=weaponclipammo(gotweapon)+tqty
+         tpool=gun(tgunid).settings.poolindex
+         if tpool=0 then weaponclipammo(gotweapon)=weaponclipammo(gotweapon)+tqty else ammopool(tpool).ammo=ammopool(tpool).ammo+tqty
         else
          if tqty=0 then tqty=1
          if weaponammo(gotweapon)=0
@@ -16439,8 +16455,11 @@ _player_setup:
      weaponammo(tww)=tqty
      weaponammo(tww+10)=gun(playerstarthasweapon).settings.altreloadqty
      if playerstarthasweaponqty>1
-      weaponclipammo(tww)=(playerstarthasweaponqty-1)*tqty
-      weaponclipammo(tww+10)=gun(playerstarthasweapon).settings.altreloadqty*(playerstarthasweaponqty-1)
+      `weaponclipammo(tww)=(playerstarthasweaponqty-1)*tqty
+      `weaponclipammo(tww+10)=gun(playerstarthasweapon).settings.altreloadqty*(playerstarthasweaponqty-1)
+      tpool=gun(playerstarthasweapon).settings.poolindex : altpool=gun(playerstarthasweapon).settings.altpoolindex
+      if tpool=0 then weaponclipammo(tww)=(playerstarthasweaponqty-1)*tqty else ammopool(tpool).ammo=ammopool(tpool).ammo+(playerstarthasweaponqty-1)*tqty
+      if altpool=0 then weaponclipammo(tww+10)=gun(playerstarthasweapon).settings.altreloadqty*(playerstarthasweaponqty-1) else ammopool(altpool).ammo=ammopool(altpool).ammo+gun(playerstarthasweapon).settings.altreloadqty*(playerstarthasweaponqty-1)
      endif
     endif
     tww=11 : exit
@@ -16737,15 +16756,19 @@ for plrid=1 to playermax
       if tgunid=entityprofile(entid).hasweapon
        tnogunforammo=0
        tqty=entityelement(e).eleprof.quantity*gun(tgunid).settings.reloadqty
+       tpool=gun(tgunid).settings.poolindex
+       altpool=gun(tgunid).settings.altpoolindex
        if gun(tgunid).settings.weaponisammo=1
-        weaponammo(ws)=weaponammo(ws)+tqty
+        `if tpool=0 then weaponammo(ws)=weaponammo(ws)+tqty else ammopool(tpool).ammo=ammopool(tpool).ammo+tqty
+         weaponammo(ws)=weaponammo(ws)+tqty
        else
         rem AirMod - Added for Alt Ammo >>>
         if entityelement(e).isaltammo = 1
          tqty=entityelement(e).eleprof.quantity*gun(tgunid).settings.altreloadqty
-         weaponclipammo(ws+10)=weaponclipammo(ws+10)+tqty
+         `weaponclipammo(ws+10)=weaponclipammo(ws+10)+tqty
+         if altpool=0 then weaponclipammo(ws+10)=weaponclipammo(ws+10)+tqty else ammopool(altpool).ammo=ammopool(altpool).ammo+tqty
         else
-         weaponclipammo(ws)=weaponclipammo(ws)+tqty
+         if tpool=0 then weaponclipammo(ws)=weaponclipammo(ws)+tqty else ammopool(tpool).ammo=ammopool(tpool).ammo+tqty
         endif
        rem AirMod - Done <<<
        endif
@@ -16759,8 +16782,15 @@ for plrid=1 to playermax
         tgunid=entityprofile(entid).hasweapon
         weaponslot(ws).pref=tgunid
         weaponhud(ws)=gun(tgunid).hudimage
-        tqty=entityelement(e).eleprof.quantity*gun(tgunid).settings.reloadqty
-        weaponclipammo(ws)=tqty
+        if entityelement(e).isaltammo=0
+         tqty=entityelement(e).eleprof.quantity*gun(tgunid).settings.reloadqty
+         tpool=gun(tgunid).settings.poolindex
+         if tpool=0 then weaponclipammo(ws)=tqty else ammopool(tpool).ammo=ammopool(tpool).ammo+tqty
+        else
+         tqty=entityelement(e).eleprof.quantity*gun(tgunid).settings.altreloadqty
+         altpool=gun(tgunid).settings.altpoolindex
+         if altpool=0 then weaponclipammo(ws+10)=tqty else ammopool(altpool).ammo=ammopool(altpool).ammo+tqty
+        endif
         exit
        endif
       next ws
@@ -16878,7 +16908,13 @@ if player(plrid).health>0 or playerstartstrength=0
  endif
  if (weaponammo(weaponammoindex)>0 and gun(gunid).settings.alternate = 0) or (weaponammo(weaponammoindex+10)>0 and gun(gunid).settings.alternate = 1) or gun(gunid).settings.reloadqty=0
   if tmouseclick=1 and player(plrid).state.blockingaction=0 then player(plrid).state.firingmode=1
-  if gun(gunid).settings.isempty>0 then gun(gunid).settings.isempty=0
+  if gun(gunid).settings.isempty>0
+   if gunmode<>7031 and gunmode<>7041
+    if gunmode<123 or gunmode>124
+     if gunmode<700 or gunmode>707 then gun(gunid).settings.isempty=0
+    endif
+   endif
+  endif
  else
   if gun(gunid).settings.isempty=0 and gun(gunid).settings.hasempty=1 then gun(gunid).settings.isempty=1
   if tmouseclick=1 and tmouseheld=0 and player(plrid).state.blockingaction=0 then gunshootnoammo=1
@@ -16921,7 +16957,14 @@ if player(plrid).health>0 or playerstartstrength=0
  endif
  Rem Reload key
  if plrkeyRheld=1 and plrkeyR=0 then plrkeyRheld=0
- if (weaponclipammo(weaponammoindex)=0 and gun(gunid).settings.alternate = 0) or (weaponclipammo(weaponammoindex+10)=0 and gun(gunid).settings.alternate = 1) or gun(gunid).settings.reloadqty=0 `or gun(gunid).settings.weaponisammo=1
+ tpool=gun(gunid).settings.poolindex : altpool=gun(gunid).settings.altpoolindex
+ if gun(gunid).settings.alternate = 0
+  if tpool=0 then ammo=weaponclipammo(weaponammoindex) else ammo=ammopool(tpool).ammo
+ else
+  if altpool=0 then ammo=weaponclipammo(weaponammoindex+10) else ammo=ammopool(altpool).ammo
+ endif
+
+ if ammo=0 or gun(gunid).settings.reloadqty=0 `or gun(gunid).settings.weaponisammo=1
   if (plrkeyR)=1 and plrkeyRheld=0 then gunreloadnoammo=1  : plrkeyRheld=1
  else
   if (plrkeyR)=1 then player(plrid).state.firingmode=2
@@ -17119,12 +17162,17 @@ if gotweapon>0
       weaponammo(gotweapon)=tqty
     else
      Rem new gunspec addition "addtospare" This will allow it so picking up ammo with an empty weapon won't add the ammo directly into the clip
-     if gun(tgunid).settings.canaddtospare=1 then weaponclipammo(gotweapon)=weaponclipammo(gotweapon)+tqty
+     if gun(tgunid).settings.canaddtospare=1
+      `weaponclipammo(gotweapon)=weaponclipammo(gotweapon)+tqty
+      tpool=gun(tgunid).settings.poolindex
+      if tpool=0 then weaponclipammo(gotweapon)=weaponclipammo(gotweapon)+tqty else ammopool(tpool).ammo=ammopool(tpool).ammo+tqty
+     endif
      if gun(tgunid).settings.canaddtospare=0 then weaponammo(gotweapon)=tqty : gun(tgunid).settings.canaddtospare=1
     endif
    endif
   else
-   weaponclipammo(gotweapon)=weaponclipammo(gotweapon)+tqty
+   tpool=gun(tgunid).settings.poolindex
+   if tpool=0 then weaponclipammo(gotweapon)=weaponclipammo(gotweapon)+tqty else ammopool(tpool).ammo=ammopool(tpool).ammo+tqty
   endif
  endif
 endif
@@ -17420,6 +17468,7 @@ _gun_manager:
 rem V110 - new freeze mode (PLRDISABLE) which stops player attacking
 gunclick=player(1).state.firingmode
 if mefrozen>0 and mefrozentype=2 then gunclick=0
+if gunclick=1 and gun(gunid).settings.disablerunandshoot=1 and isrunning=1 and player(1).state.moving=1 then gunclick=0
 
 rem Gun controls
 if gunmode<100
@@ -17850,7 +17899,7 @@ endif
 if gunzoommode <> 0 and gun(gunid).settings.simplezoom <> 0 and gun(gunid).settings.simplezoomanim <> 0 and gun(gunid).settings.isempty=0
  gshow=gun(gunid).zoomaction.show
  gidle=gun(gunid).zoomaction.idle
- gmove=gun(gunid).zoomaction.move : usingrun=0
+ gmove=gun(gunid).zoomaction.move` : usingrun=0
  gstart=gun(gunid).zoomaction.start
  gautomatic=gun(gunid).zoomaction.automatic
  gfinish=gun(gunid).zoomaction.finish
@@ -18050,7 +18099,13 @@ if gunshootnoammo=1
 endif
 Rem Player presses reload button but has no ammo (avoid model animation freezing)
 if gunreloadnoammo=1
- if (weaponclipammo(weaponammoindex)=0 and gun(gunid).settings.alternate = 0) or (weaponclipammo(weaponammoindex+10)=0 and gun(gunid).settings.alternate = 1) or gun(gunid).settings.weaponisammo=1
+ tpool=gun(gunid).settings.poolindex : altpool=gun(gunid).settings.altpoolindex
+ if gun(gunid).settings.alternate = 0
+  if tpool=0 then ammo=weaponclipammo(weaponammoindex) else ammo=ammopool(tpool).ammo
+ else
+  if altpool=0 then ammo=weaponclipammo(weaponammoindex+10) else ammo=ammopool(altpool).ammo
+ endif
+ if ammo=0 or gun(gunid).settings.weaponisammo=1
   if gun(gunid).settings.weaponisammo=0
    if gun(gunid).settings.alternate=0 then sndid=gunsound(gunid,3).soundid else sndid=gunsound(gunid,3).altsoundid
    if sndid>0
@@ -18274,8 +18329,14 @@ if gunmode=107
  rem auto-reload if no bullets
  `if weaponammo(weaponammoindex)=0
   `if weaponclipammo(weaponammoindex)>0
+ tpool=gun(gunid).settings.poolindex : altpool=gun(gunid).settings.altpoolindex
+ if gun(gunid).settings.alternate = 0
+  if tpool=0 then ammo=weaponclipammo(weaponammoindex) else ammo=ammopool(tpool).ammo
+ else
+  if altpool=0 then ammo=weaponclipammo(weaponammoindex+10) else ammo=ammopool(altpool).ammo
+ endif
  if (weaponammo(weaponammoindex)=0 and gun(gunid).settings.alternate = 0) or (weaponammo(weaponammoindex+10)=0 and gun(gunid).settings.alternate = 1)
-  if (weaponclipammo(weaponammoindex)>0 and gun(gunid).settings.alternate = 0) or (weaponclipammo(weaponammoindex+10)>0 and gun(gunid).settings.alternate = 1)
+  if ammo>0
    rem AirMod - No Auto Reload Feature
    if gun(gunid).settings.noautoreload = 0
     gunmode=121
@@ -18345,7 +18406,13 @@ if gunmode=121
   if gunzoommode=10 then gunzoommode=11
  endif
  `if weaponclipammo(weaponammoindex)=0 or gun(gunid).settings.weaponisammo=1
- if (weaponclipammo(weaponammoindex)=0 and gun(gunid).settings.alternate = 0) or (weaponclipammo(weaponammoindex+10)=0 and gun(gunid).settings.alternate = 1) or gun(gunid).settings.weaponisammo=1
+ tpool=gun(gunid).settings.poolindex : altpool=gun(gunid).settings.altpoolindex
+ if gun(gunid).settings.alternate = 0
+  if tpool=0 then ammo=weaponclipammo(weaponammoindex) else ammo=ammopool(tpool).ammo
+ else
+  if altpool=0 then ammo=weaponclipammo(weaponammoindex+10) else ammo=ammopool(altpool).ammo
+ endif
+ if ammo=0 or gun(gunid).settings.weaponisammo=1
   if gun(gunid).settings.weaponisammo=0
    if gun(gunid).settings.alternate=0 then sndid=gunsound(gunid,3).soundid else sndid=gunsound(gunid,3).altsoundid
    if sndid>0
@@ -18375,7 +18442,7 @@ if gunmode=122
   set object interpolation currentgunobj,100
   set object frame currentgunobj,gstartreload.s
   `gunmode=123 : rem V113 AIRSLIDE 5/8/8 : shotgun
-  if gun(gunid).settings.shotgun=1
+  if gun(gunid).settings.shotgun=1 and gun(gunid).settings.isempty=0 or gun(gunid).settings.isempty=1 and gun(gunid).settings.emptyshotgun=1
    gunmode=700
   else
    gunmode=123
@@ -18407,10 +18474,13 @@ if gunmode=702 `and object frame(currentgunobj)>=gun(gunid).action.reloadloop.e
  rem actual reload
  tneedfromclip=gun(gunid).settings.reloadqty+gunchamber-weaponammo(weaponammoindex)
  if tneedfromclip > 1 then tneedfromclip = 1
- if tneedfromclip>weaponclipammo(weaponammoindex) then tneedfromclip=weaponclipammo(weaponammoindex)
+ tpool=gun(gunid).settings.poolindex
+ if tpool=0 then ammo=weaponclipammo(weaponammoindex) else ammo=ammopool(tpool).ammo
+
+ if tneedfromclip>ammo then tneedfromclip=ammo
  if tneedfromclip>0
   weaponammo(weaponammoindex)=weaponammo(weaponammoindex)+tneedfromclip
-  weaponclipammo(weaponammoindex)=weaponclipammo(weaponammoindex)-tneedfromclip
+  if tpool=0 then weaponclipammo(weaponammoindex)=weaponclipammo(weaponammoindex)-tneedfromclip else ammopool(tpool).ammo=ammopool(tpool).ammo-tneedfromclip
   gunmode = 703
   if gun(gunid).settings.reloadqty+gunchamber-weaponammo(weaponammoindex) < 1 then gunmode = 7041
   if player(plrid).state.firingmode = 1 then gunmode = 7041
@@ -18471,19 +18541,23 @@ if gunmode=125
   `Alt Reload
   tneedfromclip=gun(gunid).settings.altreloadqty-weaponammo(weaponammoindex+10)
   if gunchamber = 1 then tneedfromclip = tneedfromclip + 1
-  if tneedfromclip>weaponclipammo(weaponammoindex+10) then tneedfromclip=weaponclipammo(weaponammoindex+10)
+  altpool=gun(gunid).settings.altpoolindex
+  if altpool=0 then ammo=weaponclipammo(weaponammoindex+10) else ammo=ammopool(altpool).ammo
+  if tneedfromclip>ammo then tneedfromclip=ammo
   if tneedfromclip>0
    weaponammo(weaponammoindex+10)=weaponammo(weaponammoindex+10)+tneedfromclip
-   weaponclipammo(weaponammoindex+10)=weaponclipammo(weaponammoindex+10)-tneedfromclip
+   if altpool=0 then weaponclipammo(weaponammoindex+10)=weaponclipammo(weaponammoindex+10)-tneedfromclip else ammopool(altpool).ammo=ammopool(altpool).ammo-tneedfromclip
   endif
  else
   `Normal Reload
   tneedfromclip=gun(gunid).settings.reloadqty-weaponammo(weaponammoindex)
   if gunchamber = 1 then tneedfromclip = tneedfromclip + 1
-  if tneedfromclip>weaponclipammo(weaponammoindex) then tneedfromclip=weaponclipammo(weaponammoindex)
+  tpool=gun(gunid).settings.poolindex
+  if tpool=0 then ammo=weaponclipammo(weaponammoindex) else ammo=ammopool(tpool).ammo
+  if tneedfromclip>ammo then tneedfromclip=ammo
   if tneedfromclip>0
    weaponammo(weaponammoindex)=weaponammo(weaponammoindex)+tneedfromclip
-   weaponclipammo(weaponammoindex)=weaponclipammo(weaponammoindex)-tneedfromclip
+   if tpool=0 then weaponclipammo(weaponammoindex)=weaponclipammo(weaponammoindex)-tneedfromclip else ammopool(tpool).ammo=ammopool(tpool).ammo-tneedfromclip
   endif
  endif
  gunmode=5
@@ -19210,6 +19284,7 @@ gun(gunid).settings.zoomwalkspeed=0.5
 gun(gunid).settings.zoomturnspeed=0.2
 
 gun(gunid).sound.altfireloopend=-1
+gun(gunid).settings.emptyshotgun=-1
 
 rem AirMod - Extend the Length of Gunspecs to 300
 dim data$(300)
@@ -19265,6 +19340,7 @@ for l=0 to 299
    if field$="smokedecal" then gun(gunid).settings.smokedecal$=value$
    if field$="firerate" then gun(gunid).settings.firerate=value1 : rem V113 AIRSLIDE 5/8/8
    if field$="shotgun" then gun(gunid).settings.shotgun=value1 : rem V113 AIRSLIDE 5/8/8
+   if field$="disablerunandshoot" then gun(gunid).settings.disablerunandshoot=value1
    rem AirMod - Burst Fire
    if field$="burst" then gun(gunid).settings.burst=value1
    rem AirMod - Move Animation Speed Mod (Default on)
@@ -19439,10 +19515,14 @@ for l=0 to 299
    rem AirMod - Done<<<
    Rem "empty" gun feature
    if field$="useempty" then gun(gunid).settings.hasempty=1
+   if field$="empty shotgun" then gun(gunid).settings.emptyshotgun=value1
    if field$="empty putaway" then gun(gunid).emptyaction.hide.s=value1 : gun(gunid).emptyaction.hide.e=value2
    if field$="empty select" then gun(gunid).emptyaction.show.s=value1 : gun(gunid).emptyaction.show.e=value2
    if field$="empty idle" then gun(gunid).emptyaction.idle.s=value1 : gun(gunid).emptyaction.idle.e=value2
    if field$="empty move" then gun(gunid).emptyaction.move.s=value1 : gun(gunid).emptyaction.move.e=value2
+   if field$="empty start reload" then gun(gunid).emptyaction.startreload.s=value1 : gun(gunid).emptyaction.startreload.e=value2
+   if field$="empty reload loop" then gun(gunid).emptyaction.reloadloop.s=value1 : gun(gunid).emptyaction.reloadloop.e=value2
+   if field$="empty end reload" then gun(gunid).emptyaction.endreload.s=value1 : gun(gunid).emptyaction.endreload.e=value2
    if field$="empty cock" then gun(gunid).emptyaction.cock.s=value1 : gun(gunid).emptyaction.cock.e=value2
    if field$="empty reload"
       gun(gunid).emptyaction.startreload.s=value1 : gun(gunid).emptyaction.startreload.e=value2
@@ -19450,6 +19530,23 @@ for l=0 to 299
       gun(gunid).emptyaction.endreload.s=value2 : gun(gunid).emptyaction.endreload.e=value2
    endif
    if field$="addtospare" then gun(gunid).settings.addtospare=value1
+   `
+   Rem GUN AMMO POOLING
+   tryfield$="poolammo" : tryfield2$="altpoolammo"
+   if field$=tryfield$ or field$=tryfield2$
+    if value$<>""
+     poolindex=0 : emptyindex=0
+     for i=1 to 100
+      if ammopool(i).name$=value$ then poolindex=i : exit
+      if ammopool(i).used=0 and emptyindex=0 then emptyindex=i
+     next i
+     if poolindex=0 then poolindex=emptyindex
+     if poolindex>0 then
+      if field$=tryfield$ then gun(gunid).settings.poolindex=poolindex
+      if field$=tryfield2$ then gun(gunid).settings.altpoolindex=poolindex
+      ammopool(poolindex).used=1 : ammopool(poolindex).name$=value$
+    endif
+   endif
    `
    rem GUN SOUND FRAMES DATA
    tryfield$="soundframes"
@@ -19480,6 +19577,9 @@ endif
 
 Rem alt fire loop
 if gun(gunid).sound.altfireloopend=-1 then gun(gunid).sound.altfireloopend=gun(gunid).sound.fireloopend
+
+Rem default empty shotgun
+if gun(gunid).settings.emptyshotgun=-1 then gun(gunid).settings.emptyshotgun=gun(gunid).settings.shotgun
 
 Rem No run animations
 if gun(gunid).action.run.e=0 then gun(gunid).action.run=gun(gunid).action.move
@@ -28845,9 +28945,13 @@ _ai_hud_view:
       else
        rem AirMod - Modified for Alt Fire
        if gun(gunid).settings.alternate=1
-        hud(hudid).text$=str$(weaponammo(weaponammoindex+10))+"\"+str$(weaponclipammo(weaponammoindex+10))
+        altpool=gun(gunid).settings.altpoolindex
+        if altpool=0 then ammo=weaponclipammo(weaponammoindex+10) else ammo=ammopool(altpool).ammo
+        hud(hudid).text$=str$(weaponammo(weaponammoindex+10))+"\"+str$(ammo)
        else
-        hud(hudid).text$=str$(weaponammo(weaponammoindex))+"\"+str$(weaponclipammo(weaponammoindex))
+        tpool=gun(gunid).settings.poolindex
+        if tpool=0 then ammo=weaponclipammo(weaponammoindex) else ammo=ammopool(tpool).ammo
+        hud(hudid).text$=str$(weaponammo(weaponammoindex))+"\"+str$(ammo)
        endif
       endif
      else
@@ -30899,7 +31003,7 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
    basespeed#=35 : isrunning=0
   endif
   rem AirMod - Slow player for simple zoom
-  if (gunzoommode <> 0 and gun(gunid).settings.simplezoom <> 0) then basespeed#=35-(20*gun(gunid).settings.zoomwalkspeed)
+  if (gunzoommode <> 0 and gun(gunid).settings.simplezoom <> 0) then basespeed#=35-(20*gun(gunid).settings.zoomwalkspeed) : isrunning=0
  endif
  if jumpaction=0
   rem regular speed from manouver
