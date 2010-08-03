@@ -1899,6 +1899,11 @@ endtype
 
 rem Gun Settings Data Structure
 type gunsettingstype
+ meleekey as integer
+ meleedamage as integer
+ meleerange as integer
+ meleenoscorch as integer
+ ismelee as integer
  disablerunandshoot as integer
  altpoolindex as integer
  poolindex as integer
@@ -2068,6 +2073,7 @@ type guntype
  zoomaction as gunactionstype
  altaction as gunactionstype
  emptyaction as gunactionstype
+ meleeaction as gunactionstype
 endtype
 dim gun(100) as guntype
 `dim gunsound(100,5) as gunsoundbanktype
@@ -3677,6 +3683,8 @@ _main_game_core:
  rem Measure overall performance counts
  inc gameperftotalcount, perftimer()-gameperftotalcountTOP
  gameperftotalcountTOP=perftimer()
+ `
+ Print "Gunmode: "+str$(gunmode)
  `
  rem Update screen
  gosub _main_sync
@@ -7905,7 +7913,7 @@ return
 _entity_doscorch:
  rem material damage
  rem AirMod - Line Modified for no scorch mode
- if tbullethitmaterial>0 and gun(gunid).settings.noscorch = 0
+ if tbullethitmaterial>0 and gun(gunid).settings.noscorch = 0 and gun(gunid).settings.ismelee<>2 or gun(gunid).settings.meleenoscorch=0 and tbullethitmaterial>0 and gun(gunid).settings.ismelee=2
   tscorchsize2#=4.0+(rnd(10)/10.0) : tscorchtype2=11+tbullethitmaterial
   if tscorchtype2>15 then tscorchtype2=12 : rem FPSCV101 - fix
   add static scorch tscorchsize2#,tscorchtype2
@@ -7926,7 +7934,7 @@ _entity_doscorch:
   add static scorch tscorchsize3#,tscorchtype3
  else
   rem AirMod - Line added for no scorch weapon
-  if gun(gunid).settings.noscorch = 0
+  if gun(gunid).settings.noscorch = 0 and gun(gunid).settings.ismelee<>2 or gun(gunid).settings.meleenoscorch=0 and gun(gunid).settings.ismelee=2
    rem bullethole
    tscorchsize#=2.0+(rnd(10)/10.0)
    if tscorchtype>=2 then tscorchsize#=3.0+(rnd(10)/10.0)
@@ -16897,8 +16905,15 @@ if player(plrid).health>0 or playerstartstrength=0
  if tmouseheld=1
   if mouseclick()<>1 or (weaponammo(weaponammoindex)>0 and gun(gunid).settings.alternate = 0) or (weaponammo(weaponammoindex+10)>0 and gun(gunid).settings.alternate = 1) then tmouseheld=0
  endif
+ Rem Hockeykid - 030810 - Melee with a key press
+ if gun(gunid).settings.meleekey>0
+  if keystate(gun(gunid).settings.meleekey) and meleekeynotfree=0 and gun(gunid).settings.ismelee=0 then gun(gunid).settings.ismelee=1 : meleekeynotfree=1
+  if meleekeynotfree=1 and keystate(gun(gunid).settings.meleekey)=0 then meleekeynotfree=0
+ else
+  meleekeynotfree=0
+ endif
  if (weaponammo(weaponammoindex)>0 and gun(gunid).settings.alternate = 0) or (weaponammo(weaponammoindex+10)>0 and gun(gunid).settings.alternate = 1) or gun(gunid).settings.reloadqty=0
-  if tmouseclick=1 and player(plrid).state.blockingaction=0 then player(plrid).state.firingmode=1
+  if tmouseclick=1 and player(plrid).state.blockingaction=0 and gun(gunid).settings.ismelee=0 then player(plrid).state.firingmode=1
   if gun(gunid).settings.isempty>0
    if gunmode<>7031 and gunmode<>7041
     if gunmode<123 or gunmode>124
@@ -16908,10 +16923,10 @@ if player(plrid).health>0 or playerstartstrength=0
   endif
  else
   if gun(gunid).settings.isempty=0 and gun(gunid).settings.hasempty=1 then gun(gunid).settings.isempty=1
-  if tmouseclick=1 and tmouseheld=0 and player(plrid).state.blockingaction=0 then gunshootnoammo=1
+  if tmouseclick=1 and tmouseheld=0 and player(plrid).state.blockingaction=0 and gun(gunid).settings.ismelee=0 then gunshootnoammo=1
  endif
  rem AirMod - Blocking Move >>>
- if tmouseclick=2 and gun(gunid).action.block.s <> 0 and player(plrid).state.blockingaction = 0
+ if tmouseclick=2 and gun(gunid).action.block.s <> 0 and player(plrid).state.blockingaction = 0 and gun(gunid).settings.ismelee=0
   player(plrid).state.blockingaction=1 : blocking=1
  endif
  `else
@@ -17021,7 +17036,7 @@ if gxbox=1 : rem define in a config later
 endif
 
 rem Change weapon
-if gunselectionlockdown=0 and gunzoommode=0
+if gunselectionlockdown=0 and gunzoommode=0 and gun(gunid).settings.ismelee=0
  if tmz<>0
   tokay=0 : ttries=10
   while tokay=0 and ttries>0
@@ -17499,12 +17514,22 @@ else
  if block <> 2 then player(1).state.blockingaction = 0
 endif
 rem AirMod - Done <<<
- `
- if gun(gunid).settings.alternate=1
-  texture object hudbankoffset+5,gun(gunid).settings.altflashimg
+
+if gun(gunid).settings.ismelee>0 and gunmode<100
+ if gunzoommode=10 then gunzoommode=11
+ if gun(gunid).settings.ismelee=2 then gunmode=1020
+ if gun(gunid).settings.simplezoom <> 0 and gun(gunid).settings.simplezoomanim<>0 and gunzoommode<>0
+  gunmode=2003
  else
-  texture object hudbankoffset+5,gun(gunid).settings.flashimg
+  gun(gunid).settings.ismelee=2
  endif
+endif
+`
+if gun(gunid).settings.alternate=1
+ texture object hudbankoffset+5,gun(gunid).settings.altflashimg
+else
+ texture object hudbankoffset+5,gun(gunid).settings.flashimg
+endif
 `
 rem Gun Selection
 if gunselectionlockdown=0
@@ -17900,6 +17925,70 @@ if gunzoommode <> 0 and gun(gunid).settings.simplezoom <> 0 and gun(gunid).setti
  gcock=gun(gunid).zoomaction.cock
  ghide=gun(gunid).zoomaction.hide
 endif
+if gun(gunid).settings.ismelee=2
+ if gun(gunid).settings.isempty=0 or gun(gunid).emptyaction.start.s=0
+  if tmeleeanim=0
+   gstart=gun(gunid).meleeaction.start
+   gfinish=gun(gunid).meleeaction.finish
+   tempmeani=1
+   if gun(gunid).meleeaction.start2.s > 0 and rnd(2)=0
+    gstart=gun(gunid).meleeaction.start2
+    gfinish=gun(gunid).meleeaction.finish2
+    tempmeani=2
+   endif
+   if gun(gunid).meleeaction.start3.s > 0 and rnd(2)=0
+    gstart=gun(gunid).meleeaction.start3
+    gfinish=gun(gunid).meleeaction.finish3
+    tempmeani=3
+   endif
+  else
+   if tmeleeanim=1
+    gstart=gun(gunid).meleeaction.start
+    gfinish=gun(gunid).meleeaction.finish
+   endif
+   if tmeleeanim=2
+    gstart=gun(gunid).meleeaction.start2
+    gfinish=gun(gunid).meleeaction.finish2
+   endif
+   if tmeleeanim=3
+    gstart=gun(gunid).meleeaction.start3
+    gfinish=gun(gunid).meleeaction.finish3
+   endif
+  endif
+ else
+  if gun(gunid).settings.isempty>0
+   if tmeleeanim=0
+    gstart=gun(gunid).emptyaction.start
+    gfinish=gun(gunid).emptyaction.finish
+    tempmeani=1
+    if gun(gunid).emptyaction.start2.s > 0 and rnd(2)=0
+     gstart=gun(gunid).emptyaction.start2
+     gfinish=gun(gunid).emptyaction.finish2
+     tempmeani=2
+    endif
+    if gun(gunid).emptyaction.start3.s > 0 and rnd(2)=0
+     gstart=gun(gunid).emptyaction.start3
+     gfinish=gun(gunid).emptyaction.finish3
+     tempmeani=3
+    endif
+   else
+    if tmeleeanim=1
+     gstart=gun(gunid).emptyaction.start
+     gfinish=gun(gunid).emptyaction.finish
+    endif
+    if tmeleeanim=2
+     gstart=gun(gunid).emptyaction.start2
+     gfinish=gun(gunid).emptyaction.finish2
+    endif
+    if tmeleeanim=3
+     gstart=gun(gunid).emptyaction.start3
+     gfinish=gun(gunid).emptyaction.finish3
+    endif
+   endif
+  endif
+ endif
+ if tempmeani<>0 then tmeleeanim=tempmeani : tempmeani=0
+endif
 
 gblock = gun(gunid).action.block
 rem AirMod - Added for Burst
@@ -18065,6 +18154,25 @@ if gunmode=1003
  gunmode=5
  player(1).state.blockingaction=2 `Reset Block
 endif
+
+rem melee gun modes
+if gunmode=1020
+ gunmode=1021
+ set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
+ set object interpolation currentgunobj,100
+ play object currentgunobj,gstart.s,gstart.e
+endif
+if gunmode=1021
+ if object frame(currentgunobj)>=gstart.e then gunmode=1022
+endif
+if gunmode=1022
+ gunmode=1023
+ play object currentgunobj,gfinish.s,gfinish.e : gunshoot=1
+endif
+if gunmode=1023
+ if object frame(currentgunobj)>=gfinish.e then gun(gunid).settings.ismelee=0 : gunmode=5 : tmeleeanim=0
+endif
+
 
 Rem Player presses mouse button but has no ammo (avoid model animation freezing)
 if gunshootnoammo=1
@@ -18835,6 +18943,7 @@ if gunshoot=1
   if gun(gunid).settings.alternate = 1 then trayaccuracy#=gun(gunid).settings.altaccuracy
   bulletdamage=gun(gunid).settings.damage
   if gun(gunid).settings.alternate = 1 then bulletdamage=gun(gunid).settings.altdamage
+  if gun(gunid).settings.ismelee=2 then bulletdamage=gun(gunid).settings.meleedamage
   `
   rem Special ZOOMODE kill in multiplayer
   if gmultiplayergame=1
@@ -18847,6 +18956,10 @@ if gunshoot=1
   multiplayerdamagecollected=0
   for traycount=1 to trayiter
    `
+   if gun(gunid).settings.alternate = 0 then range#=gun(gunid).settings.range
+   if gun(gunid).settings.alternate = 1 then range#=gun(gunid).settings.altrange
+   if gun(gunid).settings.ismelee=2 then range#=gun(gunid).settings.meleerange
+   `
    rem project gun-line-for-shot
    Rem Hockeykid - 010410 - Replaced old accuracy sytem with Plystire's
    x1#=camera position x()
@@ -18858,7 +18971,7 @@ if gunshoot=1
    tcm#=rnd(trayaccuracy#*1000.0)/1000.0 : tcx#=tcx#*tcm# : tcy#=tcy#*tcm#
    rotate object hudbankoffset+3, camera angle x(0)+tcy#,camera angle y(0)+tcx#,camera angle z(0)
    `move object hudbankoffset+3,gun(gunid).settings.range
-   if gun(gunid).settings.alternate = 1 then move object hudbankoffset+3,gun(gunid).settings.altrange else move object hudbankoffset+3,gun(gunid).settings.range
+   move object hudbankoffset+3,range#
    disable object zdepth hudbankoffset+3
    x2#=object position x(hudbankoffset+3)
    y2#=object position y(hudbankoffset+3)
@@ -19317,6 +19430,7 @@ for l=0 to 299
    if field$="flak" then gun(gunid).settings.flakname$=value$
    if field$="second" then gun(gunid).settings.seconduse=value1
    if field$="damage" then gun(gunid).settings.damage=value1
+   if field$="melee damage" then gun(gunid).settings.meleedamage=value1
    if field$="damagetype" then gun(gunid).settings.damagetype=value1
    if field$="scorchtype" then gun(gunid).settings.scorchtype=value1
    if field$="reloadqty" then gun(gunid).settings.reloadqty=value1
@@ -19326,6 +19440,8 @@ for l=0 to 299
    if field$="zoommode" then gun(gunid).settings.zoommode=value1
    if field$="zoomaccuracy" then gun(gunid).settings.zoomaccuracy=value1
    if field$="range" then gun(gunid).settings.range=value1
+   if field$="melee range" then gun(gunid).settings.meleerange=value1
+   if field$="melee key" then gun(gunid).settings.meleekey=value1
    if field$="decal" then gun(gunid).decal$=value$
    if field$="smokespeed" then gun(gunid).settings.smokespeed=value1
    if field$="smokedecal" then gun(gunid).settings.smokedecal$=value$
@@ -19351,6 +19467,7 @@ for l=0 to 299
    if field$="runacc" then gun(gunid).settings.runaccuracy=value1
    rem AirMod - No Scorch
    if field$="noscorch" then gun(gunid).settings.noscorch=value1
+   if field$="meleenoscorch" then gun(gunid).settings.meleenoscorch=value1
    rem AirMod - Simple Zoom
    if field$="simplezoom" then gun(gunid).settings.simplezoom=value1
    if field$="simplezoommod" then gun(gunid).settings.simplezoommod=value1
@@ -19481,7 +19598,21 @@ for l=0 to 299
    if field$="end fire 2" then gun(gunid).action.finish2.s=value1 : gun(gunid).action.finish2.e=value2
    if field$="start fire 3" then gun(gunid).action.start3.s=value1 : gun(gunid).action.start3.e=value2
    if field$="end fire 3" then gun(gunid).action.finish3.s=value1 : gun(gunid).action.finish3.e=value2
-
+   `
+   if field$="melee start" then gun(gunid).meleeaction.start.s=value1 : gun(gunid).meleeaction.start.e=value2
+   if field$="melee start 2" then gun(gunid).meleeaction.start2.s=value1 : gun(gunid).meleeaction.start2.e=value2
+   if field$="melee start 3" then gun(gunid).meleeaction.start3.s=value1 : gun(gunid).meleeaction.start3.e=value2
+   if field$="melee end" then gun(gunid).meleeaction.finish.s=value1 : gun(gunid).meleeaction.finish.e=value2
+   if field$="melee end 2" then gun(gunid).meleeaction.finish2.s=value1 : gun(gunid).meleeaction.finish2.e=value2
+   if field$="melee end 3" then gun(gunid).meleeaction.finish3.s=value1 : gun(gunid).meleeaction.finish3.e=value2
+   `
+   if field$="empty melee start" then gun(gunid).emptyaction.start.s=value1 : gun(gunid).emptyaction.start.e=value2
+   if field$="empty melee start 2" then gun(gunid).emptyaction.start2.s=value1 : gun(gunid).emptyaction.start2.e=value2
+   if field$="empty melee start 3" then gun(gunid).emptyaction.start3.s=value1 : gun(gunid).emptyaction.start3.e=value2
+   if field$="empty melee end" then gun(gunid).emptyaction.finish.s=value1 : gun(gunid).emptyaction.finish.e=value2
+   if field$="empty melee end 2" then gun(gunid).emptyaction.finish2.s=value1 : gun(gunid).emptyaction.finish2.e=value2
+   if field$="empty melee end 3" then gun(gunid).emptyaction.finish3.s=value1 : gun(gunid).emptyaction.finish3.e=value2
+   `
    if field$="zoomto" then gun(gunid).zoomaction.show.s=value1 : gun(gunid).zoomaction.show.e=value2
    if field$="zoomfrom" then gun(gunid).zoomaction.hide.s=value1 : gun(gunid).zoomaction.hide.e=value2
    if field$="zoom start fire" then gun(gunid).zoomaction.start.s=value1 : gun(gunid).zoomaction.start.e=value2

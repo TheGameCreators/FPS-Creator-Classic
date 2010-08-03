@@ -8,7 +8,23 @@ History
 
 V1.1.8
 ------
-
+ 
+ * Added new gunspec command for the melee feature melee key=x to specify the key that will trigger the melee (uses scancodes)
+ * Added new gunspec command for the melee feature melee range=x to specify the range of the melee
+ * Added new gunspec command for the melee feature melee damage=x to specify the amount of damage the melee will do 
+ * Added new gunspec command for the melee feature empty melee end 3=x,y the engine will randomly choose between this, empty melee end 2 and the normal empty melee end
+ * Added new gunspec command for the melee feature empty melee end 2=x,y the engine will randomly choose between this and the normal empty melee end
+ * Added new gunspec command for the melee feature empty melee end=x,y
+ * Added new gunspec command for the melee feature empty melee start 3=x,y the engine will randomly choose between this, empty melee start 2 and the normal empty melee start 
+ * Added new gunspec command for the melee feature empty melee start 2=x,y the engine will randomly choose between this and the normal empty melee start
+ * Added new gunspec command for the melee feature empty melee start=x,y
+ * Added new gunspec command for the melee feature melee end 3=x,y the engine will randomly choose between this, melee end 2 and the normal melee end
+ * Added new gunspec command for the melee feature melee end 2=x,y the engine will randomly choose between this and the normal melee end
+ * Added new gunspec command for the melee feature melee end=x,y
+ * Added new gunspec command for the melee feature melee start 3=x,y the engine will randomly choose between this, melee start 2 and the normal melee start 
+ * Added new gunspec command for the melee feature melee start 2=x,y the engine will randomly choose between this and the normal melee start
+ * Added new gunspec command for the melee feature melee start=x,y
+ * Added support for melee animations (guns can shoot and melee)
  * Added new FPI action AIREMOVE to remove a Dark AI entity from the Dark AI system
  * Added new gunspec command for the ammo pooling feature for use with alternate weapons altpoolammo=x x is equal to a name you would like to use for the ammo pool
  * Added new gunspec command for the ammo pooling feature poolammo=x x is equal to a name you would like to use for the ammo pool
