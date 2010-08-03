@@ -6,6 +6,11 @@ You can find the latest FAQ at http://code.google.com/p/fpscreatorengine/wiki/FA
 History
 =======
 
+V1.1.8
+------
+ 
+ * Everything goes here now :)
+
 V1.1.7
 ------
  
