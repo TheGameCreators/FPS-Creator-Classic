@@ -3492,6 +3492,7 @@ _main_game_freeleveldata:
   undim aisafezone()
   undim points()
   undim aisound()
+  undim ammopool()
   undim undoredolist()
   undim meshbank$()
   undim texturebank$()
