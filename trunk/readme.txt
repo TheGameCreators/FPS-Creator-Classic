@@ -9,6 +9,16 @@ History
 V1.1.8
 ------
  
+ * Added new gunspec command for the melee feature alt melee end 3=x,y the engine will randomly choose between this, alt melee end 2 and the normal alt melee end
+ * Added new gunspec command for the melee feature alt melee end 2=x,y the engine will randomly choose between this and the normal alt melee end
+ * Added new gunspec command for the melee feature alt melee end=x,y
+ * Added new gunspec command for the melee feature alt melee start 3=x,y the engine will randomly choose between this, alt melee start 2 and the normal alt melee start 
+ * Added new gunspec command for the melee feature alt melee start 2=x,y the engine will randomly choose between this and the normal alt melee start
+ * Added new gunspec command for the melee feature alt melee start=x,y
+ * Added new gunspec command for the melee feature alt melee range=x to specify the range of the alternate melee
+ * Added new gunspec command for the melee feature alt melee damage=x to specify the amount of damage the alternate melee will do 
+ * Added new gunspec command for the melee feature alt melee noscorch=x to specify wether or not the melee attack leaves a scorch mark 
+ * Added new gunspec command for the melee feature melee noscorch=x to specify wether or not the melee attack leaves a scorch mark 
  * Added new gunspec command for the melee feature melee key=x to specify the key that will trigger the melee (uses scancodes)
  * Added new gunspec command for the melee feature melee range=x to specify the range of the melee
  * Added new gunspec command for the melee feature melee damage=x to specify the amount of damage the melee will do 
