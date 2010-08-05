@@ -9,6 +9,11 @@ History
 V1.1.8
 ------
  
+ * REWROTE the way Airmod's alternate fire works. All it was doing was making a mess of the engine and didn't even have support for all primary gunspec commands
+    Now you can use any gunspec command (excluding melee key=x, weaponisammo=x,altto=x,y, altfrom=x,y, addtospare=x,sound#=x, altsound=x, soundframes=x, and sframe=x)
+     with the alternate fire feature.
+     Simply use the word "alt" before the gunspec command you wish to use. For example to declare simple zoom in alternate mode I would use:
+      "altsimplezoom=1" (without the quotation marks) 
  * Added new gunspec command for the melee feature alt melee end 3=x,y the engine will randomly choose between this, alt melee end 2 and the normal alt melee end
  * Added new gunspec command for the melee feature alt melee end 2=x,y the engine will randomly choose between this and the normal alt melee end
  * Added new gunspec command for the melee feature alt melee end=x,y

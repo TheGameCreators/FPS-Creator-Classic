@@ -2054,6 +2054,7 @@ endtype
 
 rem Gun Data Structure (is 10 our maximum for the entire game, ie weapon slots max?)
 type guntype
+ firemode as integer
  activeingame as integer
  obj as integer
  secondobj as integer
@@ -2081,6 +2082,8 @@ type guntype
  altmeleeaction as gunactionstype
 endtype
 dim gun(100) as guntype
+dim firemode(100,1) as guntype
+Global firemode : firemode=0
 `dim gunsound(100,5) as gunsoundbanktype
 `dim gunsoundcompanion(100,5,2) as gunsoundbankcompaniontype
 Rem AirMod - Extended to 15 Sounds
@@ -3536,6 +3539,7 @@ _main_game_freeleveldata:
   undim waypoint()
   `undim debris()
   undim gun()
+  undim firemode()
   undim gunsound()
   undim gunsoundcompanion()
   undim gunsounditem()
@@ -6554,11 +6558,11 @@ _entity_startentitiesoff:
   tgunid$=entityprofile(entid).isweapon$
   gosub _entity_getgunidandflakid
   if tgunid>0
-   gun(tgunid).settings.accuracy=entityelement(e).eleprof.accuracy
-   gun(tgunid).settings.reloadqty=entityelement(e).eleprof.reloadqty
-   gun(tgunid).settings.iterate=entityelement(e).eleprof.fireiterations
+   firemode(tgunid,0).settings.accuracy=entityelement(e).eleprof.accuracy
+   firemode(tgunid,0).settings.reloadqty=entityelement(e).eleprof.reloadqty
+   firemode(tgunid,0).settings.iterate=entityelement(e).eleprof.fireiterations
    if tflakid=0
-    gun(tgunid).settings.damage=entityelement(e).eleprof.damage
+    firemode(tgunid,0).settings.damage=entityelement(e).eleprof.damage
    else
     flak(tflakid).profile.damage=entityelement(e).eleprof.damage
     flak(tflakid).profile.lifespan=entityelement(e).eleprof.lifespan
@@ -7086,15 +7090,15 @@ for e=1 to entityelementlist
        rem player collects weapon from enemy (stores takeweaponammo in Quantity)
        weaponindex=tgunid
        weaponinvposition=pi : tgunid=weaponindex
-       tqty=rnd(gun(tgunid).settings.reloadqty)
+       tqty=rnd(firemode(tgunid,0).settings.reloadqty)
        autoentityusedtoholdweapon=e
        gosub _player_addweapon
        rem for weapnisammo collections, add required ammo
        if gotweapon>0
         if gun(tgunid).settings.weaponisammo=0
-         tqty=gun(tgunid).settings.reloadqty*entityelement(e).eleprof.quantity
+         tqty=firemode(tgunid,0).settings.reloadqty*entityelement(e).eleprof.quantity
          `weaponclipammo(gotweapon)=weaponclipammo(gotweapon)+tqty
-         tpool=gun(tgunid).settings.poolindex
+         tpool=firemode(tgunid,0).settings.poolindex
          if tpool=0 then weaponclipammo(gotweapon)=weaponclipammo(gotweapon)+tqty else ammopool(tpool).ammo=ammopool(tpool).ammo+tqty
         else
          if tqty=0 then tqty=1
@@ -7586,16 +7590,16 @@ if entityelement(e).fireweapon=1
   endif
   `
   rem weapon type
-  flakid=gun(tgunid).settings.flakindex
-  if gun(tgunid).settings.alternateisflak = 1 then flakid = 0
+  flakid=firemode(tgunid,0).settings.flakindex
+  `if gun(tgunid).settings.alternateisflak = 1 then flakid = 0
   if flakid=0
    `
    rem BULLET
    rem initial shot creates light flash
    spotflash=100 : tx#=x1# : ty#=y1# : tz#=z1#
-   tcolr=gun(tgunid).settings.muzzlecolorr
-   tcolg=gun(tgunid).settings.muzzlecolorg
-   tcolb=gun(tgunid).settings.muzzlecolorb
+   tcolr=firemode(tgunid,0).settings.muzzlecolorr
+   tcolg=firemode(tgunid,0).settings.muzzlecolorg
+   tcolb=firemode(tgunid,0).settings.muzzlecolorb
    gosub _lighting_spotflash
    `
    rem discharge sound (single fire, or automatic loop sound)
@@ -7603,8 +7607,8 @@ if entityelement(e).fireweapon=1
    if tsndid>0
     if gun(tgunid).action.automatic.s>0
      if entityelement(e).firesoundloop=0
-      play sound tsndid,gun(tgunid).sound.fireloopend : rem some sound bug
-      loop sound tsndid,0,gun(tgunid).sound.fireloopend
+      play sound tsndid,firemode(tgunid,0).sound.fireloopend : rem some sound bug
+      loop sound tsndid,0,firemode(tgunid,0).sound.fireloopend
       entityelement(e).firesoundloop=tsndid
      endif
     else
@@ -7617,9 +7621,9 @@ if entityelement(e).fireweapon=1
    rem gun data for accuracy
    Rem Hockeykid - 010410 - Swapped to a float to work better with Plystire's accuracy system
    `trayaccuracy=gun(tgunid).settings.accuracy
-   trayaccuracy#=gun(tgunid).settings.accuracy
+   trayaccuracy#=firemode(tgunid,0).settings.accuracy
    Rem Hockeykid - 10410 - Added iteratations for AI
-   trayiter=1+gun(tgunid).settings.iterate
+   trayiter=1+firemode(tgunid,0).settings.iterate
    `
    for iterate=1 to trayiter
     Rem Hockeykid - 010410 - Replaced old accuracy sytem with Plystire's
@@ -7638,7 +7642,7 @@ if entityelement(e).fireweapon=1
      tdd#=sqrt((tdx#*tdx#)+(tdy#*tdy#)+(tdz#*tdz#))
      range=tdd#+15
     else
-     range=gun(tgunid).settings.range
+     range=firemode(tgunid,0).settings.range
     endif
     position object hudbankoffset+3,x1#,y1#,z1#
     tca#=rnd(360000.0)/1000.0
@@ -7786,7 +7790,7 @@ if entityelement(e).fireweapon=1
      remend
      rem add scorch if hit universe static polygons
      if tbullethitstatic=1
-      tscorchtype=gun(tgunid).settings.scorchtype
+      tscorchtype=firemode(tgunid,0).settings.scorchtype
       gosub _entity_doscorch
      endif
     endif
@@ -7920,7 +7924,7 @@ _entity_doscorch:
  rem material damage
  rem AirMod - Line Modified for no scorch mode
  if tbullethitmaterial>0
-  if gun(gunid).settings.noscorch = 0 and gun(gunid).settings.ismelee<>2 or gun(gunid).settings.meleenoscorch=0 and gun(gunid).settings.ismelee=2 and gun(tgunid).settings.alternate=0 or gun(gunid).settings.altmeleenoscorch=0 and gun(gunid).settings.ismelee=2 and gun(tgunid).settings.alternate=1
+  if firemode(gunid,firemode).settings.noscorch = 0 and gun(gunid).settings.ismelee<>2 or firemode(gunid,firemode).settings.meleenoscorch=0 and gun(gunid).settings.ismelee=2
    tscorchsize2#=4.0+(rnd(10)/10.0) : tscorchtype2=11+tbullethitmaterial
    if tscorchtype2>15 then tscorchtype2=12 : rem FPSCV101 - fix
    add static scorch tscorchsize2#,tscorchtype2
@@ -7942,7 +7946,7 @@ _entity_doscorch:
   add static scorch tscorchsize3#,tscorchtype3
  else
   rem AirMod - Line added for no scorch weapon
-  if gun(gunid).settings.noscorch = 0 and gun(gunid).settings.ismelee<>2 or gun(gunid).settings.meleenoscorch=0 and gun(gunid).settings.ismelee=2 and gun(tgunid).settings.alternate=0 or gun(gunid).settings.altmeleenoscorch=0 and gun(gunid).settings.ismelee=2 and gun(tgunid).settings.alternate=1
+  if firemode(gunid,firemode).settings.noscorch = 0 and gun(gunid).settings.ismelee<>2 or firemode(gunid,firemode).settings.meleenoscorch=0 and gun(gunid).settings.ismelee=2
    rem bullethole
    tscorchsize#=2.0+(rnd(10)/10.0)
    if tscorchtype>=2 then tscorchsize#=3.0+(rnd(10)/10.0)
@@ -10888,7 +10892,7 @@ if aiindex>0
      if entityelement(e).fireweapon=0
       tokay=0 : tgunid=entityelement(e).currentweapon
       if tgunid>0
-       if entityelement(e).currentammo>0 or gun(tgunid).settings.reloadqty=0
+       if entityelement(e).currentammo>0 or firemode(tgunid,0).settings.reloadqty=0
         tokay=1
        endif
       endif
@@ -10977,14 +10981,14 @@ if aiindex>0
        tentid=entityelement(te).bankindex
        tgunid=entityprofile(tentid).isweapon
        if tgunid>0
-        if gun(tgunid).settings.damage>tgunbestdamage then tgunbestdamage=gun(tgunid).settings.damage
+        if firemode(tgunid,0).settings.damage>tgunbestdamage then tgunbestdamage=firemode(tgunid,0).settings.damage
        endif
       next pi
       tokay=0
       tent2id=entityelement(tfounde).bankindex
       tgun2id=entityprofile(tent2id).isweapon
       if tgun2id>0
-       if gun(tgun2id).settings.damage>tgunbestdamage then tokay=1
+       if firemode(tgun2id,0).settings.damage>tgunbestdamage then tokay=1
       endif
       if tokay=1 then entityelement(e).possibletarget=1+tfounde
       if tokay=0 then airesult=0
@@ -12967,7 +12971,7 @@ if aiindex>0
       rem fire weapon (entity may have)
       tgunid=entityelement(e).currentweapon
       if tgunid>0
-       if entityelement(e).currentammo>0 or gun(tgunid).settings.reloadqty=0
+       if entityelement(e).currentammo>0 or firemode(tgunid,0).settings.reloadqty=0
         if entityelement(e).currentammo>0
          entityelement(e).currentammo=entityelement(e).currentammo-1
         endif
@@ -12986,9 +12990,9 @@ if aiindex>0
      case AIACTRELOADWEAPON:
       tgunid=entityelement(e).currentweapon
       if tgunid>0
-       tneedfromclip=gun(tgunid).settings.reloadqty-entityelement(e).currentammo
+       tneedfromclip=firemode(tgunid,0).settings.reloadqty-entityelement(e).currentammo
        if tneedfromclip>0
-        entityelement(e).currentammo=gun(tgunid).settings.reloadqty
+        entityelement(e).currentammo=firemode(tgunid,0).settings.reloadqty
         entityelement(e).currentclipammo=entityelement(e).currentclipammo-tneedfromclip
        endif
       endif
@@ -16457,16 +16461,16 @@ _player_setup:
  if playerstarthasweapon>0 and level=1
   for tww=1 to 10
    if weaponslot(tww).pref=playerstarthasweapon
-    tqty=gun(playerstarthasweapon).settings.reloadqty
+    tqty=firemode(playerstarthasweapon,0).settings.reloadqty
     if playerstarthasweaponqty>=1
      weaponammo(tww)=tqty
-     weaponammo(tww+10)=gun(playerstarthasweapon).settings.altreloadqty
+     weaponammo(tww+10)=firemode(playerstarthasweapon,1).settings.reloadqty
      if playerstarthasweaponqty>1
       `weaponclipammo(tww)=(playerstarthasweaponqty-1)*tqty
       `weaponclipammo(tww+10)=gun(playerstarthasweapon).settings.altreloadqty*(playerstarthasweaponqty-1)
-      tpool=gun(playerstarthasweapon).settings.poolindex : altpool=gun(playerstarthasweapon).settings.altpoolindex
+      tpool=firemode(playerstarthasweapon,0).settings.poolindex : altpool=firemode(playerstarthasweapon,1).settings.poolindex
       if tpool=0 then weaponclipammo(tww)=(playerstarthasweaponqty-1)*tqty else ammopool(tpool).ammo=ammopool(tpool).ammo+(playerstarthasweaponqty-1)*tqty
-      if altpool=0 then weaponclipammo(tww+10)=gun(playerstarthasweapon).settings.altreloadqty*(playerstarthasweaponqty-1) else ammopool(altpool).ammo=ammopool(altpool).ammo+gun(playerstarthasweapon).settings.altreloadqty*(playerstarthasweaponqty-1)
+      if altpool=0 then weaponclipammo(tww+10)=firemode(playerstarthasweapon,1).settings.reloadqty*(playerstarthasweaponqty-1) else ammopool(altpool).ammo=ammopool(altpool).ammo+firemode(playerstarthasweapon,1).settings.reloadqty*(playerstarthasweaponqty-1)
      endif
     endif
     tww=11 : exit
@@ -16544,7 +16548,7 @@ if colmaterialtype>=0
     playermovementstep(plrid)=playermovementstep(plrid)+timeelapsed#
     `if movement=2 then tfootspeed#=2.0 else tfootspeed#=1.0
     rem AirMod - Line Modified for Simple Zoom
-    if movement=2 or (gunzoommode <> 0) then tfootspeed#=1.0 +(1.0*gun(gunid).settings.zoomwalkspeed) else tfootspeed#=1.0
+    if movement=2 or (gunzoommode <> 0) then tfootspeed#=1.0 +(1.0*firemode(gunid,firemode).settings.zoomwalkspeed) else tfootspeed#=1.0
     if plrid=1
      if basespeed#<=40.0 then tsteppingsound#=6.0*tfootspeed#
      if basespeed#>40.0 then tsteppingsound#=5.0*tfootspeed#
@@ -16720,7 +16724,7 @@ _player_obtainaweapon:
   rem adds the weapon
   weaponinvposition=pi : tgunid=weaponindex
   if gun(tgunid).settings.weaponisammo=0 and tqty=0 then tqty=1
-  tqty=tqty*gun(tgunid).settings.reloadqty
+  tqty=tqty*firemode(tgunid,0).settings.reloadqty
   gosub _player_addweapon
  endif
  `
@@ -16762,16 +16766,16 @@ for plrid=1 to playermax
       tgunid=weaponslot(ws).pref
       if tgunid=entityprofile(entid).hasweapon
        tnogunforammo=0
-       tqty=entityelement(e).eleprof.quantity*gun(tgunid).settings.reloadqty
-       tpool=gun(tgunid).settings.poolindex
-       altpool=gun(tgunid).settings.altpoolindex
+       tqty=entityelement(e).eleprof.quantity*firemode(tgunid,0).settings.reloadqty
+       tpool=firemode(tgunid,0).settings.poolindex
+       altpool=firemode(tgunid,1).settings.poolindex
        if gun(tgunid).settings.weaponisammo=1
         `if tpool=0 then weaponammo(ws)=weaponammo(ws)+tqty else ammopool(tpool).ammo=ammopool(tpool).ammo+tqty
          weaponammo(ws)=weaponammo(ws)+tqty
        else
         rem AirMod - Added for Alt Ammo >>>
         if entityelement(e).isaltammo = 1
-         tqty=entityelement(e).eleprof.quantity*gun(tgunid).settings.altreloadqty
+         tqty=entityelement(e).eleprof.quantity*firemode(tgunid,1).settings.reloadqty
          `weaponclipammo(ws+10)=weaponclipammo(ws+10)+tqty
          if altpool=0 then weaponclipammo(ws+10)=weaponclipammo(ws+10)+tqty else ammopool(altpool).ammo=ammopool(altpool).ammo+tqty
         else
@@ -16790,12 +16794,12 @@ for plrid=1 to playermax
         weaponslot(ws).pref=tgunid
         weaponhud(ws)=gun(tgunid).hudimage
         if entityelement(e).isaltammo=0
-         tqty=entityelement(e).eleprof.quantity*gun(tgunid).settings.reloadqty
-         tpool=gun(tgunid).settings.poolindex
+         tqty=entityelement(e).eleprof.quantity*firemode(tgunid,0).settings.reloadqty
+         tpool=firemode(tgunid,0).settings.poolindex
          if tpool=0 then weaponclipammo(ws)=tqty else ammopool(tpool).ammo=ammopool(tpool).ammo+tqty
         else
-         tqty=entityelement(e).eleprof.quantity*gun(tgunid).settings.altreloadqty
-         altpool=gun(tgunid).settings.altpoolindex
+         tqty=entityelement(e).eleprof.quantity*firemode(tgunid,1).settings.reloadqty
+         altpool=firemode(tgunid,1).settings.poolindex
          if altpool=0 then weaponclipammo(ws+10)=tqty else ammopool(altpool).ammo=ammopool(altpool).ammo+tqty
         endif
         exit
@@ -16899,7 +16903,7 @@ endif
 rem Mouse
 player(plrid).state.firingmode=0
 rem AirMod - Prevent any blocking bugs to occur when using non-blocking weapons >>>
-if gun(gunid).action.block.s = 0
+if firemode(gunid,firemode).action.block.s = 0
  player(plrid).state.blockingaction=0
 else
  if player(plrid).state.blockingaction = 2 and tmouseclick=0
@@ -16911,7 +16915,7 @@ if player(plrid).health>0 or playerstartstrength=0
  `if tmouseclick=1 then player(plrid).state.firingmode=1
  rem AirMod - Line changed to include blocking action
  if tmouseheld=1
-  if mouseclick()<>1 or (weaponammo(weaponammoindex)>0 and gun(gunid).settings.alternate = 0) or (weaponammo(weaponammoindex+10)>0 and gun(gunid).settings.alternate = 1) then tmouseheld=0
+  if mouseclick()<>1 or weaponammo(weaponammoindex+ammooffset)>0 then tmouseheld=0
  endif
  Rem Hockeykid - 030810 - Melee with a key press
  if gun(gunid).settings.meleekey>0
@@ -16920,21 +16924,21 @@ if player(plrid).health>0 or playerstartstrength=0
  else
   meleekeynotfree=0
  endif
- if (weaponammo(weaponammoindex)>0 and gun(gunid).settings.alternate = 0) or (weaponammo(weaponammoindex+10)>0 and gun(gunid).settings.alternate = 1) or gun(gunid).settings.reloadqty=0
+ if weaponammo(weaponammoindex+ammooffset)>0 or firemode(gunid,firemode).settings.reloadqty=0
   if tmouseclick=1 and player(plrid).state.blockingaction=0 and gun(gunid).settings.ismelee=0 then player(plrid).state.firingmode=1
-  if gun(gunid).settings.isempty>0
+  if firemode(gunid,firemode).settings.isempty>0
    if gunmode<>7031 and gunmode<>7041
     if gunmode<123 or gunmode>124
-     if gunmode<700 or gunmode>707 then gun(gunid).settings.isempty=0
+     if gunmode<700 or gunmode>707 then firemode(gunid,firemode).settings.isempty=0
     endif
    endif
   endif
  else
-  if gun(gunid).settings.isempty=0 and gun(gunid).settings.hasempty=1 then gun(gunid).settings.isempty=1
+  if firemode(gunid,firemode).settings.isempty=0 and firemode(gunid,firemode).settings.hasempty=1 then firemode(gunid,firemode).settings.isempty=1
   if tmouseclick=1 and tmouseheld=0 and player(plrid).state.blockingaction=0 and gun(gunid).settings.ismelee=0 then gunshootnoammo=1
  endif
  rem AirMod - Blocking Move >>>
- if tmouseclick=2 and gun(gunid).action.block.s <> 0 and player(plrid).state.blockingaction = 0 and gun(gunid).settings.ismelee=0
+ if tmouseclick=2 and firemode(gunid,firemode).action.block.s <> 0 and player(plrid).state.blockingaction = 0 and gun(gunid).settings.ismelee=0
   player(plrid).state.blockingaction=1 : blocking=1
  endif
  `else
@@ -16942,12 +16946,12 @@ if player(plrid).health>0 or playerstartstrength=0
  `endif
  rem AirMod - Done<<<
  rem AirMod - No Zoom in When Reloading or firing in simple zoom
- if tmouseclick=2 and (gunmode<=100 or gun(gunid).settings.simplezoom=0) and gun(gunid).settings.alternate = 0 and (gun(gunid).settings.forcezoomout=0 or gunmode <= 100)
+ if tmouseclick=2 and (gunmode<=100 or firemode(gunid,firemode).settings.simplezoom=0) and (firemode(gunid,firemode).settings.forcezoomout=0 or gunmode <= 100)
   rem AirMod - Modified for Simple Zoom
-  if gunzoommode=0 and (gun(gunid).settings.zoommode<>0 or gun(gunid).settings.simplezoom<>0) and gun(gunid).settings.isempty=0
+  if gunzoommode=0 and (firemode(gunid,firemode).settings.zoommode<>0 or firemode(gunid,firemode).settings.simplezoom<>0) and firemode(gunid,firemode).settings.isempty=0
    gunzoommode=1 : gunzoommag#=1.0
    rem AirMod - Added for Simple Zoom
-   if gun(gunid).settings.simplezoomanim<>0 and gun(gunid).settings.simplezoom<>0 then gunmode=2001
+   if firemode(gunid,firemode).settings.simplezoomanim<>0 and firemode(gunid,firemode).settings.simplezoom<>0 then gunmode=2001
    rem play sound of gun select-zoom
    if gun(gunid).settings.alternate=0 then sndid=gunsound(gunid,4).soundid else sndid=gunsound(gunid,4).altsoundid
    if sndid>0
@@ -16962,7 +16966,7 @@ if player(plrid).health>0 or playerstartstrength=0
   rem AirMod - Modified for Simple Zoom >>>
   if gunzoommode=10
    gunzoommode=11
-   if gun(gunid).settings.simplezoomanim<>0 and gun(gunid).settings.simplezoom<>0 then gunmode = 2003
+   if firemode(gunid,firemode).settings.simplezoomanim<>0 and firemode(gunid,firemode).settings.simplezoom<>0 then gunmode = 2003
   endif
   rem AirMod - Done <<
  else
@@ -16971,14 +16975,10 @@ if player(plrid).health>0 or playerstartstrength=0
  endif
  Rem Reload key
  if plrkeyRheld=1 and plrkeyR=0 then plrkeyRheld=0
- tpool=gun(gunid).settings.poolindex : altpool=gun(gunid).settings.altpoolindex
- if gun(gunid).settings.alternate = 0
-  if tpool=0 then ammo=weaponclipammo(weaponammoindex) else ammo=ammopool(tpool).ammo
- else
-  if altpool=0 then ammo=weaponclipammo(weaponammoindex+10) else ammo=ammopool(altpool).ammo
- endif
+ tpool=firemode(gunid,firemode).settings.poolindex
+ if tpool=0 then ammo=weaponclipammo(weaponammoindex+ammooffset) else ammo=ammopool(tpool).ammo
 
- if ammo=0 or gun(gunid).settings.reloadqty=0 `or gun(gunid).settings.weaponisammo=1
+ if ammo=0 or firemode(gunid,firemode).settings.reloadqty=0 `or gun(gunid).settings.weaponisammo=1
   if (plrkeyR)=1 and plrkeyRheld=0 then gunreloadnoammo=1  : plrkeyRheld=1
  else
   if (plrkeyR)=1 and gun(gunid).settings.ismelee<>2
@@ -17131,7 +17131,7 @@ if gotweapon=0
    weaponslot(ws).pref=weaponindex
    weaponhud(ws)=gun(weaponindex).hudimage
    rem FPGC - mark weapon with 'possible' entity that held this weapon (for equipment activation)
-   gun(weaponindex).settings.equipmententityelementindex=autoentityusedtoholdweapon
+   firemode(weaponindex,0).settings.equipmententityelementindex=autoentityusedtoholdweapon
   else
    rem no room for weapon in available slots
    ws=0
@@ -17170,10 +17170,10 @@ if gotweapon>0
  if gun(tgunid).settings.weaponisammo=0
   if tqty=0 then tqty=1
   if weaponammo(gotweapon)=0
-   if tqty>gun(tgunid).settings.reloadqty
+   if tqty>firemode(tgunid,0).settings.reloadqty
     rem FPGC - 080710 - gun has MAX slots of ammo, cannot exceed this!
-    weaponammo(gotweapon)=gun(tgunid).settings.reloadqty
-    weaponclipammo(gotweapon)=tqty-gun(tgunid).settings.reloadqty
+    weaponammo(gotweapon)=firemode(tgunid,0).settings.reloadqty
+    weaponclipammo(gotweapon)=tqty-firemode(tgunid,0).settings.reloadqty
    else
     if gun(tgunid).settings.addtospare=0
       weaponammo(gotweapon)=tqty
@@ -17181,14 +17181,14 @@ if gotweapon>0
      Rem new gunspec addition "addtospare" This will allow it so picking up ammo with an empty weapon won't add the ammo directly into the clip
      if gun(tgunid).settings.canaddtospare=1
       `weaponclipammo(gotweapon)=weaponclipammo(gotweapon)+tqty
-      tpool=gun(tgunid).settings.poolindex
+      tpool=firemode(tgunid,0).settings.poolindex
       if tpool=0 then weaponclipammo(gotweapon)=weaponclipammo(gotweapon)+tqty else ammopool(tpool).ammo=ammopool(tpool).ammo+tqty
      endif
      if gun(tgunid).settings.canaddtospare=0 then weaponammo(gotweapon)=tqty : gun(tgunid).settings.canaddtospare=1
     endif
    endif
   else
-   tpool=gun(tgunid).settings.poolindex
+   tpool=firemode(tgunid,1).settings.poolindex
    if tpool=0 then weaponclipammo(gotweapon)=weaponclipammo(gotweapon)+tqty else ammopool(tpool).ammo=ammopool(tpool).ammo+tqty
   endif
  endif
@@ -17285,7 +17285,7 @@ function loadgun(tfile$)
    `
    set object collision off index
    set object interpolation index,100
-   set object frame index,gun(gunbankmax).action.show.s
+   set object frame index,firemode(gunbankmax,0).action.show.s
    hide object index
    `
   endif
@@ -17485,7 +17485,7 @@ _gun_manager:
 rem V110 - new freeze mode (PLRDISABLE) which stops player attacking
 gunclick=player(1).state.firingmode
 if mefrozen>0 and mefrozentype=2 then gunclick=0
-if gunclick=1 and gun(gunid).settings.disablerunandshoot=1 and isrunning=1 and player(1).state.moving=1 then gunclick=0
+if gunclick=1 and firemode(gunid,firemode).settings.disablerunandshoot=1 and isrunning=1 and player(1).state.moving=1 then gunclick=0
 
 rem Gun controls
 if gunmode<100
@@ -17498,14 +17498,12 @@ if gunmode<100
   `if gunmode<11
   rem AirMod - No Full Reload Feature
   gunfull=1
-  if (gun(gunid).settings.alternate = 0 and weaponammo(weaponammoindex) < gun(gunid).settings.reloadqty+1 and gun(gunid).settings.chamberedround > 0) then gunfull = 0
-  if (gun(gunid).settings.alternate = 1 and weaponammo(weaponammoindex+10) < gun(gunid).settings.altreloadqty+1 and gun(gunid).settings.altchamberedround > 0) then gunfull = 0
-  if (gun(gunid).settings.alternate = 0 and weaponammo(weaponammoindex) < gun(gunid).settings.reloadqty and gun(gunid).settings.chamberedround=0) then gunfull = 0
-  if (gun(gunid).settings.alternate = 1 and weaponammo(weaponammoindex+10) < gun(gunid).settings.altreloadqty and gun(gunid).settings.altchamberedround=0) then gunfull = 0
+  if (weaponammo(weaponammoindex+ammooffset) < firemode(gunid,firemode).settings.reloadqty+1 and firemode(gunid,firemode).settings.chamberedround > 0) then gunfull = 0
+  if (weaponammo(weaponammoindex+ammooffset) < firemode(gunid,firemode).settings.reloadqty and firemode(gunid,firemode).settings.chamberedround=0) then gunfull = 0
   rem V110 - 220508 - and also for when walking/running
   if gunmode<30
    `if gunclick=2 then gunmode=121
-   if gunclick=2 and (gunfull=0 or gun(gunid).settings.nofullreload = 0) then gunmode=121
+   if gunclick=2 and (gunfull=0 or firemode(gunid,firemode).settings.nofullreload = 0) then gunmode=121
   endif
  else
   rem Gun Movement
@@ -17527,10 +17525,10 @@ endif
 rem AirMod - Done <<<
 
 if gun(gunid).settings.ismelee>0 and gunmode<100
- if gun(gunid).settings.alternate=0 and gun(gunid).meleeaction.start.s>0 or gun(gunid).settings.alternate=1 and gun(gunid).altmeleeaction.start.s>0
+ if firemode(gunid,firemode).meleeaction.start.s>0
   if gunzoommode=10 then gunzoommode=11
   if gun(gunid).settings.ismelee=2 then gunmode=1020
-  if gun(gunid).settings.simplezoom <> 0 and gun(gunid).settings.simplezoomanim<>0 and gunzoommode<>0
+  if firemode(gunid,firemode).settings.simplezoom <> 0 and firemode(gunid,firemode).settings.simplezoomanim<>0 and gunzoommode<>0
    gunmode=2003
   else
    gun(gunid).settings.ismelee=2
@@ -17540,11 +17538,7 @@ if gun(gunid).settings.ismelee>0 and gunmode<100
  endif
 endif
 `
-if gun(gunid).settings.alternate=1
- texture object hudbankoffset+5,gun(gunid).settings.altflashimg
-else
- texture object hudbankoffset+5,gun(gunid).settings.flashimg
-endif
+texture object hudbankoffset+5,firemode(gunid,firemode).settings.flashimg
 `
 rem Gun Selection
 if gunselectionlockdown=0
@@ -17580,6 +17574,11 @@ gosub _gun_update_hud
 rem Gun control
 if gunid>0
  if object exist(currentgunobj)=1
+  firemode=gun(gunid).settings.alternate
+  ammooffset=firemode*10
+  Print "Firemode "+str$(firemode)+" Simple Zoom: "+str$(firemode(gunid,firemode).settings.simplezoom)
+  Print "Gunzoommode: "+str$(gunzoommode)
+  Print gunzoomstring$
   gosub _gun_control
   gosub _gun_shoot
   if gun(gunid).settings.flashlimb>=0 then gosub _gun_flash
@@ -17627,7 +17626,7 @@ if autoloadgun<>-1
  currentgunobj=gun(gunid).obj
  if currentgunobj>0
   set object interpolation currentgunobj,100
-  set object frame currentgunobj,gun(gunid).action.show.s
+  set object frame currentgunobj,firemode(gunid,0).action.show.s
   show object currentgunobj
  else
   gunid=0
@@ -17687,13 +17686,13 @@ _gun_control:
 
 rem AirMod - Gun Lag :D >>>
 if gunzoommode <> 0
- gunlagspeed# = gun(gunid).settings.zoomgunlagSpeed
- gunlagxmax# = gun(gunid).settings.zoomgunlagxmax
- gunlagymax# = gun(gunid).settings.zoomgunlagymax
+ gunlagspeed# = firemode(gunid,firemode).settings.zoomgunlagSpeed
+ gunlagxmax# = firemode(gunid,firemode).settings.zoomgunlagxmax
+ gunlagymax# = firemode(gunid,firemode).settings.zoomgunlagymax
 else
- gunlagspeed# = gun(gunid).settings.gunlagSpeed
- gunlagxmax# = gun(gunid).settings.gunlagxmax
- gunlagymax# = gun(gunid).settings.gunlagymax
+ gunlagspeed# = firemode(gunid,firemode).settings.gunlagSpeed
+ gunlagxmax# = firemode(gunid,firemode).settings.gunlagxmax
+ gunlagymax# = firemode(gunid,firemode).settings.gunlagymax
 endif
 gunlagx# = curvevalue(gunlagx#-(cammovex#)*0.01,gunlagx#,gunlagspeed#)
 gunlagy# = curvevalue(gunlagy#+(cammovey#)*0.01,gunlagy#,gunlagspeed#)
@@ -17706,35 +17705,35 @@ if gunlagy# >  gunlagymax# then gunlagy# = gunlagymax#
 gunlagx# = curvevalue(0,gunlagx#,gunlagspeed#*1.2)
 gunlagy# = curvevalue(0,gunlagy#,gunlagspeed#*1.2)
 
-if gunzoommode <> 0 and gunzoommode < 11 and gun(gunid).settings.simplezoom <> 0
- gunOffsetX# = curvevalue(gun(gunid).settings.simplezoomx#,gunOffsetX#,gun(gunid).settings.simplezoomspeed)
- gunOffsetY# = curvevalue(gun(gunid).settings.simplezoomy#,gunOffsetY#,gun(gunid).settings.simplezoomspeed)
+if gunzoommode <> 0 and gunzoommode < 11 and firemode(gunid,firemode).settings.simplezoom <> 0
+ gunOffsetX# = curvevalue(firemode(gunid,firemode).settings.simplezoomx#,gunOffsetX#,firemode(gunid,firemode).settings.simplezoomspeed)
+ gunOffsetY# = curvevalue(firemode(gunid,firemode).settings.simplezoomy#,gunOffsetY#,firemode(gunid,firemode).settings.simplezoomspeed)
 else
  tx# = 0
  ty# = 0
- if (plrkeySHIFT)=1 and movement<>0 then tx# = gun(gunid).settings.runx# : ty# = gun(gunid).settings.runy#
- gunOffsetX# = curvevalue(tx#,gunOffsetX#,gun(gunid).settings.simplezoomspeed)
- gunOffsetY# = curvevalue(ty#,gunOffsetY#,gun(gunid).settings.simplezoomspeed)
+ if (plrkeySHIFT)=1 and movement<>0 then tx# = firemode(gunid,firemode).settings.runx# : ty# = firemode(gunid,firemode).settings.runy#
+ gunOffsetX# = curvevalue(tx#,gunOffsetX#,firemode(gunid,firemode).settings.simplezoomspeed)
+ gunOffsetY# = curvevalue(ty#,gunOffsetY#,firemode(gunid,firemode).settings.simplezoomspeed)
 endif
 rem AirMod - Done <<<
 
 
 rem gun position offset and rotation
 if plrzoomin#<>0.0
- plrzoomaccuracy#=gun(gunid).settings.zoomaccuracy/100.0
- if gun(gunid).settings.simplezoom <> 0
-  if gun(gunid).settings.simplezoommod = 0
-   position object currentgunobj,gun(gunid).horiz#+gunlagx#+gunOffsetX#,gun(gunid).vert#+gunlagy#+gunOffsetY#,gun(gunid).forward#
+ plrzoomaccuracy#=firemode(gunid,firemode).settings.zoomaccuracy/100.0
+ if firemode(gunid,firemode).settings.simplezoom <> 0
+  if firemode(gunid,firemode).settings.simplezoommod = 0
+   position object currentgunobj,firemode(gunid,firemode).horiz#+gunlagx#+gunOffsetX#,firemode(gunid,firemode).vert#+gunlagy#+gunOffsetY#,firemode(gunid,firemode).forward#
   else
-   position object currentgunobj,gun(gunid).horiz#+gunlagx#+gunOffsetX#,gun(gunid).vert#+gunlagy#+gunOffsetY#,gun(gunid).forward#-(plrzoomin#/gun(gunid).settings.simplezoommod)
+   position object currentgunobj,firemode(gunid,firemode).horiz#+gunlagx#+gunOffsetX#,firemode(gunid,firemode).vert#+gunlagy#+gunOffsetY#,firemode(gunid,firemode).forward#-(plrzoomin#/firemode(gunid,firemode).settings.simplezoommod)
   endif
  else
-  position object currentgunobj,gun(gunid).horiz#,gun(gunid).vert#,gun(gunid).forward#-(plrzoomin#*10.0)
+  position object currentgunobj,firemode(gunid,firemode).horiz#,firemode(gunid,firemode).vert#,firemode(gunid,firemode).forward#-(plrzoomin#*10.0)
  endif
 else
  `position object currentgunobj,gun(gunid).horiz#,gun(gunid).vert#,gun(gunid).forward#
  rem AirMod - New Gun Lag Feature
- position object currentgunobj,gun(gunid).horiz#+gunlagx#+gunOffsetX#,gun(gunid).vert#+gunlagy#+gunOffsetY#,gun(gunid).forward#
+ position object currentgunobj,firemode(gunid,firemode).horiz#+gunlagx#+gunOffsetX#,firemode(gunid,firemode).vert#+gunlagy#+gunOffsetY#,firemode(gunid,firemode).forward#
 endif
 rotate object currentgunobj,0,180,0
 
@@ -17758,35 +17757,35 @@ endif
 if gunmode = 2001
  set object interpolation currentgunobj,100
  gunmode = 2002
- play object currentgunobj,gun(gunid).zoomaction.show.s,gun(gunid).zoomaction.show.e
+ play object currentgunobj,firemode(gunid,firemode).zoomaction.show.s,firemode(gunid,firemode).zoomaction.show.e
 endif
 if gunmode = 2002
- if object frame(currentgunobj)>=gun(gunid).zoomaction.show.e then gunmode=5
+ if object frame(currentgunobj)>=firemode(gunid,firemode).zoomaction.show.e then gunmode=5
 endif
 
 if gunmode = 2003
  set object interpolation currentgunobj,100
  gunmode = 2004
- play object currentgunobj,gun(gunid).zoomaction.hide.s,gun(gunid).zoomaction.hide.e
+ play object currentgunobj,firemode(gunid,firemode).zoomaction.hide.s,firemode(gunid,firemode).zoomaction.hide.e
 endif
 if gunmode = 2004
- if object frame(currentgunobj)>=gun(gunid).zoomaction.hide.e and gunzoommode=0 then gunmode=5
+ if object frame(currentgunobj)>=firemode(gunid,firemode).zoomaction.hide.e and gunzoommode=0 then gunmode=5
 endif
 
 if gunmode = 2005
  set object interpolation currentgunobj,100
  gunmode = 2006
- play object currentgunobj,gun(gunid).zoomaction.hide.s,gun(gunid).zoomaction.hide.e
+ play object currentgunobj,firemode(gunid,firemode).zoomaction.hide.s,firemode(gunid,firemode).zoomaction.hide.e
 endif
 if gunmode = 2006
- if object frame(currentgunobj)>=gun(gunid).zoomaction.hide.e and gunzoommode=0 then gunmode=121
+ if object frame(currentgunobj)>=firemode(gunid,firemode).zoomaction.hide.e and gunzoommode=0 then gunmode=121
 endif
 
 if gunmode = 2007
  set object interpolation currentgunobj,100
  gunmode = 2008
  play object currentgunobj,gun(gunid).altaction.to.s,gun(gunid).altaction.to.e
- texture object hudbankoffset+5,gun(gunid).settings.altflashimg
+ texture object hudbankoffset+5,firemode(gunid,1).settings.flashimg
 endif
 if gunmode = 2008
  if object frame(currentgunobj)>=gun(gunid).altaction.to.e then gunmode=5
@@ -17796,7 +17795,7 @@ if gunmode = 2009
  set object interpolation currentgunobj,100
  gunmode = 2010
  play object currentgunobj,gun(gunid).altaction.from.s,gun(gunid).altaction.from.e
- texture object hudbankoffset+5,gun(gunid).settings.flashimg
+ texture object hudbankoffset+5,firemode(gunid,0).settings.flashimg
 endif
 if gunmode = 2010
  if object frame(currentgunobj)>=gun(gunid).altaction.from.e then gunmode=5
@@ -17819,227 +17818,173 @@ ghide as gunanimtype
 gblock as gunanimtype
 `
 `if gunmode<21 or gunmode>26 then usingrun=0
-if gun(gunid).settings.alternate<>0
- gshow=gun(gunid).altaction.show
- gidle=gun(gunid).altaction.idle
+if firemode(gunid,firemode).settings.hasempty=1 and firemode(gunid,firemode).settings.isempty=1
+ if gunzoommode=10 and firemode(gunid,firemode).settings.simplezoom <> 0
+  if firemode(gunid,firemode).settings.simplezoomanim <> 0
+   Rem Zoom out once we finish off the last of our shooting gunmode
+   if gunmode<101 or gunmode>107 then gunzoommode=11 : gunmode = 2003
+   gstart=firemode(gunid,firemode).zoomaction.start
+   gfinish=firemode(gunid,firemode).zoomaction.finish
+   gautomatic=firemode(gunid,firemode).zoomaction.automatic
+  else
+   gunzoommode=11
+   gstart=firemode(gunid,firemode).action.start
+   gfinish=firemode(gunid,firemode).action.finish
+   gautomatic=firemode(gunid,firemode).action.automatic
+  endif
+ else
+  gstart=firemode(gunid,firemode).action.start
+  gfinish=firemode(gunid,firemode).action.finish
+  gautomatic=firemode(gunid,firemode).action.automatic
+ endif
+ gshow=firemode(gunid,firemode).emptyaction.show
+ gidle=firemode(gunid,firemode).emptyaction.idle
  if isrunning=0 and usingrun<>-1
-  gmove=gun(gunid).altaction.move : usingrun=-1
+  gmove=firemode(gunid,firemode).emptyaction.move : usingrun=-1
   if gunmode>=21 and gunmode<=26 then gunmode=21
  endif
  if isrunning=1 and usingrun<>1
-  gmove=gun(gunid).altaction.run : usingrun=1
+  gmove=firemode(gunid,firemode).emptyaction.run : usingrun=1
   if gunmode>=21 and gunmode<=26 then gunmode=21
  endif
- if usingrun=-1 then gmove=gun(gunid).altaction.move
- if usingrun=1 then gmove=gun(gunid).altaction.run
- gstart=gun(gunid).altaction.start
- gautomatic=gun(gunid).altaction.automatic
- gfinish=gun(gunid).altaction.finish
- gstartreload=gun(gunid).altaction.startreload
- greloadloop=gun(gunid).altaction.reloadloop
- gendreload=gun(gunid).altaction.endreload
- gcock=gun(gunid).altaction.cock
- ghide=gun(gunid).altaction.hide
+ if usingrun=-1 then gmove=firemode(gunid,firemode).emptyaction.move
+ if usingrun=1 then gmove=firemode(gunid,firemode).emptyaction.run
+ gstartreload=firemode(gunid,firemode).emptyaction.startreload
+ greloadloop=firemode(gunid,firemode).emptyaction.reloadloop
+ gendreload=firemode(gunid,firemode).emptyaction.endreload
+ gcock=firemode(gunid,firemode).emptyaction.cock
+ ghide=firemode(gunid,firemode).emptyaction.hide
 else
- if gun(gunid).settings.hasempty=1 and gun(gunid).settings.isempty=1
-  if gunzoommode=10 and gun(gunid).settings.simplezoom <> 0
-   if gun(gunid).settings.simplezoomanim <> 0
-    Rem Zoom out once we finish off the last of our shooting gunmode
-    if gunmode<101 or gunmode>107 then gunzoommode=11 : gunmode = 2003
-    gstart=gun(gunid).zoomaction.start
-    gfinish=gun(gunid).zoomaction.finish
-    gautomatic=gun(gunid).zoomaction.automatic
-   else
-    gunzoommode=11
-    gstart=gun(gunid).action.start
-    gfinish=gun(gunid).action.finish
-    gautomatic=gun(gunid).action.automatic
-   endif
-  else
-   gstart=gun(gunid).action.start
-   gfinish=gun(gunid).action.finish
-   gautomatic=gun(gunid).action.automatic
-  endif
-  gshow=gun(gunid).emptyaction.show
-  gidle=gun(gunid).emptyaction.idle
-  if isrunning=0 and usingrun<>-1
-   gmove=gun(gunid).emptyaction.move : usingrun=-1
-   if gunmode>=21 and gunmode<=26 then gunmode=21
-  endif
-  if isrunning=1 and usingrun<>1
-   gmove=gun(gunid).emptyaction.run : usingrun=1
-   if gunmode>=21 and gunmode<=26 then gunmode=21
-  endif
-  if usingrun=-1 then gmove=gun(gunid).emptyaction.move
-  if usingrun=1 then gmove=gun(gunid).emptyaction.run
-  gstartreload=gun(gunid).emptyaction.startreload
-  greloadloop=gun(gunid).emptyaction.reloadloop
-  gendreload=gun(gunid).emptyaction.endreload
-  gcock=gun(gunid).emptyaction.cock
-  ghide=gun(gunid).emptyaction.hide
- else
-  gshow=gun(gunid).action.show
-  gidle=gun(gunid).action.idle
-  if isrunning=0 and usingrun<>-1
-   gmove=gun(gunid).action.move : usingrun=-1
-   if gunmode>=21 and gunmode<=26 then gunmode=21
-  endif
-  if isrunning=1 and usingrun<>1
-   gmove=gun(gunid).action.run : usingrun=1
-   if gunmode>=21 and gunmode<=26 then gunmode=21
-  endif
-  if usingrun=-1 then gmove=gun(gunid).action.move
-  if usingrun=1 then gmove=gun(gunid).action.run
-  gautomatic=gun(gunid).action.automatic
-  gstartreload=gun(gunid).action.startreload
-  greloadloop=gun(gunid).action.reloadloop
-  gendreload=gun(gunid).action.endreload
-  gcock=gun(gunid).action.cock
-  ghide=gun(gunid).action.hide
-  if tfireanim=0
-   gstart=gun(gunid).action.start
-   gfinish=gun(gunid).action.finish
-   tempani=1
-   if gun(gunid).action.start2.s > 0 and rnd(2)=0
-    gstart=gun(gunid).action.start2
-    gfinish=gun(gunid).action.finish2
-    tempani=2
-   endif
-   if gun(gunid).action.start3.s > 0 and rnd(2)=0
-    gstart=gun(gunid).action.start3
-    gfinish=gun(gunid).action.finish3
-    tempani=3
-   endif
-  else
-   if tfireanim=1
-    gstart=gun(gunid).action.start
-    gfinish=gun(gunid).action.finish
-   endif
-   if tfireanim=2
-    gstart=gun(gunid).action.start2
-    gfinish=gun(gunid).action.finish2
-   endif
-   if tfireanim=3
-    gstart=gun(gunid).action.start3
-    gfinish=gun(gunid).action.finish3
-   endif
-  endif
-  `
+ gshow=firemode(gunid,firemode).action.show
+ gidle=firemode(gunid,firemode).action.idle
+ if isrunning=0 and usingrun<>-1
+  gmove=firemode(gunid,firemode).action.move : usingrun=-1
+  if gunmode>=21 and gunmode<=26 then gunmode=21
  endif
+ if isrunning=1 and usingrun<>1
+  gmove=firemode(gunid,firemode).action.run : usingrun=1
+  if gunmode>=21 and gunmode<=26 then gunmode=21
+ endif
+ if usingrun=-1 then gmove=firemode(gunid,firemode).action.move
+ if usingrun=1 then gmove=firemode(gunid,firemode).action.run
+ gautomatic=firemode(gunid,firemode).action.automatic
+ gstartreload=firemode(gunid,firemode).action.startreload
+ greloadloop=firemode(gunid,firemode).action.reloadloop
+ gendreload=firemode(gunid,firemode).action.endreload
+ gcock=firemode(gunid,firemode).action.cock
+ ghide=firemode(gunid,firemode).action.hide
+ if tfireanim=0
+  gstart=firemode(gunid,firemode).action.start
+  gfinish=firemode(gunid,firemode).action.finish
+  tempani=1
+  if firemode(gunid,firemode).action.start2.s > 0 and rnd(2)=0
+   gstart=firemode(gunid,firemode).action.start2
+   gfinish=firemode(gunid,firemode).action.finish2
+   tempani=2
+  endif
+  if firemode(gunid,firemode).action.start3.s > 0 and rnd(2)=0
+   gstart=firemode(gunid,firemode).action.start3
+   gfinish=firemode(gunid,firemode).action.finish3
+   tempani=3
+  endif
+ else
+  if tfireanim=1
+   gstart=firemode(gunid,firemode).action.start
+   gfinish=firemode(gunid,firemode).action.finish
+  endif
+  if tfireanim=2
+   gstart=firemode(gunid,firemode).action.start2
+   gfinish=firemode(gunid,firemode).action.finish2
+  endif
+  if tfireanim=3
+   gstart=firemode(gunid,firemode).action.start3
+   gfinish=firemode(gunid,firemode).action.finish3
+  endif
+ endif
+ `
 endif
-if gunzoommode <> 0 and gun(gunid).settings.simplezoom <> 0 and gun(gunid).settings.simplezoomanim <> 0 and gun(gunid).settings.isempty=0
- gshow=gun(gunid).zoomaction.show
- gidle=gun(gunid).zoomaction.idle
- gmove=gun(gunid).zoomaction.move` : usingrun=0
- gstart=gun(gunid).zoomaction.start
- gautomatic=gun(gunid).zoomaction.automatic
- gfinish=gun(gunid).zoomaction.finish
- gstartreload=gun(gunid).zoomaction.startreload
- greloadloop=gun(gunid).zoomaction.reloadloop
- gendreload=gun(gunid).zoomaction.endreload
- gcock=gun(gunid).zoomaction.cock
- ghide=gun(gunid).zoomaction.hide
+if gunzoommode <> 0 and firemode(gunid,firemode).settings.simplezoom <> 0 and firemode(gunid,firemode).settings.simplezoomanim <> 0 and firemode(gunid,firemode).settings.isempty=0
+ gshow=firemode(gunid,firemode).zoomaction.show
+ gidle=firemode(gunid,firemode).zoomaction.idle
+ gmove=firemode(gunid,firemode).zoomaction.move` : usingrun=0
+ gstart=firemode(gunid,firemode).zoomaction.start
+ gautomatic=firemode(gunid,firemode).zoomaction.automatic
+ gfinish=firemode(gunid,firemode).zoomaction.finish
+ gstartreload=firemode(gunid,firemode).zoomaction.startreload
+ greloadloop=firemode(gunid,firemode).zoomaction.reloadloop
+ gendreload=firemode(gunid,firemode).zoomaction.endreload
+ gcock=firemode(gunid,firemode).zoomaction.cock
+ ghide=firemode(gunid,firemode).zoomaction.hide
 endif
-if gun(gunid).settings.ismelee=2 and gun(gunid).settings.alternate=0
- if gun(gunid).settings.isempty=0 or gun(gunid).emptyaction.start.s=0
+if gun(gunid).settings.ismelee=2
+ if firemode(gunid,firemode).settings.isempty=0 or firemode(gunid,firemode).emptyaction.start.s=0
   if tmeleeanim=0
-   gstart=gun(gunid).meleeaction.start
-   gfinish=gun(gunid).meleeaction.finish
+   gstart=firemode(gunid,firemode).meleeaction.start
+   gfinish=firemode(gunid,firemode).meleeaction.finish
    tempmeani=1
-   if gun(gunid).meleeaction.start2.s > 0 and rnd(2)=0
-    gstart=gun(gunid).meleeaction.start2
-    gfinish=gun(gunid).meleeaction.finish2
+   if firemode(gunid,firemode).meleeaction.start2.s > 0 and rnd(2)=0
+    gstart=firemode(gunid,firemode).meleeaction.start2
+    gfinish=firemode(gunid,firemode).meleeaction.finish2
     tempmeani=2
    endif
-   if gun(gunid).meleeaction.start3.s > 0 and rnd(2)=0
-    gstart=gun(gunid).meleeaction.start3
-    gfinish=gun(gunid).meleeaction.finish3
+   if firemode(gunid,firemode).meleeaction.start3.s > 0 and rnd(2)=0
+    gstart=firemode(gunid,firemode).meleeaction.start3
+    gfinish=firemode(gunid,firemode).meleeaction.finish3
     tempmeani=3
    endif
   else
    if tmeleeanim=1
-    gstart=gun(gunid).meleeaction.start
-    gfinish=gun(gunid).meleeaction.finish
+    gstart=firemode(gunid,firemode).meleeaction.start
+    gfinish=firemode(gunid,firemode).meleeaction.finish
    endif
    if tmeleeanim=2
-    gstart=gun(gunid).meleeaction.start2
-    gfinish=gun(gunid).meleeaction.finish2
+    gstart=firemode(gunid,firemode).meleeaction.start2
+    gfinish=firemode(gunid,firemode).meleeaction.finish2
    endif
    if tmeleeanim=3
-    gstart=gun(gunid).meleeaction.start3
-    gfinish=gun(gunid).meleeaction.finish3
+    gstart=firemode(gunid,firemode).meleeaction.start3
+    gfinish=firemode(gunid,firemode).meleeaction.finish3
    endif
   endif
  else
-  if gun(gunid).settings.isempty>0
+  if firemode(gunid,firemode).settings.isempty>0
    if tmeleeanim=0
-    gstart=gun(gunid).emptyaction.start
-    gfinish=gun(gunid).emptyaction.finish
+    gstart=firemode(gunid,firemode).emptyaction.start
+    gfinish=firemode(gunid,firemode).emptyaction.finish
     tempmeani=1
-    if gun(gunid).emptyaction.start2.s > 0 and rnd(2)=0
-     gstart=gun(gunid).emptyaction.start2
-     gfinish=gun(gunid).emptyaction.finish2
+    if firemode(gunid,firemode).emptyaction.start2.s > 0 and rnd(2)=0
+     gstart=firemode(gunid,firemode).emptyaction.start2
+     gfinish=firemode(gunid,firemode).emptyaction.finish2
      tempmeani=2
     endif
-    if gun(gunid).emptyaction.start3.s > 0 and rnd(2)=0
-     gstart=gun(gunid).emptyaction.start3
-     gfinish=gun(gunid).emptyaction.finish3
+    if firemode(gunid,firemode).emptyaction.start3.s > 0 and rnd(2)=0
+     gstart=firemode(gunid,firemode).emptyaction.start3
+     gfinish=firemode(gunid,firemode).emptyaction.finish3
      tempmeani=3
     endif
    else
     if tmeleeanim=1
-     gstart=gun(gunid).emptyaction.start
-     gfinish=gun(gunid).emptyaction.finish
+     gstart=firemode(gunid,firemode).emptyaction.start
+     gfinish=firemode(gunid,firemode).emptyaction.finish
     endif
     if tmeleeanim=2
-     gstart=gun(gunid).emptyaction.start2
-     gfinish=gun(gunid).emptyaction.finish2
+     gstart=firemode(gunid,firemode).emptyaction.start2
+     gfinish=firemode(gunid,firemode).emptyaction.finish2
     endif
     if tmeleeanim=3
-     gstart=gun(gunid).emptyaction.start3
-     gfinish=gun(gunid).emptyaction.finish3
+     gstart=firemode(gunid,firemode).emptyaction.start3
+     gfinish=firemode(gunid,firemode).emptyaction.finish3
     endif
    endif
-  endif
- endif
- if tempmeani<>0 then tmeleeanim=tempmeani : tempmeani=0
-endif
-if gun(gunid).settings.ismelee=2 and gun(gunid).settings.alternate=1
- if tmeleeanim=0
-  gstart=gun(gunid).altmeleeaction.start
-  gfinish=gun(gunid).altmeleeaction.finish
-  tempmeani=1
-  if gun(gunid).altmeleeaction.start2.s > 0 and rnd(2)=0
-   gstart=gun(gunid).altmeleeaction.start2
-   gfinish=gun(gunid).altmeleeaction.finish2
-   tempmeani=2
-  endif
-  if gun(gunid).altmeleeaction.start3.s > 0 and rnd(2)=0
-   gstart=gun(gunid).altmeleeaction.start3
-   gfinish=gun(gunid).altmeleeaction.finish3
-   tempmeani=3
-  endif
- else
-  if tmeleeanim=1
-   gstart=gun(gunid).altmeleeaction.start
-   gfinish=gun(gunid).altmeleeaction.finish
-  endif
-  if tmeleeanim=2
-   gstart=gun(gunid).altmeleeaction.start2
-   gfinish=gun(gunid).altmeleeaction.finish2
-  endif
-  if tmeleeanim=3
-   gstart=gun(gunid).altmeleeaction.start3
-   gfinish=gun(gunid).altmeleeaction.finish3
   endif
  endif
  if tempmeani<>0 then tmeleeanim=tempmeani : tempmeani=0
 endif
 
-gblock = gun(gunid).action.block
+gblock = firemode(gunid,firemode).action.block
 rem AirMod - Added for Burst
 if gunburst<=0
- gunburst = gun(gunid).settings.burst
+ gunburst = firemode(gunid,firemode).settings.burst
 endif
 `
 rem gun idle control ((4*0.75)=3.0)
@@ -18106,7 +18051,7 @@ if gunmode=23
  gunmode=24
  play object currentgunobj,gmove.s+3.0,gmove.e
  rem AirMod - for Move animation speed modifier
- if gun(gunid).settings.movespeedmod = 0
+ if firemode(gunid,firemode).settings.movespeedmod = 0
   set object speed currentgunobj,timeelapsed#*((basespeed#/35)*genericgunanimspeed#)
  else
   set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
@@ -18114,7 +18059,7 @@ if gunmode=23
 endif
 if gunmode=24
  rem AirMod - for Move animation speed modifier
- if gun(gunid).settings.movespeedmod = 0
+ if firemode(gunid,firemode).settings.movespeedmod = 0
   set object speed currentgunobj,timeelapsed#*((basespeed#/35)*genericgunanimspeed#)
  else
   set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
@@ -18222,7 +18167,7 @@ endif
 
 Rem Player presses mouse button but has no ammo (avoid model animation freezing)
 if gunshootnoammo=1
- if (weaponammo(weaponammoindex)>0 and gun(gunid).settings.alternate = 0) or (weaponammo(weaponammoindex+10)>0 and gun(gunid).settings.alternate = 1)
+ if weaponammo(weaponammoindex+ammooffset)>0
 
  else
   tmouseheld=1
@@ -18231,7 +18176,7 @@ if gunshootnoammo=1
    if sndid>0
     if sound exist(sndid)=1
      if sound playing(sndid)=0
-      if gun(gunid).settings.equipment=0
+      if firemode(gunid,firemode).settings.equipment=0
        playinternalBC3dsound(sndid,camera position x(),camera position y(),camera position z(),50)
       endif
      endif
@@ -18244,12 +18189,8 @@ if gunshootnoammo=1
 endif
 Rem Player presses reload button but has no ammo (avoid model animation freezing)
 if gunreloadnoammo=1
- tpool=gun(gunid).settings.poolindex : altpool=gun(gunid).settings.altpoolindex
- if gun(gunid).settings.alternate = 0
-  if tpool=0 then ammo=weaponclipammo(weaponammoindex) else ammo=ammopool(tpool).ammo
- else
-  if altpool=0 then ammo=weaponclipammo(weaponammoindex+10) else ammo=ammopool(altpool).ammo
- endif
+ tpool=firemode(gunid,firemode).settings.poolindex
+ if tpool=0 then ammo=weaponclipammo(weaponammoindex+ammooffset) else ammo=ammopool(tpool).ammo
  if ammo=0 or gun(gunid).settings.weaponisammo=1
   if gun(gunid).settings.weaponisammo=0
    if gun(gunid).settings.alternate=0 then sndid=gunsound(gunid,3).soundid else sndid=gunsound(gunid,3).altsoundid
@@ -18258,7 +18199,7 @@ if gunreloadnoammo=1
      if sound playing(sndid)=0
       `playinternalBC3dsound(gunsound(gunid,3).soundid,camera position x(),camera position y(),camera position z(),50)
       rem AirMod - Line Modified for Sound Strength
-      playinternalBC3dsound(sndid,camera position x(),camera position y(),camera position z(),gun(gunid).settings.soundstrength/2)
+      playinternalBC3dsound(sndid,camera position x(),camera position y(),camera position z(),firemode(gunid,firemode).settings.soundstrength/2)
      endif
     endif
    endif
@@ -18270,9 +18211,9 @@ endif
 rem gun firing control (or activate with equipment)
 tgunactivateequipment=0
 if gunmode=101
- if gun(gunid).settings.reloadqty=0 then weaponammo(weaponammoindex)=99999
+ if firemode(gunid,firemode).settings.reloadqty=0 then weaponammo(weaponammoindex+ammooffset)=99999
  rem AirMod - Line Modified for alt Fire
- if (weaponammo(weaponammoindex)>0 and gun(gunid).settings.alternate = 0) or (weaponammo(weaponammoindex+10)>0 and gun(gunid).settings.alternate = 1)
+ if weaponammo(weaponammoindex+ammooffset)>0
   gunmode=102
   set object interpolation currentgunobj,100
   tfireanim=tempani
@@ -18284,7 +18225,7 @@ if gunmode=101
    if sndid>0
     if sound exist(sndid)=1
      if sound playing(sndid)=0
-      if gun(gunid).settings.equipment=0
+      if firemode(gunid,firemode).settings.equipment=0
        playinternalBC3dsound(sndid,camera position x(),camera position y(),camera position z(),50)
       endif
      endif
@@ -18300,37 +18241,27 @@ if gunmode=102
 endif
 if gunmode=103
  gunmode=104
- if gun(gunid).settings.equipment=1
+ if firemode(gunid,firemode).settings.equipment=1
   if total object frames(currentgunobj)=0 then tgunactivateequipment=1
  else
   gunflash=1
   gunshoot=1
-  if gun(gunid).settings.alternate=0 or gun(gunid).settings.alternateisray=0 and gun(gunid).settings.alternate=1
-   guntimercount=gun(gunid).settings.firerate/2 : rem V113 AIRSLIDE 5/8/8 guntimercount=6
-  else
-   if gun(gunid).settings.alternateisray=1 then guntimercount=gun(gunid).settings.altfirerate/2
-  endif
+  guntimercount=firemode(gunid,firemode).settings.firerate/2
  endif
  rem AirMod - Modified for Alt Fire
- if gun(gunid).settings.alternate=1
-  weaponammo(weaponammoindex+10)=weaponammo(weaponammoindex+10)-1
- else
-  weaponammo(weaponammoindex)=weaponammo(weaponammoindex)-1
- endif
+ weaponammo(weaponammoindex+ammooffset)=weaponammo(weaponammoindex+ammooffset)-1
+
  rem AirMod - Added for Burst
  dec gunburst,1
- if gun(gunid).settings.alternate=0 or gun(gunid).settings.alternateisray=0 and gun(gunid).settings.alternate=1
-  if gun(gunid).settings.brasslimb<>-1 then gunbrass=1 : gunbrasscount=gun(gunid).settings.firerate/2 : rem V113 AIRSLIDE 5/8/8 guntimercount=6
-  if gun(gunid).settings.smokelimb<>-1 then gunsmoke=1 : gunsmokecount=gun(gunid).settings.firerate/2 : rem V113 AIRSLIDE 5/8/8 guntimercount=6
- else
-  if gun(gunid).settings.brasslimb<>-1 and gun(gunid).settings.alternateisray=1 then gunbrass=1 : gunbrasscount=gun(gunid).settings.altfirerate/2 : rem V113 AIRSLIDE 5/8/8 guntimercount=6
-  if gun(gunid).settings.smokelimb<>-1 and gun(gunid).settings.alternateisray=1 then gunsmoke=1 : gunsmokecount=gun(gunid).settings.altfirerate/2 : rem V113 AIRSLIDE 5/8/8 guntimercount=6
- endif
- if gun(gunid).settings.equipment=0
+ if gun(gunid).settings.brasslimb<>-1 then gunbrass=1 : gunbrasscount=firemode(gunid,firemode).settings.firerate/2 : rem V113 AIRSLIDE 5/8/8 guntimercount=6
+ if gun(gunid).settings.smokelimb<>-1 then gunsmoke=1 : gunsmokecount=firemode(gunid,firemode).settings.firerate/2 : rem V113 AIRSLIDE 5/8/8 guntimercount=6
+
+ if firemode(gunid,firemode).settings.equipment=0
+  fireloopend=firemode(gunid,firemode).sound.fireloopend
   if gun(gunid).settings.alternate=0
-   sndid=gunsound(gunid,1).soundid : fireloopend=gun(gunid).sound.fireloopend
+   sndid=gunsound(gunid,1).soundid
   else
-   sndid=gunsound(gunid,1).altsoundid : fireloopend=gun(gunid).sound.altfireloopend
+   sndid=gunsound(gunid,1).altsoundid
   endif
   if sndid>0
    if sound exist(sndid)=1
@@ -18348,38 +18279,29 @@ if gunmode=103
 endif
 if gunmode=104
  `if weaponammo(weaponammoindex)>0
- if (weaponammo(weaponammoindex)>0 and gun(gunid).settings.alternate = 0) or (weaponammo(weaponammoindex+10)>0 and gun(gunid).settings.alternate = 1)
+ if weaponammo(weaponammoindex+ammooffset)>0
   rem lee - 140310 - timer based deductions
   dec gunbrasscount,timeelapsed#
   dec gunsmokecount,timeelapsed#
   dec guntimercount,timeelapsed#
-  if gun(gunid).settings.alternate=0 `or gun(gunid).settings.alternateisray=0 and gun(gunid).settings.alternate=1
-   if gunbrasscount<=0 and gun(gunid).settings.brasslimb<>-1 then gunbrass=1 : gunbrasscount=gun(gunid).settings.firerate/2 : rem V113 AIRSLIDE 5/8/8 guntimercount=6
-   if gunsmokecount<=0 and gun(gunid).settings.smokelimb<>-1 then gunsmoke=1 : gunsmokecount=gun(gunid).settings.firerate/2 : rem V113 AIRSLIDE 5/8/8 guntimercount=6
-  else
-   if gunbrasscount<=0 and gun(gunid).settings.brasslimb<>-1 then gunbrass=1 : gunbrasscount=gun(gunid).settings.altfirerate/2 : rem V113 AIRSLIDE 5/8/8 guntimercount=6
-   if gunsmokecount<=0 and gun(gunid).settings.smokelimb<>-1 then gunsmoke=1 : gunsmokecount=gun(gunid).settings.altfirerate/2 : rem V113 AIRSLIDE 5/8/8 guntimercount=6
-  endif
-  if gun(gunid).settings.equipment=0
+  if gunbrasscount<=0 and gun(gunid).settings.brasslimb<>-1 then gunbrass=1 : gunbrasscount=firemode(gunid,firemode).settings.firerate/2 : rem V113 AIRSLIDE 5/8/8 guntimercount=6
+  if gunsmokecount<=0 and gun(gunid).settings.smokelimb<>-1 then gunsmoke=1 : gunsmokecount=firemode(gunid,firemode).settings.firerate/2 : rem V113 AIRSLIDE 5/8/8 guntimercount=6
+  if firemode(gunid,firemode).settings.equipment=0
    if gunflash=0 then gunflash=1
-   if gun(gunid).settings.alternate=0 `or gun(gunid).settings.alternateisray=0 and gun(gunid).settings.alternate=1
-    if guntimercount<=0 then gunshoot=1 : guntimercount=gun(gunid).settings.firerate/2 : weaponammo(weaponammoindex)=weaponammo(weaponammoindex)-1 : dec gunburst,1 rem rem V113 AIRSLIDE 5/8/8
-   else
-    if guntimercount<=0 then gunshoot=1 : guntimercount=gun(gunid).settings.altfirerate/2 : weaponammo(weaponammoindex+10)=weaponammo(weaponammoindex+10)-1 : dec gunburst,1 rem rem V113 AIRSLIDE 5/8/8
-   endif
+   if guntimercount<=0 then gunshoot=1 : guntimercount=firemode(gunid,firemode).settings.firerate/2 : weaponammo(weaponammoindex+ammooffset)=weaponammo(weaponammoindex+ammooffset)-1 : dec gunburst,1 rem rem V113 AIRSLIDE 5/8/8
   endif
   if gautomatic.s=0 or gun(gunid).settings.alternate=1 and gun(gunid).settings.alternateisflak=1 then gunmode=105
-  if gunclick<>1 and gun(gunid).settings.burst < 1 then gunmode=105
+  if gunclick<>1 and firemode(gunid,firemode).settings.burst < 1 then gunmode=105
   rem AirMod - Added for Burst
-  if gunburst < 1 and gun(gunid).settings.burst > 0 then gunmode=105
-  if gun(gunid).settings.equipment=0
+  if gunburst < 1 and firemode(gunid,firemode).settings.burst > 0 then gunmode=105
+  if firemode(gunid,firemode).settings.equipment=0
    `sndid=gunsound(gunid,1).soundid
    if gun(gunid).settings.alternate=0 then sndid=gunsound(gunid,1).soundid else sndid=gunsound(gunid,1).altsoundid
    if sndid>0
     if sound exist(sndid)=1
      position sound sndid,camera position x()/10.0,camera position y()/3.0,camera position z()/10.0
      rem AirMod - Line Modified for Sound Strength Modifier
-     broadcast3dsound(camera position x(),camera position y(),camera position z(),gun(gunid).settings.soundstrength,-1)
+     broadcast3dsound(camera position x(),camera position y(),camera position z(),firemode(gunid,firemode).settings.soundstrength,-1)
     endif
    endif
   endif
@@ -18388,7 +18310,7 @@ if gunmode=104
  endif
 endif
 if gunmode=105
- if gautomatic.s>0 and gun(gunid).settings.burst < 1 and gun(gunid).settings.alternate = 0
+ if gautomatic.s>0 and firemode(gunid,firemode).settings.burst < 1 and gun(gunid).settings.alternate = 0
   rem automatic weapons cannot resume firing right away
  else
   gunmustreleasefirst=1
@@ -18397,12 +18319,13 @@ if gunmode=105
   gunmode=106
   play object currentgunobj,gfinish.s,gfinish.e
   set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
-  if gun(gunid).settings.equipment=0
+  if firemode(gunid,firemode).settings.equipment=0
    `sndid=gunsound(gunid,1).soundid
+   fireloopend=firemode(gunid,firemode).sound.fireloopend
    if gun(gunid).settings.alternate=0
-    sndid=gunsound(gunid,1).soundid : fireloopend=gun(gunid).sound.fireloopend
+    sndid=gunsound(gunid,1).soundid
    else
-    sndid=gunsound(gunid,1).altsoundid : fireloopend=gun(gunid).sound.altfireloopend
+    sndid=gunsound(gunid,1).altsoundid
    endif
    if sndid>0
     if sound exist(sndid)=1
@@ -18411,7 +18334,7 @@ if gunmode=105
     endif
    endif
    rem AirMod - Line Modified for Sound Strength Modifier
-   broadcast3dsound(camera position x(),camera position y(),camera position z(),gun(gunid).settings.soundstrength/2,-1)
+   broadcast3dsound(camera position x(),camera position y(),camera position z(),firemode(gunid,firemode).settings.soundstrength/2,-1)
   endif
  else
   gunmode=107
@@ -18421,7 +18344,7 @@ if gunmode=106
  set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
  if object frame(currentgunobj)>=gfinish.e then gunmode=107
  rem FPGC - detect sound slot 1 triggers, as these are USE actions and should ACTIVATE the equipment
- if gun(gunid).settings.equipment=1 and total object frames(currentgunobj)>0
+ if firemode(gunid,firemode).settings.equipment=1 and total object frames(currentgunobj)>0
   if gun(gunid).sound.soundframes>0
    for p=0 to gun(gunid).sound.soundframes : rem FPGC - 110809 - was -1
     if gunsounditem(gunid,p).playsound=1
@@ -18438,17 +18361,17 @@ if gunmode=106
 endif
 `
 rem FPGC = if equipment being used and LOCKCAMERA flag set, freeze out player
-if gun(gunid).settings.equipment<>0 and gun(gunid).settings.lockcamera=1
+if firemode(gunid,firemode).settings.equipment<>0 and firemode(gunid,firemode).settings.lockcamera=1
  if gunmode>=101 and gunmode<107
   mefrozentype=2 : mefrozen=timer()+100
  endif
 endif
 `
 rem FPSC = focus on entity being activated, or quit the equip-animation early
-if gun(gunid).settings.equipment<>0 and gun(gunid).settings.lockcamera=1
+if firemode(gunid,firemode).settings.equipment<>0 and firemode(gunid,firemode).settings.lockcamera=1
  if gunmode>=101 and gunmode<107
   tstoree=e : tstorete=te
-  e=gun(gunid).settings.equipmententityelementindex
+  e=firemode(gunid,firemode).settings.equipmententityelementindex
   if e>0
    tname$=entityelement(e).eleprof.ifused$
    gosub _entity_checkforproximityofactivatename_single
@@ -18474,22 +18397,18 @@ if gunmode=107
  rem auto-reload if no bullets
  `if weaponammo(weaponammoindex)=0
   `if weaponclipammo(weaponammoindex)>0
- tpool=gun(gunid).settings.poolindex : altpool=gun(gunid).settings.altpoolindex
- if gun(gunid).settings.alternate = 0
-  if tpool=0 then ammo=weaponclipammo(weaponammoindex) else ammo=ammopool(tpool).ammo
- else
-  if altpool=0 then ammo=weaponclipammo(weaponammoindex+10) else ammo=ammopool(altpool).ammo
- endif
- if (weaponammo(weaponammoindex)=0 and gun(gunid).settings.alternate = 0) or (weaponammo(weaponammoindex+10)=0 and gun(gunid).settings.alternate = 1)
+ tpool=firemode(gunid,firemode).settings.poolindex
+ if tpool=0 then ammo=weaponclipammo(weaponammoindex+ammooffset) else ammo=ammopool(tpool).ammo
+ if weaponammo(weaponammoindex+ammooffset)=0
   if ammo>0
    rem AirMod - No Auto Reload Feature
-   if gun(gunid).settings.noautoreload = 0
+   if firemode(gunid,firemode).settings.noautoreload = 0
     gunmode=121
    endif
   endif
  endif
  rem if equipment, reset freeze if any
- if gun(gunid).settings.equipment<>0 and gun(gunid).settings.lockcamera=1
+ if firemode(gunid,firemode).settings.equipment<>0 and firemode(gunid,firemode).settings.lockcamera=1
   mefrozentype=0
  endif
 endif
@@ -18497,7 +18416,7 @@ endif
 rem FPGC = equipment activates item at player position, does not fire a weapon
 if tgunactivateequipment=1
  tstoree=e : tstorete=te
- e=gun(gunid).settings.equipmententityelementindex
+ e=firemode(gunid,firemode).settings.equipmententityelementindex
  if e>0
   tname$=entityelement(e).eleprof.ifused$
  else
@@ -18537,26 +18456,20 @@ rem gun reload and cock control
 if gunmode=121
  Rem AirMod - Chambered Round >>>
  gunchamber = 0
- if gun(gunid).settings.chamberedround>0 and gun(gunid).settings.alternate=0 then gunchamber = 1
- if gun(gunid).settings.altchamberedround>0 and gun(gunid).settings.alternate=1 then gunchamber = 1
- if (gun(gunid).settings.alternate = 0 and weaponammo(weaponammoindex) = 0) then gunchamber = 0
- if (gun(gunid).settings.alternate = 1 and weaponammo(weaponammoindex+10) = 0) then gunchamber = 0
+ if firemode(gunid,firemode).settings.chamberedround>0 then gunchamber = 1
+ if weaponammo(weaponammoindex+ammooffset) = 0 then gunchamber = 0
  rem AirMod - Done <<<
  rem AirMod - Disable Simple Zoom on Reload
- if gun(gunid).settings.simplezoom <> 0 and gunzoommode <> 0
+ if firemode(gunid,firemode).settings.simplezoom <> 0 and gunzoommode <> 0
   if gunzoommode=10 then gunzoommode=11
-  if gun(gunid).settings.simplezoomanim <> 0 then gunmode = 2005 : goto _gunmode121_cancel
+  if firemode(gunid,firemode).settings.simplezoomanim <> 0 then gunmode = 2005 : goto _gunmode121_cancel
  endif
- if gun(gunid).settings.forcezoomout=1 and gunzoommode <> 0 and gun(gunid).settings.simplezoom = 0
+ if firemode(gunid,firemode).settings.forcezoomout=1 and gunzoommode <> 0 and firemode(gunid,firemode).settings.simplezoom = 0
   if gunzoommode=10 then gunzoommode=11
  endif
  `if weaponclipammo(weaponammoindex)=0 or gun(gunid).settings.weaponisammo=1
- tpool=gun(gunid).settings.poolindex : altpool=gun(gunid).settings.altpoolindex
- if gun(gunid).settings.alternate = 0
-  if tpool=0 then ammo=weaponclipammo(weaponammoindex) else ammo=ammopool(tpool).ammo
- else
-  if altpool=0 then ammo=weaponclipammo(weaponammoindex+10) else ammo=ammopool(altpool).ammo
- endif
+ tpool=firemode(gunid,firemode).settings.poolindex
+ if tpool=0 then ammo=weaponclipammo(weaponammoindex+ammooffset) else ammo=ammopool(tpool).ammo
  if ammo=0 or gun(gunid).settings.weaponisammo=1
   if gun(gunid).settings.weaponisammo=0
    if gun(gunid).settings.alternate=0 then sndid=gunsound(gunid,3).soundid else sndid=gunsound(gunid,3).altsoundid
@@ -18565,7 +18478,7 @@ if gunmode=121
      if sound playing(sndid)=0
       `playinternalBC3dsound(gunsound(gunid,3).soundid,camera position x(),camera position y(),camera position z(),50)
       rem AirMod - Line Modified for Sound Strength
-      playinternalBC3dsound(sndid,camera position x(),camera position y(),camera position z(),gun(gunid).settings.soundstrength/2)
+      playinternalBC3dsound(sndid,camera position x(),camera position y(),camera position z(),firemode(gunid,firemode).settings.soundstrength/2)
      endif
     endif
    endif
@@ -18587,7 +18500,7 @@ if gunmode=122
   set object interpolation currentgunobj,100
   set object frame currentgunobj,gstartreload.s
   `gunmode=123 : rem V113 AIRSLIDE 5/8/8 : shotgun
-  if gun(gunid).settings.shotgun=1 and gun(gunid).settings.isempty=0 or gun(gunid).settings.isempty=1 and gun(gunid).settings.emptyshotgun=1
+  if firemode(gunid,firemode).settings.shotgun=1 and firemode(gunid,firemode).settings.isempty=0 or firemode(gunid,firemode).settings.isempty=1 and firemode(gunid,firemode).settings.emptyshotgun=1
    gunmode=700
   else
    gunmode=123
@@ -18617,9 +18530,9 @@ if gunmode=7031
 endif
 if gunmode=702 `and object frame(currentgunobj)>=gun(gunid).action.reloadloop.e
  rem actual reload
- tneedfromclip=gun(gunid).settings.reloadqty+gunchamber-weaponammo(weaponammoindex)
+ tneedfromclip=firemode(gunid,0).settings.reloadqty+gunchamber-weaponammo(weaponammoindex)
  if tneedfromclip > 1 then tneedfromclip = 1
- tpool=gun(gunid).settings.poolindex
+ tpool=firemode(gunid,0).settings.poolindex
  if tpool=0 then ammo=weaponclipammo(weaponammoindex) else ammo=ammopool(tpool).ammo
 
  if tneedfromclip>ammo then tneedfromclip=ammo
@@ -18627,7 +18540,7 @@ if gunmode=702 `and object frame(currentgunobj)>=gun(gunid).action.reloadloop.e
   weaponammo(weaponammoindex)=weaponammo(weaponammoindex)+tneedfromclip
   if tpool=0 then weaponclipammo(weaponammoindex)=weaponclipammo(weaponammoindex)-tneedfromclip else ammopool(tpool).ammo=ammopool(tpool).ammo-tneedfromclip
   gunmode = 703
-  if gun(gunid).settings.reloadqty+gunchamber-weaponammo(weaponammoindex) < 1 then gunmode = 7041
+  if firemode(gunid,0).settings.reloadqty+gunchamber-weaponammo(weaponammoindex) < 1 then gunmode = 7041
   if player(plrid).state.firingmode = 1 then gunmode = 7041
  else
   gunmode = 7041
@@ -18681,29 +18594,14 @@ if gunmode=124
 endif
 if gunmode=125
  rem actual reload
- Rem AirMod - Modified for Alternate Fire >>>
- if gun(gunid).settings.alternate=1
-  `Alt Reload
-  tneedfromclip=gun(gunid).settings.altreloadqty-weaponammo(weaponammoindex+10)
-  if gunchamber = 1 then tneedfromclip = tneedfromclip + 1
-  altpool=gun(gunid).settings.altpoolindex
-  if altpool=0 then ammo=weaponclipammo(weaponammoindex+10) else ammo=ammopool(altpool).ammo
-  if tneedfromclip>ammo then tneedfromclip=ammo
-  if tneedfromclip>0
-   weaponammo(weaponammoindex+10)=weaponammo(weaponammoindex+10)+tneedfromclip
-   if altpool=0 then weaponclipammo(weaponammoindex+10)=weaponclipammo(weaponammoindex+10)-tneedfromclip else ammopool(altpool).ammo=ammopool(altpool).ammo-tneedfromclip
-  endif
- else
-  `Normal Reload
-  tneedfromclip=gun(gunid).settings.reloadqty-weaponammo(weaponammoindex)
-  if gunchamber = 1 then tneedfromclip = tneedfromclip + 1
-  tpool=gun(gunid).settings.poolindex
-  if tpool=0 then ammo=weaponclipammo(weaponammoindex) else ammo=ammopool(tpool).ammo
-  if tneedfromclip>ammo then tneedfromclip=ammo
-  if tneedfromclip>0
-   weaponammo(weaponammoindex)=weaponammo(weaponammoindex)+tneedfromclip
-   if tpool=0 then weaponclipammo(weaponammoindex)=weaponclipammo(weaponammoindex)-tneedfromclip else ammopool(tpool).ammo=ammopool(tpool).ammo-tneedfromclip
-  endif
+ tneedfromclip=firemode(gunid,firemode).settings.reloadqty-weaponammo(weaponammoindex+ammooffset)
+ if gunchamber = 1 then tneedfromclip = tneedfromclip + 1
+ tpool=firemode(gunid,firemode).settings.poolindex
+ if tpool=0 then ammo=weaponclipammo(weaponammoindex+ammooffset) else ammo=ammopool(tpool).ammo
+ if tneedfromclip>ammo then tneedfromclip=ammo
+ if tneedfromclip>0
+  weaponammo(weaponammoindex+ammooffset)=weaponammo(weaponammoindex+ammooffset)+tneedfromclip
+  if tpool=0 then weaponclipammo(weaponammoindex+ammooffset)=weaponclipammo(weaponammoindex+ammooffset)-tneedfromclip else ammopool(tpool).ammo=ammopool(tpool).ammo-tneedfromclip
  endif
  gun(gunid).settings.ismelee=0
  gunmode=5
@@ -18731,7 +18629,7 @@ return
 
 _gun_flash:
 
-if plrzoomin#<>0.0 and gun(gunid).settings.simplezoom = 0
+if plrzoomin#<>0.0 and firemode(gunid,firemode).settings.simplezoom = 0
  gunflash=0
  rem V109 BETA10 - 120508 - hide muzzle if still visible (quick shot then zoom bug)
  if object visible(hudbankoffset+5)=1 then hide object hudbankoffset+5
@@ -18739,24 +18637,16 @@ if plrzoomin#<>0.0 and gun(gunid).settings.simplezoom = 0
 endif
 rem AirMod - Allow MuzzleFlash to work in Simple Zoom, though should be tweaked later
 `if plrzoomin#<>0.0 and gun(gunid).settings.simplezoom = 0 then gunflash=0
-if gun(gunid).settings.simplezoom <> 0 and gunzoommode <> 0 and gun(gunid).settings.simplezoomflash = 1
- position object hudbankoffset+5,gun(gunid).settings.zoommuzzlex#+gunlagX#+gunOffsetX#,gun(gunid).settings.zoommuzzley#+gunlagY#+gunOffsetY#,gun(gunid).settings.zoommuzzlez#
+if firemode(gunid,firemode).settings.simplezoom <> 0 and gunzoommode <> 0 and firemode(gunid,firemode).settings.simplezoomflash = 1
+ position object hudbankoffset+5,firemode(gunid,firemode).settings.zoommuzzlex#+gunlagX#+gunOffsetX#,firemode(gunid,firemode).settings.zoommuzzley#+gunlagY#+gunOffsetY#,firemode(gunid,firemode).settings.zoommuzzlez#
 else
- if gun(gunid).settings.alternate=1
-  position object hudbankoffset+5,gun(gunid).settings.altmuzzlex#+gunlagX#+gunOffsetX#,gun(gunid).settings.altmuzzley#+gunlagY#+gunOffsetY#,gun(gunid).settings.altmuzzlez#
- else
-  position object hudbankoffset+5,gun(gunid).settings.muzzlex#+gunlagX#+gunOffsetX#,gun(gunid).settings.muzzley#+gunlagY#+gunOffsetY#,gun(gunid).settings.muzzlez#
- endif
+ position object hudbankoffset+5,firemode(gunid,firemode).settings.muzzlex#+gunlagX#+gunOffsetX#,firemode(gunid,firemode).settings.muzzley#+gunlagY#+gunOffsetY#,firemode(gunid,firemode).settings.muzzlez#
 endif
 if gunflash=1
  `
  rem fire flash init
  gunflash=2
- if gun(gunid).settings.alternate=0 or gun(gunid).settings.alternateisray=0 and gun(gunid).settings.alternate=1
-  gunflashcount=gun(gunid).settings.firerate/2 : rem V113 AIRSLIDE 5/8/8 gunflashcount=6
- else
-  gunflashcount=gun(gunid).settings.altfirerate/2 : rem V113 AIRSLIDE 5/8/8 gunflashcount=6
- endif
+ gunflashcount=firemode(gunid,firemode).settings.firerate/2 : rem V113 AIRSLIDE 5/8/8 gunflashcount=6
  rotate object hudbankoffset+5,0,0,rnd(360)
  show object hudbankoffset+5
  if gun(gunid).settings.flashlimb2<>-1
@@ -18769,20 +18659,16 @@ if gunflash=1
  tx#=camera position x()
  ty#=camera position y()
  tz#=camera position z()
- tcolr=gun(gunid).settings.muzzlecolorr
- tcolg=gun(gunid).settings.muzzlecolorg
- tcolb=gun(gunid).settings.muzzlecolorb
+ tcolr=firemode(gunid,firemode).settings.muzzlecolorr
+ tcolg=firemode(gunid,firemode).settings.muzzlecolorg
+ tcolb=firemode(gunid,firemode).settings.muzzlecolorb
  gosub _lighting_spotflash
  `
 endif
 if gunflash=2
  rem lee - 140310 - timer based deduction
  `if gunflashcount<=4
- if gun(gunid).settings.alternate=0 or gun(gunid).settings.alternateisray=0 and gun(gunid).settings.alternate=1
-  firerate=gun(gunid).settings.firerate/2
- else
-  firerate=gun(gunid).settings.altfirerate/2
- endif
+ firerate=firemode(gunid,firemode).settings.firerate/2
  if gunflashcount<=(firerate)-(timeelapsed#*2) : rem V113 AIRSLIDE 5/8/8 (<=4)
   rem hide early
   hide object hudbankoffset+5
@@ -18898,7 +18784,7 @@ for o=21 to 30
  endif
  if object visible(obj)=1
   point object obj,camera position x(),camera position y(),camera position z()
-  smokerisespeed#=gun(gunid).settings.smokespeed/100.0
+  smokerisespeed#=firemode(gunid,firemode).settings.smokespeed/100.0
   position object obj,object position x(obj),object position y(obj)+smokerisespeed#,object position z(obj)
   smokeframe=(object position y(obj)-ly#)/0.75
   if object in screen(obj)=1 and smokeframe<=15
@@ -18928,70 +18814,52 @@ rem when fire line active
 if gunshoot=1
  rem AirMod - Recoil
  if gunzoommode <> 0
-  xprect# = gun(gunid).settings.zoomrecoilxcorrect#/100
-  yprect# = gun(gunid).settings.zoomrecoilycorrect#/100
+  xprect# = firemode(gunid,firemode).settings.zoomrecoilxcorrect#/100
+  yprect# = firemode(gunid,firemode).settings.zoomrecoilycorrect#/100
  else
-   if gun(gunid).settings.alternate = 1
-    xprect# = gun(gunid).settings.altrecoilxcorrect#/100
-    yprect# = gun(gunid).settings.altrecoilycorrect#/100
-   else
-    xprect# = gun(gunid).settings.recoilxcorrect#/100
-    yprect# = gun(gunid).settings.recoilycorrect#/100
-   endif
+  xprect# = firemode(gunid,firemode).settings.recoilxcorrect#/100
+  yprect# = firemode(gunid,firemode).settings.recoilycorrect#/100
  endif
 
  dec xprect#,0.25
  dec yprect#,0.25
 
  if gunzoommode<>0
-  gunRecoilY# = gunRecoilY# + (gun(gunid).settings.zoomrecoily#/5) : gunRecoilCorrectY# = gunRecoilCorrectY# + ((gun(gunid).settings.zoomrecoily#/5)*(yprect#))
+  gunRecoilY# = gunRecoilY# + (firemode(gunid,firemode).settings.zoomrecoily#/5) : gunRecoilCorrectY# = gunRecoilCorrectY# + ((firemode(gunid,firemode).settings.zoomrecoily#/5)*(yprect#))
   if rnd(1) = 1
-   gunRecoilX# = gunRecoilX# + (gun(gunid).settings.zoomrecoilx#/5) : gunRecoilCorrectX# = gunRecoilCorrectX# + ((gun(gunid).settings.zoomrecoilx#/5)*(xprect#))
-   else
-    gunRecoilX# = gunRecoilX# - (gun(gunid).settings.zoomrecoilx#/5) : gunRecoilCorrectX# = gunRecoilCorrectX# - ((gun(gunid).settings.zoomrecoilx#/5)*(xprect#))
-   endif
- else
-  if gun(gunid).settings.alternate = 1
-   gunRecoilY# = gunRecoilY# + (gun(gunid).settings.altrecoily#/5) : gunRecoilCorrectY# = gunRecoilCorrectY# + ((gun(gunid).settings.altrecoily#/5)*(yprect#))
-   if rnd(1) = 1
-    gunRecoilX# = gunRecoilX# + (gun(gunid).settings.altrecoilx#/5) : gunRecoilCorrectX# = gunRecoilCorrectX# + ((gun(gunid).settings.altrecoilx#/5)*(xprect#))
-   else
-    gunRecoilX# = gunRecoilX# - (gun(gunid).settings.altrecoilx#/5) : gunRecoilCorrectX# = gunRecoilCorrectX# - ((gun(gunid).settings.altrecoilx#/5)*(xprect#))
-   endif
+   gunRecoilX# = gunRecoilX# + (firemode(gunid,firemode).settings.zoomrecoilx#/5) : gunRecoilCorrectX# = gunRecoilCorrectX# + ((firemode(gunid,firemode).settings.zoomrecoilx#/5)*(xprect#))
   else
-   gunRecoilY# = gunRecoilY# + (gun(gunid).settings.recoily#/5)  : gunRecoilCorrectY# = gunRecoilCorrectY# + ((gun(gunid).settings.recoily#/5)*(yprect#))
-   if rnd(1) = 1
-    gunRecoilX# = gunRecoilX# + (gun(gunid).settings.recoilx#/5) : gunRecoilCorrectX# = gunRecoilCorrectX# + ((gun(gunid).settings.recoilx#/5)*(xprect#))
-   else
-    gunRecoilX# = gunRecoilX# - (gun(gunid).settings.recoilx#/5) : gunRecoilCorrectX# = gunRecoilCorrectX# - ((gun(gunid).settings.recoilx#/5)*(xprect#))
-   endif
+   gunRecoilX# = gunRecoilX# - (firemode(gunid,firemode).settings.zoomrecoilx#/5) : gunRecoilCorrectX# = gunRecoilCorrectX# - ((firemode(gunid,firemode).settings.zoomrecoilx#/5)*(xprect#))
+  endif
+ else
+  gunRecoilY# = gunRecoilY# + (firemode(gunid,firemode).settings.recoily#/5)  : gunRecoilCorrectY# = gunRecoilCorrectY# + ((firemode(gunid,firemode).settings.recoily#/5)*(yprect#))
+  if rnd(1) = 1
+   gunRecoilX# = gunRecoilX# + (firemode(gunid,firemode).settings.recoilx#/5) : gunRecoilCorrectX# = gunRecoilCorrectX# + ((firemode(gunid,firemode).settings.recoilx#/5)*(xprect#))
+  else
+   gunRecoilX# = gunRecoilX# - (firemode(gunid,firemode).settings.recoilx#/5) : gunRecoilCorrectX# = gunRecoilCorrectX# - ((firemode(gunid,firemode).settings.recoilx#/5)*(xprect#))
   endif
  endif
  rem AirMod - Line Modified for Alternate Fire
- if gun(gunid).settings.flakindex=0 or ((gun(gunid).settings.alternateisflak = 1) and gun(gunid).settings.alternate = 0) or ((gun(gunid).settings.alternateisray = 1) and gun(gunid).settings.alternate = 1) or gun(gunid).settings.ismelee=2
+ if firemode(gunid,firemode).settings.flakindex=0 or ((gun(gunid).settings.alternateisflak = 1) and gun(gunid).settings.alternate = 0) or ((gun(gunid).settings.alternateisray = 1) and gun(gunid).settings.alternate = 1) or gun(gunid).settings.ismelee=2
 
   `
   rem BULLET
   rem gun data controls iterations and accuracy
-  trayiter=1+gun(gunid).settings.iterate
+  trayiter=1+firemode(gunid,firemode).settings.iterate
   Rem Hockeykid - 010410 - Swapped to a float to work better with Plystire's accuracy system
   `trayaccuracy=gun(gunid).settings.accuracy
-  if gun(gunid).settings.alternate = 1 then trayiter=1+gun(gunid).settings.altiterate
   rem AirMod - Make gun more accurate so bullets don't fly to mars - EDIT: Additionally use simple zoom accuracy if selected
-  if gunzoommode<>0 and gun(gunid).settings.simplezoom <>0
-   trayaccuracy#=gun(gunid).settings.simplezoomacc
+  if gunzoommode<>0 and firemode(gunid,firemode).settings.simplezoom <>0
+   trayaccuracy#=firemode(gunid,firemode).settings.simplezoomacc
   else
-   if (plrkeySHIFT)=1 and movement<>0 and gun(gunid).settings.runaccuracy <> - 1
-    trayaccuracy#=gun(gunid).settings.runaccuracy
+   if (plrkeySHIFT)=1 and movement<>0 and firemode(gunid,firemode).settings.runaccuracy <> - 1
+    trayaccuracy#=firemode(gunid,firemode).settings.runaccuracy
    else
-    trayaccuracy#=gun(gunid).settings.accuracy
+    trayaccuracy#=firemode(gunid,firemode).settings.accuracy
    endif
   endif
-  if gun(gunid).settings.alternate = 1 then trayaccuracy#=gun(gunid).settings.altaccuracy
-  bulletdamage=gun(gunid).settings.damage
-  if gun(gunid).settings.alternate = 1 then bulletdamage=gun(gunid).settings.altdamage
-  if gun(gunid).settings.ismelee=2 and gun(gunid).settings.alternate =0 then bulletdamage=gun(gunid).settings.meleedamage
-  if gun(gunid).settings.ismelee=2 and gun(gunid).settings.alternate =1 then bulletdamage=gun(gunid).settings.altmeleedamage
+  bulletdamage=firemode(gunid,firemode).settings.damage
+  if gun(gunid).settings.ismelee=2 then bulletdamage=firemode(gunid,firemode).settings.meleedamage
   `
   rem Special ZOOMODE kill in multiplayer
   if gmultiplayergame=1
@@ -19004,10 +18872,8 @@ if gunshoot=1
   multiplayerdamagecollected=0
   for traycount=1 to trayiter
    `
-   if gun(gunid).settings.alternate = 0 then range#=gun(gunid).settings.range
-   if gun(gunid).settings.alternate = 1 then range#=gun(gunid).settings.altrange
-   if gun(gunid).settings.ismelee=2 and gun(gunid).settings.alternate = 0 then range#=gun(gunid).settings.meleerange
-   if gun(gunid).settings.ismelee=2 and gun(gunid).settings.alternate = 1 then range#=gun(gunid).settings.altmeleerange
+   range#=firemode(gunid,firemode).settings.range
+   if gun(gunid).settings.ismelee=2 then range#=firemode(gunid,firemode).settings.meleerange
    `
    rem project gun-line-for-shot
    Rem Hockeykid - 010410 - Replaced old accuracy sytem with Plystire's
@@ -19029,8 +18895,8 @@ if gunshoot=1
    rem reset bullethit vars
    bullethit=0 : bullethitstatic=0
    tbullethitmaterial=0 : tbullethitflesh=0
-   bulletraytype=gun(gunid).settings.damagetype
-   gunrange#=gun(gunid).settings.range
+   bulletraytype=firemode(gunid,firemode).settings.damagetype
+   gunrange#=firemode(gunid,firemode).settings.range
    `
    rem raycastto entity
    gosub _entity_hasbulletrayhit
@@ -19063,9 +18929,9 @@ if gunshoot=1
     tentid=entityelement(e).bankindex
     if gmultiplayergame=0
      if bulletraytype=2
-      tforce#=gun(gunid).settings.damage/5.0
+      tforce#=firemode(gunid,firemode).settings.damage/5.0
      else
-      tforce#=gun(gunid).settings.damage/30.0
+      tforce#=firemode(gunid,firemode).settings.damage/30.0
      endif
      rem entity prone to force
      if entityelement(e).eleprof.isimmobile=0
@@ -19094,7 +18960,7 @@ if gunshoot=1
     `
     rem has bullet hit some debris between gun and wall
     if dstwallhit#>0
-     tforce#=gun(gunid).settings.damage/5.0
+     tforce#=firemode(gunid,firemode).settings.damage/5.0
      gosub _part_movedebrisifinray
     endif
     `
@@ -19180,7 +19046,7 @@ if gunshoot=1
     `
     rem add scorch if hit universe static polygons
     if bullethitstatic=1
-     tscorchtype=gun(gunid).settings.scorchtype
+     tscorchtype=firemode(gunid,firemode).settings.scorchtype
      gosub _entity_doscorch
     endif
     `
@@ -19208,8 +19074,8 @@ if gunshoot=1
   `
   rem FLAK
   rem create-projectile-for-shot
-  flakid=gun(gunid).settings.flakindex
-  if gun(gunid).settings.alternateisray = 1 and gun(gunid).settings.alternate = 1 then flakid=0
+  flakid=firemode(gunid,firemode).settings.flakindex
+ ` if gun(gunid).settings.alternateisray = 1 and gun(gunid).settings.alternate = 1 then flakid=0
   if flakid>0
    flakangle=camera angle y() : flakpitch=camera angle x() : flakowner=0
    if gun(gunid).settings.flashlimb<>-1
@@ -19420,24 +19286,27 @@ return
 
 _gun_loaddata:
 
-rem FPGC - reset in case
-gun(gunid).settings.rotx#=0
-gun(gunid).settings.roty#=0
-gun(gunid).settings.rotz#=0
-gun(gunid).settings.equipment=0
-gun(gunid).settings.equipmententityelementindex=0
-gun(gunid).settings.lockcamera=0
-
-rem AirMod - Default Sound Strength
-gun(gunid).settings.soundstrength=100
-rem AirMod - Default Run Accuracy (No diff)
-gun(gunid).settings.runaccuracy = -1
-rem AirMod - Default Zoom Walk & Turn
-gun(gunid).settings.zoomwalkspeed=0.5
-gun(gunid).settings.zoomturnspeed=0.2
-
-gun(gunid).sound.altfireloopend=-1
-gun(gunid).settings.emptyshotgun=-1
+for i=0 to 1
+ rem AirMod - Default Zoom Walk & Turn
+ firemode(gunid,i).settings.zoomwalkspeed=0.5
+ firemode(gunid,i).settings.zoomturnspeed=0.2
+ `
+ rem AirMod - Default Run Accuracy (No diff)
+ firemode(gunid,i).settings.runaccuracy = -1
+ rem AirMod - Default Sound Strength
+ firemode(gunid,i).settings.soundstrength=100
+ `
+ Rem Default equipment settings
+ firemode(gunid,i).settings.equipment=0
+ firemode(gunid,i).settings.equipmententityelementindex=0
+ firemode(gunid,i).settings.lockcamera=0
+ `
+ rem FPGC - reset in case
+ firemode(gunid,i).settings.rotx#=0
+ firemode(gunid,i).settings.roty#=0
+ firemode(gunid,i).settings.rotz#=0
+ `
+next i
 
 rem AirMod - Extend the Length of Gunspecs to 300
 dim data$(300)
@@ -19469,109 +19338,213 @@ for l=0 to 299
    value2=val(removeedgespaces(right$(value$,len(value$)-mid)))
    `
    rem GUN SETTINGS
-   if field$="muzzleflash" then gun(gunid).settings.muzzleflash=value1
-   if field$="muzzlesize" then gun(gunid).settings.muzzlesize#=value1
-   if field$="muzzlecolorr" then gun(gunid).settings.muzzlecolorr=value1
-   if field$="muzzlecolorg" then gun(gunid).settings.muzzlecolorg=value1
-   if field$="muzzlecolorb" then gun(gunid).settings.muzzlecolorb=value1
-   if field$="brass" then gun(gunid).settings.brass=value1
-   if field$="smoke" then gun(gunid).settings.smoke=value1
-   if field$="flak" then gun(gunid).settings.flakname$=value$
-   if field$="second" then gun(gunid).settings.seconduse=value1
-   if field$="damage" then gun(gunid).settings.damage=value1
-   if field$="melee damage" then gun(gunid).settings.meleedamage=value1
-   if field$="alt melee damage" then gun(gunid).settings.altmeleedamage=value1
-   if field$="damagetype" then gun(gunid).settings.damagetype=value1
-   if field$="scorchtype" then gun(gunid).settings.scorchtype=value1
-   if field$="reloadqty" then gun(gunid).settings.reloadqty=value1
    if field$="weaponisammo" then gun(gunid).settings.weaponisammo=value1
-   if field$="iterate" then gun(gunid).settings.iterate=value1
-   if field$="accuracy" then gun(gunid).settings.accuracy=value1
-   if field$="zoommode" then gun(gunid).settings.zoommode=value1
-   if field$="zoomaccuracy" then gun(gunid).settings.zoomaccuracy=value1
-   if field$="range" then gun(gunid).settings.range=value1
-   if field$="melee range" then gun(gunid).settings.meleerange=value1
-   if field$="alt melee range" then gun(gunid).settings.altmeleerange=value1
    if field$="melee key" then gun(gunid).settings.meleekey=value1
-   if field$="decal" then gun(gunid).decal$=value$
-   if field$="smokespeed" then gun(gunid).settings.smokespeed=value1
-   if field$="smokedecal" then gun(gunid).settings.smokedecal$=value$
-   if field$="firerate" then gun(gunid).settings.firerate=value1 : rem V113 AIRSLIDE 5/8/8
-   if field$="shotgun" then gun(gunid).settings.shotgun=value1 : rem V113 AIRSLIDE 5/8/8
-   if field$="disablerunandshoot" then gun(gunid).settings.disablerunandshoot=value1
-   rem AirMod - Burst Fire
-   if field$="burst" then gun(gunid).settings.burst=value1
-   rem AirMod - Move Animation Speed Mod (Default on)
-   if field$="disablemovespeedmod" then gun(gunid).settings.movespeedmod=value1
-   rem AirMod - Alt Flak (Temp: Set normal flak, use only to prevent normal FPSC from using flak)
-   if field$="altflak" then gun(gunid).settings.flakname$=value$
-   rem AirMod - Chambered Round
-   if field$="chamberedround" then gun(gunid).settings.chamberedround=value1
-   rem Hockeykid - Alt Chambered Round to avoid altflak from chambering a round
-   if field$="altchamberedround" then gun(gunid).settings.altchamberedround=value1
-   rem AirMod - Auto and Full Reload
-   if field$="noautoreload" then gun(gunid).settings.noautoreload=value1
-   if field$="nofullreload" then gun(gunid).settings.nofullreload=value1
-   rem AirMod - Run Positioning
-   if field$="runx" then gun(gunid).settings.runx#=value1
-   if field$="runy" then gun(gunid).settings.runy#=value1
-   if field$="runacc" then gun(gunid).settings.runaccuracy=value1
-   rem AirMod - No Scorch
-   if field$="noscorch" then gun(gunid).settings.noscorch=value1
-   if field$="melee noscorch" then gun(gunid).settings.meleenoscorch=value1
-   if field$="alt melee noscorch" then gun(gunid).settings.altmeleenoscorch=value1
-   rem AirMod - Simple Zoom
-   if field$="simplezoom" then gun(gunid).settings.simplezoom=value1
-   if field$="simplezoommod" then gun(gunid).settings.simplezoommod=value1
-   if field$="simplezoomacc" then gun(gunid).settings.simplezoomacc=value1
-   if field$="simplezoomx" then gun(gunid).settings.simplezoomx#=value1
-   if field$="simplezoomy" then gun(gunid).settings.simplezoomy#=value1
-   if field$="simplezoomspeed" then gun(gunid).settings.simplezoomspeed=value1
-   if field$="simplezoomanim" then gun(gunid).settings.simplezoomanim=value1
-   if field$="simplezoomflash" then gun(gunid).settings.simplezoomflash=value1
-   rem AirMod - Gun Lag
-   if field$="gunlagspeed" then gun(gunid).settings.gunlagSpeed=value1
-   if field$="gunlagxmax" then gun(gunid).settings.gunlagXmax=value1
-   if field$="gunlagymax" then gun(gunid).settings.gunlagYmax=value1
-   rem AirMod - Zoom Gun Lag
-   if field$="zoomgunlagspeed" then gun(gunid).settings.zoomgunlagSpeed=value1
-   if field$="zoomgunlagxmax" then gun(gunid).settings.zoomgunlagXmax=value1
-   if field$="zoomgunlagymax" then gun(gunid).settings.zoomgunlagYmax=value1
-   rem AirMod - Zoom Walk and Turn Speed
-   if field$="zoomwalkspeed" then gun(gunid).settings.zoomwalkspeed=value1
-   if field$="zoomturnspeed" then gun(gunid).settings.zoomturnspeed=value1
-   rem AirMod - Sound Strength
-   if field$="soundstrength" then gun(gunid).settings.soundstrength=value1
+   Rem This whole section is to easily allow alternate fire mode to use these commands
+   for i=0 to 2
+    if i=0 then alt$=""
+    if i=1 then alt$="alt "
+    Rem Allow for no space between "alt" and the rest of the string for backward compatibility with Airmod's old command names
+    if i=2 then alt$="alt"
+    if i<>2 then x=i else x=1
+    rem GUN SETTINGS
+    if field$=alt$+"muzzlesize" then firemode(gunid,x).settings.muzzlesize#=value1
+    if field$=alt$+"muzzlecolorr" then firemode(gunid,x).settings.muzzlecolorr=value1
+    if field$=alt$+"muzzlecolorg" then firemode(gunid,x).settings.muzzlecolorg=value1
+    if field$=alt$+"muzzlecolorb" then firemode(gunid,x).settings.muzzlecolorb=value1
+    if field$=alt$+"brass" then firemode(gunid,x).settings.brass=value1
+    if field$=alt$+"smoke" then firemode(gunid,x).settings.smoke=value1
+    if field$=alt$+"smokespeed" then firemode(gunid,x).settings.smokespeed=value1
+    if field$=alt$+"smokedecal" then firemode(gunid,x).settings.smokedecal$=value$
+    if field$=alt$+"flak" then firemode(gunid,x).settings.flakname$=value$
+    if field$=alt$+"reloadqty" then firemode(gunid,x).settings.reloadqty=value1
+    if field$=alt$+"iterate" then firemode(gunid,x).settings.iterate=value1
+    if field$=alt$+"range" then firemode(gunid,x).settings.range=value1
+    if field$=alt$+"accuracy" then firemode(gunid,x).settings.accuracy=value1
+    if field$=alt$+"damage" then firemode(gunid,x).settings.damage=value1
+    if field$=alt$+"muzzleflash" then firemode(gunid,x).settings.muzzleflash=value1
+    if field$=alt$+"firerate" then firemode(gunid,x).settings.firerate=value1
+    if field$=alt$+"zoommode" then firemode(gunid,x).settings.zoommode=value1
+    if field$=alt$+"zoomaccuracy" then firemode(gunid,x).settings.zoomaccuracy=value1
+    if field$=alt$+"zoomscope" then firemode(gunid,x).zoomscope$=value$
+    if field$=alt$+"second" then firemode(gunid,x).settings.seconduse=value1
+    if field$=alt$+"damagetype" then firemode(gunid,x).settings.damagetype=value1
+    if field$=alt$+"scorchtype" then firemode(gunid,x).settings.scorchtype=value1
+    if field$=alt$+"melee damage" then firemode(gunid,x).settings.meleedamage=value1
+    if field$=alt$+"melee range" then firemode(gunid,x).settings.meleerange=value1
+    if field$=alt$+"decal" then firemode(gunid,x).decal$=value$
+    if field$=alt$+"shotgun" then firemode(gunid,x).settings.shotgun=value1
+    if field$=alt$+"disablerunandshoot" then firemode(gunid,x).settings.disablerunandshoot=value1
+    rem AirMod - Burst Fire
+    if field$=alt$+"burst" then firemode(gunid,x).settings.burst=value1
+    rem AirMod - Move Animation Speed Mod (Default on)
+    if field$=alt$+"disablemovespeedmod" then firemode(gunid,x).settings.movespeedmod=value1
+    rem AirMod - Chambered Round
+    if field$=alt$+"chamberedround" then firemode(gunid,x).settings.chamberedround=value1
+    rem AirMod - Auto and Full Reload
+    if field$=alt$+"noautoreload" then firemode(gunid,x).settings.noautoreload=value1
+    if field$=alt$+"nofullreload" then firemode(gunid,x).settings.nofullreload=value1
+    rem AirMod - Run Positioning
+    if field$=alt$+"runx" then firemode(gunid,x).settings.runx#=value1
+    if field$=alt$+"runy" then firemode(gunid,x).settings.runy#=value1
+    if field$=alt$+"runacc" then firemode(gunid,x).settings.runaccuracy=value1
+    rem AirMod - No Scorch
+    if field$=alt$+"noscorch" then firemode(gunid,x).settings.noscorch=value1
+    if field$=alt$+"melee noscorch" then firemode(gunid,x).settings.meleenoscorch=value1
+    rem AirMod - Simple Zoom
+    if field$=alt$+"simplezoom" then firemode(gunid,x).settings.simplezoom=value1
+    if field$=alt$+"simplezoomx" then firemode(gunid,x).settings.simplezoomx#=value1
+    if field$=alt$+"simplezoomy" then firemode(gunid,x).settings.simplezoomy#=value1
+    if field$=alt$+"simplezoommod" then firemode(gunid,x).settings.simplezoommod=value1
+    if field$=alt$+"simplezoomacc" then firemode(gunid,x).settings.simplezoomacc=value1
+    if field$=alt$+"simplezoomspeed" then firemode(gunid,x).settings.simplezoomspeed=value1
+    if field$=alt$+"simplezoomflash" then firemode(gunid,x).settings.simplezoomflash=value1
+    if field$=alt$+"simplezoomanim" then firemode(gunid,x).settings.simplezoomanim=value1
+    rem AirMod - Gun Lag
+    if field$=alt$+"gunlagspeed" then firemode(gunid,x).settings.gunlagSpeed=value1
+    if field$=alt$+"gunlagxmax" then firemode(gunid,x).settings.gunlagXmax=value1
+    if field$=alt$+"gunlagymax" then firemode(gunid,x).settings.gunlagYmax=value1
+    rem AirMod - Zoom Gun Lag
+    if field$=alt$+"zoomgunlagspeed" then firemode(gunid,x).settings.zoomgunlagSpeed=value1
+    if field$=alt$+"zoomgunlagxmax" then firemode(gunid,x).settings.zoomgunlagXmax=value1
+    if field$=alt$+"zoomgunlagymax" then firemode(gunid,x).settings.zoomgunlagYmax=value1
+    rem AirMod - Zoom Walk and Turn Speed
+    if field$=alt$+"zoomwalkspeed" then firemode(gunid,x).settings.zoomwalkspeed=value1
+    if field$=alt$+"zoomturnspeed" then firemode(gunid,x).settings.zoomturnspeed=value1
+    rem AirMod - Sound Strength
+    if field$=alt$+"soundstrength" then firemode(gunid,x).settings.soundstrength=value1
+    rem AirMod - Gun Recoil
+    if field$=alt$+"recoily" then firemode(gunid,x).settings.recoily#=value1
+    if field$=alt$+"recoilx" then firemode(gunid,x).settings.recoilx#=value1
+    if field$=alt$+"recoilyreturn" then firemode(gunid,x).settings.recoilycorrect#=value1
+    if field$=alt$+"recoilxreturn" then firemode(gunid,x).settings.recoilxcorrect#=value1
+    rem AirMod - Gun Zoom Recoil
+    if field$=alt$+"zoomrecoily" then firemode(gunid,x).settings.zoomrecoily#=value1
+    if field$=alt$+"zoomrecoilx" then firemode(gunid,x).settings.zoomrecoilx#=value1
+    if field$=alt$+"zoomrecoilyreturn" then firemode(gunid,x).settings.zoomrecoilycorrect#=value1
+    if field$=alt$+"zoomrecoilxreturn" then firemode(gunid,x).settings.zoomrecoilxcorrect#=value1
+    rem AirMod - Force Zoomout on Reload
+    if field$=alt$+"forcezoomout" then firemode(gunid,x).settings.forcezoomout=value1
+    Rem AirMod - Maximum Extra Ammo
+    if field$=alt$+"ammomax" then firemode(gunid,x).settings.ammomax=value1
+    if field$=alt$+"equipment" then firemode(gunid,x).settings.equipment=value1 : rem V115 FPGC 10/6/9
+    if field$=alt$+"lockcamera" then firemode(gunid,x).settings.lockcamera=value1 : rem V115 FPGC 10/6/9
+    `
+    Rem GUN ANIMATIONS
+    if field$=alt$+"keyframe ratio"
+     if i=0 then keyframeratio=value1 else altkeyframeratio=value1
+    endif
+    Rem Normal Animations
+    if field$=alt$+"select" then firemode(gunid,x).action.show.s=value1 : firemode(gunid,x).action.show.e=value2
+    if field$=alt$+"idle" then firemode(gunid,x).action.idle.s=value1 : firemode(gunid,x).action.idle.e=value2
+    if field$=alt$+"move" then firemode(gunid,x).action.move.s=value1 : firemode(gunid,x).action.move.e=value2
+    if field$=alt$+"run" then firemode(gunid,x).action.run.s=value1 : firemode(gunid,x).action.run.e=value2
+    if field$=alt$+"fire" then firemode(gunid,x).action.start.s=value1 : firemode(gunid,x).action.start.e=value1 : firemode(gunid,x).action.finish.s=value1 : firemode(gunid,x).action.finish.e=value2
+    if field$=alt$+"use" then firemode(gunid,x).action.start.s=value1 : firemode(gunid,x).action.start.e=value1 : firemode(gunid,x).action.finish.s=value1 : firemode(gunid,x).action.finish.e=value2
+    if field$=alt$+"start fire" then firemode(gunid,x).action.start.s=value1 : firemode(gunid,x).action.start.e=value2
+    if field$=alt$+"automatic fire" then firemode(gunid,x).action.automatic.s=value1 : firemode(gunid,x).action.automatic.e=value2
+    if field$=alt$+"end fire" then firemode(gunid,x).action.finish.s=value1 : firemode(gunid,x).action.finish.e=value2
+    if field$=alt$+"reload"
+     firemode(gunid,x).action.startreload.s=value1 : firemode(gunid,x).action.startreload.e=value2
+     firemode(gunid,x).action.reloadloop.s=value2 : firemode(gunid,x).action.reloadloop.e=value2
+     firemode(gunid,x).action.endreload.s=value2 : firemode(gunid,x).action.endreload.e=value2
+    endif
+    if field$=alt$+"start reload" then firemode(gunid,x).action.startreload.s=value1 : firemode(gunid,x).action.startreload.e=value2
+    if field$=alt$+"reload loop" then firemode(gunid,x).action.reloadloop.s=value1 : firemode(gunid,x).action.reloadloop.e=value2
+    if field$=alt$+"end reload" then firemode(gunid,x).action.endreload.s=value1 : firemode(gunid,x).action.endreload.e=value2
+    if field$=alt$+"cock" then firemode(gunid,x).action.cock.s=value1 : firemode(gunid,x).action.cock.e=value2
+    if field$=alt$+"putaway" then firemode(gunid,x).action.hide.s=value1 : firemode(gunid,x).action.hide.e=value2
+    if field$=alt$+"start fire 2" then firemode(gunid,x).action.start2.s=value1 : firemode(gunid,x).action.start2.e=value2
+    if field$=alt$+"end fire 2" then firemode(gunid,x).action.finish2.s=value1 : firemode(gunid,x).action.finish2.e=value2
+    if field$=alt$+"start fire 3" then firemode(gunid,x).action.start3.s=value1 : firemode(gunid,x).action.start3.e=value2
+    if field$=alt$+"end fire 3" then firemode(gunid,x).action.finish3.s=value1 : firemode(gunid,x).action.finish3.e=value2
+    Rem Empty Animations
+    if field$=alt$+"useempty" then firemode(gunid,x).settings.hasempty=value1
+    if field$=alt$+"empty shotgun" then firemode(gunid,x).settings.emptyshotgun=value1
+    if field$=alt$+"empty putaway" then firemode(gunid,x).emptyaction.hide.s=value1 : firemode(gunid,x).emptyaction.hide.e=value2
+    if field$=alt$+"empty select" then firemode(gunid,x).emptyaction.show.s=value1 : firemode(gunid,x).emptyaction.show.e=value2
+    if field$=alt$+"empty idle" then firemode(gunid,x).emptyaction.idle.s=value1 : firemode(gunid,x).emptyaction.idle.e=value2
+    if field$=alt$+"empty move" then firemode(gunid,x).emptyaction.move.s=value1 : firemode(gunid,x).emptyaction.move.e=value2
+    if field$=alt$+"empty run" then firemode(gunid,x).emptyaction.run.s=value1 : firemode(gunid,x).emptyaction.run.e=value2
+    if field$=alt$+"empty start reload" then firemode(gunid,x).emptyaction.startreload.s=value1 : firemode(gunid,x).emptyaction.startreload.e=value2
+    if field$=alt$+"empty reload loop" then firemode(gunid,x).emptyaction.reloadloop.s=value1 : firemode(gunid,x).emptyaction.reloadloop.e=value2
+    if field$=alt$+"empty end reload" then firemode(gunid,x).emptyaction.endreload.s=value1 : firemode(gunid,x).emptyaction.endreload.e=value2
+    if field$=alt$+"empty cock" then firemode(gunid,x).emptyaction.cock.s=value1 : firemode(gunid,x).emptyaction.cock.e=value2
+    if field$=alt$+"empty reload"
+     firemode(gunid,x).emptyaction.startreload.s=value1 : firemode(gunid,x).emptyaction.startreload.e=value2
+     firemode(gunid,x).emptyaction.reloadloop.s=value2 : firemode(gunid,x).emptyaction.reloadloop.e=value2
+     firemode(gunid,x).emptyaction.endreload.s=value2 : firemode(gunid,x).emptyaction.endreload.e=value2
+    endif
+    `
+    Rem Melee Animations
+    if field$=alt$+"melee start" then firemode(gunid,x).meleeaction.start.s=value1 : firemode(gunid,x).meleeaction.start.e=value2
+    if field$=alt$+"melee start 2" then firemode(gunid,x).meleeaction.start2.s=value1 : firemode(gunid,x).meleeaction.start2.e=value2
+    if field$=alt$+"melee start 3" then firemode(gunid,x).meleeaction.start3.s=value1 : firemode(gunid,x).meleeaction.start3.e=value2
+    if field$=alt$+"melee end" then firemode(gunid,x).meleeaction.finish.s=value1 : firemode(gunid,x).meleeaction.finish.e=value2
+    if field$=alt$+"melee end 2" then firemode(gunid,x).meleeaction.finish2.s=value1 : firemode(gunid,x).meleeaction.finish2.e=value2
+    if field$=alt$+"melee end 3" then firemode(gunid,x).meleeaction.finish3.s=value1 : firemode(gunid,x).meleeaction.finish3.e=value2
+    `
+    if field$=alt$+"empty melee start" then firemode(gunid,x).emptyaction.start.s=value1 : firemode(gunid,x).emptyaction.start.e=value2
+    if field$=alt$+"empty melee start 2" then firemode(gunid,x).emptyaction.start2.s=value1 : firemode(gunid,x).emptyaction.start2.e=value2
+    if field$=alt$+"empty melee start 3" then firemode(gunid,x).emptyaction.start3.s=value1 : firemode(gunid,x).emptyaction.start3.e=value2
+    if field$=alt$+"empty melee end" then firemode(gunid,x).emptyaction.finish.s=value1 : firemode(gunid,x).emptyaction.finish.e=value2
+    if field$=alt$+"empty melee end 2" then firemode(gunid,x).emptyaction.finish2.s=value1 : firemode(gunid,x).emptyaction.finish2.e=value2
+    if field$=alt$+"empty melee end 3" then firemode(gunid,x).emptyaction.finish3.s=value1 : firemode(gunid,x).emptyaction.finish3.e=value2
+    `
+    rem AirMod - Melee Block Move
+    if field$="block" then firemode(gunid,x).action.block.s=value1 : firemode(gunid,x).action.block.e=value2
+    Rem Zoom Animations
+    if field$=alt$+"zoomto" then firemode(gunid,x).zoomaction.show.s=value1 : firemode(gunid,x).zoomaction.show.e=value2
+    if field$=alt$+"zoomfrom" then firemode(gunid,x).zoomaction.hide.s=value1 : firemode(gunid,x).zoomaction.hide.e=value2
+    if field$=alt$+"zoom start fire" then firemode(gunid,x).zoomaction.start.s=value1 : firemode(gunid,x).zoomaction.start.e=value2
+    if field$=alt$+"zoom automatic fire" then firemode(gunid,x).zoomaction.automatic.s=value1 : firemode(gunid,x).zoomaction.automatic.e=value2
+    if field$=alt$+"zoom end fire" then firemode(gunid,x).zoomaction.finish.s=value1 : firemode(gunid,x).zoomaction.finish.e=value2
+    if field$=alt$+"zoom idle" then firemode(gunid,x).zoomaction.idle.s=value1 : firemode(gunid,x).zoomaction.idle.e=value2
+    if field$=alt$+"zoom move" then firemode(gunid,x).zoomaction.move.s=value1 : firemode(gunid,x).zoomaction.move.e=value2
+    `
+    rem GUN SOUNDS
+    if field$=alt$+"fireloop" then firemode(gunid,x).sound.fireloopend=value1
+    `
+    rem GUN AND MUZZLE ALIGNMENT
+    if field$=alt$+"horiz" then firemode(gunid,x).horiz#=value1
+    if field$=alt$+"vert" then firemode(gunid,x).vert#=value1
+    if field$=alt$+"forward" then firemode(gunid,x).forward#=value1
+    if field$=alt$+"alignx" then firemode(gunid,x).settings.muzzlex#=value1
+    if field$=alt$+"aligny" then firemode(gunid,x).settings.muzzley#=value1
+    if field$=alt$+"alignz" then firemode(gunid,x).settings.muzzlez#=value1
+    if field$=alt$+"zoomalignx" then firemode(gunid,x).settings.zoommuzzlex#=value1
+    if field$=alt$+"zoomaligny" then firemode(gunid,x).settings.zoommuzzley#=value1
+    if field$=alt$+"zoomalignz" then firemode(gunid,x).settings.zoommuzzlez#=value1
+    `
+    rem FPGC - rotate locally
+    if field$=alt$+"rotx" then firemode(gunid,x).settings.rotx#=value1
+    if field$=alt$+"roty" then firemode(gunid,x).settings.roty#=value1
+    if field$=alt$+"rotz" then firemode(gunid,x).settings.rotz#=value1
+    `
+    Rem GUN AMMO POOLING
+    if field$=alt$+"poolammo"
+     if value$<>""
+      poolindex=0 : emptyindex=0
+      for i=1 to 100
+       if ammopool(i).name$=value$ then poolindex=i : exit
+       if ammopool(i).used=0 and emptyindex=0 then emptyindex=i
+      next i
+      if poolindex=0 then poolindex=emptyindex
+      if poolindex>0
+       firemode(gunid,x).settings.poolindex=poolindex
+       ammopool(poolindex).used=1 : ammopool(poolindex).name$=value$
+      endif
+     endif
+    endif
+    `
+   next i
+   `
    rem AirMod - Alternate Fire
    if field$="alternateisflak" then gun(gunid).settings.alternateisflak=value1
    if field$="alternateisray" then gun(gunid).settings.alternateisray=value1
-   if field$="altreloadqty" then gun(gunid).settings.altreloadqty=value1
-   if field$="altiterate" then gun(gunid).settings.altiterate=value1
-   if field$="altrange" then gun(gunid).settings.altrange=value1
-   if field$="altaccuracy" then gun(gunid).settings.altaccuracy=value1
-   if field$="altdamage" then gun(gunid).settings.altdamage=value1
-   if field$="altmuzzleflash" then gun(gunid).settings.altmuzzleflash=value1
-   if field$="altfirerate" then gun(gunid).settings.altfirerate=value1
-   rem AirMod - Gun Recoil
-   if field$="recoily" then gun(gunid).settings.recoily#=value1
-   if field$="recoilx" then gun(gunid).settings.recoilx#=value1
-   if field$="recoilyreturn" then gun(gunid).settings.recoilycorrect#=value1
-   if field$="recoilxreturn" then gun(gunid).settings.recoilxcorrect#=value1
-   if field$="zoomrecoily" then gun(gunid).settings.zoomrecoily#=value1
-   if field$="zoomrecoilx" then gun(gunid).settings.zoomrecoilx#=value1
-   if field$="zoomrecoilyreturn" then gun(gunid).settings.zoomrecoilycorrect#=value1
-   if field$="zoomrecoilxreturn" then gun(gunid).settings.zoomrecoilxcorrect#=value1
-   if field$="altrecoily" then gun(gunid).settings.altrecoily#=value1
-   if field$="altrecoilx" then gun(gunid).settings.altrecoilx#=value1
-   if field$="altrecoilyreturn" then gun(gunid).settings.altrecoilycorrect#=value1
-   if field$="altrecoilxreturn" then gun(gunid).settings.altrecoilxcorrect#=value1
-   rem AirMod - Force Zoomout on Reload
-   if field$="forcezoomout" then gun(gunid).settings.forcezoomout=value1
-   Rem AirMod - Maximum Extra Ammo
-   if field$="ammomax" then gun(gunid).settings.ammomax=value1
-   rem AirMod - Done <<<
-   if field$="equipment" then gun(gunid).settings.equipment=value1 : rem V115 FPGC 10/6/9
-   if field$="lockcamera" then gun(gunid).settings.lockcamera=value1 : rem V115 FPGC 10/6/9
+   if field$="altto" or field$="alt to" then gun(gunid).altaction.to.s=value1 : gun(gunid).altaction.to.e=value2
+   if field$="altfrom" or field$="alt from" then gun(gunid).altaction.from.s=value1 : gun(gunid).altaction.from.e=value2
+   if field$="addtospare" then gun(gunid).settings.addtospare=value1
    `
    rem GUN VISUALS
    tryfield$="textured"
@@ -19580,154 +19553,21 @@ for l=0 to 299
    if field$=tryfield$ then gun(gunid).effect$=value$
    tryfield$="transparency"
    if field$=tryfield$ then gun(gunid).transparency=value1
-   tryfield$="zoomscope"
-   if field$=tryfield$ then gun(gunid).zoomscope$=value$
    tryfield$="weapontype"
    if field$=tryfield$ then gun(gunid).weapontype=value1
    `
    rem GUN SOUNDS
-   if field$="fireloop" then gun(gunid).sound.fireloopend=value1
-   if field$="altfireloop" then gun(gunid).sound.altfireloopend=value1
-   `for p=1 to 5  : rem FPGC - 110809 - was 4
    rem AirMod - Extended to 15 different sounds
    for p=1 to 14
     tryfield$="sound"+str$(p)
     if field$=tryfield$ then gunsound(gunid,p).name$=value$
    next p
    for p=1 to 4
-    tryfield$="altsound"+str$(p)
-    if field$=tryfield$ and p<>2 then gunsound(gunid,p).altname$=value$
-   next p
-   `
-   rem GUN AND MUZZLE ALIGNMENT
-   if field$="horiz" then gun(gunid).horiz#=value1
-   if field$="vert" then gun(gunid).vert#=value1
-   if field$="forward" then gun(gunid).forward#=value1
-   if field$="alignx" then gun(gunid).settings.muzzlex#=value1
-   if field$="aligny" then gun(gunid).settings.muzzley#=value1
-   if field$="alignz" then gun(gunid).settings.muzzlez#=value1
-   if field$="zoomalignx" then gun(gunid).settings.zoommuzzlex#=value1
-   if field$="zoomaligny" then gun(gunid).settings.zoommuzzley#=value1
-   if field$="zoomalignz" then gun(gunid).settings.zoommuzzlez#=value1
-   if field$="altalignx" then gun(gunid).settings.altmuzzlex#=value1
-   if field$="altaligny" then gun(gunid).settings.altmuzzley#=value1
-   if field$="altalignz" then gun(gunid).settings.altmuzzlez#=value1
-   `
-   rem FPGC - rotate locally
-   if field$="rotx" then gun(gunid).settings.rotx#=value1
-   if field$="roty" then gun(gunid).settings.roty#=value1
-   if field$="rotz" then gun(gunid).settings.rotz#=value1
-   `
-   rem HUD ANIMATION DATA
-   if field$="select" then gun(gunid).action.show.s=value1 : gun(gunid).action.show.e=value2
-   if field$="idle" then gun(gunid).action.idle.s=value1 : gun(gunid).action.idle.e=value2
-   if field$="move" then gun(gunid).action.move.s=value1 : gun(gunid).action.move.e=value2
-   if field$="fire" then gun(gunid).action.start.s=value1 : gun(gunid).action.start.e=value1 : gun(gunid).action.finish.s=value1 : gun(gunid).action.finish.e=value2
-   if field$="use" then gun(gunid).action.start.s=value1 : gun(gunid).action.start.e=value1 : gun(gunid).action.finish.s=value1 : gun(gunid).action.finish.e=value2
-   if field$="start fire" then gun(gunid).action.start.s=value1 : gun(gunid).action.start.e=value2
-   if field$="automatic fire" then gun(gunid).action.automatic.s=value1 : gun(gunid).action.automatic.e=value2
-   if field$="end fire" then gun(gunid).action.finish.s=value1 : gun(gunid).action.finish.e=value2
-   if field$="reload"
-    gun(gunid).action.startreload.s=value1 : gun(gunid).action.startreload.e=value2
-    gun(gunid).action.reloadloop.s=value2 : gun(gunid).action.reloadloop.e=value2
-    gun(gunid).action.endreload.s=value2 : gun(gunid).action.endreload.e=value2
-   endif
-   if field$="start reload" then gun(gunid).action.startreload.s=value1 : gun(gunid).action.startreload.e=value2
-   if field$="reload loop" then gun(gunid).action.reloadloop.s=value1 : gun(gunid).action.reloadloop.e=value2
-   if field$="end reload" then gun(gunid).action.endreload.s=value1 : gun(gunid).action.endreload.e=value2
-   if field$="cock" then gun(gunid).action.cock.s=value1 : gun(gunid).action.cock.e=value2
-   if field$="putaway" then gun(gunid).action.hide.s=value1 : gun(gunid).action.hide.e=value2
-   Rem Hockeykid - 020810 - Support for running animations
-   if field$="run" then gun(gunid).action.run.s=value1 : gun(gunid).action.run.e=value2
-   if field$="alt run" then gun(gunid).altaction.run.s=value1 : gun(gunid).altaction.run.e=value2
-   if field$="zoom run" then gun(gunid).zoomaction.run.s=value1 : gun(gunid).zoomaction.run.e=value2
-   if field$="empty run" then gun(gunid).emptyaction.run.s=value1 : gun(gunid).emptyaction.run.e=value2
-   if field$="keyframe ratio" then keyframeratio=value1
-   rem AirMod - Melee Block Move
-   if field$="block" then gun(gunid).action.block.s=value1 : gun(gunid).action.block.e=value2
-   rem AirMod - Alternate Fire Animations and Zoom Animations
-   if field$="start fire 2" then gun(gunid).action.start2.s=value1 : gun(gunid).action.start2.e=value2
-   if field$="end fire 2" then gun(gunid).action.finish2.s=value1 : gun(gunid).action.finish2.e=value2
-   if field$="start fire 3" then gun(gunid).action.start3.s=value1 : gun(gunid).action.start3.e=value2
-   if field$="end fire 3" then gun(gunid).action.finish3.s=value1 : gun(gunid).action.finish3.e=value2
-   `
-   if field$="melee start" then gun(gunid).meleeaction.start.s=value1 : gun(gunid).meleeaction.start.e=value2
-   if field$="melee start 2" then gun(gunid).meleeaction.start2.s=value1 : gun(gunid).meleeaction.start2.e=value2
-   if field$="melee start 3" then gun(gunid).meleeaction.start3.s=value1 : gun(gunid).meleeaction.start3.e=value2
-   if field$="melee end" then gun(gunid).meleeaction.finish.s=value1 : gun(gunid).meleeaction.finish.e=value2
-   if field$="melee end 2" then gun(gunid).meleeaction.finish2.s=value1 : gun(gunid).meleeaction.finish2.e=value2
-   if field$="melee end 3" then gun(gunid).meleeaction.finish3.s=value1 : gun(gunid).meleeaction.finish3.e=value2
-   `
-   if field$="empty melee start" then gun(gunid).emptyaction.start.s=value1 : gun(gunid).emptyaction.start.e=value2
-   if field$="empty melee start 2" then gun(gunid).emptyaction.start2.s=value1 : gun(gunid).emptyaction.start2.e=value2
-   if field$="empty melee start 3" then gun(gunid).emptyaction.start3.s=value1 : gun(gunid).emptyaction.start3.e=value2
-   if field$="empty melee end" then gun(gunid).emptyaction.finish.s=value1 : gun(gunid).emptyaction.finish.e=value2
-   if field$="empty melee end 2" then gun(gunid).emptyaction.finish2.s=value1 : gun(gunid).emptyaction.finish2.e=value2
-   if field$="empty melee end 3" then gun(gunid).emptyaction.finish3.s=value1 : gun(gunid).emptyaction.finish3.e=value2
-   `
-   if field$="alt melee start" then gun(gunid).altmeleeaction.start.s=value1 : gun(gunid).altmeleeaction.start.e=value2
-   if field$="alt melee start 2" then gun(gunid).altmeleeaction.start2.s=value1 : gun(gunid).altmeleeaction.start2.e=value2
-   if field$="alt melee start 3" then gun(gunid).altmeleeaction.start3.s=value1 : gun(gunid).altmeleeaction.start3.e=value2
-   if field$="alt melee end" then gun(gunid).altmeleeaction.finish.s=value1 : gun(gunid).altmeleeaction.finish.e=value2
-   if field$="alt melee end 2" then gun(gunid).altmeleeaction.finish2.s=value1 : gun(gunid).altmeleeaction.finish2.e=value2
-   if field$="alt melee end 3" then gun(gunid).altmeleeaction.finish3.s=value1 : gun(gunid).altmeleeaction.finish3.e=value2
-   `
-   if field$="zoomto" then gun(gunid).zoomaction.show.s=value1 : gun(gunid).zoomaction.show.e=value2
-   if field$="zoomfrom" then gun(gunid).zoomaction.hide.s=value1 : gun(gunid).zoomaction.hide.e=value2
-   if field$="zoom start fire" then gun(gunid).zoomaction.start.s=value1 : gun(gunid).zoomaction.start.e=value2
-   if field$="zoom automatic fire" then gun(gunid).zoomaction.automatic.s=value1 : gun(gunid).zoomaction.automatic.e=value2
-   if field$="zoom end fire" then gun(gunid).zoomaction.finish.s=value1 : gun(gunid).zoomaction.finish.e=value2
-   if field$="zoom idle" then gun(gunid).zoomaction.idle.s=value1 : gun(gunid).zoomaction.idle.e=value2
-   if field$="zoom move" then gun(gunid).zoomaction.move.s=value1 : gun(gunid).zoomaction.move.e=value2
-   if field$="altto" then gun(gunid).altaction.to.s=value1 : gun(gunid).altaction.to.e=value2
-   if field$="altfrom" then gun(gunid).altaction.from.s=value1 : gun(gunid).altaction.from.e=value2
-   if field$="alt putaway" then gun(gunid).altaction.hide.s=value1 : gun(gunid).altaction.hide.e=value2
-   if field$="alt select" then gun(gunid).altaction.show.s=value1 : gun(gunid).altaction.show.e=value2
-   if field$="alt start fire" then gun(gunid).altaction.start.s=value1 : gun(gunid).altaction.start.e=value2
-   if field$="alt automatic fire" then gun(gunid).altaction.automatic.s=value1 : gun(gunid).altaction.automatic.e=value2
-   if field$="alt end fire" then gun(gunid).altaction.finish.s=value1 : gun(gunid).altaction.finish.e=value2
-   if field$="alt idle" then gun(gunid).altaction.idle.s=value1 : gun(gunid).altaction.idle.e=value2
-   if field$="alt move" then gun(gunid).altaction.move.s=value1 : gun(gunid).altaction.move.e=value2
-   if field$="alt reload"
-      gun(gunid).altaction.startreload.s=value1 : gun(gunid).altaction.startreload.e=value2
-      gun(gunid).altaction.reloadloop.s=value2 : gun(gunid).altaction.reloadloop.e=value2
-      gun(gunid).altaction.endreload.s=value2 : gun(gunid).altaction.endreload.e=value2
-   endif
-   rem AirMod - Done<<<
-   Rem "empty" gun feature
-   if field$="useempty" then gun(gunid).settings.hasempty=1
-   if field$="empty shotgun" then gun(gunid).settings.emptyshotgun=value1
-   if field$="empty putaway" then gun(gunid).emptyaction.hide.s=value1 : gun(gunid).emptyaction.hide.e=value2
-   if field$="empty select" then gun(gunid).emptyaction.show.s=value1 : gun(gunid).emptyaction.show.e=value2
-   if field$="empty idle" then gun(gunid).emptyaction.idle.s=value1 : gun(gunid).emptyaction.idle.e=value2
-   if field$="empty move" then gun(gunid).emptyaction.move.s=value1 : gun(gunid).emptyaction.move.e=value2
-   if field$="empty start reload" then gun(gunid).emptyaction.startreload.s=value1 : gun(gunid).emptyaction.startreload.e=value2
-   if field$="empty reload loop" then gun(gunid).emptyaction.reloadloop.s=value1 : gun(gunid).emptyaction.reloadloop.e=value2
-   if field$="empty end reload" then gun(gunid).emptyaction.endreload.s=value1 : gun(gunid).emptyaction.endreload.e=value2
-   if field$="empty cock" then gun(gunid).emptyaction.cock.s=value1 : gun(gunid).emptyaction.cock.e=value2
-   if field$="empty reload"
-      gun(gunid).emptyaction.startreload.s=value1 : gun(gunid).emptyaction.startreload.e=value2
-      gun(gunid).emptyaction.reloadloop.s=value2 : gun(gunid).emptyaction.reloadloop.e=value2
-      gun(gunid).emptyaction.endreload.s=value2 : gun(gunid).emptyaction.endreload.e=value2
-   endif
-   if field$="addtospare" then gun(gunid).settings.addtospare=value1
-   `
-   Rem GUN AMMO POOLING
-   tryfield$="poolammo" : tryfield2$="altpoolammo"
-   if field$=tryfield$ or field$=tryfield2$
-    if value$<>""
-     poolindex=0 : emptyindex=0
-     for i=1 to 100
-      if ammopool(i).name$=value$ then poolindex=i : exit
-      if ammopool(i).used=0 and emptyindex=0 then emptyindex=i
-     next i
-     if poolindex=0 then poolindex=emptyindex
-     if poolindex>0 then
-      if field$=tryfield$ then gun(gunid).settings.poolindex=poolindex
-      if field$=tryfield2$ then gun(gunid).settings.altpoolindex=poolindex
-      ammopool(poolindex).used=1 : ammopool(poolindex).name$=value$
+    tryfield$="altsound"+str$(p) : tryfield2$="alt sound"+str$(p)
+    if p<>2
+     if field$=tryfield$ or field$=tryfield2$ then gunsound(gunid,p).altname$=value$
     endif
-   endif
+   next p
    `
    rem GUN SOUND FRAMES DATA
    tryfield$="soundframes"
@@ -19756,84 +19596,71 @@ next l
 undim data$()
 endif
 
-Rem alt fire loop
-if gun(gunid).sound.altfireloopend=-1 then gun(gunid).sound.altfireloopend=gun(gunid).sound.fireloopend
-
-Rem default empty shotgun
-if gun(gunid).settings.emptyshotgun=-1 then gun(gunid).settings.emptyshotgun=gun(gunid).settings.shotgun
 
 Rem No run animations
-if gun(gunid).action.run.e=0 then gun(gunid).action.run=gun(gunid).action.move
-if gun(gunid).altaction.run.e=0 then gun(gunid).altaction.run=gun(gunid).altaction.move
-if gun(gunid).zoomaction.run.e=0 then gun(gunid).zoomaction.run=gun(gunid).zoomaction.move
-
-rem If no COCK animation, fill with end of reload data
-if gun(gunid).action.cock.e=0
- gun(gunid).action.cock.s=gun(gunid).action.endreload.e
- gun(gunid).action.cock.e=gun(gunid).action.endreload.e
-endif
-Rem fill empty animations if no animation found
-if gun(gunid).emptyaction.hide.e=0 then gun(gunid).emptyaction.hide=gun(gunid).action.hide
-if gun(gunid).emptyaction.show.e=0 then gun(gunid).emptyaction.show=gun(gunid).action.show
-if gun(gunid).emptyaction.idle.e=0 then gun(gunid).emptyaction.idle=gun(gunid).action.idle
-if gun(gunid).emptyaction.move.e=0 then gun(gunid).emptyaction.move=gun(gunid).action.move
-if gun(gunid).emptyaction.cock.e=0 and gun(gunid).emptyaction.endreload.e=0 then gun(gunid).emptyaction.cock=gun(gunid).action.cock
-if gun(gunid).emptyaction.startreload.e=0 then gun(gunid).emptyaction.startreload=gun(gunid).action.startreload
-if gun(gunid).emptyaction.reloadloop.e=0 then gun(gunid).emptyaction.reloadloop=gun(gunid).action.reloadloop
-if gun(gunid).emptyaction.endreload.e=0 then gun(gunid).emptyaction.endreload=gun(gunid).action.endreload
-if gun(gunid).emptyaction.run.e=0 then gun(gunid).emptyaction.run=gun(gunid).emptyaction.move
-
-rem If no COCK animation, fill with end of reload data
-if gun(gunid).emptyaction.cock.e=0 `and gun(gunid).emptyaction.endreload.e>0 and gun(gunid).emptyaction.endreload.e<>gun(gunid).action.endreload.e
- gun(gunid).emptyaction.cock.s=gun(gunid).emptyaction.endreload.e
- gun(gunid).emptyaction.cock.e=gun(gunid).emptyaction.endreload.e
-endif
-rem If no COCK animation, fill with end of reload data
-if gun(gunid).altaction.cock.e=0
- gun(gunid).altaction.cock.s=gun(gunid).altaction.endreload.e
- gun(gunid).altaction.cock.e=gun(gunid).altaction.endreload.e
-endif
-
-rem FPSCV104RC5 if no muzzle colour, go with default
-if gun(gunid).settings.muzzlecolorr=0 and gun(gunid).settings.muzzlecolorg=0 and gun(gunid).settings.muzzlecolorb=0
- gun(gunid).settings.muzzlecolorr=255
- gun(gunid).settings.muzzlecolorg=255
- gun(gunid).settings.muzzlecolorb=0
-endif
-
-rem FPSCV104RC8 - can set the smoke speed
-if gun(gunid).settings.smokespeed=0
- gun(gunid).settings.smokespeed=25
-endif
-
-rem V113 AIRSLIDE 5/8/8 : FPSC-AirMod 0.5 - can set rate of fire
-if gun(gunid).settings.firerate=0
- gun(gunid).settings.firerate=12
-endif
-Rem alt firerate
-if gun(gunid).settings.altfirerate=0
- gun(gunid).settings.altfirerate=12
-endif
-
-rem FPSCV104RC9
-if gun(gunid).settings.smokedecal$=""
- gun(gunid).settings.smokedecal$="smoke1"
-endif
-
-rem Find the decal specified
-gun(gunid).decalid=0
-if gun(gunid).decal$<>""
- decal$=gun(gunid).decal$ : gosub _decal_find
- if decalid<0
-  decalid=0
- else
-  decal(decalid).active=1
-  gun(gunid).decalid=decalid
+for i=0 to 1
+ if firemode(gunid,i).action.run.e=0 then firemode(gunid,i).action.run=firemode(gunid,i).action.move
+ if firemode(gunid,i).zoomaction.run.e=0 then firemode(gunid,i).zoomaction.run=firemode(gunid,i).zoomaction.move
+ `
+ rem If no COCK animation, fill with end of reload data
+ if firemode(gunid,i).action.cock.e=0
+  firemode(gunid,i).action.cock.s=firemode(gunid,i).action.endreload.e
+  firemode(gunid,i).action.cock.e=firemode(gunid,i).action.endreload.e
  endif
-endif
+ `
+ Rem fill empty animations if no animation found
+ if firemode(gunid,i).emptyaction.hide.e=0 then firemode(gunid,i).emptyaction.hide=firemode(gunid,i).action.hide
+ if firemode(gunid,i).emptyaction.show.e=0 then firemode(gunid,i).emptyaction.show=firemode(gunid,i).action.show
+ if firemode(gunid,i).emptyaction.idle.e=0 then firemode(gunid,i).emptyaction.idle=firemode(gunid,i).action.idle
+ if firemode(gunid,i).emptyaction.move.e=0 then firemode(gunid,i).emptyaction.move=firemode(gunid,i).action.move
+ if firemode(gunid,i).emptyaction.cock.e=0 and firemode(gunid,i).emptyaction.endreload.e=0 then firemode(gunid,i).emptyaction.cock=firemode(gunid,i).action.cock
+ if firemode(gunid,i).emptyaction.startreload.e=0 then firemode(gunid,i).emptyaction.startreload=firemode(gunid,i).action.startreload
+ if firemode(gunid,i).emptyaction.reloadloop.e=0 then firemode(gunid,i).emptyaction.reloadloop=firemode(gunid,i).action.reloadloop
+ if firemode(gunid,i).emptyaction.endreload.e=0 then firemode(gunid,i).emptyaction.endreload=firemode(gunid,i).action.endreload
+ if firemode(gunid,i).emptyaction.run.e=0 then firemode(gunid,i).emptyaction.run=firemode(gunid,i).emptyaction.move
 
-rem Default gun range
-if gun(gunid).settings.range=0 then gun(gunid).settings.range=1000
+ rem If no COCK animation, fill with end of reload data
+ if firemode(gunid,i).emptyaction.cock.e=0 `and gun(gunid).emptyaction.endreload.e>0 and gun(gunid).emptyaction.endreload.e<>gun(gunid).action.endreload.e
+  firemode(gunid,i).emptyaction.cock.s=firemode(gunid,i).emptyaction.endreload.e
+  firemode(gunid,i).emptyaction.cock.e=firemode(gunid,i).emptyaction.endreload.e
+ endif
+ `
+ rem FPSCV104RC5 if no muzzle colour, go with default
+ if firemode(gunid,i).settings.muzzlecolorr=0 and firemode(gunid,i).settings.muzzlecolorg=0 and firemode(gunid,i).settings.muzzlecolorb=0
+  firemode(gunid,i).settings.muzzlecolorr=255
+  firemode(gunid,i).settings.muzzlecolorg=255
+  firemode(gunid,i).settings.muzzlecolorb=0
+ endif
+ rem FPSCV104RC8 - can set the smoke speed
+ if firemode(gunid,i).settings.smokespeed=0
+  firemode(gunid,i).settings.smokespeed=25
+ endif
+ `
+ rem V113 AIRSLIDE 5/8/8 : FPSC-AirMod 0.5 - can set rate of fire
+ if firemode(gunid,i).settings.firerate=0
+  firemode(gunid,i).settings.firerate=12
+ endif
+ `
+ rem FPSCV104RC9
+ if firemode(gunid,i).settings.smokedecal$=""
+  firemode(gunid,i).settings.smokedecal$="smoke1"
+ endif
+ `
+ rem Find the decal specified
+ firemode(gunid,i).decalid=0
+ if firemode(gunid,i).decal$<>""
+  decal$=firemode(gunid,i).decal$ : gosub _decal_find
+  if decalid<0
+   decalid=0
+  else
+   decal(decalid).active=1
+   firemode(gunid,i).decalid=decalid
+  endif
+ endif
+ `
+ rem Default gun range
+ if firemode(gunid,i).settings.range=0 then firemode(gunid,i).settings.range=1000
+next i
 
 return
 
@@ -19849,17 +19676,17 @@ currentgunobj=gun(gunid).obj
 
 rem Setup gun with muzzle flash image
 if gun(gunid).settings.flashlimb<>-1
- texture object hudbankoffset+5,gun(gunid).settings.flashimg
+ texture object hudbankoffset+5,firemode(gunid,0).settings.flashimg
  glue object to limb hudbankoffset+5,hudbankoffset+2,0
- position object hudbankoffset+5,gun(gunid).settings.muzzlex#,gun(gunid).settings.muzzley#,gun(gunid).settings.muzzlez#
- size#=gun(gunid).settings.muzzlesize# : if size#=0.0 then size#=100.0
+ position object hudbankoffset+5,firemode(gunid,0).settings.muzzlex#,firemode(gunid,0).settings.muzzley#,firemode(gunid,0).settings.muzzlez#
+ size#=firemode(gunid,0).settings.muzzlesize# : if size#=0.0 then size#=100.0
  scale object hudbankoffset+5,size#,size#,size#
 endif
 if gun(gunid).settings.flashlimb2<>-1
- texture object hudbankoffset+32,gun(gunid).settings.flashimg
+ texture object hudbankoffset+32,firemode(gunid,0).settings.flashimg
  glue object to limb hudbankoffset+32,hudbankoffset+2,0
- position object hudbankoffset+32,gun(gunid).settings.muzzlex#*-1,gun(gunid).settings.muzzley#,gun(gunid).settings.muzzlez#
- size#=gun(gunid).settings.muzzlesize# : if size#=0.0 then size#=100.0
+ position object hudbankoffset+32,firemode(gunid,0).settings.muzzlex#*-1,firemode(gunid,0).settings.muzzley#,firemode(gunid,0).settings.muzzlez#
+ size#=firemode(gunid,0).settings.muzzlesize# : if size#=0.0 then size#=100.0
  scale object hudbankoffset+32,size#,size#,size#
 else
  scale object hudbankoffset+32,0,0,0
@@ -19871,7 +19698,7 @@ if gun(gunid).settings.brasslimb<>-1
   obj=hudbankoffset+o
   if object exist(obj)=1 then delete object obj
   objecteffect(obj)=0
-  instance object obj,gun(gunid).settings.brassobjmaster
+  instance object obj,firemode(gunid,firemode).settings.brassobjmaster
   set object collision off obj
   disable object zdepth obj
   set object fov obj,45
@@ -19883,7 +19710,7 @@ rem Setup gun with smoke images
 if gun(gunid).settings.smokelimb<>-1
  for o=21 to 30
   obj=hudbankoffset+o
-  texture object obj,gun(gunid).settings.smokeimg
+  texture object obj,firemode(gunid,firemode).settings.smokeimg
   hide object obj
  next o
 endif
@@ -19982,30 +19809,39 @@ if keyframeratio>0
 else
  ratio#=1
 endif
+rem Determine number of alt frames per keyframe
+if altkeyframeratio>0
+ altratio#=altkeyframeratio
+else
+ altratio#=1
+endif
 
 rem Adjust animation data based on actual number of keyframes
-gun(gunid).action.show.s = gun(gunid).action.show.s * ratio#
-gun(gunid).action.show.e = gun(gunid).action.show.e * ratio#
-gun(gunid).action.idle.s = gun(gunid).action.idle.s * ratio#
-gun(gunid).action.idle.e = gun(gunid).action.idle.e * ratio#
-gun(gunid).action.move.s = gun(gunid).action.move.s * ratio#
-gun(gunid).action.move.e = gun(gunid).action.move.e * ratio#
-gun(gunid).action.start.s = gun(gunid).action.start.s * ratio#
-gun(gunid).action.start.e = gun(gunid).action.start.e * ratio#
-gun(gunid).action.automatic.s = gun(gunid).action.automatic.s * ratio#
-gun(gunid).action.automatic.e = gun(gunid).action.automatic.e * ratio#
-gun(gunid).action.finish.s = gun(gunid).action.finish.s * ratio#
-gun(gunid).action.finish.e = gun(gunid).action.finish.e * ratio#
-gun(gunid).action.startreload.s = gun(gunid).action.startreload.s * ratio#
-gun(gunid).action.startreload.e = gun(gunid).action.startreload.e * ratio#
-gun(gunid).action.reloadloop.s = gun(gunid).action.reloadloop.s * ratio#
-gun(gunid).action.reloadloop.e = gun(gunid).action.reloadloop.e * ratio#
-gun(gunid).action.endreload.s = gun(gunid).action.endreload.s * ratio#
-gun(gunid).action.endreload.e = gun(gunid).action.endreload.e * ratio#
-gun(gunid).action.cock.s = gun(gunid).action.cock.s * ratio#
-gun(gunid).action.cock.e = gun(gunid).action.cock.e * ratio#
-gun(gunid).action.hide.s = gun(gunid).action.hide.s * ratio#
-gun(gunid).action.hide.e = gun(gunid).action.hide.e * ratio#
+for i=0 to 1
+ if i=1 then ratio#=altratio#
+ firemode(gunid,i).action.show.s = firemode(gunid,i).action.show.s * ratio#
+ firemode(gunid,i).action.show.e = firemode(gunid,i).action.show.e * ratio#
+ firemode(gunid,i).action.idle.s = firemode(gunid,i).action.idle.s * ratio#
+ firemode(gunid,i).action.idle.e = firemode(gunid,i).action.idle.e * ratio#
+ firemode(gunid,i).action.move.s = firemode(gunid,i).action.move.s * ratio#
+ firemode(gunid,i).action.move.e = firemode(gunid,i).action.move.e * ratio#
+ firemode(gunid,i).action.start.s = firemode(gunid,i).action.start.s * ratio#
+ firemode(gunid,i).action.start.e = firemode(gunid,i).action.start.e * ratio#
+ firemode(gunid,i).action.automatic.s = firemode(gunid,i).action.automatic.s * ratio#
+ firemode(gunid,i).action.automatic.e = firemode(gunid,i).action.automatic.e * ratio#
+ firemode(gunid,i).action.finish.s = firemode(gunid,i).action.finish.s * ratio#
+ firemode(gunid,i).action.finish.e = firemode(gunid,i).action.finish.e * ratio#
+ firemode(gunid,i).action.startreload.s = firemode(gunid,i).action.startreload.s * ratio#
+ firemode(gunid,i).action.startreload.e = firemode(gunid,i).action.startreload.e * ratio#
+ firemode(gunid,i).action.reloadloop.s = firemode(gunid,i).action.reloadloop.s * ratio#
+ firemode(gunid,i).action.reloadloop.e = firemode(gunid,i).action.reloadloop.e * ratio#
+ firemode(gunid,i).action.endreload.s = firemode(gunid,i).action.endreload.s * ratio#
+ firemode(gunid,i).action.endreload.e = firemode(gunid,i).action.endreload.e * ratio#
+ firemode(gunid,i).action.cock.s = firemode(gunid,i).action.cock.s * ratio#
+ firemode(gunid,i).action.cock.e = firemode(gunid,i).action.cock.e * ratio#
+ firemode(gunid,i).action.hide.s = firemode(gunid,i).action.hide.s * ratio#
+ firemode(gunid,i).action.hide.e = firemode(gunid,i).action.hide.e * ratio#
+next i
 
 rem Load Effect (if allowed)
 if guseeffectongunsstate=1 and gun(gunid).effect$<>""
@@ -20112,34 +19948,37 @@ for ttc=1 to checklist quantity()
 next ttc
 set dir tstoreolddir$
 
-rem load in scope if any
-if gun(gunid).zoomscope$<>""
- img$="gamecore\"+fpgchuds$+"\"+gun$+"\"+gun(gunid).zoomscope$
- gun(gunid).zoomscope=loadinternalimagecompress(img$,5)
- addfiletocollection(img$)
-else
- rem V109 BETA8 - try to load common scope files in case not specified in gunspec
- tzoomscope$="scope_d2.tga"
- img$="gamecore\"+fpgchuds$+"\"+gun$+"\"+tzoomscope$
- gun(gunid).zoomscope=loadinternalimagecompress(img$,5)
- if gun(gunid).zoomscope=0
-  tzoomscope$="scope.tga"
+for i=0 to 1
+ rem load in scope if any
+ if firemode(gunid,i).zoomscope$<>""
+  img$="gamecore\"+fpgchuds$+"\"+gun$+"\"+firemode(gunid,i).zoomscope$
+  firemode(gunid,i).zoomscope=loadinternalimagecompress(img$,5)
+  addfiletocollection(img$)
+ else
+  rem V109 BETA8 - try to load common scope files in case not specified in gunspec
+  tzoomscope$="scope_d2.tga"
   img$="gamecore\"+fpgchuds$+"\"+gun$+"\"+tzoomscope$
-  gun(gunid).zoomscope=loadinternalimagecompress(img$,5)
-  if gun(gunid).zoomscope=0
-   tzoomscope$="scope1.tga"
+  firemode(gunid,i).zoomscope=loadinternalimagecompress(img$,5)
+  if firemode(gunid,i).zoomscope=0
+   tzoomscope$="scope.tga"
    img$="gamecore\"+fpgchuds$+"\"+gun$+"\"+tzoomscope$
-   gun(gunid).zoomscope=loadinternalimagecompress(img$,5)
+   firemode(gunid,i).zoomscope=loadinternalimagecompress(img$,5)
+   if firemode(gunid,i).zoomscope=0
+    tzoomscope$="scope1.tga"
+    img$="gamecore\"+fpgchuds$+"\"+gun$+"\"+tzoomscope$
+    firemode(gunid,i).zoomscope=loadinternalimagecompress(img$,5)
+   endif
   endif
  endif
-endif
-
-rem FPGC - rotate gun and fix pivot if GUNSPEC changes it
-if gun(gunid).settings.rotx#<>0 or gun(gunid).settings.roty#<>0 or gun(gunid).settings.rotz#<>0
- set object rotation zyx currentgunobj
- rotate object currentgunobj,gun(gunid).settings.rotx#,gun(gunid).settings.roty#,gun(gunid).settings.rotz#
- fix object pivot currentgunobj
-endif
+ `
+ rem FPGC - rotate gun and fix pivot if GUNSPEC changes it
+ if firemode(gunid,i).settings.rotx#<>0 or firemode(gunid,i).settings.roty#<>0 or firemode(gunid,i).settings.rotz#<>0
+  set object rotation zyx currentgunobj
+  rotate object currentgunobj,firemode(gunid,i).settings.rotx#,firemode(gunid,i).settings.roty#,firemode(gunid,i).settings.rotz#
+  fix object pivot currentgunobj
+ endif
+ `
+next i
 
 rem Glue gun to HUD-Gun-Marker
 glue object to limb currentgunobj,hudbankoffset+2,0
@@ -20159,49 +19998,43 @@ set object speed currentgunobj,timeelapsed#*(genericgunanimspeed#*0.75)
 loop object currentgunobj
 
 rem Setup gun with muzzle flash image
-num=gun(gunid).settings.muzzleflash : if num=0 then num=1
-size#=gun(gunid).settings.muzzlesize# : if size#=0.0 then size#=100.0
-muzzleflash$="gamecore\muzzleflash\flash"+str$(num)+".tga"
-imgid=loadmuzzle(muzzleflash$)
-gun(gunid).settings.flashimg=imgid
-rem AirMod - Add Alternate Muzzleflash
-num=gun(gunid).settings.altmuzzleflash : if num=0 then num=1
-size#=gun(gunid).settings.muzzlesize# : if size#=0.0 then size#=100.0
-muzzleflash$="gamecore\muzzleflash\flash"+str$(num)+".tga"
-imgid=loadmuzzle(muzzleflash$)
-gun(gunid).settings.altflashimg=imgid
-rem AirMod - Done
+for i=0 to 1
+ num=firemode(gunid,i).settings.muzzleflash : if num=0 then num=1
+ size#=firemode(gunid,i).settings.muzzlesize# : if size#=0.0 then size#=100.0
+ muzzleflash$="gamecore\muzzleflash\flash"+str$(num)+".tga"
+ imgid=loadmuzzle(muzzleflash$)
+ firemode(gunid,i).settings.flashimg=imgid
 `
-rem Setup gun with brass models
-num=gun(gunid).settings.brass : if num=0 then num=1
-brass$="gamecore\brass\brass"+str$(num)+"\brass"+str$(num)+".x"
-brassobj=loadbrass(brass$)
-if brassobj=0
- rem leefix - 290308 - v109 - specifying a brass value that does not exist crashes engine
- num=1 : gun(gunid).settings.brass=0
+ rem Setup gun with brass models
+ num=firemode(gunid,i).settings.brass : if num=0 then num=1
  brass$="gamecore\brass\brass"+str$(num)+"\brass"+str$(num)+".x"
  brassobj=loadbrass(brass$)
-endif
-addfiletocollection("gamecore\brass\brass"+str$(num)+"\brass"+str$(num)+"_D2.dds")
-gun(gunid).settings.brassobjmaster=brassobj
-
-rem Setup gun with smoke images
-num=gun(gunid).settings.smoke
-if len(gun(gunid).settings.smokedecal$)>0
- smoke$="gamecore\decals\"+gun(gunid).settings.smokedecal$+"\decal.tga"
- imgid=loadsmoke(smoke$)
-else
- if num=0 then num=1
- rem FPSCV04RC9 0- replace smoke1 usage with gunsmoke usage (better visual)
- if num=1
-  smoke$="gamecore\decals\gunsmoke\decal.tga"
- else
-  smoke$="gamecore\decals\smoke"+str$(num)+"\decal.tga"
+ if brassobj=0
+  rem leefix - 290308 - v109 - specifying a brass value that does not exist crashes engine
+  num=1 : firemode(gunid,i).settings.brass=0
+  brass$="gamecore\brass\brass"+str$(num)+"\brass"+str$(num)+".x"
+  brassobj=loadbrass(brass$)
  endif
- imgid=loadsmoke(smoke$)
-endif
-gun(gunid).settings.smokeimg=imgid
+ addfiletocollection("gamecore\brass\brass"+str$(num)+"\brass"+str$(num)+"_D2.dds")
+ firemode(gunid,i).settings.brassobjmaster=brassobj
 
+ rem Setup gun with smoke images
+ num=firemode(gunid,i).settings.smoke
+ if len(firemode(gunid,i).settings.smokedecal$)>0
+  smoke$="gamecore\decals\"+firemode(gunid,i).settings.smokedecal$+"\decal.tga"
+  imgid=loadsmoke(smoke$)
+ else
+  if num=0 then num=1
+  rem FPSCV04RC9 0- replace smoke1 usage with gunsmoke usage (better visual)
+  if num=1
+   smoke$="gamecore\decals\gunsmoke\decal.tga"
+  else
+   smoke$="gamecore\decals\smoke"+str$(num)+"\decal.tga"
+  endif
+  imgid=loadsmoke(smoke$)
+ endif
+ firemode(gunid,i).settings.smokeimg=imgid
+next i
 rem Setup gun with crosshair
 crosshair$="gamecore\"+fpgchuds$+"\"+gun$+"\crosshair.tga"
 crosshairimage=loadinternalimagecompressquality(crosshair$,5,1)
@@ -20249,14 +20082,15 @@ rem Load HUD image (ammo and weapon selected image)
 img$="gamecore\"+fpgchuds$+"\"+gun$+"\hud_icon.tga" : addfiletocollection(img$)
 gun(gunid).hudimage=loadinternalimagecompressquality(img$,5,1)
 
-rem Find and store flak index for later use
-if gun(gunid).settings.flakname$<>""
- flak$=gun(gunid).settings.flakname$ : gosub _flak_findindex
- gun(gunid).settings.flakindex=tindex
- rem V109 BETA10 - 120508 - flag that we are using this flak
- flak(tindex).usedinlevel=1
-endif
-
+for i=0 to 1
+ rem Find and store flak index for later use
+ if firemode(gunid,i).settings.flakname$<>""
+  flak$=firemode(gunid,i).settings.flakname$ : gosub _flak_findindex
+  firemode(gunid,i).settings.flakindex=tindex
+  rem V109 BETA10 - 120508 - flag that we are using this flak
+  flak(tindex).usedinlevel=1
+ endif
+next i
 return
 
 _gun_freeafterlevel:
@@ -22291,7 +22125,7 @@ rem Hide gun from HUD
 if currentgunobj>0
  if object exist(currentgunobj)=1
   set object interpolation currentgunobj,100
-  set object frame currentgunobj,gun(gunid).action.show.s
+  set object frame currentgunobj,firemode(gunid,0).action.show.s
   hide object currentgunobj
  endif
 ` if gun(gunid).secondobj>0
@@ -22375,6 +22209,7 @@ if array count(filelist$())>0
  next chkfile
  gunmax=gunid-1
  dim gun(gunmax+1) as guntype
+ dim firemode(gunmax+1,1) as guntype
  `dim gunsound(gunmax+1,5) as gunsoundbanktype
  `dim gunsoundcompanion(gunmax+1,5,2) as gunsoundbankcompaniontype
  Rem AirMod - Update next two lines for additional gun sounds
@@ -22430,6 +22265,7 @@ if array count(filelist$())>0
      `
      inc gunmax
      dim gun(gunmax+1) as guntype
+     dim firemode(gunmax+1,1) as guntype
      dim gunsound(gunmax+1,5) as gunsoundbanktype
      dim gunsoundcompanion(gunmax+1,5,2) as gunsoundbankcompaniontype
      dim gunsounditem(gunmax+1,50) as gunsounditemtype
@@ -25207,7 +25043,7 @@ if tgunid$<>""
  findgun$=lower$(tgunid$)
  gosub _gun_findweaponindexbyname
  tgunid=foundgunid
- tflakid$=gun(tgunid).settings.flakname$
+ tflakid$=firemode(tgunid,0).settings.flakname$
  if tflakid$<>""
   flak$=lower$(tflakid$) : gosub _flak_findindex
   tflakid=tindex
@@ -25299,11 +25135,11 @@ _entity_fillelementfromprofile:
  entityelement(e).eleprof.rateoffire=85
  entityelement(e).eleprof.weaponisammo=0
  if tgunid>0
-  entityelement(e).eleprof.accuracy=gun(tgunid).settings.accuracy
-  entityelement(e).eleprof.reloadqty=gun(tgunid).settings.reloadqty
-  entityelement(e).eleprof.fireiterations=gun(tgunid).settings.iterate
+  entityelement(e).eleprof.accuracy=firemode(tgunid,0).settings.accuracy
+  entityelement(e).eleprof.reloadqty=firemode(tgunid,0).settings.reloadqty
+  entityelement(e).eleprof.fireiterations=firemode(tgunid,0).settings.iterate
   if tflakid=0
-   entityelement(e).eleprof.damage=gun(tgunid).settings.damage
+   entityelement(e).eleprof.damage=firemode(tgunid,0).settings.damage
   else
    entityelement(e).eleprof.damage=flak(tflakid).profile.damage
    entityelement(e).eleprof.lifespan=flak(tflakid).profile.lifespan
@@ -25409,11 +25245,11 @@ _entity_fillgrideleproffromprofile:
  grideleprof.rateoffire=85
  grideleprof.weaponisammo=0
  if tgunid>0
-  grideleprof.accuracy=gun(tgunid).settings.accuracy
-  grideleprof.reloadqty=gun(tgunid).settings.reloadqty
-  grideleprof.fireiterations=gun(tgunid).settings.iterate
+  grideleprof.accuracy=firemode(tgunid,0).settings.accuracy
+  grideleprof.reloadqty=firemode(tgunid,0).settings.reloadqty
+  grideleprof.fireiterations=firemode(tgunid,0).settings.iterate
   if tflakid=0
-   grideleprof.damage=gun(tgunid).settings.damage
+   grideleprof.damage=firemode(tgunid,0).settings.damage
   else
    grideleprof.damage=flak(tflakid).profile.damage
    grideleprof.lifespan=flak(tflakid).profile.lifespan
@@ -29120,20 +28956,13 @@ _ai_hud_view:
    if hud(hudid).typemode=3
     if weaponammoindex>0
      `if gun(gunid).settings.reloadqty>0
-     if (gun(gunid).settings.reloadqty>0 and gun(gunid).settings.alternate = 0) or (gun(gunid).settings.altreloadqty>0 and gun(gunid).settings.alternate = 1)
+     if firemode(gunid,firemode).settings.reloadqty>0
       if gun(gunid).settings.weaponisammo=1
        hud(hudid).text$=str$(weaponammo(weaponammoindex))
       else
-       rem AirMod - Modified for Alt Fire
-       if gun(gunid).settings.alternate=1
-        altpool=gun(gunid).settings.altpoolindex
-        if altpool=0 then ammo=weaponclipammo(weaponammoindex+10) else ammo=ammopool(altpool).ammo
-        hud(hudid).text$=str$(weaponammo(weaponammoindex+10))+"\"+str$(ammo)
-       else
-        tpool=gun(gunid).settings.poolindex
-        if tpool=0 then ammo=weaponclipammo(weaponammoindex) else ammo=ammopool(tpool).ammo
-        hud(hudid).text$=str$(weaponammo(weaponammoindex))+"\"+str$(ammo)
-       endif
+       tpool=firemode(gunid,firemode).settings.poolindex
+       if tpool=0 then ammo=weaponclipammo(weaponammoindex+ammooffset) else ammo=ammopool(tpool).ammo
+       hud(hudid).text$=str$(weaponammo(weaponammoindex+ammooffset))+"\"+str$(ammo)
       endif
      else
       hud(hudid).text$=""
@@ -29182,8 +29011,8 @@ _ai_hud_view:
   rem WEAPON ZOOMSCOPE OVERRIDE
   if hud(hudid).maintype=5
    if hud(hudid).typemode=4
-    if gun(gunid).zoomscope<>0
-     hud(hudid).image=gun(gunid).zoomscope
+    if firemode(gunid,firemode).zoomscope<>0
+     hud(hudid).image=firemode(gunid,firemode).zoomscope
     else
      hud(hudid).image=internalzoomhudimage
     endif
@@ -31150,14 +30979,14 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
  if plrzoominchange=1
   if plrzoomin#>1.0
    rem AirMod - Modified for Simple Zoom
-   if gun(gunid).settings.simplezoom <> 0
-    set camera fov 75.0-(plrzoomin#*gun(gunid).settings.simplezoom)+airmod_camfov#
+   if firemode(gunid,firemode).settings.simplezoom <> 0
+    set camera fov 75.0-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov#
    else
     set camera fov 75.0-(plrzoomin#*7)-gunzoommag#+airmod_camfov#
    endif
    rem AirMod - Done
    rem AirMod - Modified for Simple Zoom
-   if internalzoomhud>0 and (gun(gunid).settings.simplezoom = 0 or gun(gunid).zoomscope<>0) then hudid=internalzoomhud : hud(hudid).hide=0 : set sprite alpha hudid,(255.0/10.0)*plrzoomin#
+   if internalzoomhud>0 and (firemode(gunid,firemode).settings.simplezoom = 0 or firemode(gunid,firemode).zoomscope<>0) then hudid=internalzoomhud : hud(hudid).hide=0 : set sprite alpha hudid,(255.0/10.0)*plrzoomin#
   else
    rem AirMod - Modified for cam fov
    set camera fov 75.0+airmod_camfov#
@@ -31184,7 +31013,7 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
    basespeed#=35 : isrunning=0
   endif
   rem AirMod - Slow player for simple zoom
-  if (gunzoommode <> 0 and gun(gunid).settings.simplezoom <> 0) then basespeed#=35-(20*gun(gunid).settings.zoomwalkspeed) : isrunning=0
+  if (gunzoommode <> 0 and firemode(gunid,firemode).settings.simplezoom <> 0) then basespeed#=35-(20*firemode(gunid,firemode).settings.zoomwalkspeed) : isrunning=0
  endif
  if jumpaction=0
   rem regular speed from manouver
@@ -31616,7 +31445,7 @@ if t=3 then camrotspeed#=0.15
 if t=4 then camrotspeed#=0.2
 if t>=5 then camrotspeed#=0.25
 `if plrzoomin#>0 then camrotspeed#=camrotspeed#/plrzoomin#
-if plrzoomin#>0 then camrotspeed#=camrotspeed#/(plrzoomin#*gun(gunid).settings.zoomturnspeed)
+if plrzoomin#>0 then camrotspeed#=camrotspeed#/(plrzoomin#*firemode(gunid,firemode).settings.zoomturnspeed)
 
 rem AirMod - Added for Weapon Recoil >>
 gunRecoilAngleY# = curvevalue(gunRecoilY#,gunRecoilAngleY#,2)
@@ -34221,8 +34050,8 @@ _common:
           endif
          endif
          if entityelement(e).firesoundloopremote=0
-          play sound tsndid,gun(tgunid).sound.fireloopend
-          loop sound tsndid,0,gun(tgunid).sound.fireloopend
+          play sound tsndid,firemode(tgunid,0).sound.fireloopend
+          loop sound tsndid,0,firemode(tgunid,0).sound.fireloopend
           entityelement(e).firesoundloopremote=tsndid
          endif
          entityelement(e).firesoundlooptime=timer()
@@ -34239,8 +34068,8 @@ _common:
        if entityelement(e).currentweapon>0
         rem override decal if gun specifies non-fire-flare
         tgunid=entityelement(e).currentweapon
-        if gun(tgunid).decalid>0
-         entityelement(e).decalindex=gun(tgunid).decalid*-1
+        if firemode(tgunid,0).decalid>0
+         entityelement(e).decalindex=firemode(tgunid,0).decalid*-1
         endif
        else
         entityelement(e).decalindex=0
@@ -43971,10 +43800,10 @@ tgunid$=entityprofile(entid).isweapon$
 gosub _entity_getgunidandflakid
 if tgunid>0
  rem populate the actual gun and flak settings (for further weapon entity creations)
- gun(tgunid).settings.damage=grideleprof.damage
- gun(tgunid).settings.accuracy=grideleprof.accuracy
- gun(tgunid).settings.reloadqty=grideleprof.reloadqty
- gun(tgunid).settings.iterate=grideleprof.fireiterations
+ firemode(tgunid,0).settings.damage=grideleprof.damage
+ firemode(tgunid,0).settings.accuracy=grideleprof.accuracy
+ firemode(tgunid,0).settings.reloadqty=grideleprof.reloadqty
+ firemode(tgunid,0).settings.iterate=grideleprof.fireiterations
  if tflakid>0
   flak(tflakid).profile.lifespan=grideleprof.lifespan
   flak(tflakid).profile.zinc=grideleprof.throwspeed
