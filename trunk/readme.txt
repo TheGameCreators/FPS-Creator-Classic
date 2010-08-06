@@ -9,6 +9,7 @@ History
 V1.1.8
 ------
  
+ * Added Project Blue's variable system
  * REWROTE the way Airmod's alternate fire works. All it was doing was making a mess of the engine and didn't even have support for all primary gunspec commands
     Now you can use any gunspec command (excluding melee key=x, weaponisammo=x,altto=x,y, altfrom=x,y, addtospare=x,sound#=x, altsound=x, soundframes=x, and sframe=x)
      with the alternate fire feature.

@@ -59,6 +59,16 @@ else
  endif
 endif
 
+If file exist("VariableParse.txt") then delete file "VariableParse.txt"
+Open to write 22,"VariableParse.txt"
+rem - Global array for string variables
+type uservar
+ used as boolean
+ name as string
+ value as float
+endtype
+dim uservars() as uservar
+
 Rem Hockeykid - 250210 - Dark AI added type for containers/layers
 type containertype
    y# as float
@@ -1525,6 +1535,13 @@ rem AirMod - Done <<<
 #constant AIACTSETVAR 33
 #constant AIACTINCVAR 34
 #constant AIACTDECVAR 35
+#constant AIACTDIMVAR 36
+#constant AIACTADDVAR 37
+#constant AIACTSUBVAR 38
+#constant AIACTMULVAR 39
+#constant AIACTDIVVAR 40
+#constant AIACTMODVAR 41
+#constant AIACTWRAPVAR 42
 #constant AIACTRUNFPIDEFAULT 51
 #constant AIACTRUNFPI 52
 #constant AIACTSELECTSHADERVARIABLE 71
@@ -1690,6 +1707,7 @@ Rem Hockeykid - 250210 - Dark AI constants
 #constant AIACTAIADDNEUTRAL 1094
 #constant AIACTAIAUTOFACTIONOFF 1095
 Rem end Dark AI constants
+#constant AIACTHUDUSERVAR 1099
 #constant AIACTHUDRESET 1100
 #constant AIACTHUDX 1101
 #constant AIACTHUDY 1102
@@ -1781,7 +1799,12 @@ rem AI actions
 type aiactiontype
  type as integer
  value as float
+ rem Variable System - For User Vars we'll need two variables instead of one
+ valueb as float
  filename as string
+ rem Variable System - For Var to Var operations we'll need two strings
+ string1 as string
+ string2 as string
 endtype
 dim aiactionseq(10000) as aiactiontype
 type aiactionitemtype
@@ -1796,6 +1819,9 @@ type aiconditiontype
  valuea as float
  valueb as float
  valuec as float
+ rem Variable System - For Var to Var checks we'll need two string
+ string1 as string
+ string2 as string
 endtype
 dim aiconditionseq(10000) as aiconditiontype
 type aiconditionitemtype
@@ -2330,6 +2356,7 @@ guivisualsettings.ambienceoverride=-1
 
 rem HUD structure
 type hudtype
+ uservar as integer
  name$ as string
  maintype as integer
  typemode as integer
@@ -3694,7 +3721,9 @@ _main_game_core:
  inc gameperftotalcount, perftimer()-gameperftotalcountTOP
  gameperftotalcountTOP=perftimer()
  `
- Print "Gunmode: "+str$(gunmode)
+ for uvar = 0 to array count(uservars(0))
+  Print uservars(uvar).name+": Value: "+str$(uservars(uvar).value)+" Used: "+str$(uservars(uvar).used)
+ next uvar
  `
  rem Update screen
  gosub _main_sync
@@ -7605,7 +7634,7 @@ if entityelement(e).fireweapon=1
    rem discharge sound (single fire, or automatic loop sound)
    tsndid=gunsoundcompanion(tgunid,1,rnd(2)).soundid
    if tsndid>0
-    if gun(tgunid).action.automatic.s>0
+    if firemode(tgunid,0).action.automatic.s>0
      if entityelement(e).firesoundloop=0
       play sound tsndid,firemode(tgunid,0).sound.fireloopend : rem some sound bug
       loop sound tsndid,0,firemode(tgunid,0).sound.fireloopend
@@ -7696,11 +7725,11 @@ if entityelement(e).fireweapon=1
     `
     rem where wall not hit, must be a hit
     if tbullethitstatic=0
-     trange#=gun(tgunid).settings.range
+     trange#=firemode(tgunid,0).settings.range
      tperc#=(trange#-dst#)/trange#
      if dst#<200 then tperc#=1.0
-     bulletdamage#=gun(tgunid).settings.damage : dec bulletdamage#,rnd(bulletdamage#/5)
-     if gun(tgunid).settings.damage>5
+     bulletdamage#=firemode(tgunid,0).settings.damage : dec bulletdamage#,rnd(bulletdamage#/5)
+     if firemode(tgunid,0).settings.damage>5
       rem enemy fire always one half the players effectiveness after first few points
       tperc#=tperc#*0.5
      endif
@@ -7859,7 +7888,7 @@ else
  if entityelement(e).fireweapon>0
   tgunid=entityelement(e).currentweapon
   entityelement(e).fireweapon=entityelement(e).fireweapon+timeelapsed#
-  if gun(tgunid).action.automatic.s>0
+  if firemode(tgunid,0).action.automatic.s>0
    if entityelement(e).currentammo<=0 and entityelement(e).firesoundloop>0
     stop sound entityelement(e).firesoundloop
     entityelement(e).firesoundloop=0
@@ -10209,6 +10238,13 @@ actword$(AIACTLOCALVAR)="localvar"
 actword$(AIACTSETVAR)="setvar"
 actword$(AIACTINCVAR)="incvar"
 actword$(AIACTDECVAR)="decvar"
+actword$(AIACTDIMVAR)="dimvar"
+actword$(AIACTADDVAR)="addvar"
+actword$(AIACTSUBVAR)="subvar"
+actword$(AIACTMULVAR)="mulvar"
+actword$(AIACTDIVVAR)="divvar"
+actword$(AIACTMODVAR)="modvar"
+actword$(AIACTWRAPVAR)="wrapvar"
 actword$(AIACTRUNFPIDEFAULT)="runfpidefault"
 actword$(AIACTRUNFPI)="runfpi"
 actword$(AIACTSELECTSHADERVARIABLE)="selectshadervariable"
@@ -10337,6 +10373,7 @@ actword$(AIACTLIGHTGREEN)="lightgreen"
 actword$(AIACTLIGHTBLUE)="lightblue"
 actword$(AIACTLIGHTRANGE)="lightrange"
 actword$(AIACTLIGHTINTENSITY)="lightintensity"
+actword$(AIACTHUDUSERVAR)="huduservar"
 actword$(AIACTHUDRESET)="hudreset"
 actword$(AIACTHUDX)="hudx"
 actword$(AIACTHUDY)="hudy"
@@ -10514,6 +10551,196 @@ if aiindex>0
      endif
     endif
    endif
+
+  rem Plystire - This will allow the engine to replace variable names with the value of the variable
+  if left$(aiconditionseq(seq).string1,1)="%"
+   rem Find the variable being called for and replace valuea with it's value
+   tuvar$=right$(aiconditionseq(seq).string1,len(aiconditionseq(seq).string1)-1)
+   Write String 22,tuvar$
+   tfound=0
+   for uvar=0 to array count(uservars(0))
+    if uservars(uvar).name=tuvar$ and uservars(uvar).used=1
+     rem found the variable
+     tfound=1
+     aiconditionseq(seq).valuea=uservars(uvar).value
+     exit
+    endif
+   next uvar
+   rem if we didn't find the value, give it a 0
+   if tfound=0 then aiconditionseq(seq).valuea=0
+  endif
+  if left$(aiconditionseq(seq).string2,1)="%"
+   rem Find the variable being called for and replace valuea with it's value
+   tuvar$=right$(aiconditionseq(seq).string2,len(aiconditionseq(seq).string2)-1)
+   tfound=0
+   for uvar=0 to array count(uservars(0))
+    if uservars(uvar).name=tuvar$ and uservars(uvar).used=1
+     rem found the variable
+     tfound=1
+     aiconditionseq(seq).valueb=uservars(uvar).value
+     exit
+    endif
+   next uvar
+   rem if we didn't find the value, give it a 0
+   if tfound=0 then aiconditionseq(seq).valueb=0
+  endif
+  rem Plystire - This section will allow the engine to replace certain tags with important engine variables
+  select aiconditionseq(seq).string1
+   case "$PH"
+    aiconditionseq(seq).valuea=player(1).health
+   endcase
+   case "$PL"
+    aiconditionseq(seq).valuea=player(1).lives
+   endcase
+   case "$RA"
+    aiconditionseq(seq).valuea=weaponclipammo(weaponammoindex)+weaponammo(weaponammoindex)
+   endcase
+   case "$A"
+    aiconditionseq(seq).valuea=-1
+    if gunid<>0
+     aiconditionseq(seq).valuea=weaponclipammo(weaponammoindex)+weaponammo(weaponammoindex)
+    endif
+   endcase
+   case "$RCA"
+    aiconditionseq(seq).valuea=weaponammo(weaponammoindex)
+   endcase
+   case "$CA"
+    aiconditionseq(seq).valuea=-1
+    if gunid<>0 and gunid2=0
+     aiconditionseq(seq).valuea=weaponammo(weaponammoindex)
+    endif
+   endcase
+   case "$EH"
+    aiconditionseq(seq).valuea=entityelement(e).health
+   endcase
+   case "$EA"
+    aiconditionseq(seq).valuea=entityelement(e).currentammo
+   endcase
+   case "$EPX"
+    aiconditionseq(seq).valuea=entityelement(e).x
+   endcase
+   case "$EPY"
+    aiconditionseq(seq).valuea=entityelement(e).y
+   endcase
+   case "$EPZ"
+    aiconditionseq(seq).valuea=entityelement(e).z
+   endcase
+   case "$EAX"
+    aiconditionseq(seq).valuea=entityelement(e).rx
+   endcase
+   case "$EAY"
+    aiconditionseq(seq).valuea=entityelement(e).ry
+   endcase
+   case "$EAZ"
+    aiconditionseq(seq).valuea=entityelement(e).rz
+   endcase
+   case "$CAX"
+    aiconditionseq(seq).valuea=camera angle x(0)
+   endcase
+   case "$CAY"
+    aiconditionseq(seq).valuea=camera angle y(0)
+   endcase
+   case "$CAZ"
+    aiconditionseq(seq).valuea=camera angle z(0)
+   endcase
+   case "$CPX"
+    aiconditionseq(seq).valuea=camera position x(0)
+   endcase
+   case "$CPY"
+    aiconditionseq(seq).valuea=camera position y(0)
+   endcase
+   case "$CPZ"
+    aiconditionseq(seq).valuea=camera position z(0)
+   endcase
+   case "$MMX"
+    aiconditionseq(seq).valuea=dcamx#
+   endcase
+   case "$MMY"
+    aiconditionseq(seq).valuea=dcamy#
+   endcase
+   case "$MMZ"
+    aiconditionseq(seq).valuea=dcamz#
+   endcase
+  endselect
+  `
+  select aiconditionseq(seq).string2
+   case "$PH"
+    aiconditionseq(seq).valueb=player(1).health
+   endcase
+   case "$PL"
+    aiconditionseq(seq).valueb=player(1).lives
+   endcase
+   case "$RA"
+    aiconditionseq(seq).valueb=weaponclipammo(weaponammoindex)+weaponammo(weaponammoindex)
+   endcase
+   case "$A"
+    aiconditionseq(seq).valueb=-1
+    if gunid<>0
+     aiconditionseq(seq).valueb=weaponclipammo(weaponammoindex)+weaponammo(weaponammoindex)
+    endif
+   endcase
+   case "$RCA"
+    aiconditionseq(seq).valueb=weaponammo(weaponammoindex)
+   endcase
+   case "$CA"
+    aiconditionseq(seq).valueb=-1
+    if gunid<>0
+     aiconditionseq(seq).valueb=weaponammo(weaponammoindex)
+    endif
+   endcase
+   case "$EH"
+    aiconditionseq(seq).valueb=entityelement(e).health
+   endcase
+   case "$EA"
+    aiconditionseq(seq).valueb=entityelement(e).currentammo
+   endcase
+   case "$EPX"
+    aiconditionseq(seq).valueb=entityelement(e).x
+   endcase
+   case "$EPY"
+    aiconditionseq(seq).valueb=entityelement(e).y
+   endcase
+   case "$EPZ"
+    aiconditionseq(seq).valueb=entityelement(e).z
+   endcase
+   case "$EAX"
+    aiconditionseq(seq).valueb=entityelement(e).rx
+   endcase
+   case "$EAY"
+    aiconditionseq(seq).valueb=entityelement(e).ry
+   endcase
+   case "$EAZ"
+    aiconditionseq(seq).valueb=entityelement(e).rz
+   endcase
+   case "$CAX"
+    aiconditionseq(seq).valueb=camera angle x(0)
+   endcase
+   case "$CAY"
+    aiconditionseq(seq).valueb=camera angle y(0)
+   endcase
+   case "$CAZ"
+    aiconditionseq(seq).valueb=camera angle z(0)
+   endcase
+   case "$CPX"
+    aiconditionseq(seq).valueb=camera position x(0)
+   endcase
+   case "$CPY"
+    aiconditionseq(seq).valueb=camera position y(0)
+   endcase
+   case "$CPZ"
+    aiconditionseq(seq).valueb=camera position z(0)
+   endcase
+   case "$MMX"
+    aiconditionseq(seq).valueb=dcamx#
+   endcase
+   case "$MMY"
+    aiconditionseq(seq).valueb=dcamy#
+   endcase
+   case "$MMZ"
+    aiconditionseq(seq).valueb=dcamz#
+   endcase
+  endselect
+   `
    select aiconditionseq(seq).type
     case AICONDNEVER: airesult=0 : endcase
     case AICONDALWAYS: airesult=airesult : endcase
@@ -10565,44 +10792,156 @@ if aiindex>0
     endcase
     `
     case AICONDVAREQUAL:
-     tindex=aivariableindex
-     if aivariablemode=0
-      conda=aiglobals(tindex)
+     rem Plystire 109 - Merging the variable conditions into one
+     if aiconditionseq(seq).string2=""
+      tindex=aivariableindex
+      if aivariablemode=0
+       conda=aiglobals(tindex)
+      else
+       conda=ailocals(e,tindex)
+      endif
+      condb=aiconditionseq(seq).valuea
+      if conda<>condb then airesult=0
      else
-      conda=ailocals(e,tindex)
+      rem Use the better system ;)
+      if left$(aiconditionseq(seq).string1,1)<>"$" and left$(aiconditionseq(seq).string1,1)<>"%"
+       if asc(left$(aiconditionseq(seq).string1,1))<asc("0") or asc(left$(aiconditionseq(seq).string1,1))>asc("9")
+        rem Let's find the variable we need to check
+        for uvar = 0 to array count(uservars(0))
+         if uservars(uvar).used = 1
+          if uservars(uvar).name = aiconditionseq(seq).string1
+           rem Found it, now let's check it
+           conda = uservars(uvar).value
+           rem And Exit the For Loop
+           exit
+          endif
+         endif
+        next uvar
+       else
+        conda = aiconditionseq(seq).valuea
+       endif
+      else
+       conda = aiconditionseq(seq).valuea
+      endif
+      rem Now check the values
+      if conda <> aiconditionseq(seq).valueb then airesult=0
+      rem If we couldn't find the variable, then fail the condition
+      if uvar > array count(uservars(0)) then airesult = 0
      endif
-     condb=aiconditionseq(seq).valuea
-     if conda<>condb then airesult=0
     endcase
     case AICONDVARNOTEQUAL:
-     tindex=aivariableindex
-     if aivariablemode=0
-      conda=aiglobals(tindex)
+     rem Plystire 109 - Merging the variable conditions into one
+     if aiconditionseq(seq).string2=""
+      tindex=aivariableindex
+      if aivariablemode=0
+       conda=aiglobals(tindex)
+      else
+       conda=ailocals(e,tindex)
+      endif
+      condb=aiconditionseq(seq).valuea
+      if conda=condb then airesult=0
      else
-      conda=ailocals(e,tindex)
+      rem Use the better system ;)
+      if left$(aiconditionseq(seq).string1,1)<>"$" and left$(aiconditionseq(seq).string1,1)<>"%"
+       if asc(left$(aiconditionseq(seq).string1,1))<asc("0") or asc(left$(aiconditionseq(seq).string1,1))>asc("9")
+        rem Let's find the variable we need to check
+        for uvar = 0 to array count(uservars(0))
+         if uservars(uvar).used = 1
+          if uservars(uvar).name = aiconditionseq(seq).string1
+           rem Found it, now let's check it
+           conda = uservars(uvar).value
+           rem And Exit the For Loop
+           exit
+          endif
+         endif
+        next uvar
+       else
+        conda = aiconditionseq(seq).valuea
+       endif
+      else
+       conda = aiconditionseq(seq).valuea
+      endif
+      rem Now check the values
+      if conda = aiconditionseq(seq).valueb then airesult=0
+      rem If we couldn't find the variable, then fail the condition
+      if uvar > array count(uservars(0)) then airesult = 0
      endif
-     condb=aiconditionseq(seq).valuea
-     if conda=condb then airesult=0
     endcase
     case AICONDVARGREATER:
-     tindex=aivariableindex
-     if aivariablemode=0
-      conda=aiglobals(tindex)
+     rem Plystire 109 - Merging the variable conditions into one
+     if aiconditionseq(seq).string2=""
+      tindex=aivariableindex
+      if aivariablemode=0
+       conda=aiglobals(tindex)
+      else
+       conda=ailocals(e,tindex)
+      endif
+      condb=aiconditionseq(seq).valuea
+      if conda<=condb then airesult=0
      else
-      conda=ailocals(e,tindex)
+      rem Use the better system ;)
+      if left$(aiconditionseq(seq).string1,1)<>"$" and left$(aiconditionseq(seq).string1,1)<>"%"
+       if asc(left$(aiconditionseq(seq).string1,1))<asc("0") or asc(left$(aiconditionseq(seq).string1,1))>asc("9")
+        rem Let's find the variable we need to check
+        for uvar = 0 to array count(uservars(0))
+         if uservars(uvar).used = 1
+          if uservars(uvar).name = aiconditionseq(seq).string1
+           rem Found it, now let's check it
+           conda = uservars(uvar).value
+           rem And Exit the For Loop
+           exit
+          endif
+         endif
+        next uvar
+       else
+        conda = aiconditionseq(seq).valuea
+       endif
+      else
+       conda = aiconditionseq(seq).valuea
+      endif
+      rem Now check the values
+      if conda < aiconditionseq(seq).valueb then airesult=0
+      rem If we couldn't find the variable, then fail the condition
+      if uvar > array count(uservars(0)) then airesult = 0
      endif
-     condb=aiconditionseq(seq).valuea
-     if conda<=condb then airesult=0
     endcase
     case AICONDVARLESS:
-     tindex=aivariableindex
-     if aivariablemode=0
-      conda=aiglobals(tindex)
+     rem Plystire 109 - Merging the variable conditions into one
+     if aiconditionseq(seq).string2=""
+      tindex=aivariableindex
+      if aivariablemode=0
+       conda=aiglobals(tindex)
+      else
+       conda=ailocals(e,tindex)
+      endif
+      condb=aiconditionseq(seq).valuea
+      if conda>=condb then airesult=0
      else
-      conda=ailocals(e,tindex)
+      rem Use the better system ;)
+      if left$(aiconditionseq(seq).string1,1)<>"$" and left$(aiconditionseq(seq).string1,1)<>"%"
+       if asc(left$(aiconditionseq(seq).string1,1))<asc("0") or asc(left$(aiconditionseq(seq).string1,1))>asc("9")
+        rem Let's find the variable we need to check
+        for uvar = 0 to array count(uservars(0))
+         if uservars(uvar).used = 1
+          if uservars(uvar).name = aiconditionseq(seq).string1
+           rem Found it, now let's check it
+           conda = uservars(uvar).value
+           rem And Exit the For Loop
+           exit
+          endif
+         endif
+        next uvar
+       else
+        conda = aiconditionseq(seq).valuea
+       endif
+      else
+       conda = aiconditionseq(seq).valuea
+      endif
+      rem Now check the values
+      if conda > aiconditionseq(seq).valueb then airesult=0
+      rem If we couldn't find the variable, then fail the condition
+      if uvar > array count(uservars(0)) then airesult = 0
      endif
-     condb=aiconditionseq(seq).valuea
-     if conda>=condb then airesult=0
     endcase
     `
     case AICONDPLRHEALTHLESS:
@@ -11582,6 +11921,195 @@ if aiindex>0
       print actword$(aiactionseq(seq).type)+"("+str$(aiactionseq(seq).value)+")"+", ";
      endif
     endif
+    `
+  rem Plystire - This will allow the engine to replace variable names with the value of the variable
+  if left$(aiactionseq(seq).string1,1)="%"
+   rem Find the variable being called for and replace valuea with it's value
+   tuvar$=right$(aiactionseq(seq).string1,len(aiactionseq(seq).string1)-1)
+   tfound=0
+   for uvar=0 to array count(uservars(0))
+      if uservars(uvar).name=tuvar$ and uservars(uvar).used=1
+         rem found the variable
+         tfound=1
+         aiactionseq(seq).value=uservars(uvar).value
+         exit
+      endif
+   next uvar
+   rem if we didn't find the value, give it a 0
+   if tfound=0 then aiactionseq(seq).value=0
+  endif
+  if left$(aiactionseq(seq).string2,1)="%"
+   rem Find the variable being called for and replace valuea with it's value
+   tuvar$=right$(aiactionseq(seq).string2,len(aiactionseq(seq).string2)-1)
+   tfound=0
+   for uvar=0 to array count(uservars(0))
+      if uservars(uvar).name=tuvar$ and uservars(uvar).used=1
+         rem found the variable
+         tfound=1
+         aiactionseq(seq).valueb=uservars(uvar).value
+         exit
+      endif
+   next uvar
+   rem if we didn't find the value, give it a 0
+   if tfound=0 then aiactionseq(seq).valueb=0
+  endif
+  rem Plystire - This section will allow the engine to replace certain tags with important engine variables
+  select aiactionseq(seq).string1
+   case "$PH"
+    aiactionseq(seq).value=player(1).health
+   endcase
+   case "$PL"
+    aiactionseq(seq).value=player(1).lives
+   endcase
+   case "$RA"
+    aiactionseq(seq).value=weaponclipammo(weaponammoindex)+weaponammo(weaponammoindex)
+   endcase
+   case "$A"
+    aiactionseq(seq).value=-1
+    if gunid<>0
+     aiactionseq(seq).value=weaponclipammo(weaponammoindex)+weaponammo(weaponammoindex)
+    endif
+   endcase
+   case "$RCA"
+    aiactionseq(seq).value=weaponammo(weaponammoindex)
+   endcase
+   case "$CA"
+    aiactionseq(seq).value=-1
+    if gunid<>0
+     aiactionseq(seq).value=weaponammo(weaponammoindex)
+    endif
+   endcase
+   case "$EH"
+    aiactionseq(seq).value=entityelement(e).health
+   endcase
+   case "$EA"
+    aiactionseq(seq).value=entityelement(e).currentammo
+   endcase
+   case "$EPX"
+    aiactionseq(seq).value=entityelement(e).x
+   endcase
+   case "$EPY"
+    aiactionseq(seq).value=entityelement(e).y
+   endcase
+   case "$EPZ"
+    aiactionseq(seq).value=entityelement(e).z
+   endcase
+   case "$EAX"
+    aiactionseq(seq).value=entityelement(e).rx
+   endcase
+   case "$EAY"
+    aiactionseq(seq).value=entityelement(e).ry
+   endcase
+   case "$EAZ"
+    aiactionseq(seq).value=entityelement(e).rz
+   endcase
+   case "$CAX"
+    aiactionseq(seq).value=camera angle x(0)
+   endcase
+   case "$CAY"
+    aiactionseq(seq).value=camera angle y(0)
+   endcase
+   case "$CAZ"
+    aiactionseq(seq).value=camera angle z(0)
+   endcase
+   case "$CPX"
+    aiactionseq(seq).value=camera position x(0)
+   endcase
+   case "$CPY"
+    aiactionseq(seq).value=camera position y(0)
+   endcase
+   case "$CPZ"
+    aiactionseq(seq).value=camera position z(0)
+   endcase
+   case "$MMX"
+    aiactionseq(seq).value=dcamx#
+   endcase
+   case "$MMY"
+    aiactionseq(seq).value=dcamy#
+   endcase
+   case "$MMZ"
+    aiactionseq(seq).value=dcamz#
+   endcase
+  endselect
+  `
+  select aiactionseq(seq).string2
+   case "$PH"
+    aiactionseq(seq).valueb=player(1).health
+   endcase
+   case "$PL"
+    aiactionseq(seq).valueb=player(1).lives
+   endcase
+   case "$RA"
+    aiactionseq(seq).valueb=weaponclipammo(weaponammoindex)+weaponammo(weaponammoindex)
+   endcase
+   case "$A"
+    aiactionseq(seq).valueb=-1
+    if gunid<>0 and gunid2=0
+     aiactionseq(seq).valueb=weaponclipammo(weaponammoindex)+weaponammo(weaponammoindex)
+    endif
+   endcase
+   case "$RAC"
+    aiactionseq(seq).valueb=weaponammo(weaponammoindex)
+   endcase
+   case "$AC"
+    aiactionseq(seq).valueb=-1
+    if gunid<>0
+     aiactionseq(seq).valueb=weaponammo(weaponammoindex)
+    endif
+   endcase
+   case "$EH"
+    aiactionseq(seq).valueb=entityelement(e).health
+   endcase
+   case "$EA"
+    aiactionseq(seq).valueb=entityelement(e).currentammo
+   endcase
+   case "$EPX"
+    aiactionseq(seq).valueb=entityelement(e).x
+   endcase
+   case "$EPY"
+    aiactionseq(seq).valueb=entityelement(e).y
+   endcase
+   case "$EPZ"
+    aiactionseq(seq).valueb=entityelement(e).z
+   endcase
+   case "$EAX"
+    aiactionseq(seq).valueb=entityelement(e).rx
+   endcase
+   case "$EAY"
+    aiactionseq(seq).valueb=entityelement(e).ry
+   endcase
+   case "$EAZ"
+    aiactionseq(seq).valueb=entityelement(e).rz
+   endcase
+   case "$CAX"
+    aiactionseq(seq).valueb=camera angle x(0)
+   endcase
+   case "$CAY"
+    aiactionseq(seq).valueb=camera angle y(0)
+   endcase
+   case "$CAZ"
+    aiactionseq(seq).valueb=camera angle z(0)
+   endcase
+   case "$CPX"
+    aiactionseq(seq).valueb=camera position x(0)
+   endcase
+   case "$CPY"
+    aiactionseq(seq).valueb=camera position y(0)
+   endcase
+   case "$CPZ"
+    aiactionseq(seq).valueb=camera position z(0)
+   endcase
+   case "$MMX"
+    aiactionseq(seq).valueb=dcamx#
+   endcase
+   case "$MMY"
+    aiactionseq(seq).valueb=dcamy#
+   endcase
+   case "$MMZ"
+    aiactionseq(seq).valueb=dcamz#
+   endcase
+  endselect
+    `
     select aiactionseq(seq).type
      `
      case AIACTSTATE:
@@ -11667,10 +12195,28 @@ if aiindex>0
       if aivariableindex>99 then aivariableindex=99
      endcase
      case AIACTSETVAR:
-      if aivariablemode=0
-       aiglobals(aivariableindex)=aiactionseq(seq).value
+      rem Plystire 109 - Merge this command with our system
+      if aiactionseq(seq).string2=""
+       if aivariablemode=0
+        aiglobals(aivariableindex)=aiactionseq(seq).value
+       else
+        ailocals(e,aivariableindex)=aiactionseq(seq).value
+       endif
       else
-       ailocals(e,aivariableindex)=aiactionseq(seq).value
+       rem Use the better system ;)
+       rem Using our strings from the parser, let's find the var the user wants to set
+       if left$(aiactionseq(seq).string1,1)="$"
+        setintervar(aiactionseq(seq).string1,aiactionseq(seq).valueb)
+        else
+        for uvar = 0 to array count(uservars(0))
+         if uservars(uvar).name = aiactionseq(seq).string1
+          rem Found the variable, let's set it
+          uservars(uvar).value = aiactionseq(seq).valueb
+          rem And Exit the For loop
+          exit
+         endif
+        next uvar
+       endif
       endif
      endcase
      case AIACTINCVAR:
@@ -11685,6 +12231,127 @@ if aiindex>0
        aiglobals(aivariableindex)=aiglobals(aivariableindex)-aiactionseq(seq).value
       else
        ailocals(e,aivariableindex)=ailocals(e,aivariableindex)-aiactionseq(seq).value
+      endif
+     endcase
+     rem Plystire - Code behind User Variables
+     case AIACTDIMVAR:
+      rem Let's find an UNUSED variable and set it to the name given
+      for uvar = 0 to array count(uservars(0))
+       rem Let's also look for vars already declared as this
+       if uservars(uvar).name = aiactionseq(seq).string1
+        rem This variable already exists, let's just ignore it and exit the For Loop
+        exit
+       endif
+       `
+      next uvar
+      if uvar>array count(uservars(0))
+       rem Let's set it up and default it to 0 for the user
+       array insert at bottom uservars(0)
+       uservars(uvar).used = 1
+       uservars(uvar).name = aiactionseq(seq).string1
+       uservars(uvar).value = 0
+      endif
+     endcase
+     case AIACTADDVAR:
+      rem Using our strings from the parser, let's find the var the user wants to set
+      if left$(aiactionseq(seq).string1,1)="$"
+       ttt=getintervar(aiactionseq(seq).string1)
+       ttt=ttt+aiactionseq(seq).valueb
+       setintervar(aiactionseq(seq).string1,ttt)
+      else
+       for uvar = 0 to array count(uservars(0))
+        if uservars(uvar).name = aiactionseq(seq).string1
+         rem Found the variable, let's add to it
+         inc uservars(uvar).value, aiactionseq(seq).valueb
+         rem And Exit the For loop
+         exit
+        endif
+       next uvar
+      endif
+     endcase
+     case AIACTSUBVAR:
+      rem Using our strings from the parser, let's find the var the user wants to set
+      if left$(aiactionseq(seq).string1,1)="$"
+       ttt=getintervar(aiactionseq(seq).string1)
+       ttt=ttt-aiactionseq(seq).valueb
+       setintervar(aiactionseq(seq).string1,ttt)
+      else
+       for uvar = 0 to array count(uservars(0))
+        if uservars(uvar).name = aiactionseq(seq).string1
+         rem Found the variable, let's subtract from it
+         dec uservars(uvar).value, aiactionseq(seq).valueb
+         rem And Exit the For loop
+         exit
+        endif
+       next uvar
+      endif
+     endcase
+     case AIACTMULVAR:
+      rem Using our strings from the parser, let's find the var the user wants to set
+      if left$(aiactionseq(seq).string1,1)="$"
+       ttt=getintervar(aiactionseq(seq).string1)
+       ttt=ttt*aiactionseq(seq).valueb
+       setintervar(aiactionseq(seq).string1,ttt)
+      else
+       for uvar = 0 to array count(uservars(0))
+        if uservars(uvar).name = aiactionseq(seq).string1
+         rem Found the variable, let's multiply it
+         uservars(uvar).value = uservars(uvar).value * aiactionseq(seq).valueb
+         rem And Exit the For loop
+         exit
+        endif
+       next uvar
+      endif
+     endcase
+     case AIACTDIVVAR:
+      rem Using our strings from the parser, let's find the var the user wants to set
+      if left$(aiactionseq(seq).string1,1)="$"
+       ttt=getintervar(aiactionseq(seq).string1)
+       ttt=ttt/aiactionseq(seq).valueb
+       setintervar(aiactionseq(seq).string1,ttt)
+      else
+       for uvar = 0 to array count(uservars(0))
+        if uservars(uvar).name = aiactionseq(seq).string1
+         rem Found the variable, let's divide it
+         uservars(uvar).value = uservars(uvar).value / aiactionseq(seq).valueb
+         rem And Exit the For loop
+         exit
+        endif
+       next uvar
+      endif
+     endcase
+     case AIACTMODVAR:
+      rem Using our strings from the parser, let's find the var the user wants to set
+      if left$(aiactionseq(seq).string1,1)="$"
+       ttt=getintervar(aiactionseq(seq).string1)
+       ttt=ttt mod aiactionseq(seq).valueb
+       setintervar(aiactionseq(seq).string1,ttt)
+      else
+       for uvar = 0 to array count(uservars(0))
+        if uservars(uvar).name = aiactionseq(seq).string1
+         rem Found the variable, let's modulus it with the value given
+         uservars(uvar).value = uservars(uvar).value mod aiactionseq(seq).valueb
+         rem And Exit the For loop
+         exit
+        endif
+       next uvar
+      endif
+     endcase
+     case AIACTWRAPVAR:
+      rem Using our strings from the parser, let's find the var the user wants to set
+      if left$(aiactionseq(seq).string1,1)="$"
+       ttt=getintervar(aiactionseq(seq).string1)
+       ttt=wrapvalue(ttt)
+       setintervar(aiactionseq(seq).string1,ttt)
+      else
+       for uvar = 0 to array count(uservars(0))
+        if uservars(uvar).name = aiactionseq(seq).string1
+         rem Found the variable, let's wrap it's value
+         uservars(uvar).value = wrapvalue(uservars(uvar).value)
+         rem And Exit the For loop
+         exit
+        endif
+       next uvar
       endif
      endcase
      `
@@ -13330,6 +13997,8 @@ if aiindex>0
       workhudtype=0 : workhudmake$=""
       workhudname$=""
       workhudhide=0
+      rem Need to reset the hud uservar as well
+      workhuduservar=-1
      endcase
      case AIACTHUDX:
       workhudx=(gdisplaywidth/100.0)*aiactionseq(seq).value
@@ -13438,6 +14107,18 @@ if aiindex>0
       tindex=aiactionseq(seq).value
       workhudmake$=actstring$(tindex)
       gosub _ai_hud_add
+     endcase
+     rem Plystire - Added this action to set a HUD to corespond with a User Variable when set as Numeric type
+     case AIACTHUDUSERVAR:
+      rem First we gotta find the variable the user wants to use
+      for uvar = 0 to array count(uservars())
+       if uservars(uvar).name = aiactionseq(seq).string1 and uservars(uvar).used = 1
+        rem Found it, let's set up the workhud to use it
+        workhuduservar = uvar
+        rem And Exit the For Loop
+        exit
+       endif
+      next uvar
      endcase
      `
      case AIACTNEWGAME:
@@ -14890,6 +15571,9 @@ for l=0 to 349
         aiconditionseq(aicondseqcount).valuea=value1
         aiconditionseq(aicondseqcount).valueb=value2
         aiconditionseq(aicondseqcount).valuec=value3
+        rem Variable System - Setting the string variables passed from the parser to our conditionseq
+        aiconditionseq(aicondseqcount).string1=value1$
+        aiconditionseq(aicondseqcount).string2=value2$
         inc aicondseqcount
         exit
        endif
@@ -14912,6 +15596,11 @@ for l=0 to 349
         aiactionseq(aiactseqcount).type=tindex
         aiactionseq(aiactseqcount).value=value1
         aiactionseq(aiactseqcount).filename=value$
+        rem - Setting the second variable passed from the parser to our actionseq
+        aiactionseq(aiactseqcount).valueb=value2
+        rem - Setting the string variables passed from the parser to our actionseq
+        aiactionseq(aiactseqcount).string1=value1$
+        aiactionseq(aiactseqcount).string2=value2$
         inc aiactseqcount
         exit
        endif
@@ -28990,6 +29679,11 @@ _ai_hud_view:
     endif
     hud(hudid).text$=fr$
    endif
+   rem Variable System - Need this section in order to update the numeric HUD
+   if hud(hudid).typemode=6 and hud(hudid).maintype=6
+    rem user variable
+    hud(hudid).text$=str$(uservars(hud(hudid).uservar).value)
+   endif
   endif
   `
   rem WEAPON IMAGE
@@ -29658,6 +30352,8 @@ if thudi>hudmax
  hud(hudid).hide=workhudhide
  hud(hudid).hidedelay=0
  hud(hudid).highlighted=0
+ rem Gotta set the user variable index that we want for numeric variables
+ hud(hudid).uservar=workhuduservar
  `
  rem Calculate bounds of HUD (for selectability)
  if workhudsizex>0
@@ -31435,6 +32131,7 @@ if showgamemenu=0
  endif
  `
  if mefrozen>0 and mefrozentype=2 then cammovex#=0 : cammovey#=0
+  dcamx#=cammovex# : dcamy#=cammovey#
 else
  cammovex#=0 : cammovey#=0
 endif
@@ -36054,12 +36751,22 @@ _saveload_savegame:
    next i
   next x
   `
+  rem - Save user variables
+  a#=array count(uservars()) : write float 1,a#
+  for i=0 to array count(uservars())
+   a$=uservars(i).name : write string 1,a$
+   a#=uservars(i).value : write float 1,a#
+  next i
+  `
  endif
  close file 1
  `
 return
 
 _saveload_loadgame:
+ `
+ undim uservars()
+ dim uservars() as uservar
  `
  rem LOAD
  open to read 1,saveloadfile$
@@ -36249,6 +36956,15 @@ _saveload_loadgame:
     read float 1,a# : saveloadgamepositionfactions(x,i).enemy=a#
    next i
   next x
+  `
+  rem - Load user variables
+  read float 1,max#
+  for i=0 to max#
+   array insert at bottom uservars(0)
+   uservars(i).used=1
+   read string 1,a$ : uservars(i).name=a$
+   read float 1,a# : uservars(i).value=a#
+  next i
   `
  endif
  close file 1
@@ -49792,3 +50508,89 @@ _postprocess_off:
  endif
  `
 return
+
+function getintervar(var$)
+ select var$
+  case "$PH"
+   temp=player(1).health
+  endcase
+  case "$PL"
+   temp=player(1).lives
+  endcase
+  case "$RCA"
+   temp=weaponammo(weaponammoindex)
+  endcase
+  case "$CA"
+   if gunid<>0
+    temp=weaponammo(weaponammoindex)
+   endif
+  endcase
+  case "$EH"
+   temp=entityelement(e).health
+  endcase
+  case "$EA"
+   temp=entityelement(e).currentammo
+  endcase
+  case "$EPX"
+   temp=entityelement(e).x
+  endcase
+  case "$EPY"
+   temp=entityelement(e).y
+  endcase
+  case "$EPZ"
+   temp=entityelement(e).z
+  endcase
+  case "$EAX"
+   temp=entityelement(e).rx
+  endcase
+  case "$EAY"
+   temp=entityelement(e).ry
+  endcase
+  case "$EAZ"
+   temp=entityelement(e).rz
+  endcase
+ endselect
+endfunction temp
+
+function setintervar(var$,alter#)
+ select var$
+  case "$PH"
+   player(1).health=alter#
+  endcase
+  case "$PL"
+   player(1).lives=alter#
+  endcase
+  case "$RCA"
+   weaponammo(weaponammoindex)=alter#
+  endcase
+  case "$CA"
+   if gunid<>0
+    weaponammo(weaponammoindex)=alter#
+   endif
+  endcase
+  case "$EH"
+   entityelement(e).health=alter#
+  endcase
+  case "$EA"
+   entityelement(e).currentammo=alter#
+  endcase
+  case "$EPX"
+   entityelement(e).x=alter#
+  endcase
+  case "$EPY"
+   entityelement(e).y=alter#
+  endcase
+  case "$EPZ"
+   entityelement(e).z=alter#
+  endcase
+  case "$EAX"
+   entityelement(e).rx=alter#
+  endcase
+  case "$EAY"
+   entityelement(e).ry=alter#
+  endcase
+  case "$EAZ"
+   entityelement(e).rz=alter#
+  endcase
+ endselect
+endfunction
