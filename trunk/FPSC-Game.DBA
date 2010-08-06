@@ -24966,7 +24966,7 @@ entityelementlist=e
 
 rem Save entity element list
 dw as DWORD
-versionnumbersave=217
+versionnumbersave=218
 if file exist(elementsfilename$)=1 then delete file elementsfilename$
 open to write 1,elementsfilename$
  write file 1,versionnumbersave
@@ -25137,6 +25137,8 @@ open to write 1,elementsfilename$
     a=entityelement(e).eleprof.particle.scaleonlyx : write file 1,a
     a=entityelement(e).eleprof.particle.lifeincrement : write file 1,a
     a=entityelement(e).eleprof.particle.alphaintensity : write file 1,a
+   endif
+   if versionnumbersave>=218
     rem V118 - 060810 - knxrb - Decal animation setting (Added animation choice setting).
     a=entityelement(e).eleprof.particle.animated : write file 1,a
    endif
@@ -25168,7 +25170,7 @@ if elementsfilename$="" then elementsfilename$="mapbank\testmap\map.ele"
 rem load entity element list
 dw as DWORD
 failedtoload=0
-versionnumbersupported=217
+versionnumbersupported=218
 if file exist(elementsfilename$)=1
  `
  open to read 1,elementsfilename$
@@ -25355,6 +25357,8 @@ if file exist(elementsfilename$)=1
       read file 1,a : entityelement(e).eleprof.particle.scaleonlyx=a
       read file 1,a : entityelement(e).eleprof.particle.lifeincrement=a
       read file 1,a : entityelement(e).eleprof.particle.alphaintensity=a
+     endif
+     if versionnumberload>=218
       rem V118 - 060810 - knxrb - Decal animation setting (Added animation choice setting).
       read file 1,a : entityelement(e).eleprof.particle.animated=a
      endif
