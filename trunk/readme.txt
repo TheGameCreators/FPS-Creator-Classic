@@ -9,6 +9,7 @@ History
 V1.1.8
 ------
  
+ * Halved the power of the Bloom in response to community feedback
  * Added Project Blue's variable system
  * REWROTE the way Airmod's alternate fire works. All it was doing was making a mess of the engine and didn't even have support for all primary gunspec commands
     Now you can use any gunspec command (excluding melee key=x, weaponisammo=x,altto=x,y, altfrom=x,y, addtospare=x,sound#=x, altsound=x, soundframes=x, and sframe=x)
@@ -50,7 +51,6 @@ V1.1.8
  * Added new gunspec command for the empty feature empty reload loop=x
  * Added new gunspec command for the empty feature empty end reload=x
  * Added new gunspec command for the empty feature empty start reload=x 
- * Everything goes here now :)
 
 V1.1.7
 ------
