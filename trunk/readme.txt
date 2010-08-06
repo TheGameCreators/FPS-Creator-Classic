@@ -8,7 +8,8 @@ History
 
 V1.1.8
 ------
- 
+
+ * Added new decal particle setting to allow choice between animated or static decal particle textures, default is 0.
  * Halved the power of the Bloom in response to community feedback
  * Added Project Blue's variable system
  * REWROTE the way Airmod's alternate fire works. All it was doing was making a mess of the engine and didn't even have support for all primary gunspec commands

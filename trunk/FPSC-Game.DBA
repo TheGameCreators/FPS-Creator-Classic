@@ -1160,6 +1160,8 @@ type decalparticletype
  scaleonlyx as float
  lifeincrement as float
  alphaintensity as float
+ rem V118 - 060810 - knxrb - Decal animation setting (Added animation choice setting).
+ animated as integer
 endtype
 global gotparticle as decalparticletype
 
@@ -8681,7 +8683,7 @@ if tindex<>0
   if entityelement(e).decalmode=7
    rem FPGC - 300310 - spawn a decal based particle fragment (for new flame and fire) (once)
    decalorient=7
-   entityelement(e).decalindex=0
+   entityelement(e).decalindex=0 
    originatore=e : gosub _decalelement_create
   endif
  endif
@@ -22289,6 +22291,8 @@ decal(decalid).particle.camerazshift   = 500
 decal(decalid).particle.scaleonlyx     = 100
 decal(decalid).particle.lifeincrement  = 100
 decal(decalid).particle.alphaintensity = 100
+rem V118 - 060810 - knxrb - Decal animation setting (Added animation choice setting).
+decal(decalid).particle.animated = 0 `Off by default
 `
 dim data$(100)
 filename$="gamecore\decals\"+decal$+"\decalspec.txt"
@@ -22334,6 +22338,8 @@ for l=0 to 99
    if field$="scaleonlyx" then decal(decalid).particle.scaleonlyx=value1
    if field$="lifeincrement" then decal(decalid).particle.lifeincrement=value1
    if field$="alphaintensity" then decal(decalid).particle.alphaintensity=value1
+   rem V118 - 060810 - knxrb - Decal animation setting (Added animation choice setting).
+   if field$="animated" then decal(decalid).particle.animated=value1
    `
   endif
  endif
@@ -22630,7 +22636,9 @@ for f=1 to decalelementmax
      set alpha mapping on tobj,sin(p#*180)*decalelement(f).particle.alphaintensity
     endif
     rem animation UVs
-    if decalelement(f).orient=7
+    rem V118 - 060810 - knxrb - Decal animation setting (Added animation choice setting).
+    `if decalelement(f).orient=7
+    if decalelement(f).orient=7 and decalelement(f).particle.animated<>1
      rem FPGC - 300310 - decal based particle only uses first animation frame
      tframe=0
     else
@@ -25129,6 +25137,8 @@ open to write 1,elementsfilename$
     a=entityelement(e).eleprof.particle.scaleonlyx : write file 1,a
     a=entityelement(e).eleprof.particle.lifeincrement : write file 1,a
     a=entityelement(e).eleprof.particle.alphaintensity : write file 1,a
+    rem V118 - 060810 - knxrb - Decal animation setting (Added animation choice setting).
+    a=entityelement(e).eleprof.particle.animated : write file 1,a
    endif
   next e
  endif
@@ -25345,6 +25355,8 @@ if file exist(elementsfilename$)=1
       read file 1,a : entityelement(e).eleprof.particle.scaleonlyx=a
       read file 1,a : entityelement(e).eleprof.particle.lifeincrement=a
       read file 1,a : entityelement(e).eleprof.particle.alphaintensity=a
+      rem V118 - 060810 - knxrb - Decal animation setting (Added animation choice setting).
+      read file 1,a : entityelement(e).eleprof.particle.animated=a
      endif
      `
      rem fill in the blanks if load older version
@@ -47480,6 +47492,8 @@ _interface_openpropertywindow:
      setpropertystring2(group,str$(grideleprof.particle.scaleonlyx),"Scale Only X","Percentage X over Y scale") : inc controlindex
      setpropertystring2(group,str$(grideleprof.particle.lifeincrement),"Life Increment","Control lifespan of particle") : inc controlindex
      setpropertystring2(group,str$(grideleprof.particle.alphaintensity),"Alpha Intensity","Control alpha percentage of particle") : inc controlindex
+     rem V118 - 060810 - knxrb - Decal animation setting (Added animation choice setting).
+     setpropertystring2(group,str$(grideleprof.particle.animated),"Animated Texture","Sets whether the particle decal texture is animated or static.") : inc controlindex
     endif
     `
    endif
@@ -47656,6 +47670,8 @@ _interface_copydatatoentity:
    if lower$(tfield$)="scale only x" then grideleprof.particle.scaleonlyx=val(tdata$)
    if lower$(tfield$)="life increment" then grideleprof.particle.lifeincrement=val(tdata$)
    if lower$(tfield$)="alpha intensity" then grideleprof.particle.alphaintensity=val(tdata$)
+   rem V118 - 060810 - knxrb - Decal animation setting (Added animation choice setting).
+   if lower$(tfield$)="animated texture" then grideleprof.particle.animated=val(tdata$)
    `
    if lower$(tfield$)=lower$(strarr$(467)) then grideleprof.soundset$=tdata$
    if lower$(tfield$)=lower$(strarr$(468)) then grideleprof.soundset1$=tdata$
