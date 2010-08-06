@@ -47497,7 +47497,7 @@ _interface_openpropertywindow:
      setpropertystring2(group,str$(grideleprof.particle.lifeincrement),"Life Increment","Control lifespan of particle") : inc controlindex
      setpropertystring2(group,str$(grideleprof.particle.alphaintensity),"Alpha Intensity","Control alpha percentage of particle") : inc controlindex
      rem V118 - 060810 - knxrb - Decal animation setting (Added animation choice setting).
-     setpropertystring2(group,str$(grideleprof.particle.animated),"Animated Texture","Sets whether the particle decal texture is animated or static.") : inc controlindex
+     setpropertylist2(group,controlindex,str$(grideleprof.particle.animated),"Animated Texture","Sets whether the particle decal texture is animated or static.", 0) : inc controlindex
     endif
     `
    endif
