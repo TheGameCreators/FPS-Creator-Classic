@@ -3723,10 +3723,6 @@ _main_game_core:
  inc gameperftotalcount, perftimer()-gameperftotalcountTOP
  gameperftotalcountTOP=perftimer()
  `
- for uvar = 0 to array count(uservars(0))
-  Print uservars(uvar).name+": Value: "+str$(uservars(uvar).value)+" Used: "+str$(uservars(uvar).used)
- next uvar
- `
  rem Update screen
  gosub _main_sync
  `
@@ -25137,6 +25133,8 @@ open to write 1,elementsfilename$
     a=entityelement(e).eleprof.particle.scaleonlyx : write file 1,a
     a=entityelement(e).eleprof.particle.lifeincrement : write file 1,a
     a=entityelement(e).eleprof.particle.alphaintensity : write file 1,a
+    rem V118 - 060810 - knxrb - Decal animation setting (Added animation choice setting).
+    a=entityelement(e).eleprof.particle.animated : write file 1,a
    endif
    if versionnumbersave>=218
     rem V118 - 060810 - knxrb - Decal animation setting (Added animation choice setting).
@@ -25357,6 +25355,8 @@ if file exist(elementsfilename$)=1
       read file 1,a : entityelement(e).eleprof.particle.scaleonlyx=a
       read file 1,a : entityelement(e).eleprof.particle.lifeincrement=a
       read file 1,a : entityelement(e).eleprof.particle.alphaintensity=a
+      rem V118 - 060810 - knxrb - Decal animation setting (Added animation choice setting).
+      read file 1,a : entityelement(e).eleprof.particle.animated=a
      endif
      if versionnumberload>=218
       rem V118 - 060810 - knxrb - Decal animation setting (Added animation choice setting).
