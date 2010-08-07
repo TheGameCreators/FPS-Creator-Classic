@@ -30,6 +30,8 @@ rem Credit to Hockeykid for his continued help integrating Dark AI
 
 rem Robert Knox - 030810 - Added this comment to test the SVN ;)
 
+_start_engine:
+if exeroot$<>"" then set dir exeroot$
 rem Special build flags for 'genre' switch
 global fpgchud$ : fpgchud$=""
 global fpgchuds$ : fpgchuds$=""
@@ -59,8 +61,10 @@ else
  endif
 endif
 
-If file exist("VariableParse.txt") then delete file "VariableParse.txt"
-Open to write 22,"VariableParse.txt"
+If file exist("setuplog.txt") then delete file "setuplog.txt"
+open to write 22,"setuplog.txt"
+
+Global exeroot$ : exeroot$=get dir$()
 rem - Global array for string variables
 type uservar
  used as boolean
@@ -1762,6 +1766,18 @@ Rem AirMod - New Actions >>>
 #constant AIACTSHOWLASTWEAPON 1227
 #constant AIACTCAMPOINTOBJECT 1228
 Rem AirMod - Done <<<
+#constant AIACTSETUPDYNAMICSHADOWS 1229
+#constant AIACTSETUPUSEEFFECTS 1230
+#constant AIACTSETUPDIVIDETEXTURESIZE 1231
+#constant AIACTSETUPMOUSESENSITIVITY 1232
+#constant AIACTSETUPASPECTRATIO 1233
+#constant AIACTSETUPPOSTPROCESSING 1234
+#constant AIACTSETUPWIDTH 1235
+#constant AIACTSETUPHEIGHT 1236
+#constant AIACTSETUPDEPTH 1237
+#constant AIACTSETUPANTIALIAS 1238
+#constant AIACTRESET 1239
+#constant AIACTSAVESETUP 1240
 #constant AIACTFPGCRAWTEXTR 1251
 #constant AIACTFPGCRAWTEXTG 1252
 #constant AIACTFPGCRAWTEXTB 1253
@@ -2796,20 +2812,20 @@ if file exist(tfile$)=1
     tryfield$="xboxmag" : if field$=tryfield$ then gxboxmag=(0.0+value1)/100.0
     `
     tryfield$="dynamiclighting" : if field$=tryfield$ then gdynamiclightingstate=value1
-    tryfield$="dynamicshadows" : if field$=tryfield$ then gdynamicshadowsstate=value1
-    tryfield$="useeffects" : if field$=tryfield$ then guseeffectstate=value1
+    tryfield$="dynamicshadows" : if field$=tryfield$ then gdynamicshadowsstate=value1 : newdynamicshadows=value1
+    tryfield$="useeffects" : if field$=tryfield$ then guseeffectstate=value1 : newuseeffects=value1
     tryfield$="useeffectsonguns" : if field$=tryfield$ then guseeffectongunsstate=value1
     tryfield$="useeffectsonscene" : if field$=tryfield$ then guseeffectonscenesstate=value1
     tryfield$="useeffectsonentities" : if field$=tryfield$ then guseeffectonentitiesstate=value1
-    tryfield$="dividetexturesize" : if field$=tryfield$ then gdividetexturesize=value1
+    tryfield$="dividetexturesize" : if field$=tryfield$ then gdividetexturesize=value1 : newdividetexturesize=value1
     tryfield$="controllerhint" : if field$=tryfield$ then gcontrollerhint=value1
     tryfield$="vrmode" : if field$=tryfield$ then gvrmode=value1
     tryfield$="vrmodemag" : if field$=tryfield$ then gvrmodemag=value1
-    tryfield$="mousesensitivity" : if field$=tryfield$ then gmousesensitivity=value1
+    tryfield$="mousesensitivity" : if field$=tryfield$ then gmousesensitivity=value1 : newmousesensitivity=value1
     tryfield$="producelogfiles" : if field$=tryfield$ then gproducelogfiles=value1
     tryfield$="hsrmode" : if field$=tryfield$ then ghsrmode=value1
     tryfield$="newblossershaders" : if field$=tryfield$ then gnewblossershaders=value1
-    tryfield$="postprocessing" : if field$=tryfield$ then gpostprocessing=value1
+    tryfield$="postprocessing" : if field$=tryfield$ then gpostprocessing=value1 : newpostprocessing=value1
     tryfield$="showaioutlines" : if field$=tryfield$ then gshowaioutlines=value1
     tryfield$="disablepeeking" : if field$=tryfield$ then gdisablepeeking=value1
     `
@@ -2821,11 +2837,11 @@ if file exist(tfile$)=1
     tryfield$="indieditor" : if field$=tryfield$ then gindieditorstate=value1
     tryfield$="godmode" : if field$=tryfield$ then ggodmodestate=value1
     `
-    tryfield$="width" : if field$=tryfield$ then gdisplaywidth=value1
-    tryfield$="height" : if field$=tryfield$ then gdisplayheight=value1
-    tryfield$="depth" : if field$=tryfield$ then gdisplaydepth=value1
+    tryfield$="width" : if field$=tryfield$ then gdisplaywidth=value1 : newwidth=value1
+    tryfield$="height" : if field$=tryfield$ then gdisplayheight=value1 : newheight=value1
+    tryfield$="depth" : if field$=tryfield$ then gdisplaydepth=value1 : newdepth=value1
     tryfield$="fullscreen" : if field$=tryfield$ then gfullscreen=value1
-    tryfield$="aspectratio" : if field$=tryfield$ then gaspectratio=value1
+    tryfield$="aspectratio" : if field$=tryfield$ then gaspectratio=value1 : newaspectratio=value1
     `
     tryfield$="uniquesignature" : if field$=tryfield$ then guniquesignature=value1
     tryfield$="gameobjectivetype" : if field$=tryfield$ then ggameobjectivetype=value1
@@ -2844,7 +2860,7 @@ if file exist(tfile$)=1
     tryfield$="global" : if field$=tryfield$ then setupfpi$=value$
     tryfield$="gamewon" : if field$=tryfield$ then gamewonfpi$=value$
     tryfield$="gameover" : if field$=tryfield$ then gameoverfpi$=value$
-    tryfield$="levelfpi1" : if field$=tryfield$ then loadingfpi$=value$
+    tryfield$="levelfpi1" : if field$=tryfield$ then loadingfpi$=value$ : levelfpiinsetup=l
     `
     rem Levels
     if field$="levelmax" then glevelmax=value1
@@ -3060,6 +3076,7 @@ else
   `
  endif
 endif
+newwidth=gdisplaywidth : newheight=gdisplayheight : newdepth=gdisplaydepth
 global gratiox# : gratiox#=gdisplaywidth : gratiox#=gratiox#/1024.0
 global gratioy# : gratioy#=gdisplayheight : gratioy#=gratioy#/768.0
 
@@ -8679,7 +8696,7 @@ if tindex<>0
   if entityelement(e).decalmode=7
    rem FPGC - 300310 - spawn a decal based particle fragment (for new flame and fire) (once)
    decalorient=7
-   entityelement(e).decalindex=0 
+   entityelement(e).decalindex=0
    originatore=e : gosub _decalelement_create
   endif
  endif
@@ -10424,6 +10441,19 @@ actword$(AIACTHIDEWEAPON)="hideplrweapon"
 actword$(AIACTSHOWLASTWEAPON)="showplrweapon"
 actword$(AIACTCAMPOINTOBJECT)="plrpointatobject"
 rem AirMod - Done <<<
+actword$(AIACTSETUPDYNAMICSHADOWS)="setup_dynamicshadows"
+actword$(AIACTSETUPUSEEFFECTS)="setup_useeffects"
+actword$(AIACTSETUPDIVIDETEXTURESIZE)="setup_dividetexturesize"
+actword$(AIACTSETUPMOUSESENSITIVITY)="setup_mousesensitivity"
+actword$(AIACTSETUPASPECTRATIO)="setup_aspectratio"
+actword$(AIACTSETUPPOSTPROCESSING)="setup_postprocessing"
+actword$(AIACTSETUPWIDTH)="setup_width"
+actword$(AIACTSETUPHEIGHT)="setup_height"
+actword$(AIACTSETUPDEPTH)="setup_depth"
+actword$(AIACTSETUPDEPTH)="setup_depth"
+actword$(AIACTSETUPANTIALIAS)="setup_antialias"
+actword$(AIACTRESET)="reset"
+actword$(AIACTSAVESETUP)="savesetup"
 actword$(AIACTFPGCRAWTEXTR)="fpgcrawtextr"
 actword$(AIACTFPGCRAWTEXTG)="fpgcrawtextg"
 actword$(AIACTFPGCRAWTEXTB)="fpgcrawtextb"
@@ -10554,7 +10584,6 @@ if aiindex>0
   if left$(aiconditionseq(seq).string1,1)="%"
    rem Find the variable being called for and replace valuea with it's value
    tuvar$=right$(aiconditionseq(seq).string1,len(aiconditionseq(seq).string1)-1)
-   Write String 22,tuvar$
    tfound=0
    for uvar=0 to array count(uservars(0))
     if uservars(uvar).name=tuvar$ and uservars(uvar).used=1
@@ -14765,6 +14794,102 @@ if aiindex>0
       mutualfactionoff=aiactionseq(seq).value
      endcase
      Rem End Dark AI
+     `
+     case AIACTSETUPDYNAMICSHADOWS:
+      if grealgameviewstate=1 then newdynamicshadows=aiactionseq(seq).value
+     endcase
+     case AIACTSETUPUSEEFFECTS:
+      if grealgameviewstate=1 then newuseeffects=aiactionseq(seq).value
+     endcase
+     case AIACTSETUPDIVIDETEXTURESIZE:
+      if grealgameviewstate=1 then newdividetexturesize=aiactionseq(seq).value
+     endcase
+     case AIACTSETUPMOUSESENSITIVITY:
+      if grealgameviewstate=1 then newmousesensitivity=aiactionseq(seq).value
+     endcase
+     case AIACTSETUPASPECTRATIO:
+      if grealgameviewstate=1 then newaspectratio=aiactionseq(seq).value
+     endcase
+     case AIACTSETUPWIDTH:
+      if grealgameviewstate=1 then newwidth=aiactionseq(seq).value
+     endcase
+     case AIACTSETUPHEIGHT:
+      if grealgameviewstate=1 then newheight=aiactionseq(seq).value
+     endcase
+     case AIACTSETUPPOSTPROCESSING:
+      if grealgameviewstate=1 then newpostprocessing=aiactionseq(seq).value
+     endcase
+     case AIACTSETUPANTIALIAS:
+      if grealgameviewstate=1 then newantialias=aiactionseq(seq).value
+     endcase
+     case AIACTRESET:
+      if grealgameviewstate=1
+       Gosub _main_game_freeleveldata
+       Gosub _start_engine
+      endif
+     endcase
+     case AIACTSAVESETUP:
+      if grealgameviewstate=1
+       widthfound=0 : heightfound=0 : depthfound=0
+       dim setupdata$(999)
+       load array exeroot$+"\"+setupfilename$,setupdata$()
+       `
+       for i=0 to 999
+        field$=lower$(setupdata$(i))
+        num=len("dynamicshadows")
+        if left$(field$,num)="dynamicshadows" then setupdata$(i)="dynamicshadows="+str$(newdynamicshadows) : founddynamicshadows=1
+        num=len("useeffects")
+        if left$(field$,num)="useeffects" then setupdata$(i)="useeffects="+str$(newuseeffects) : founduseeffects=1
+        num=len("dividetexturesize")
+        if left$(field$,num)="dividetexturesize" then setupdata$(i)="dividetexturesize="+str$(newdividetexturesize) : founddividetexturesize=1
+        num=len("mousesensitivity")
+        if left$(field$,num)="mousesensitivity" then setupdata$(i)="mousesensitivity="+str$(newmousesensitivity) : foundmousesensitivity=1
+        num=len("aspectratio")
+        if left$(field$,num)="aspectratio" then setupdata$(i)="aspectratio="+str$(newaspectratio) : foundaspectratio=1
+        num=len("postprocessing")
+        if left$(field$,num)="postprocessing" then setupdata$(i)="postprocessing="+str$(newpostprocessing) : foundpostprocessing=1
+        num=len("width")
+        if left$(field$,num)="width" then setupdata$(i)="width="+str$(newwidth) : widthfound=1
+        num=len("height")
+        if left$(field$,num)="height" then setupdata$(i)="height="+str$(newheight) : heightfound=1
+        num=len("depth")
+        if left$(field$,num)="depth" then setupdata$(i)="depth="+str$(newdepth) : depthfound=1
+        num=len("antialias")
+        if left$(field$,num)="antialias" then setupdata$(i)="antialias="+str$(newantialias) : foundantialias=1
+        if founddynamicshadows=1 and founduseeffects=1 and founddividetexturesize=1 and foundmousesensitivity=1 and foundaspectratio=1
+         if foundpostprocessing=1 and widthfound=1 and heightfound=1 and depthfound=1 and foundantialias=1
+          exit
+         endif
+        endif
+       next i
+       `
+       if depthfound=0 or heightfound=0 or widthfound=0 or founddynamicshadows=0 or founduseeffects=0 or founddividetexturesize=0 or foundmousesensitivity=0 or foundaspectratio=0 or foundpostprocessing=0 or foundantialias=0
+        for i=levelfpiinsetup+2 to 999
+         `
+         if founddynamicshadows=0 and setupdata$(i)="" then setupdata$(i)="dynamicshadows="+str$(newdynamicshadows) : founddynamicshadows=1
+         if founduseeffects=0 and setupdata$(i)="" then setupdata$(i)="useeffects="+str$(newuseeffects) : founduseeffects=1
+         if founddividetexturesize=0 and setupdata$(i)="" then setupdata$(i)="dividetexturesize="+str$(newdividetexturesize) : founddividetexturesize=1
+         if foundmousesensitivity=0 and setupdata$(i)="" then setupdata$(i)="mousesensitivity="+str$(newmousesensitivity) : foundmousesensitivity=1
+         if foundaspectratio=0 and setupdata$(i)="" then setupdata$(i)="aspectratio="+str$(newaspectratio) : foundaspectratio=1
+         if foundpostprocessing=0 and setupdata$(i)="" then setupdata$(i)="postprocessing="+str$(newpostprocessing) : foundpostprocessing=1
+         if widthfound=0 and setupdata$(i)="" then setupdata$(i)="width="+str$(newwidth) : widthfound=1
+         if heightfound=0 and setupdata$(i)="" then setupdata$(i)="height="+str$(newheight) : heightfound=1
+         if depthfound=0 and setupdata$(i)="" then setupdata$(i)="depth="+str$(newdepth) : depthfound=1
+         if foundantialias=0 and setupdata$(i)="" then setupdata$(i)="antialias="+str$(newantialias) : foundantialias=1
+         `
+         if founddynamicshadows=1 and founduseeffects=1 and founddividetexturesize=1 and foundmousesensitivity=1 and foundaspectratio=1
+          if foundpostprocessing=1 and widthfound=1 and heightfound=1 and depthfound=1 and foundantialias=1
+           exit
+          endif
+         endif
+         `
+        next i
+       endif
+       `
+       save array exeroot$+"\"+setupfilename$,setupdata$()
+       undim setupdata$()
+      endif
+     endcase
      `
      case AIACTFPGCRAWTEXTR:
       grawtextr=aiactionseq(seq).value
@@ -20212,9 +20337,9 @@ for l=0 to 299
     if field$=alt$+"poolammo"
      if value$<>""
       poolindex=0 : emptyindex=0
-      for i=1 to 100
-       if ammopool(i).name$=value$ then poolindex=i : exit
-       if ammopool(i).used=0 and emptyindex=0 then emptyindex=i
+      for y=1 to 100
+       if ammopool(y).name$=value$ then poolindex=y : exit
+       if ammopool(y).used=0 and emptyindex=0 then emptyindex=y
       next i
       if poolindex=0 then poolindex=emptyindex
       if poolindex>0

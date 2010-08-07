@@ -9,6 +9,18 @@ History
 V1.1.8
 ------
 
+ * Added SAVESETUP to save the changes to the setup.ini (MUST CALL BEFORE RESET)
+ * Added RESET to reset the engine so the new setup.ini changes will be applied
+ * Added SETUP_DYNAMICSHADOWS=X to change the setup.ini's dynamicshadows setting
+ * Added SETUP_USEEFFECTS=X to change the setup.ini's useeffects setting
+ * Added SETUP_DIVIDETEXTURESIZE=X to change the setup.ini's dividetexturesize setting
+ * Added SETUP_MOUSESENSITIVITY=X to change the setup.ini's mousesensitivity setting 
+ * Added SETUP_ASPECTRATIO=X to change the setup.ini's aspectratio setting
+ * Added SETUP_POSTPROCESSING=X to change the setup.ini's postprocessing setting
+ * Added SETUP_WIDTH=X to change the setup.ini's width setting
+ * Added SETUP_HEIGHT=X to change the setup.ini's height setting
+ * Added SETUP_DEPTH=X  to change the setup.ini's depth setting
+ * Added SETUP_ANTIALIAS=X to change the setup.ini's antialias setting
  * Added new entity data file grouping for V118 properties (backward compat)
  * Added new decal particle setting to allow choice between animated or static decal particle textures, default is 0.
  * Halved the power of the Bloom in response to community feedback
