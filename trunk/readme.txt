@@ -9,6 +9,7 @@ History
 V1.1.8
 ------
 
+ * NOTE: V117 and above on Vista require SP1 or above to function properly
  * Added SAVESETUP to save the changes to the setup.ini (MUST CALL BEFORE RESET)
  * Added RESET to reset the engine so the new setup.ini changes will be applied
  * Added SETUP_DYNAMICSHADOWS=X to change the setup.ini's dynamicshadows setting
