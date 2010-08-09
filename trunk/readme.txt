@@ -9,6 +9,8 @@ History
 V1.1.8
 ------
 
+ * Updated arena chat messages so the backspace key removes string characters from messages.
+ * Fixed 'super jump' bug that can occur in arena games.
  * NOTE: V117 and above on Vista require SP1 or above to function properly
  * Added SAVESETUP to save the changes to the setup.ini (MUST CALL BEFORE RESET)
  * Added RESET to reset the engine so the new setup.ini changes will be applied

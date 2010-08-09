@@ -4135,16 +4135,24 @@ else
  if gmultiplayergame=1
   tylinevalue=screen height()-20
   if lower$(inkey$())="t" and gtalkytoaster=0
+   rem V118 - 090810 - knxrb - Added below line ' jumpaction=0' to stop jumping action when 'T' is pressed to talk.
+   rem This is to fix the 'super jump' bug where the player can jump endlessly high if they press the 'T' key to talk, hold
+   rem the space key down to enter lots of spaces into the chat and then press the 'Enter' key (in built arena game).
+   jumpaction=0
    gtalkytoaster=1 : clear entry buffer
   endif
   if gtalkytoaster=1
    set cursor 0,tylinevalue
-   print "TALK>";entry$();
+   rem V118 - 090810 - knxrb - Edited below line to allow for backspace to remove characters from talk messages before sending.
+   `print "TALK>";entry$();
+   print "TALK>";entry$(1);
   endif
   if returnkey()=1 and gtalkytoaster=1
    rem send message to all
    gtalkytoaster=0
-   tmessage$=entry$()
+   rem V118 - 090810 - knxrb - Edited below line to allow for backspace to remove characters from talk messages before sending.
+   `tmessage$=entry$()
+   tmessage$=entry$(1)
    MULTIPLAYER SEND FROM PLAYER dwLocalPlayerID
    MULTIPLAYER SEND MESSAGE STRING ">>"+tmessage$,0x0080
    clear entry buffer
@@ -18506,16 +18514,16 @@ else
  gunlagxmax# = firemode(gunid,firemode).settings.gunlagxmax
  gunlagymax# = firemode(gunid,firemode).settings.gunlagymax
 endif
-gunlagx# = curvevalue(gunlagx#-(cammovex#)*0.01,gunlagx#,gunlagspeed#)
-gunlagy# = curvevalue(gunlagy#+(cammovey#)*0.01,gunlagy#,gunlagspeed#)
+gunlagX# = curvevalue(gunlagX#-(cammovex#)*0.01,gunlagX#,gunlagspeed#)
+gunlagY# = curvevalue(gunlagY#+(cammovey#)*0.01,gunlagY#,gunlagspeed#)
 
-if gunlagx# < - gunlagxmax# then gunlagx# = -gunlagxmax#
-if gunlagy# < - gunlagymax# then gunlagy# = -gunlagymax#
-if gunlagx# >  gunlagxmax# then gunlagx# = gunlagxmax#
-if gunlagy# >  gunlagymax# then gunlagy# = gunlagymax#
+if gunlagX# < - gunlagxmax# then gunlagX# = -gunlagxmax#
+if gunlagY# < - gunlagymax# then gunlagY# = -gunlagymax#
+if gunlagX# >  gunlagxmax# then gunlagX# = gunlagxmax#
+if gunlagY# >  gunlagymax# then gunlagY# = gunlagymax#
 
-gunlagx# = curvevalue(0,gunlagx#,gunlagspeed#*1.2)
-gunlagy# = curvevalue(0,gunlagy#,gunlagspeed#*1.2)
+gunlagX# = curvevalue(0,gunlagX#,gunlagspeed#*1.2)
+gunlagY# = curvevalue(0,gunlagY#,gunlagspeed#*1.2)
 
 if gunzoommode <> 0 and gunzoommode < 11 and firemode(gunid,firemode).settings.simplezoom <> 0
  gunOffsetX# = curvevalue(firemode(gunid,firemode).settings.simplezoomx#,gunOffsetX#,firemode(gunid,firemode).settings.simplezoomspeed)
@@ -25258,8 +25266,6 @@ open to write 1,elementsfilename$
     a=entityelement(e).eleprof.particle.scaleonlyx : write file 1,a
     a=entityelement(e).eleprof.particle.lifeincrement : write file 1,a
     a=entityelement(e).eleprof.particle.alphaintensity : write file 1,a
-    rem V118 - 060810 - knxrb - Decal animation setting (Added animation choice setting).
-    a=entityelement(e).eleprof.particle.animated : write file 1,a
    endif
    if versionnumbersave>=218
     rem V118 - 060810 - knxrb - Decal animation setting (Added animation choice setting).
@@ -25480,8 +25486,6 @@ if file exist(elementsfilename$)=1
       read file 1,a : entityelement(e).eleprof.particle.scaleonlyx=a
       read file 1,a : entityelement(e).eleprof.particle.lifeincrement=a
       read file 1,a : entityelement(e).eleprof.particle.alphaintensity=a
-      rem V118 - 060810 - knxrb - Decal animation setting (Added animation choice setting).
-      read file 1,a : entityelement(e).eleprof.particle.animated=a
      endif
      if versionnumberload>=218
       rem V118 - 060810 - knxrb - Decal animation setting (Added animation choice setting).
