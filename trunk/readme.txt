@@ -9,6 +9,7 @@ History
 V1.1.8
 ------
 
+ * Updated arena player name entry and arena IP address entry to allow the backspace key to remove characters.
  * Updated arena chat messages so the backspace key removes string characters from messages.
  * Fixed 'super jump' bug that can occur in arena games.
  * NOTE: V117 and above on Vista require SP1 or above to function properly

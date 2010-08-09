@@ -4135,10 +4135,6 @@ else
  if gmultiplayergame=1
   tylinevalue=screen height()-20
   if lower$(inkey$())="t" and gtalkytoaster=0
-   rem V118 - 090810 - knxrb - Added below line ' jumpaction=0' to stop jumping action when 'T' is pressed to talk.
-   rem This is to fix the 'super jump' bug where the player can jump endlessly high if they press the 'T' key to talk, hold
-   rem the space key down to enter lots of spaces into the chat and then press the 'Enter' key (in built arena game).
-   jumpaction=0
    gtalkytoaster=1 : clear entry buffer
   endif
   if gtalkytoaster=1
@@ -4163,6 +4159,10 @@ else
     talkscriptwho(talkindex)=iLocalEL
     inc talkindex : if talkindex>10 then talkindex=0
    endif
+   rem V118 - 090810 - knxrb - Added below line ' jumpaction=0' to stop jumping action when 'T' is pressed to talk.
+   rem This is to fix the 'super jump' bug where the player can jump endlessly high if they press the 'T' key to talk, hold
+   rem the space key down to enter lots of spaces into the chat and then press the 'Enter' key (in built arena game).
+   jumpaction=0
   endif
  endif
  `
@@ -29988,7 +29988,10 @@ _ai_hud_view:
      if hud(hudid).typemode<20
       `
       rem show current entry
-      string$=entry$() : length=15
+      rem V118 - 090810 - knxrb - Edited line to allow backspace key to remove characters from player
+      rem name in the Name Entry box and the IP address in the IP Address entry box in arena games.
+      `string$=entry$() : length=15
+      string$=entry$(1) : length=15
       if len(string$)>length then string$=left$(string$,length)
       set cursor hud(hudid).posx+18,hud(hudid).posy+14
       print string$;
