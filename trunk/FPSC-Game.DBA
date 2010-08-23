@@ -28,8 +28,6 @@ rem
 rem Credit to Airslide for help with Dark AI when it went into Fenix Mod
 rem Credit to Hockeykid for his continued help integrating Dark AI
 
-rem Robert Knox - 030810 - Added this comment to test the SVN ;)
-
 _start_engine:
 if exeroot$<>"" then set dir exeroot$
 rem Special build flags for 'genre' switch
@@ -65,6 +63,10 @@ If file exist("setuplog.txt") then delete file "setuplog.txt"
 open to write 22,"setuplog.txt"
 
 Global exeroot$ : exeroot$=get dir$()
+
+rem V118 - 110810 - knxrb - Hud Layers
+global hudHName$ as string = ""
+
 rem - Global array for string variables
 type uservar
  used as boolean
@@ -327,6 +329,8 @@ type saveloadgamepositionentitytype
  tsoundset1state as integer
  physics as integer
  alttextureused as integer
+ rem V118 - 120810 - knxrb - etimer fix from David Hawkins
+ etimer as integer
 endtype
 type saveloadgamepositionweaponslottype
  pref got invpos
@@ -1273,6 +1277,7 @@ type entitytype
  aimovez as float
  ttarget as integer
  etimer as integer Rem Hockeykid - 250210 - added entity variable for etimer
+ etimerpaused as integer rem V118 - 120810 - knxrb - etimer fix from David Hawkins
  editorfixed as integer
  servercontrolled as integer
  fakeplrindex as integer
@@ -1529,6 +1534,27 @@ rem AirMod - New Conditions >>>
 rem AirMod - Done <<<
 #constant AICONDKEYPRESSED 829
 #constant AICONDHASWEAPON 830
+rem V118 - 110810 - knxrb - Hud Layers
+#constant AICONDHUDSELECTED 831
+rem V118 - 110810 - knxrb - Setup.ini Variable Conditions
+#constant AICONDSETUPSHADER 832
+#constant AICONDSETUPTEXQUALITY 833
+#constant AICONDSETUPMOUSESENS 834
+#constant AICONDSETUPASPECTRATIO 835
+#constant AICONDSETUPPOSTPROCESSING 836
+#constant AICONDSETUPWIDTH 837
+#constant AICONDSETUPHEIGHT 838
+#constant AICONDSETUPDEPTH 839
+#constant AICONDSETUPANTIALIAS 840
+#constant AICONDSETUPSHADOWS 841
+rem V118 - 130810 - knxrb - Invert Mouse
+#constant AICONDSETUPMOUSEINVERT 842
+rem V118 - 120810 - knxrb - 'mousestate=X' command
+#constant AICONDMOUSESTATE 843
+rem V118 - 140810 - knxrb - Disable Particles
+#constant AICONDSETUPPARTICLESUSED 844
+rem V118 - 160810 - knxrb - Auto Resolution
+#constant AICONDSETUPAUTORES 845
 #constant AICONDLAST 900
 
 #constant AIACTNONE 0
@@ -1787,6 +1813,17 @@ Rem AirMod - Done <<<
 #constant AIACTFPGCRAWTEXTFONT 1257
 #constant AIACTFPGCRAWTEXTOFF 1258
 #constant AIACTFPGCRAWTEXT 1259
+rem V118 - 110810 - knxrb - Hud Layers
+#constant AIACTHUDLAYER 1260
+rem V118 - 130810 - knxrb - Mouse Invert (Options Screen)
+#constant AIACTSETUPMOUSEINVERT 1261
+rem V118 - 140810 - knxrb - Disable Particles (Options Screen)
+#constant AIACTSETUPPARTICLESUSED 1262
+rem V118 - 160810 - knxrb - Hud - sethudx Command
+#constant AIACTSETHUDX 1263
+rem V118 - 160810 - knxrb - Auto Resolution
+#constant AIACTSETUPAUTORES 1264
+
 #constant AIACTLAST 1300
 
 rem V109 BETA3 - 210408 - AI variables
@@ -2399,6 +2436,8 @@ type hudtype
  width as integer
  height as integer
  imagefile$ as string
+ rem V118 - 110810 - knxrb - Hud Layers
+ layer as integer
 endtype
 dim hud(10) as hudtype
 global saveloadgamehudmax : saveloadgamehudmax=0
@@ -2654,6 +2693,13 @@ global gentitytogglingoff : gentitytogglingoff=0
 global gextracollisionbuilddisabled : gextracollisionbuilddisabled=1
 global galwaysconfirmsave : galwaysconfirmsave=0
 global gsimplifiedcharacterediting : gsimplifiedcharacterediting=0
+global gantialias : gantialias=0
+rem V118 - 130810 - knxrb - Invert Mouse
+global gminvert : gminvert=0
+rem V118 - 140810 - knxrb - Disable Particles
+global gparticlesused : gparticlesused=0
+rem V118 - 160810 - knxrb - Auto Resolution
+global gautores : gautores=0
 
 rem Version Control - TEST GAME Mode
 global gtestgamemodefromeditor : gtestgamemodefromeditor=0
@@ -2828,6 +2874,13 @@ if file exist(tfile$)=1
     tryfield$="postprocessing" : if field$=tryfield$ then gpostprocessing=value1 : newpostprocessing=value1
     tryfield$="showaioutlines" : if field$=tryfield$ then gshowaioutlines=value1
     tryfield$="disablepeeking" : if field$=tryfield$ then gdisablepeeking=value1
+    tryfield$="antialias" : if field$=tryfield$ then gantialias=value1 : newantialias=value1
+    rem V118 - 130810 - knxrb - Invert Mouse
+    tryfield$="invmouse" : if field$=tryfield$ then gminvert=value1 : newmouseinvert=value1
+    rem V118 - 140810 - knxrb - Disable Particles
+    tryfield$="particleused" : if field$=tryfield$ then gparticlesused=value1 : newparticlesused=value1
+    rem V118 - 160810 - knxrb - Auto Resolution
+    tryfield$="autores" : if field$=tryfield$ then gautores=value1 : newautores=value1
     `
     tryfield$="usesky" : if field$=tryfield$ then guseskystate=value1
     tryfield$="usefloor" : if field$=tryfield$ then gusefloorstate=value1
@@ -2897,6 +2950,13 @@ if file exist(tfile$)=1
   endif
  next l
  undim data$()
+ 
+ rem V118 - 160810 - knxrb - Auto Resolution
+ if gautores=1
+  gdisplaywidth = desktop width()
+  gdisplayheight = desktop height()
+ endif
+ 
  `
 else
  `
@@ -3032,7 +3092,8 @@ rem And finally switch the resolution if different from default
 if runengineinframe=1
  rem FPGC - 260210 - display size from SETUP.INI, else 640x480
  vsyncflag=1 : thevrmodeflag=0 : if gvrmode<>0 then thevrmodeflag=1
- if check display mode(gdisplaywidth,gdisplayheight,gdisplaydepth)=1
+ 
+  if check display mode(gdisplaywidth,gdisplayheight,gdisplaydepth)=1
   set display mode gdisplaywidth,gdisplayheight,gdisplaydepth,vsyncflag,0,0,0,0,thevrmodeflag
  else
   set display mode 640,480,gdisplaydepth,vsyncflag
@@ -10248,6 +10309,23 @@ conword$(AICONDAICALLEDBYPLR)="aicalledbyplr"
 conword$(AICONDAIHASTARGET)="aihastarget"
 conword$(AICONDDARKAIRUNNINGF)="runningforwards"
 rem Dark AI end
+conword$(AICONDHUDSELECTED)="hudselected" : rem V118 - 110810 - knxrb - Hud Layers
+rem V118 - 110810 - knxrb - Setup.ini Conditions
+conword$(AICONDSETUPSHADER)="shadervar"
+conword$(AICONDSETUPSHADOWS)="shadowsvar"
+conword$(AICONDSETUPTEXQUALITY)="texqualityvar"
+conword$(AICONDSETUPMOUSESENS)="mousesensitivityvar"
+conword$(AICONDSETUPASPECTRATIO)="aspectratiovar"
+conword$(AICONDSETUPPOSTPROCESSING)="postprocessingvar"
+conword$(AICONDSETUPWIDTH)="widthvar"
+conword$(AICONDSETUPHEIGHT)="heightvar"
+conword$(AICONDSETUPDEPTH)="depthvar"
+conword$(AICONDSETUPANTIALIAS)="antialiasvar"
+conword$(AICONDSETUPMOUSEINVERT)="mouseinvertvar" : rem V118 - 130810 - knxrb - Invert Mouse
+conword$(AICONDSETUPPARTICLESUSED)="particlesvar" : rem V118 - 140810 - knxrb - Disable Particles
+conword$(AICONDSETUPAUTORES)="autoresvar" : rem V118 - 160810 - knxrb - Auto Resolution
+rem V118 - 120810 - knxrb - 'mousestate=X' command
+conword$(AICONDMOUSESTATE)="mousestate"
 
 rem Set all action keywords
 dim actword$(AIACTLAST)
@@ -10458,8 +10536,10 @@ actword$(AIACTSETUPPOSTPROCESSING)="setup_postprocessing"
 actword$(AIACTSETUPWIDTH)="setup_width"
 actword$(AIACTSETUPHEIGHT)="setup_height"
 actword$(AIACTSETUPDEPTH)="setup_depth"
-actword$(AIACTSETUPDEPTH)="setup_depth"
 actword$(AIACTSETUPANTIALIAS)="setup_antialias"
+actword$(AIACTSETUPMOUSEINVERT)="setup_mouseinvert" : rem V118 - 130810 - knxrb - Invert Mouse
+actword$(AIACTSETUPPARTICLESUSED)="setup_particles" : rem V118 - 140810 - knxrb - Disable Particles
+actword$(AIACTSETUPAUTORES)="setup_autores" : rem V118 - 160810 - knxrb - Auto Resolution
 actword$(AIACTRESET)="reset"
 actword$(AIACTSAVESETUP)="savesetup"
 actword$(AIACTFPGCRAWTEXTR)="fpgcrawtextr"
@@ -10508,7 +10588,8 @@ actword$(AIACTAIADDALLY)="aiaddally"
 actword$(AIACTAIADDENEMY)="aiaddenemy"
 actword$(AIACTAIADDNEUTRAL)="aiaddneutral"
 actword$(AIACTAIAUTOFACTIONOFF)="aiautofactionoff"
-
+actword$(AIACTHUDLAYER)="hudlayer" : rem V118 - 110810 - knxrb - Hud Layers
+actword$(AIACTSETHUDX)="sethudx" : rem V118 - 160810 - knxrb - Hud - sethudx Command
 return
 
 _ai_reset_presaveposition:
@@ -11923,6 +12004,57 @@ if aiindex>0
       if entityelement(e).darkai.action<>5 and conda=1 then airesult=0
      endif
     endcase
+    rem V118 - 110810 - knxrb - Hud Layers
+    case AICONDHUDSELECTED:
+      cHName$ = aiconditionseq(seq).string1
+      if cHName$ <> hudHName$ then airesult=0 else hudHName$ = ""
+    endcase
+    case AICONDSETUPSHADER:
+      if aiconditionseq(seq).valuea <> guseeffectstate then airesult=0
+    endcase
+    case AICONDSETUPSHADOWS:
+      if aiconditionseq(seq).valuea <> gdynamicshadowsstate then airesult=0
+    endcase
+    case AICONDSETUPTEXQUALITY:
+      if aiconditionseq(seq).valuea <> gdividetexturesize then airesult=0
+    endcase
+    case AICONDSETUPMOUSESENS:
+      if aiconditionseq(seq).valuea <> gmousesensitivity then airesult=0
+    endcase
+    case AICONDSETUPASPECTRATIO:
+      if aiconditionseq(seq).valuea <> gaspectratio then airesult=0
+    endcase
+    case AICONDSETUPPOSTPROCESSING:
+      if aiconditionseq(seq).valuea <> gpostprocessing then airesult=0
+    endcase
+    case AICONDSETUPWIDTH:
+      if aiconditionseq(seq).valuea <> gdisplaywidth then airesult=0
+    endcase
+    case AICONDSETUPHEIGHT:
+      if aiconditionseq(seq).valuea <> gdisplayheight then airesult=0
+    endcase
+    case AICONDSETUPDEPTH:
+      if aiconditionseq(seq).valuea <> gdisplaydepth then airesult=0
+    endcase
+    case AICONDSETUPANTIALIAS:
+      if aiconditionseq(seq).valuea <> gantialias then airesult=0
+    endcase
+    rem V118 - 130810 - knxrb - Invert Mouse
+    case AICONDSETUPMOUSEINVERT:
+      if aiconditionseq(seq).valuea <> gminvert then airesult=0
+    endcase
+    rem V118 - 140810 - knxrb - Disable Particles
+    case AICONDSETUPPARTICLESUSED:
+      if aiconditionseq(seq).valuea <> gparticlesused then airesult=0
+    endcase
+    rem V118 - 160810 - knxrb - Auto Resolution
+    case AICONDSETUPAUTORES:
+      if aiconditionseq(seq).valuea <> gautores then airesult=0
+    endcase
+    rem V118 - 120810 - knxrb - 'mousestate=X' command
+    case AICONDMOUSESTATE:
+      if aiconditionseq(seq).valuea <> control_mouseclick() then airesult=0
+    endcase
     `
     `
     `
@@ -12811,7 +12943,12 @@ if aiindex>0
        entityelement(e).decalindex=0
       else
        entityelement(e).decalindex=1
-       entityelement(e).decalmode=tdecalmode
+       rem V118 - 140810 - knxrb - Disable Particles
+       if gparticlesused = 0 and tdecalmode = 7
+        entityelement(e).decalmode = 2 `Use 2 as default for disabled particles
+       else
+        entityelement(e).decalmode=tdecalmode
+       endif
        if entityelement(e).decalmode=6
         if entityelement(e).currentweapon=0
          entityelement(e).decalindex=0
@@ -14155,6 +14292,24 @@ if aiindex>0
        endif
       next uvar
      endcase
+     rem V118 - 110810 - knxrb - Hud Layers
+     case AIACTHUDLAYER:
+      hName$ = aiactionseq(seq).string1
+      for hudid=1 to hudmax
+          if lower$(hud(hudid).name$) = lower$(hName$)
+            hud(hudid).layer = aiactionseq(seq).valueb
+          endif
+      next hudid
+     endcase
+     rem V118 - 160810 - knxrb - Hud - sethudx Command
+     case AIACTSETHUDX:
+      hName$ = aiactionseq(seq).string1
+      for hudid=1 to hudmax
+          if lower$(hud(hudid).name$) = lower$(hName$)
+            hud(hudid).posx = (gdisplaywidth/100.0)*aiactionseq(seq).valueb `-((hud(hudid).width/2)*gratiox#)
+          endif
+      next hudid
+     endcase
      `
      case AIACTNEWGAME:
       rem Continue Only
@@ -14247,6 +14402,8 @@ if aiindex>0
       `
       rem FPGC - 080710 - resume any paused soundloops
       for lsi=1 to entityelementmax
+       rem V118 - 120810 - knxrb - etimer fix from David Hawkins
+       entityelement(lsi).etimerpaused=entityelement(lsi).etimer
        if entityelement(lsi).firesoundloop>0
         if sound exist(entityelement(lsi).firesoundloop)=1
          pause sound entityelement(lsi).firesoundloop
@@ -14263,6 +14420,8 @@ if aiindex>0
       `
       rem FPGC - 080710 - resume any paused soundloops
       for lsi=1 to entityelementmax
+       rem V118 - 120810 - knxrb - etimer fix from David Hawkins
+       entityelement(lsi).etimer=entityelement(lsi).etimerpaused
        if entityelement(lsi).firesoundloop>0
         if sound exist(entityelement(lsi).firesoundloop)=1
          resume sound entityelement(lsi).firesoundloop
@@ -14824,11 +14983,26 @@ if aiindex>0
      case AIACTSETUPHEIGHT:
       if grealgameviewstate=1 then newheight=aiactionseq(seq).value
      endcase
+     case AIACTSETUPDEPTH:
+      if grealgameviewstate=1 then newdepth=aiactionseq(seq).value
+     endcase
      case AIACTSETUPPOSTPROCESSING:
       if grealgameviewstate=1 then newpostprocessing=aiactionseq(seq).value
      endcase
      case AIACTSETUPANTIALIAS:
       if grealgameviewstate=1 then newantialias=aiactionseq(seq).value
+     endcase
+     rem V118 - 160810 - knxrb - Auto Resolution
+     case AIACTSETUPAUTORES:
+      if grealgameviewstate=1 then newautores=aiactionseq(seq).value
+     endcase
+     rem V118 - 130810 - knxrb - Invert Mouse
+     case AIACTSETUPMOUSEINVERT:
+      if grealgameviewstate=1 then newmouseinvert=aiactionseq(seq).value
+     endcase
+     rem V118 - 140810 - knxrb - Disable Particles
+     case AIACTSETUPPARTICLESUSED:
+      if grealgameviewstate=1 then newparticlesused=aiactionseq(seq).value
      endcase
      case AIACTRESET:
       if grealgameviewstate=1
@@ -14838,7 +15012,7 @@ if aiindex>0
      endcase
      case AIACTSAVESETUP:
       if grealgameviewstate=1
-       widthfound=0 : heightfound=0 : depthfound=0
+       widthfound=0 : heightfound=0 : depthfound=0 : foundantialias=0 : foundmouseinv=0 : foundparticlesused = 0 : foundautores = 0
        dim setupdata$(999)
        load array exeroot$+"\"+setupfilename$,setupdata$()
        `
@@ -14864,14 +15038,20 @@ if aiindex>0
         if left$(field$,num)="depth" then setupdata$(i)="depth="+str$(newdepth) : depthfound=1
         num=len("antialias")
         if left$(field$,num)="antialias" then setupdata$(i)="antialias="+str$(newantialias) : foundantialias=1
+        num=len("particleused") : rem V118 - 140810 - knxrb - Disable Particles
+        if left$(field$,num)="particleused" then setupdata$(i)="particleused="+str$(newparticlesused) : foundparticlesused=1
+        num=len("autores") : rem V118 - 160810 - knxrb - Auto Resolution
+        if left$(field$,num)="autores" then setupdata$(i)="autores="+str$(newautores) : foundautores=1
+        num=len("invmouse") : rem V118 - 130810 - knxrb - Invert Mouse
+        if left$(field$,num)="invmouse" then setupdata$(i)="invmouse="+str$(newmouseinvert) : foundmouseinv=1
         if founddynamicshadows=1 and founduseeffects=1 and founddividetexturesize=1 and foundmousesensitivity=1 and foundaspectratio=1
-         if foundpostprocessing=1 and widthfound=1 and heightfound=1 and depthfound=1 and foundantialias=1
+         if foundpostprocessing=1 and widthfound=1 and heightfound=1 and depthfound=1 and foundantialias=1 and foundmouseinv=1 and foundparticlesused=1 and foundautores=1
           exit
          endif
         endif
        next i
        `
-       if depthfound=0 or heightfound=0 or widthfound=0 or founddynamicshadows=0 or founduseeffects=0 or founddividetexturesize=0 or foundmousesensitivity=0 or foundaspectratio=0 or foundpostprocessing=0 or foundantialias=0
+       if depthfound=0 or heightfound=0 or widthfound=0 or founddynamicshadows=0 or founduseeffects=0 or founddividetexturesize=0 or foundmousesensitivity=0 or foundaspectratio=0 or foundpostprocessing=0 or foundantialias=0 or foundmouseinv=0 or foundparticlesused=0 or foundautores=0
         for i=levelfpiinsetup+2 to 999
          `
          if founddynamicshadows=0 and setupdata$(i)="" then setupdata$(i)="dynamicshadows="+str$(newdynamicshadows) : founddynamicshadows=1
@@ -14884,9 +15064,15 @@ if aiindex>0
          if heightfound=0 and setupdata$(i)="" then setupdata$(i)="height="+str$(newheight) : heightfound=1
          if depthfound=0 and setupdata$(i)="" then setupdata$(i)="depth="+str$(newdepth) : depthfound=1
          if foundantialias=0 and setupdata$(i)="" then setupdata$(i)="antialias="+str$(newantialias) : foundantialias=1
+         rem V118 - 140810 - knxrb - Disable Particles
+         if foundparticlesused=0 and setupdata$(i)="" then setupdata$(i)="particleused="+str$(newparticlesused) : foundparticlesused=1
+         rem V118 - 160810 - knxrb - Auto Resolution
+         if foundautores=0 and setupdata$(i)="" then setupdata$(i)="autores="+str$(newautores) : foundautores=1
+         rem V118 - 130810 - knxrb - Invert Mouse
+         if foundmouseinv=0 and setupdata$(i)="" then setupdata$(i)="invmouse="+str$(newmouseinvert) : foundmouseinv=1
          `
          if founddynamicshadows=1 and founduseeffects=1 and founddividetexturesize=1 and foundmousesensitivity=1 and foundaspectratio=1
-          if foundpostprocessing=1 and widthfound=1 and heightfound=1 and depthfound=1 and foundantialias=1
+          if foundpostprocessing=1 and widthfound=1 and heightfound=1 and depthfound=1 and foundantialias=1 and foundmouseinv=1 and foundparticlesused=1 and foundautores=1
            exit
           endif
          endif
@@ -29215,6 +29401,7 @@ camangy#=camera angle y()+(cammovex#*camrotspeed#)
 rem Control camera view
 if wrapvalue(camangx#)>85 and wrapvalue(camangx#)<180 then camangx#=85.0
 if wrapvalue(camangx#)>180 and wrapvalue(camangx#)<275 then camangx#=275.0
+
 rotate camera camangx#,camangy#,camera angle z()
 
 return
@@ -29760,7 +29947,7 @@ _ai_hud_controller:
  `
 return
 
-_ai_hud_view:
+_ai_hud_view: 
  `
  rem FPGC - 280610 - must be called to ensure we have latest mouse position from mouse input (movemousexy)
  if ingameloop=1 and showgamemenu=0
@@ -29924,7 +30111,10 @@ _ai_hud_view:
  `
  rem Display using direct paste (fastest)
  ink rgb(255,255,255),0
- for hudid=1 to hudmax
+ 
+for cLayer = 0 to 11 step 1 : rem V118 - 110810 - knxrb - Hud Layers
+for hudid=1 to hudmax
+ if hud(hudid).layer = cLayer : rem V118 - 110810 - knxrb - Hud Layers
   if hud(hudid).hide=0
    if hud(hudid).maintype=6
     rem NUMERIC
@@ -29973,7 +30163,9 @@ _ai_hud_view:
   else
    if hud(hudid).image>0 then sprite hudid,-10000,-10000,hud(hudid).image
   endif
- next hudid
+ endif : rem V118 - 110810 - knxrb - Hud Layers  
+next hudid
+next cLayer : rem V118 - 110810 - knxrb - Hud Layers
  `
  rem After Image Text pasting
  for hudid=1 to hudmax
@@ -30082,6 +30274,8 @@ _ai_hud_view:
    hud(hudid).posy=inputmousey()-((hud(hudid).height/2)*gratioy#)
    aihudpointerimagestore=hud(hudid).image
    rem Can Detect When Select HUD Item
+   rem V118 - 110810 - knxrb - Hud Layers
+   hLayer = -1
    for thudid=1 to hudmax
     rem Only selectables
     hud(thudid).highlighted=0
@@ -30095,6 +30289,38 @@ _ai_hud_view:
        endif
       endif
      endif
+    endif
+    rem V118 - 110810 - knxrb - Hud Layers (Save hud name of ANY hud highlighted with mouse [hudHName$])
+    if control_mouseclick() = 1
+    if hud(thudid).hide=0
+     if hud(hudid).posx>hud(thudid).posx
+      if hud(hudid).posx<hud(thudid).posx+(hud(thudid).width*gratiox#)
+       if hud(hudid).posy>hud(thudid).posy
+        if hud(hudid).posy<hud(thudid).posy+(hud(thudid).height*gratioy#)
+         if hud(thudid).layer > hLayer
+          hudHName$ = hud(thudid).name$
+          hLayer = hud(thudid).layer
+         endif
+        endif
+       endif
+      endif
+     endif 
+    endif
+    endif
+        
+    if hud(thudid).hide=0
+     if hud(hudid).posx>hud(thudid).posx
+      if hud(hudid).posx<hud(thudid).posx+(hud(thudid).width*gratiox#)
+       if hud(hudid).posy>hud(thudid).posy
+        if hud(hudid).posy<hud(thudid).posy+(hud(thudid).height*gratioy#)
+         if hud(thudid).layer > hLayer
+          hudNName$ = hud(thudid).name$
+          hLayer = hud(thudid).layer
+         endif
+        endif
+       endif
+      endif
+     endif 
     endif
    next thudid
    `
@@ -30433,7 +30659,8 @@ if thudi>hudmax
   hud(hudid).maintype=1
   hud(hudid).typemode=workhudtype : rem 0always,X-objectivetype(mutliplayer)
  endif
- if workhudmake$="pointer" then hud(hudid).maintype=2
+ rem V118 - 110810 - knxrb - Hud Layers (Force cursor/pointer above all other hud layers [layer 11], added bit after colon only.)
+ if workhudmake$="pointer" then hud(hudid).maintype=2 : hud(hudid).layer = 11
  if workhudmake$="button"
   hud(hudid).maintype=3
   hud(hudid).typemode=workhudtype : rem 1new,2load,3save,4continue,5exit
@@ -32367,9 +32594,13 @@ else
  if abs(dcaminertiay#)>abs(caminertiay#) then caminertiay#=dcaminertiay#
  if abs(dcaminertiax#)<abs(caminertiax#) then caminertiax#=caminertiax#/1.9
  if abs(dcaminertiay#)<abs(caminertiay#) then caminertiay#=caminertiay#/1.9
- rem AirMod - Line Modified for Recoil
- camangx#=camera angle x()+caminertiax# - gunRecoilAngleY# + gunRecoilCorrectAngleY#
- camangy#=camera angle y()+caminertiay# - gunRecoilAngleX# + gunRecoilCorrectAngleX#
+ rem V118 - 130810 - knxrb - Invert Mouse
+ if gminvert = 1
+  camangx#=camera angle x()-caminertiax# - gunRecoilAngleY# + gunRecoilCorrectAngleY# : rem AirMod - Line Modified for Recoil
+ else
+  camangx#=camera angle x()+caminertiax# - gunRecoilAngleY# + gunRecoilCorrectAngleY# : rem AirMod - Line Modified for Recoil
+ endif
+ camangy#=camera angle y()+caminertiay# - gunRecoilAngleX# + gunRecoilCorrectAngleX# : rem AirMod - Line Modified for Recoil
  `
 endif
 
@@ -36766,6 +36997,8 @@ _saveload_savegame:
    a#=saveloadgamepositionentity(lsi).collected : write float 1,a#
    a#=saveloadgamepositionentity(lsi).activated : write float 1,a#
    a#=saveloadgamepositionentity(lsi).collisionactive : write float 1,a#
+   rem V118 - 120810 - knxrb - etimer fix from David Hawkins
+   a#=saveloadgamepositionentity(lsi).etimer : write float 1,a#
   next lsi
   rem Weapons
   for lsi=0 to 20
@@ -36968,6 +37201,8 @@ _saveload_loadgame:
    read float 1,a# : saveloadgamepositionentity(lsi).collected=a#
    read float 1,a# : saveloadgamepositionentity(lsi).activated=a#
    read float 1,a# : saveloadgamepositionentity(lsi).collisionactive=a#
+   rem V118 - 120810 - knxrb - etimer fix from David Hawkins
+   read float 1,a# : saveloadgamepositionentity(lsi).etimer=a#
   next lsi
   rem Weapons
   dim saveloadgamepositionweaponslot(20) as saveloadgamepositionweaponslottype
@@ -37168,6 +37403,8 @@ _saveload_storesavedata:
   saveloadgamepositionentity(lsi).x=entityelement(lsi).x
   saveloadgamepositionentity(lsi).y=entityelement(lsi).y
   saveloadgamepositionentity(lsi).z=entityelement(lsi).z
+  rem V118 - 120810 - knxrb - etimer fix from David Hawkins
+  saveloadgamepositionentity(lsi).etimer=entityelement(lsi).etimerpaused
   tttobj=entityelement(lsi).obj
   if tttobj>0
    if object exist(tttobj)=1
@@ -37319,6 +37556,8 @@ _saveload_retrievesavedata:
    entityelement(lsi).dormant=saveloadgamepositionentity(lsi).dormant
    entityelement(lsi).beenkilled=saveloadgamepositionentity(lsi).beenkilled
    `
+   rem V118 - 120810 - knxrb - etimer fix from David Hawkins
+   entityelement(lsi).etimer=timer()-saveloadgamepositionentity(lsi).etimer
    lsientid=entityelement(lsi).bankindex
    if entityprofile(lsientid).ischaracter=1
     rem leeadd - 111208 - v114b4 - introduce saving character positions and states
@@ -46307,7 +46546,7 @@ if file exist(tfile$)=1
     tryfield$="newblossershaders" : if field$=tryfield$ then gnewblossershaders=value1
     tryfield$="postprocessing" : if field$=tryfield$ then gpostprocessing=value1
     tryfield$="showaioutlines" : if field$=tryfield$ then gshowaioutlines=value1
-    tryfield$="disablepeeking" : if field$=tryfield$ then gdisablepeeking=value1
+    tryfield$="disablepeeking" : if field$=tryfield$ then gdisablepeeking=value1  
     `
     rem arena settings
     tryfield$="gameobjectivetype" : if field$=tryfield$ then ggameobjectivetype=value1
