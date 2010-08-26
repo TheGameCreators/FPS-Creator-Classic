@@ -9,6 +9,18 @@ History
 V1.1.8
 ------
 
+ * Added PASSTOSETUP=X Y x is equal to the string you would like to insert/change in the setup .ini Y is the value to give it
+	Example: passtosetup=dynamicshadows 1
+ * Removed SAVESETUP to save the changes to the setup.ini (MUST CALL BEFORE RESET)
+ * Removed SETUP_DYNAMICSHADOWS=X to change the setup.ini's dynamicshadows setting
+ * Removed SETUP_USEEFFECTS=X to change the setup.ini's useeffects setting
+ * Removed SETUP_DIVIDETEXTURESIZE=X to change the setup.ini's dividetexturesize setting
+ * Removed SETUP_MOUSESENSITIVITY=X to change the setup.ini's mousesensitivity setting 
+ * Removed SETUP_ASPECTRATIO=X to change the setup.ini's aspectratio setting
+ * Removed SETUP_POSTPROCESSING=X to change the setup.ini's postprocessing setting
+ * Removed SETUP_WIDTH=X to change the setup.ini's width setting
+ * Removed SETUP_HEIGHT=X to change the setup.ini's height setting
+ * Removed SETUP_DEPTH=X  to change the setup.ini's depth setting
  * Updated arena player name entry and arena IP address entry to allow the backspace key to remove characters.
  * Updated arena chat messages so the backspace key removes string characters from messages.
  * Fixed 'super jump' bug that can occur in arena games.

@@ -59,9 +59,6 @@ else
  endif
 endif
 
-If file exist("setuplog.txt") then delete file "setuplog.txt"
-open to write 22,"setuplog.txt"
-
 Global exeroot$ : exeroot$=get dir$()
 
 rem V118 - 110810 - knxrb - Hud Layers
@@ -389,6 +386,11 @@ type flakprofiletype
  bounceonhit as integer
  explodeonhit as integer
  damage as integer
+ script$ as string
+ collisionmode as integer
+ physics as integer
+ phyweight as integer
+ phyfriction as integer
 endtype
 
 rem Flak Sound Data Structure
@@ -413,6 +415,7 @@ type flaktype
  throwforward as integer
  throwheight as integer
  usedinlevel as integer
+ libindex as integer
 endtype
 dim flak(flakmax) as flaktype
 global flakmax=0
@@ -1265,6 +1268,7 @@ type entityeleproftype
 endtype
 rem Entity Elements Data
 type entitytype
+ isflak as integer
  darkai as darkaitype
  curvcmx as integer
  curvcmy as integer
@@ -1804,6 +1808,7 @@ Rem AirMod - Done <<<
 #constant AIACTSETUPANTIALIAS 1238
 #constant AIACTRESET 1239
 #constant AIACTSAVESETUP 1240
+#constant AIACTPASSTOSETUP 1241
 #constant AIACTFPGCRAWTEXTR 1251
 #constant AIACTFPGCRAWTEXTG 1252
 #constant AIACTFPGCRAWTEXTB 1253
@@ -2195,6 +2200,7 @@ type flakelementtype
  ypos as float
  zpos as float
  owner as integer
+ isentity as integer
 endtype
 global flakelementmax=100
 dim flakelement(flakelementmax) as flakelementtype
@@ -2950,13 +2956,13 @@ if file exist(tfile$)=1
   endif
  next l
  undim data$()
- 
+
  rem V118 - 160810 - knxrb - Auto Resolution
  if gautores=1
   gdisplaywidth = desktop width()
   gdisplayheight = desktop height()
  endif
- 
+
  `
 else
  `
@@ -3092,7 +3098,7 @@ rem And finally switch the resolution if different from default
 if runengineinframe=1
  rem FPGC - 260210 - display size from SETUP.INI, else 640x480
  vsyncflag=1 : thevrmodeflag=0 : if gvrmode<>0 then thevrmodeflag=1
- 
+
   if check display mode(gdisplaywidth,gdisplayheight,gdisplaydepth)=1
   set display mode gdisplaywidth,gdisplayheight,gdisplaydepth,vsyncflag,0,0,0,0,thevrmodeflag
  else
@@ -4028,7 +4034,10 @@ debugviewtext(313,strarr$(143)) : gosub _gun_loadonlypresent
 rem V109 BETA10 - 120508 - moved here to load FLAK after GUNLOADS (usedinlevel flag)
 if gmultiplayergame=0 then debugviewtext(313,strarr$(128)) : gosub _flak_initonlyused
 debugviewtext(314,strarr$(144)) : gosub _decal_loadonlyactivedecals
-
+`
+Rem load flak scripts
+if gmultiplayergame=0 then debugviewtext(315,"Loading Flak Scripts...") :   gosub _flak_load_script
+`
 rem Entities can intropduce fake players, init all
 debugviewtext(318,strarr$(145)) : gosub _player_init : gosub _player_resetobjectives
 debugviewtext(320,strarr$(146)) : gosub _entity_startentitiesoff
@@ -6989,6 +6998,11 @@ for e=1 to entityelementlist
  rem AirMod - Added for Advanced Blood
  gosub _entity_controlblood
  obje=e
+ if entityelement(e).isflak>0
+  `Print "entityelement(e).x="+str$(entityelement(e).x)
+  `Print "entityelement(e).y="+str$(entityelement(e).y)
+  `Print "entityelement(e).mover.inmotion="+str$(entityelement(e).mover.inmotion)
+ endif
  if entityelement(e).active=1 and entityelement(e).dormant=0
   `
   rem only non-spawn-masters with valid profile indexes
@@ -7655,7 +7669,6 @@ _entity_fillviscolmap:
 return
 
 _entity_controlsingleai:
-
 rem get functional overview
 gosub _entity_controlrecalcdist
 
@@ -9102,6 +9115,7 @@ _entity_controlmovements:
       rem can be a little heavy on CPU time (any ideas to speed up?)
       entityelement(e).y=entityelement(e).y-entityelement(e).mover.grav
       if static volume(toldx#,toldy#+30,toldz#,entityelement(e).x,entityelement(e).y+30,entityelement(e).z,1.0)=1
+       `Print "Hit static volume, moving back to collision point"
        entityelement(e).x=toldx#+get static collision x()
        entityelement(e).y=toldy#+get static collision y()
        entityelement(e).z=toldz#+get static collision z()
@@ -10542,6 +10556,7 @@ actword$(AIACTSETUPPARTICLESUSED)="setup_particles" : rem V118 - 140810 - knxrb 
 actword$(AIACTSETUPAUTORES)="setup_autores" : rem V118 - 160810 - knxrb - Auto Resolution
 actword$(AIACTRESET)="reset"
 actword$(AIACTSAVESETUP)="savesetup"
+actword$(AIACTPASSTOSETUP)="passtosetup"
 actword$(AIACTFPGCRAWTEXTR)="fpgcrawtextr"
 actword$(AIACTFPGCRAWTEXTG)="fpgcrawtextg"
 actword$(AIACTFPGCRAWTEXTB)="fpgcrawtextb"
@@ -14962,47 +14977,70 @@ if aiindex>0
      endcase
      Rem End Dark AI
      `
+     case AIACTPASSTOSETUP:
+      if grealgameviewstate=1
+       found=0
+       dim setupdata$(999)
+       load array exeroot$+"\"+setupfilename$,setupdata$()
+       pass$=aiactionseq(seq).string1
+       value=aiactionseq(seq).valueb
+       for i=0 to 999
+        field$=lower$(setupdata$(i))
+        num=len(pass$)
+        if left$(field$,num)=pass$ then setupdata$(i)=pass$+"="+str$(value) : found=1 : exit
+       next i
+       `
+       if found=0
+        for i=levelfpiinsetup+2 to 999
+         if setupdata$(i)="" then setupdata$(i)=pass$+"="+str$(value) : exit
+        next i
+       endif
+       `
+       save array exeroot$+"\"+setupfilename$,setupdata$()
+       undim setupdata$()
+      endif
+     endcase
      case AIACTSETUPDYNAMICSHADOWS:
-      if grealgameviewstate=1 then newdynamicshadows=aiactionseq(seq).value
+      `if grealgameviewstate=1 then newdynamicshadows=aiactionseq(seq).value
      endcase
      case AIACTSETUPUSEEFFECTS:
-      if grealgameviewstate=1 then newuseeffects=aiactionseq(seq).value
+      `if grealgameviewstate=1 then newuseeffects=aiactionseq(seq).value
      endcase
      case AIACTSETUPDIVIDETEXTURESIZE:
-      if grealgameviewstate=1 then newdividetexturesize=aiactionseq(seq).value
+      `if grealgameviewstate=1 then newdividetexturesize=aiactionseq(seq).value
      endcase
      case AIACTSETUPMOUSESENSITIVITY:
-      if grealgameviewstate=1 then newmousesensitivity=aiactionseq(seq).value
+      `if grealgameviewstate=1 then newmousesensitivity=aiactionseq(seq).value
      endcase
      case AIACTSETUPASPECTRATIO:
-      if grealgameviewstate=1 then newaspectratio=aiactionseq(seq).value
+      `if grealgameviewstate=1 then newaspectratio=aiactionseq(seq).value
      endcase
      case AIACTSETUPWIDTH:
-      if grealgameviewstate=1 then newwidth=aiactionseq(seq).value
+      `if grealgameviewstate=1 then newwidth=aiactionseq(seq).value
      endcase
      case AIACTSETUPHEIGHT:
-      if grealgameviewstate=1 then newheight=aiactionseq(seq).value
+      `if grealgameviewstate=1 then newheight=aiactionseq(seq).value
      endcase
      case AIACTSETUPDEPTH:
-      if grealgameviewstate=1 then newdepth=aiactionseq(seq).value
+      `if grealgameviewstate=1 then newdepth=aiactionseq(seq).value
      endcase
      case AIACTSETUPPOSTPROCESSING:
-      if grealgameviewstate=1 then newpostprocessing=aiactionseq(seq).value
+      `if grealgameviewstate=1 then newpostprocessing=aiactionseq(seq).value
      endcase
      case AIACTSETUPANTIALIAS:
-      if grealgameviewstate=1 then newantialias=aiactionseq(seq).value
+      `if grealgameviewstate=1 then newantialias=aiactionseq(seq).value
      endcase
      rem V118 - 160810 - knxrb - Auto Resolution
      case AIACTSETUPAUTORES:
-      if grealgameviewstate=1 then newautores=aiactionseq(seq).value
+      `if grealgameviewstate=1 then newautores=aiactionseq(seq).value
      endcase
      rem V118 - 130810 - knxrb - Invert Mouse
      case AIACTSETUPMOUSEINVERT:
-      if grealgameviewstate=1 then newmouseinvert=aiactionseq(seq).value
+      `if grealgameviewstate=1 then newmouseinvert=aiactionseq(seq).value
      endcase
      rem V118 - 140810 - knxrb - Disable Particles
      case AIACTSETUPPARTICLESUSED:
-      if grealgameviewstate=1 then newparticlesused=aiactionseq(seq).value
+      `if grealgameviewstate=1 then newparticlesused=aiactionseq(seq).value
      endcase
      case AIACTRESET:
       if grealgameviewstate=1
@@ -15011,6 +15049,8 @@ if aiindex>0
       endif
      endcase
      case AIACTSAVESETUP:
+      Rem REMOVED BETTER METHOD FOUND
+      remstart
       if grealgameviewstate=1
        widthfound=0 : heightfound=0 : depthfound=0 : foundantialias=0 : foundmouseinv=0 : foundparticlesused = 0 : foundautores = 0
        dim setupdata$(999)
@@ -15083,6 +15123,7 @@ if aiindex>0
        save array exeroot$+"\"+setupfilename$,setupdata$()
        undim setupdata$()
       endif
+      remend
      endcase
      `
      case AIACTFPGCRAWTEXTR:
@@ -18582,9 +18623,6 @@ if gunid>0
  if object exist(currentgunobj)=1
   firemode=gun(gunid).settings.alternate
   ammooffset=firemode*10
-  Print "Firemode "+str$(firemode)+" Simple Zoom: "+str$(firemode(gunid,firemode).settings.simplezoom)
-  Print "Gunzoommode: "+str$(gunzoommode)
-  Print gunzoomstring$
   gosub _gun_control
   gosub _gun_shoot
   if gun(gunid).settings.flashlimb>=0 then gosub _gun_flash
@@ -22041,6 +22079,10 @@ return
 
 _flak_loaddata:
 
+flak(flakid).profile.physics=1
+flak(flakid).profile.phyweight=100
+flak(flakid).profile.collisionmode=5
+`
 dim data$(100)
 filename$="gamecore\flak\"+flak$+"\flakspec.txt"
 load array filename$,data$()
@@ -22090,6 +22132,11 @@ for l=0 to 99
    if field$="sndbounce" then flak(flakid).sound.sndbounce$=value$
    if field$="sndexplode" then flak(flakid).sound.sndexplode$=value$
    `
+   if field$="script" then flak(flakid).profile.script$=value$
+   if field$="collisionmode" then flak(flakid).profile.collisionmode=value1
+   if field$="physics" then flak(flakid).profile.physics=value1
+   if field$="phywieght" then flak(flakid).profile.phyweight=value1
+   if field$="phyfriction" then flak(flakid).profile.phyfriction=value1
   endif
  endif
 next l
@@ -22098,6 +22145,20 @@ undim data$()
 rem V109 BETA10 - by default, flak is not used
 flak(flakid).usedinlevel=0
 
+return
+
+_flak_load_script:
+ aidir$="scriptbank\"
+ for flakid=1 to flakmax
+  if flak(flakid).profile.script$<>""
+   if lower$(right$(flak(flakid).profile.script$,4))<>".fpi" then flak(flakid).profile.script$=flak(flakid).profile.script$+".fpi"
+   ai$=flak(flakid).profile.script$
+   inc aiindexmaster : aiindex=aiindexmaster
+   dim scriptbank$(aiindexmaster) : scriptbank$(aiindex)=ai$
+   gosub _ai_load
+   flak(flakid).libindex=aiindex
+  endif
+ next flakid
 return
 
 _flak_load:
@@ -22269,38 +22330,108 @@ if flak(flakid).obj>0
   if flakelement(tf).active=0 then exit
  next tf
  if tf<flakelementmax
-  rem found free flak element
-  flakelement(tf).flakid=flakid
-  flakelement(tf).profile=flak(flakid).profile
-  rem activate new flak element
-  flakelement(tf).active=1
-  flakelement(tf).range=0
-  flakelement(tf).xpos=flakx
-  flakelement(tf).ypos=flaky
-  flakelement(tf).zpos=flakz
-  flakelement(tf).owner=flakowner
-  rem create projectile
-  flakelement(tf).obj=flakelementoffset+tf
-  tfobj=flakelement(tf).obj
-  if object exist(tfobj)=1 then delete object tfobj
-  objecteffect(tfobj)=0
-  instance object tfobj,flak(flakid).obj
-  rem use ORIENT to get correct rotation and intertias
-  if flakowner=0
-   set object to camera orientation tfobj
+  Rem if flak has a script turn it into an entity
+  if flak(flakid).profile.script$<>""
+   if entityelementlist+1>entityelementmax or entityelementlist=entityelementmax
+    inc entityelementlist : inc entityelementmax : dim entityelement(entityelementmax) as entitytype
+    dim entitydebug$(entityelementmax)
+   else
+    inc entityelementlist
+   endif
+   `
+   Rem entity profile data
+   if entidmaster+1>entidmastermax or entidmaster=entidmastermax
+    inc entidmaster : inc entidmastermax : dim entityprofile(entidmastermax) as entityprofiletype
+   else
+    inc entidmaster
+   endif
+   `
+   Rem Create Flak Object
+   flakelement(tf).obj=flakelementoffset+tf
+   tfobj=flakelement(tf).obj
+   if object exist(tfobj)=1 then delete object tfobj : ode destroy object tfobj
+   objecteffect(tfobj)=0
+   instance object tfobj,flak(flakid).obj
+   `
+   ttempe=e : e=entityelementlist
+   Rem Fill in entity details
+   entityelement(e).obj=tfobj
+   entityelement(e).isflak=flakid
+   entityelement(e).ai.libindex=flak(flakid).libindex
+   entityelement(e).x=flakx
+   entityelement(e).y=flaky
+   entityelement(e).z=flakz
+   Position Object tfobj,flakx,flaky,flakz
+   entityelement(e).active=1
+   entityelement(e).logiccount=0
+   entityelement(e).logictimestamp=timer()
+   entityelement(e).dormant=1
+   `
+   Rem Entity Profile details
+   entityelement(e).bankindex=entidmaster
+   entityprofile(entidmaster).ischaracter=1
+   entityprofile(entidmaster).speed=100
+   entityprofile(entidmaster).collisionmode=flak(flakid).profile.collisionmode
+   entityprofile(entidmaster).physics=flak(flakid).profile.physics
+   entityprofile(entidmaster).phyweight=flak(flakid).profile.phyweight
+   entityprofile(entidmaster).phyfriction=flak(flakid).profile.phyfriction
+   `
+   rem copy entity profile details into the eleprof
+   entityelement(e).eleprof.speed=entityprofile(entidmaster).speed
+   entityelement(e).eleprof.physics=flak(flakid).profile.physics
+   entityelement(e).eleprof.phyweight=flak(flakid).profile.phyweight
+   entityelement(e).eleprof.phyfriction=flak(flakid).profile.phyfriction
+   `
+   Rem Mark as "active"
+   flakelement(tf).active=-1
+
+   `
+   gosub _ode_setupewithphysics
+   `
+   Rem Rotate flak correctly
+   if flakowner=0
+    set object to camera orientation tfobj
+   else
+    rotate object tfobj,flakpitch,flakangle,0
+   endif
+   `
+   rem show flak object
+   show object tfobj
+   e=ttempe
   else
-   rotate object tfobj,flakpitch,flakangle,0
+   rem found free flak element
+   flakelement(tf).flakid=flakid
+   flakelement(tf).profile=flak(flakid).profile
+   rem activate new flak element
+   flakelement(tf).active=1
+   flakelement(tf).range=0
+   flakelement(tf).xpos=flakx
+   flakelement(tf).ypos=flaky
+   flakelement(tf).zpos=flakz
+   flakelement(tf).owner=flakowner
+   rem create projectile
+   flakelement(tf).obj=flakelementoffset+tf
+   tfobj=flakelement(tf).obj
+   if object exist(tfobj)=1 then delete object tfobj
+   objecteffect(tfobj)=0
+   instance object tfobj,flak(flakid).obj
+   rem use ORIENT to get correct rotation and intertias
+   if flakowner=0
+    set object to camera orientation tfobj
+   else
+    rotate object tfobj,flakpitch,flakangle,0
+   endif
+   move object tfobj,flakelement(tf).profile.zinc
+   flakelement(tf).profile.xinc=object position x(tfobj)*2
+   flakelement(tf).profile.yinc=flakelement(tf).profile.yinc+(object position y(tfobj)*2)
+   flakelement(tf).profile.zinc=object position z(tfobj)*2
+   flakelement(tf).xpos=flakelement(tf).xpos+(flakelement(tf).profile.xinc*flakspeed#)
+   flakelement(tf).ypos=flakelement(tf).ypos+(flakelement(tf).profile.yinc*flakspeed#)
+   flakelement(tf).zpos=flakelement(tf).zpos+(flakelement(tf).profile.zinc*flakspeed#)
+   position object tfobj,99999,99999,99999
+   rem show flak object
+   show object tfobj
   endif
-  move object tfobj,flakelement(tf).profile.zinc
-  flakelement(tf).profile.xinc=object position x(tfobj)*2
-  flakelement(tf).profile.yinc=flakelement(tf).profile.yinc+(object position y(tfobj)*2)
-  flakelement(tf).profile.zinc=object position z(tfobj)*2
-  flakelement(tf).xpos=flakelement(tf).xpos+(flakelement(tf).profile.xinc*flakspeed#)
-  flakelement(tf).ypos=flakelement(tf).ypos+(flakelement(tf).profile.yinc*flakspeed#)
-  flakelement(tf).zpos=flakelement(tf).zpos+(flakelement(tf).profile.zinc*flakspeed#)
-  position object tfobj,99999,99999,99999
-  rem show flak object
-  show object tfobj
  else
   rem no more free flak
  endif
@@ -29947,7 +30078,7 @@ _ai_hud_controller:
  `
 return
 
-_ai_hud_view: 
+_ai_hud_view:
  `
  rem FPGC - 280610 - must be called to ensure we have latest mouse position from mouse input (movemousexy)
  if ingameloop=1 and showgamemenu=0
@@ -30111,7 +30242,7 @@ _ai_hud_view:
  `
  rem Display using direct paste (fastest)
  ink rgb(255,255,255),0
- 
+
 for cLayer = 0 to 11 step 1 : rem V118 - 110810 - knxrb - Hud Layers
 for hudid=1 to hudmax
  if hud(hudid).layer = cLayer : rem V118 - 110810 - knxrb - Hud Layers
@@ -30163,7 +30294,7 @@ for hudid=1 to hudmax
   else
    if hud(hudid).image>0 then sprite hudid,-10000,-10000,hud(hudid).image
   endif
- endif : rem V118 - 110810 - knxrb - Hud Layers  
+ endif : rem V118 - 110810 - knxrb - Hud Layers
 next hudid
 next cLayer : rem V118 - 110810 - knxrb - Hud Layers
  `
@@ -30304,10 +30435,10 @@ next cLayer : rem V118 - 110810 - knxrb - Hud Layers
         endif
        endif
       endif
-     endif 
+     endif
     endif
     endif
-        
+
     if hud(thudid).hide=0
      if hud(hudid).posx>hud(thudid).posx
       if hud(hudid).posx<hud(thudid).posx+(hud(thudid).width*gratiox#)
@@ -30320,7 +30451,7 @@ next cLayer : rem V118 - 110810 - knxrb - Hud Layers
         endif
        endif
       endif
-     endif 
+     endif
     endif
    next thudid
    `
@@ -46546,7 +46677,7 @@ if file exist(tfile$)=1
     tryfield$="newblossershaders" : if field$=tryfield$ then gnewblossershaders=value1
     tryfield$="postprocessing" : if field$=tryfield$ then gpostprocessing=value1
     tryfield$="showaioutlines" : if field$=tryfield$ then gshowaioutlines=value1
-    tryfield$="disablepeeking" : if field$=tryfield$ then gdisablepeeking=value1  
+    tryfield$="disablepeeking" : if field$=tryfield$ then gdisablepeeking=value1
     `
     rem arena settings
     tryfield$="gameobjectivetype" : if field$=tryfield$ then ggameobjectivetype=value1
