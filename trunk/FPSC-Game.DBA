@@ -14984,6 +14984,20 @@ if aiindex>0
        load array exeroot$+"\"+setupfilename$,setupdata$()
        pass$=aiactionseq(seq).string1
        value=aiactionseq(seq).valueb
+       `Allow variable values to be saved for specific lines for the options screen (saves on amount of extra commands needed in fpi)
+       if left$(lower$(pass$),len("useeffects"))="useeffects" then value=newuseeffects
+       if left$(lower$(pass$),len("dynamicshadows"))="dynamicshadows" then value=newdynamicshadows 
+       if left$(lower$(pass$),len("dividetexturesize"))="dividetexturesize" then value=newdividetexturesize  
+       if left$(lower$(pass$),len("mousesensitivity"))="mousesensitivity" then value=newmousesensitivity 
+       if left$(lower$(pass$),len("aspectratio"))="aspectratio" then value=newaspectratio 
+       if left$(lower$(pass$),len("postprocessing"))="postprocessing" then value=newpostprocessing 
+       if left$(lower$(pass$),len("width"))="width" then value=newwidth 
+       if left$(lower$(pass$),len("height"))="height" then value=newheight 
+       if left$(lower$(pass$),len("depth"))="depth" then value=newdepth 
+       if left$(lower$(pass$),len("antialias"))="antialias" then value=newantialias 
+       if left$(lower$(pass$),len("invmouse"))="invmouse" then value=newmouseinvert 
+       if left$(lower$(pass$),len("particleused"))="particleused" then value=newparticlesused 
+       if left$(lower$(pass$),len("autores"))="autores" then value=newautores
        for i=0 to 999
         field$=lower$(setupdata$(i))
         num=len(pass$)
@@ -15001,46 +15015,46 @@ if aiindex>0
       endif
      endcase
      case AIACTSETUPDYNAMICSHADOWS:
-      `if grealgameviewstate=1 then newdynamicshadows=aiactionseq(seq).value
+      if grealgameviewstate=1 then newdynamicshadows=aiactionseq(seq).value
      endcase
      case AIACTSETUPUSEEFFECTS:
-      `if grealgameviewstate=1 then newuseeffects=aiactionseq(seq).value
+      if grealgameviewstate=1 then newuseeffects=aiactionseq(seq).value
      endcase
      case AIACTSETUPDIVIDETEXTURESIZE:
-      `if grealgameviewstate=1 then newdividetexturesize=aiactionseq(seq).value
+      if grealgameviewstate=1 then newdividetexturesize=aiactionseq(seq).value
      endcase
      case AIACTSETUPMOUSESENSITIVITY:
-      `if grealgameviewstate=1 then newmousesensitivity=aiactionseq(seq).value
+      if grealgameviewstate=1 then newmousesensitivity=aiactionseq(seq).value
      endcase
      case AIACTSETUPASPECTRATIO:
-      `if grealgameviewstate=1 then newaspectratio=aiactionseq(seq).value
+      if grealgameviewstate=1 then newaspectratio=aiactionseq(seq).value
      endcase
      case AIACTSETUPWIDTH:
-      `if grealgameviewstate=1 then newwidth=aiactionseq(seq).value
+      if grealgameviewstate=1 then newwidth=aiactionseq(seq).value
      endcase
      case AIACTSETUPHEIGHT:
-      `if grealgameviewstate=1 then newheight=aiactionseq(seq).value
+      if grealgameviewstate=1 then newheight=aiactionseq(seq).value
      endcase
      case AIACTSETUPDEPTH:
-      `if grealgameviewstate=1 then newdepth=aiactionseq(seq).value
+      if grealgameviewstate=1 then newdepth=aiactionseq(seq).value
      endcase
      case AIACTSETUPPOSTPROCESSING:
-      `if grealgameviewstate=1 then newpostprocessing=aiactionseq(seq).value
+      if grealgameviewstate=1 then newpostprocessing=aiactionseq(seq).value
      endcase
      case AIACTSETUPANTIALIAS:
-      `if grealgameviewstate=1 then newantialias=aiactionseq(seq).value
+      if grealgameviewstate=1 then newantialias=aiactionseq(seq).value
      endcase
      rem V118 - 160810 - knxrb - Auto Resolution
      case AIACTSETUPAUTORES:
-      `if grealgameviewstate=1 then newautores=aiactionseq(seq).value
+      if grealgameviewstate=1 then newautores=aiactionseq(seq).value
      endcase
      rem V118 - 130810 - knxrb - Invert Mouse
      case AIACTSETUPMOUSEINVERT:
-      `if grealgameviewstate=1 then newmouseinvert=aiactionseq(seq).value
+      if grealgameviewstate=1 then newmouseinvert=aiactionseq(seq).value
      endcase
      rem V118 - 140810 - knxrb - Disable Particles
      case AIACTSETUPPARTICLESUSED:
-      `if grealgameviewstate=1 then newparticlesused=aiactionseq(seq).value
+      if grealgameviewstate=1 then newparticlesused=aiactionseq(seq).value
      endcase
      case AIACTRESET:
       if grealgameviewstate=1
