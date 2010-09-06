@@ -69,6 +69,7 @@ type uservar
  used as boolean
  name as string
  value as float
+ newsystem as boolean
 endtype
 dim uservars() as uservar
 
@@ -1578,6 +1579,7 @@ rem V118 - 160810 - knxrb - Auto Resolution
 #constant AIACTDIVVAR 40
 #constant AIACTMODVAR 41
 #constant AIACTWRAPVAR 42
+#constant AIACTDIMLOCALVAR 43
 #constant AIACTRUNFPIDEFAULT 51
 #constant AIACTRUNFPI 52
 #constant AIACTSELECTSHADERVARIABLE 71
@@ -1836,6 +1838,7 @@ global aivariablemode : aivariablemode=0 : rem 0-global, 1-local
 global aivariableindex : aivariableindex=0
 dim aiglobals(99)
 dim ailocals(1,99) as integer
+dim aiuserlocals(1,99) as uservar
 
 rem AI Counters
 global actstringmax=0
@@ -10354,6 +10357,7 @@ actword$(AIACTSETVAR)="setvar"
 actword$(AIACTINCVAR)="incvar"
 actword$(AIACTDECVAR)="decvar"
 actword$(AIACTDIMVAR)="dimvar"
+actword$(AIACTDIMLOCALVAR)="dimlocalvar"
 actword$(AIACTADDVAR)="addvar"
 actword$(AIACTSUBVAR)="subvar"
 actword$(AIACTMULVAR)="mulvar"
@@ -10697,6 +10701,19 @@ if aiindex>0
      exit
     endif
    next uvar
+   `
+   if tfound=0
+    for lvar = 0 to 99
+     if aiuserlocals(e,lvar).newsystem=1 and aiuserlocals(e,lvar).name=tuvar$ and aiuserlocals(e,lvar).used=1
+      rem Found the variable, let's add to it
+      aiconditionseq(seq).valuea=aiuserlocals(e,lvar).value
+      rem And Exit the For loop
+      tfound=1
+      exit
+     endif
+    next lvar
+   endif
+   `
    rem if we didn't find the value, give it a 0
    if tfound=0 then aiconditionseq(seq).valuea=0
   endif
@@ -10712,6 +10729,19 @@ if aiindex>0
      exit
     endif
    next uvar
+   `
+   if tfound=0
+    for lvar = 0 to 99
+     if aiuserlocals(e,lvar).newsystem=1 and aiuserlocals(e,lvar).name=tuvar$ and aiuserlocals(e,lvar).used=1
+      rem Found the variable, let's add to it
+      aiconditionseq(seq).valueb=aiuserlocals(e,lvar).value
+      rem And Exit the For loop
+      tfound=1
+      exit
+     endif
+    next lvar
+   endif
+   `
    rem if we didn't find the value, give it a 0
    if tfound=0 then aiconditionseq(seq).valueb=0
   endif
@@ -10937,6 +10967,7 @@ if aiindex>0
       rem Use the better system ;)
       if left$(aiconditionseq(seq).string1,1)<>"$" and left$(aiconditionseq(seq).string1,1)<>"%"
        if asc(left$(aiconditionseq(seq).string1,1))<asc("0") or asc(left$(aiconditionseq(seq).string1,1))>asc("9")
+        tvarfound=0
         rem Let's find the variable we need to check
         for uvar = 0 to array count(uservars(0))
          if uservars(uvar).used = 1
@@ -10944,10 +10975,25 @@ if aiindex>0
            rem Found it, now let's check it
            conda = uservars(uvar).value
            rem And Exit the For Loop
+           tvarfound=1
            exit
           endif
          endif
         next uvar
+        `
+        rem Let's find the variable we need to check
+        for lvar = 0 to 99
+         if aiuserlocals(e,lvar).used = 1
+          if aiuserlocals(e,lvar).name = aiconditionseq(seq).string1
+           rem Found it, now let's check it
+           conda = aiuserlocals(e,lvar).value
+           rem And Exit the For Loop
+           tvarfound=1
+           exit
+          endif
+         endif
+        next lvar
+        `
        else
         conda = aiconditionseq(seq).valuea
        endif
@@ -10957,7 +11003,7 @@ if aiindex>0
       rem Now check the values
       if conda <> aiconditionseq(seq).valueb then airesult=0
       rem If we couldn't find the variable, then fail the condition
-      if uvar > array count(uservars(0)) then airesult = 0
+      if tvarfound=0 then airesult = 0
      endif
     endcase
     case AICONDVARNOTEQUAL:
@@ -10975,6 +11021,7 @@ if aiindex>0
       rem Use the better system ;)
       if left$(aiconditionseq(seq).string1,1)<>"$" and left$(aiconditionseq(seq).string1,1)<>"%"
        if asc(left$(aiconditionseq(seq).string1,1))<asc("0") or asc(left$(aiconditionseq(seq).string1,1))>asc("9")
+        tvarfound=0
         rem Let's find the variable we need to check
         for uvar = 0 to array count(uservars(0))
          if uservars(uvar).used = 1
@@ -10982,10 +11029,25 @@ if aiindex>0
            rem Found it, now let's check it
            conda = uservars(uvar).value
            rem And Exit the For Loop
+           tvarfound=1
            exit
           endif
          endif
         next uvar
+        `
+        rem Let's find the variable we need to check
+        for lvar = 0 to 99
+         if aiuserlocals(e,lvar).used = 1
+          if aiuserlocals(e,lvar).name = aiconditionseq(seq).string1
+           rem Found it, now let's check it
+           conda = aiuserlocals(e,lvar).value
+           rem And Exit the For Loop
+           tvarfound=1
+           exit
+          endif
+         endif
+        next lvar
+        `
        else
         conda = aiconditionseq(seq).valuea
        endif
@@ -10995,7 +11057,7 @@ if aiindex>0
       rem Now check the values
       if conda = aiconditionseq(seq).valueb then airesult=0
       rem If we couldn't find the variable, then fail the condition
-      if uvar > array count(uservars(0)) then airesult = 0
+      if tvarfound=0 then airesult = 0
      endif
     endcase
     case AICONDVARGREATER:
@@ -11013,6 +11075,7 @@ if aiindex>0
       rem Use the better system ;)
       if left$(aiconditionseq(seq).string1,1)<>"$" and left$(aiconditionseq(seq).string1,1)<>"%"
        if asc(left$(aiconditionseq(seq).string1,1))<asc("0") or asc(left$(aiconditionseq(seq).string1,1))>asc("9")
+        tvarfound=0
         rem Let's find the variable we need to check
         for uvar = 0 to array count(uservars(0))
          if uservars(uvar).used = 1
@@ -11020,10 +11083,25 @@ if aiindex>0
            rem Found it, now let's check it
            conda = uservars(uvar).value
            rem And Exit the For Loop
+           tvarfound=1
            exit
           endif
          endif
         next uvar
+        `
+        rem Let's find the variable we need to check
+        for lvar = 0 to 99
+         if aiuserlocals(e,lvar).used = 1
+          if aiuserlocals(e,lvar).name = aiconditionseq(seq).string1
+           rem Found it, now let's check it
+           conda = aiuserlocals(e,lvar).value
+           rem And Exit the For Loop
+           tvarfound=1
+           exit
+          endif
+         endif
+        next lvar
+        `
        else
         conda = aiconditionseq(seq).valuea
        endif
@@ -11033,7 +11111,7 @@ if aiindex>0
       rem Now check the values
       if conda < aiconditionseq(seq).valueb then airesult=0
       rem If we couldn't find the variable, then fail the condition
-      if uvar > array count(uservars(0)) then airesult = 0
+      if tvarfound=0 then airesult = 0
      endif
     endcase
     case AICONDVARLESS:
@@ -11058,10 +11136,25 @@ if aiindex>0
            rem Found it, now let's check it
            conda = uservars(uvar).value
            rem And Exit the For Loop
+           tvarfound=1
            exit
           endif
          endif
         next uvar
+        `
+        rem Let's find the variable we need to check
+        for lvar = 0 to 99
+         if aiuserlocals(e,lvar).used = 1
+          if aiuserlocals(e,lvar).name = aiconditionseq(seq).string1
+           rem Found it, now let's check it
+           conda = aiuserlocals(e,lvar).value
+           rem And Exit the For Loop
+           tvarfound=1
+           exit
+          endif
+         endif
+        next lvar
+        `
        else
         conda = aiconditionseq(seq).valuea
        endif
@@ -11071,7 +11164,7 @@ if aiindex>0
       rem Now check the values
       if conda > aiconditionseq(seq).valueb then airesult=0
       rem If we couldn't find the variable, then fail the condition
-      if uvar > array count(uservars(0)) then airesult = 0
+      if tvarfound=0 then airesult = 0
      endif
     endcase
     `
@@ -12110,13 +12203,23 @@ if aiindex>0
    tuvar$=right$(aiactionseq(seq).string1,len(aiactionseq(seq).string1)-1)
    tfound=0
    for uvar=0 to array count(uservars(0))
-      if uservars(uvar).name=tuvar$ and uservars(uvar).used=1
-         rem found the variable
-         tfound=1
-         aiactionseq(seq).value=uservars(uvar).value
-         exit
-      endif
+    if uservars(uvar).name=tuvar$ and uservars(uvar).used=1
+     rem found the variable
+     tfound=1
+     aiactionseq(seq).value=uservars(uvar).value
+     exit
+    endif
    next uvar
+   `
+   for lvar=0 to 99
+    if aiuserlocals(e,lvar).name=tuvar$ and aiuserlocals(e,lvar).used=1 and aiuserlocals(e,lvar).newsystem=1
+     rem found the variable
+     tfound=1
+     aiactionseq(seq).value=aiuserlocals(e,lvar).value
+     exit
+    endif
+   next lvar
+   `
    rem if we didn't find the value, give it a 0
    if tfound=0 then aiactionseq(seq).value=0
   endif
@@ -12125,13 +12228,23 @@ if aiindex>0
    tuvar$=right$(aiactionseq(seq).string2,len(aiactionseq(seq).string2)-1)
    tfound=0
    for uvar=0 to array count(uservars(0))
-      if uservars(uvar).name=tuvar$ and uservars(uvar).used=1
-         rem found the variable
-         tfound=1
-         aiactionseq(seq).valueb=uservars(uvar).value
-         exit
-      endif
+    if uservars(uvar).name=tuvar$ and uservars(uvar).used=1
+     rem found the variable
+     tfound=1
+     aiactionseq(seq).valueb=uservars(uvar).value
+     exit
+    endif
    next uvar
+   `
+   for lvar=0 to 99
+    if aiuserlocals(e,lvar).name=tuvar$ and aiuserlocals(e,lvar).used=1 and aiuserlocals(e,lvar).newsystem=1
+     rem found the variable
+     tfound=1
+     aiactionseq(seq).valueb=aiuserlocals(e,lvar).value
+     exit
+    endif
+   next lvar
+   `
    rem if we didn't find the value, give it a 0
    if tfound=0 then aiactionseq(seq).valueb=0
   endif
@@ -12386,6 +12499,7 @@ if aiindex>0
        endif
       else
        rem Use the better system ;)
+       tvarfound=0
        rem Using our strings from the parser, let's find the var the user wants to set
        if left$(aiactionseq(seq).string1,1)="$"
         setintervar(aiactionseq(seq).string1,aiactionseq(seq).valueb)
@@ -12394,10 +12508,23 @@ if aiindex>0
          if uservars(uvar).name = aiactionseq(seq).string1
           rem Found the variable, let's set it
           uservars(uvar).value = aiactionseq(seq).valueb
+          tvarfound=1
           rem And Exit the For loop
           exit
          endif
         next uvar
+        `
+        if tvarfound=0
+         for lvar = 0 to 99
+          if aiuserlocals(e,lvar).name = aiactionseq(seq).string1
+           rem Found the variable, let's set it
+           aiuserlocals(e,lvar).value = aiactionseq(seq).valueb
+           rem And Exit the For loop
+           exit
+          endif
+         next lvar
+        endif
+        `
        endif
       endif
      endcase
@@ -12414,6 +12541,25 @@ if aiindex>0
       else
        ailocals(e,aivariableindex)=ailocals(e,aivariableindex)-aiactionseq(seq).value
       endif
+     endcase
+     Rem Hockeykid - Expand on Plystire's variable system to allow for local variables
+     case AIACTDIMLOCALVAR:
+      rem Let's find an UNUSED variable and set it to the name given
+      for lvar = 0 to 99
+       rem Let's also look for vars already declared as this
+       if aiuserlocals(e,lvar).name = aiactionseq(seq).string1
+        rem This variable already exists, let's just ignore it and exit the For Loop
+        exit
+       endif
+       `
+       if aiuserlocals(e,lvar).used=0
+        aiuserlocals(e,lvar).value=0
+        aiuserlocals(e,lvar).name = aiactionseq(seq).string1
+        aiuserlocals(e,lvar).used=1
+        aiuserlocals(e,lvar).newsystem=1
+        exit
+       endif
+      next lvar
      endcase
      rem Plystire - Code behind User Variables
      case AIACTDIMVAR:
@@ -12441,14 +12587,29 @@ if aiindex>0
        ttt=ttt+aiactionseq(seq).valueb
        setintervar(aiactionseq(seq).string1,ttt)
       else
+       tvarfound=0
        for uvar = 0 to array count(uservars(0))
         if uservars(uvar).name = aiactionseq(seq).string1
          rem Found the variable, let's add to it
          inc uservars(uvar).value, aiactionseq(seq).valueb
          rem And Exit the For loop
+         tvarfound=1
          exit
         endif
        next uvar
+       `
+       if tvarfound=0
+        for lvar = 0 to 99
+         if aiuserlocals(e,lvar).newsystem=1 and aiuserlocals(e,lvar).name = aiactionseq(seq).string1
+          rem Found the variable, let's add to it
+          inc aiuserlocals(e,lvar).value, aiactionseq(seq).valueb
+          rem And Exit the For loop
+          tvarfound=1
+          exit
+         endif
+        next lvar
+       endif
+       `
       endif
      endcase
      case AIACTSUBVAR:
@@ -12458,14 +12619,29 @@ if aiindex>0
        ttt=ttt-aiactionseq(seq).valueb
        setintervar(aiactionseq(seq).string1,ttt)
       else
+       tvarfound=0
        for uvar = 0 to array count(uservars(0))
         if uservars(uvar).name = aiactionseq(seq).string1
          rem Found the variable, let's subtract from it
          dec uservars(uvar).value, aiactionseq(seq).valueb
          rem And Exit the For loop
+         tvarfound=1
          exit
         endif
        next uvar
+       `
+       if tvarfound=0
+        for lvar = 0 to 99
+         if aiuserlocals(e,lvar).newsystem=1 and aiuserlocals(e,lvar).name = aiactionseq(seq).string1
+          rem Found the variable, let's add to it
+          dec aiuserlocals(e,lvar).value, aiactionseq(seq).valueb
+          rem And Exit the For loop
+          tvarfound=1
+          exit
+         endif
+        next lvar
+       endif
+       `
       endif
      endcase
      case AIACTMULVAR:
@@ -12475,14 +12651,29 @@ if aiindex>0
        ttt=ttt*aiactionseq(seq).valueb
        setintervar(aiactionseq(seq).string1,ttt)
       else
+       tvarfound=0
        for uvar = 0 to array count(uservars(0))
         if uservars(uvar).name = aiactionseq(seq).string1
          rem Found the variable, let's multiply it
          uservars(uvar).value = uservars(uvar).value * aiactionseq(seq).valueb
          rem And Exit the For loop
+         tvarfound=1
          exit
         endif
        next uvar
+       `
+       if tvarfound=0
+        for lvar = 0 to 99
+         if aiuserlocals(e,lvar).newsystem=1 and aiuserlocals(e,lvar).name = aiactionseq(seq).string1
+          rem Found the variable, let's add to it
+          aiuserlocals(e,lvar).value=aiuserlocals(e,lvar).value * aiactionseq(seq).valueb
+          rem And Exit the For loop
+          tvarfound=1
+          exit
+         endif
+        next lvar
+       endif
+       `
       endif
      endcase
      case AIACTDIVVAR:
@@ -12492,14 +12683,29 @@ if aiindex>0
        ttt=ttt/aiactionseq(seq).valueb
        setintervar(aiactionseq(seq).string1,ttt)
       else
+       tvarfound=0
        for uvar = 0 to array count(uservars(0))
         if uservars(uvar).name = aiactionseq(seq).string1
          rem Found the variable, let's divide it
          uservars(uvar).value = uservars(uvar).value / aiactionseq(seq).valueb
          rem And Exit the For loop
+         tvarfound=1
          exit
         endif
        next uvar
+       `
+       if tvarfound=0
+        for lvar = 0 to 99
+         if aiuserlocals(e,lvar).newsystem=1 and aiuserlocals(e,lvar).name = aiactionseq(seq).string1
+          rem Found the variable, let's add to it
+          aiuserlocals(e,lvar).value=aiuserlocals(e,lvar).value / aiactionseq(seq).valueb
+          rem And Exit the For loop
+          tvarfound=1
+          exit
+         endif
+        next lvar
+       endif
+       `
       endif
      endcase
      case AIACTMODVAR:
@@ -12509,14 +12715,29 @@ if aiindex>0
        ttt=ttt mod aiactionseq(seq).valueb
        setintervar(aiactionseq(seq).string1,ttt)
       else
+       tvarfound=0
        for uvar = 0 to array count(uservars(0))
         if uservars(uvar).name = aiactionseq(seq).string1
          rem Found the variable, let's modulus it with the value given
          uservars(uvar).value = uservars(uvar).value mod aiactionseq(seq).valueb
          rem And Exit the For loop
+         tvarfound=1
          exit
         endif
        next uvar
+       `
+       if tvarfound=0
+        for lvar = 0 to 99
+         if aiuserlocals(e,lvar).newsystem=1 and aiuserlocals(e,lvar).name = aiactionseq(seq).string1
+          rem Found the variable, let's add to it
+          aiuserlocals(e,lvar).value=aiuserlocals(e,lvar).value mod aiactionseq(seq).valueb
+          rem And Exit the For loop
+          tvarfound=1
+          exit
+         endif
+        next lvar
+       endif
+       `
       endif
      endcase
      case AIACTWRAPVAR:
@@ -12526,14 +12747,29 @@ if aiindex>0
        ttt=wrapvalue(ttt)
        setintervar(aiactionseq(seq).string1,ttt)
       else
+       tvarfound=0
        for uvar = 0 to array count(uservars(0))
         if uservars(uvar).name = aiactionseq(seq).string1
          rem Found the variable, let's wrap it's value
          uservars(uvar).value = wrapvalue(uservars(uvar).value)
          rem And Exit the For loop
+         tvarfound=1
          exit
         endif
        next uvar
+       `
+       if tvarfound=0
+        for lvar = 0 to 99
+         if aiuserlocals(e,lvar).newsystem=1 and aiuserlocals(e,lvar).name = aiactionseq(seq).string1
+          rem Found the variable, let's add to it
+          aiuserlocals(e,lvar).value=wrapvalue(aiuserlocals(e,lvar).value)
+          rem And Exit the For loop
+          tvarfound=1
+          exit
+         endif
+        next lvar
+       endif
+       `
       endif
      endcase
      `
@@ -14986,17 +15222,17 @@ if aiindex>0
        value=aiactionseq(seq).valueb
        `Allow variable values to be saved for specific lines for the options screen (saves on amount of extra commands needed in fpi)
        if left$(lower$(pass$),len("useeffects"))="useeffects" then value=newuseeffects
-       if left$(lower$(pass$),len("dynamicshadows"))="dynamicshadows" then value=newdynamicshadows 
-       if left$(lower$(pass$),len("dividetexturesize"))="dividetexturesize" then value=newdividetexturesize  
-       if left$(lower$(pass$),len("mousesensitivity"))="mousesensitivity" then value=newmousesensitivity 
-       if left$(lower$(pass$),len("aspectratio"))="aspectratio" then value=newaspectratio 
-       if left$(lower$(pass$),len("postprocessing"))="postprocessing" then value=newpostprocessing 
-       if left$(lower$(pass$),len("width"))="width" then value=newwidth 
-       if left$(lower$(pass$),len("height"))="height" then value=newheight 
-       if left$(lower$(pass$),len("depth"))="depth" then value=newdepth 
-       if left$(lower$(pass$),len("antialias"))="antialias" then value=newantialias 
-       if left$(lower$(pass$),len("invmouse"))="invmouse" then value=newmouseinvert 
-       if left$(lower$(pass$),len("particleused"))="particleused" then value=newparticlesused 
+       if left$(lower$(pass$),len("dynamicshadows"))="dynamicshadows" then value=newdynamicshadows
+       if left$(lower$(pass$),len("dividetexturesize"))="dividetexturesize" then value=newdividetexturesize
+       if left$(lower$(pass$),len("mousesensitivity"))="mousesensitivity" then value=newmousesensitivity
+       if left$(lower$(pass$),len("aspectratio"))="aspectratio" then value=newaspectratio
+       if left$(lower$(pass$),len("postprocessing"))="postprocessing" then value=newpostprocessing
+       if left$(lower$(pass$),len("width"))="width" then value=newwidth
+       if left$(lower$(pass$),len("height"))="height" then value=newheight
+       if left$(lower$(pass$),len("depth"))="depth" then value=newdepth
+       if left$(lower$(pass$),len("antialias"))="antialias" then value=newantialias
+       if left$(lower$(pass$),len("invmouse"))="invmouse" then value=newmouseinvert
+       if left$(lower$(pass$),len("particleused"))="particleused" then value=newparticlesused
        if left$(lower$(pass$),len("autores"))="autores" then value=newautores
        for i=0 to 999
         field$=lower$(setupdata$(i))
@@ -26910,6 +27146,7 @@ undim newentityelement()
 
 rem V109 BETA3 - create correct size array for local script variables
 dim ailocals(entityelementmax,99)
+dim aiuserlocals(entityelementmax,99) as uservar
 
 rem create instances for all elements (create dynamic entities only)
 debugviewtext(302,strarr$(102))
@@ -37095,7 +37332,7 @@ _saveload_savegame:
  rem SAVE
  if file exist(saveloadfile$)=1 then delete file saveloadfile$
  open to write 1,saveloadfile$
- version=117 : write file 1,version
+ version=118 : write file 1,version
  if version>=104
   rem V104
   rem Player
@@ -37283,6 +37520,19 @@ _saveload_savegame:
    a$=uservars(i).name : write string 1,a$
    a#=uservars(i).value : write float 1,a#
   next i
+  `
+ endif
+ if version>=118
+    `
+  rem Local values from FPI scripting
+  for lsi=0 to entityelementmax
+   for lsii=0 to 99
+    a#=aiuserlocals(lsi,lsii).value : write float 1,a#
+    a#=aiuserlocals(lsi,lsii).newsystem : write float 1,a#
+    a$=aiuserlocals(lsi,lsii).name : write string 1,a$
+    a#=aiuserlocals(lsi,lsii).used : write float 1,a#
+   next lsii
+  next lsi
   `
  endif
  close file 1
@@ -37494,6 +37744,18 @@ _saveload_loadgame:
    read float 1,a# : uservars(i).value=a#
   next i
   `
+ endif
+ if version>=118
+  rem Local values from FPI scripting
+  dim aiuserlocals(entityelementmax,99) as uservar
+  for lsi=0 to entityelementmax
+   for lsii=0 to 99
+    read float 1,a# : aiuserlocals(lsi,lsii).value=a#
+    read float 1,a# : aiuserlocals(lsi,lsii).newsystem=a#
+    read string 1,a$ : aiuserlocals(lsi,lsii).name=a$
+    read float 1,a# : aiuserlocals(lsi,lsii).used=a#
+   next lsii
+  next lsi
  endif
  close file 1
  `

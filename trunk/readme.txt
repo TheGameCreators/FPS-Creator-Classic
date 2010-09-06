@@ -9,6 +9,7 @@ History
 V1.1.8
 ------
 
+ * Added DIMLOCALVAR=X Works just like DIMVAR=X only makes the variable local to the entity (just like localvar=x only allows 	you to use the new variable system)
  * Added PASSTOSETUP=X Y x is equal to the string you would like to insert/change in the setup .ini Y is the value to give it
 	Example: passtosetup=dynamicshadows 1
  * Removed SAVESETUP to save the changes to the setup.ini (MUST CALL BEFORE RESET)
