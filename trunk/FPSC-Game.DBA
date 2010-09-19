@@ -7002,9 +7002,9 @@ for e=1 to entityelementlist
  gosub _entity_controlblood
  obje=e
  if entityelement(e).isflak>0
-  `Print "entityelement(e).x="+str$(entityelement(e).x)
-  `Print "entityelement(e).y="+str$(entityelement(e).y)
-  `Print "entityelement(e).mover.inmotion="+str$(entityelement(e).mover.inmotion)
+  `Print "Obj Exist: "+str$(Object Exist(entityelement(e).obj))
+  `Print "Profile Obj Exist: "+str$(Object Exist(entityelement(e).profileobj))
+  `Print "Obj Visible: "+str$(Object Visible(entityelement(e).obj))
  endif
  if entityelement(e).active=1 and entityelement(e).dormant=0
   `
@@ -8482,7 +8482,7 @@ if entityelement(e).ai.waypoint.state>0
   `
   rem characters animate when waypoint is followed, if alive
   entid=entityelement(e).bankindex
-  if entityprofile(entid).ischaracter=1 and entityelement(e).health>0
+  if entityprofile(entid).ischaracter=1 and entityelement(e).health>0 and ai entity exist(entityelement(e).obj)=0
    if entityelement(e).animdo<>entityelement(e).animset-1
     entityelement(e).animset=3
    endif
@@ -8535,7 +8535,7 @@ if entityelement(e).ai.waypoint.state>0
    `
    rem FPGC - 100610 - characters animate when waypoint is followed, if alive (copied from state one to solve sliding character bug afgter opening door)
    entid=entityelement(e).bankindex
-   if entityprofile(entid).ischaracter=1
+   if entityprofile(entid).ischaracter=1 and ai entity exist(entityelement(e).obj)=0
     if entityelement(e).animdo<>entityelement(e).animset-1
      entityelement(e).animset=3
     endif
@@ -9116,7 +9116,13 @@ _entity_controlmovements:
      rem full gravity and volume handling of entities in motion
      if entitysystemdisabled=0
       rem can be a little heavy on CPU time (any ideas to speed up?)
-      entityelement(e).y=entityelement(e).y-entityelement(e).mover.grav
+       rem do not allow gravity's downward pull to effect flak
+      `if entityelement(e).isflak=0
+       entityelement(e).y=entityelement(e).y-entityelement(e).mover.grav
+      `endif
+      if entityelement(e).isflak>0
+       Print "X:"+str$(entityelement(e).x)+" Y:"+str$(entityelement(e).y)+" Z:"+str$(entityelement(e).z)
+      endif
       if static volume(toldx#,toldy#+30,toldz#,entityelement(e).x,entityelement(e).y+30,entityelement(e).z,1.0)=1
        `Print "Hit static volume, moving back to collision point"
        entityelement(e).x=toldx#+get static collision x()
@@ -22582,18 +22588,31 @@ if flak(flakid).obj>0
  if tf<flakelementmax
   Rem if flak has a script turn it into an entity
   if flak(flakid).profile.script$<>""
-   if entityelementlist+1>entityelementmax or entityelementlist=entityelementmax
-    inc entityelementlist : inc entityelementmax : dim entityelement(entityelementmax) as entitytype
-    dim entitydebug$(entityelementmax)
-   else
-    inc entityelementlist
-   endif
+   tflakokay=0
+   Rem check to see if we have a free spot for flak
+   for i=1 to entityelementlist
+    if entityelement(i).isflak>0 and entityelement(i).beenkilled=1 then tflakokay=i : exit
+   next i
    `
-   Rem entity profile data
-   if entidmaster+1>entidmastermax or entidmaster=entidmastermax
-    inc entidmaster : inc entidmastermax : dim entityprofile(entidmastermax) as entityprofiletype
+   if tflakokay=0
+    if entityelementlist+1>entityelementmax or entityelementlist=entityelementmax
+     inc entityelementlist : inc entityelementmax : dim entityelement(entityelementmax) as entitytype
+     dim entitydebug$(entityelementmax)
+    else
+     inc entityelementlist
+    endif
+    `
+    Rem entity profile data
+    if entidmaster+1>entidmastermax or entidmaster=entidmastermax
+     inc entidmaster : inc entidmastermax : dim entityprofile(entidmastermax) as entityprofiletype
+    else
+     inc entidmaster
+    endif
+    fentid=entidmaster
+    felement=entityelementlist
    else
-    inc entidmaster
+    felement=tflakokay
+    fentid=entityelement(e).bankindex
    endif
    `
    Rem Create Flak Object
@@ -22601,11 +22620,16 @@ if flak(flakid).obj>0
    tfobj=flakelement(tf).obj
    if object exist(tfobj)=1 then delete object tfobj : ode destroy object tfobj
    objecteffect(tfobj)=0
+   `
    instance object tfobj,flak(flakid).obj
    `
-   ttempe=e : e=entityelementlist
+   tfprofobj=entitybankoffset+fentid
+   instance object tfprofobj,flak(flakid).obj
+   `
+   ttempe=e : e=felement
    Rem Fill in entity details
    entityelement(e).obj=tfobj
+   entityelement(e).profileobj=tfprofobj
    entityelement(e).isflak=flakid
    entityelement(e).ai.libindex=flak(flakid).libindex
    entityelement(e).x=flakx
@@ -22618,13 +22642,13 @@ if flak(flakid).obj>0
    entityelement(e).dormant=1
    `
    Rem Entity Profile details
-   entityelement(e).bankindex=entidmaster
-   entityprofile(entidmaster).ischaracter=1
-   entityprofile(entidmaster).speed=100
-   entityprofile(entidmaster).collisionmode=flak(flakid).profile.collisionmode
-   entityprofile(entidmaster).physics=flak(flakid).profile.physics
-   entityprofile(entidmaster).phyweight=flak(flakid).profile.phyweight
-   entityprofile(entidmaster).phyfriction=flak(flakid).profile.phyfriction
+   entityelement(e).bankindex=fentid
+   entityprofile(fentid).ischaracter=1
+   entityprofile(fentid).speed=100
+   entityprofile(fentid).collisionmode=flak(flakid).profile.collisionmode
+   entityprofile(fentid).physics=flak(flakid).profile.physics
+   entityprofile(fentid).phyweight=flak(flakid).profile.phyweight
+   entityprofile(fentid).phyfriction=flak(flakid).profile.phyfriction
    `
    rem copy entity profile details into the eleprof
    entityelement(e).eleprof.speed=entityprofile(entidmaster).speed
@@ -22636,14 +22660,19 @@ if flak(flakid).obj>0
    flakelement(tf).active=-1
 
    `
-   gosub _ode_setupewithphysics
-   `
+   tempobj=obj : obj=tfobj
    Rem Rotate flak correctly
    if flakowner=0
     set object to camera orientation tfobj
+    entityelement(e).rx=Camera Angle X() : entityelement(e).ry=Camera Angle Y() : entityelement(e).rz=Camera Angle Z()
    else
     rotate object tfobj,flakpitch,flakangle,0
+    entityelement(e).rx=flakpitch : entityelement(e).ry=flakangle : entityelement(e).rz=0
    endif
+   `
+   gosub _entity_createelementasobject
+   gosub _ode_setupewithphysics
+   obj=tempobj
    `
    rem show flak object
    show object tfobj
@@ -26344,7 +26373,7 @@ _entity_createelementasobject:
 rem preset entity data
 entityelement(e).obj=obj
 entid=entityelement(e).bankindex
-entityelement(e).profileobj=entitybankoffset+entid
+if entityelement(e).isflak=0 then entityelement(e).profileobj=entitybankoffset+entid
 
 rem delete any existing object and create new one
 tgoaheadandsetup=0
@@ -26364,24 +26393,30 @@ if entityelement(e).profileobj>0
     make object triangle obj,0,0,0,0,0,0,0,0,0
     hide object obj
    else
-    rem FPSCV10X - old U57 clone does not copy multi-materials over
-    if entityprofile(entid).texd$=""
-     ent$=entitybank$(entid)
-     entdir$="entitybank\"
-     entpath$=getpath(ent$)
-     tfile$=entdir$+entpath$+entityprofile(entid).model$
-     if lower$(right$(tfile$,2))=".x" then tdbofile$=left$(tfile$,len(tfile$)-2)+".dbo" else tdbofile$=""
-     if tdbofile$<>"" and file exist(tdbofile$)=1 then tfile$=tdbofile$
-     if file exist(tfile$)=0 then tfile$=entityprofile(entid).model$
-     if file exist(tfile$)=1
-      load object tfile$,obj
+    if entityelement(e).isflak=0
+     rem FPSCV10X - old U57 clone does not copy multi-materials over
+     if entityprofile(entid).texd$=""
+      ent$=entitybank$(entid)
+      entdir$="entitybank\"
+      entpath$=getpath(ent$)
+      tfile$=entdir$+entpath$+entityprofile(entid).model$
+      if lower$(right$(tfile$,2))=".x" then tdbofile$=left$(tfile$,len(tfile$)-2)+".dbo" else tdbofile$=""
+      if tdbofile$<>"" and file exist(tdbofile$)=1 then tfile$=tdbofile$
+      if file exist(tfile$)=0 then tfile$=entityprofile(entid).model$
+      if file exist(tfile$)=1
+       load object tfile$,obj
+      else
+       clone object obj,entityelement(e).profileobj,1
+      endif
      else
-      clone object obj,entityelement(e).profileobj,1
-     endif
-    else
      clone object obj,entityelement(e).profileobj,1
     endif
-    tgoaheadandsetup=1
+     tgoaheadandsetup=1
+    else
+     clone object obj,entityelement(e).profileobj,1
+     position object obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
+     rotate object obj,entityelement(e).rx,entityelement(e).ry,entityelement(e).rz
+    endif
    endif
   endif
  else
@@ -31896,11 +31931,11 @@ _ode_setupewithphysics:
       entityelement(e).ry=object angle y(tobj)
       entityelement(e).rz=object angle z(tobj)
       rem must ensure default matrix in ODE is unrotated to begin with (RY controls angle)
-      yrotate object tobj,0
+      if entityelement(e).isflak=0 then yrotate object tobj,0
      endif
      `
      rem FPGC - 210210 - new ODE DLL requires all characters are 180 degree rotated (new internal matrix code)
-     if entityprofile(entid).ischaracter=1
+     if entityprofile(entid).ischaracter=1 and entityelement(e).isflak=0
       yrotate object tobj,180
      endif
      `
@@ -50575,7 +50610,7 @@ _darkai_control:
 
  rem Apply Animation
  entityelement(e).darkai.action=0
- if entityelement(e).ai.waypoint.state=2 then tmoving=0
+ `if entityelement(e).ai.waypoint.state=2 then tmoving=0
  if tmoving=1
   moveangle#=wrapvalue(atanfull(tmovx#,tmovz#))
   viewangle#=wrapvalue(ai get entity angle y(obj))
