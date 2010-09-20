@@ -1745,6 +1745,7 @@ Rem Hockeykid - 250210 - Dark AI constants
 #constant AIACTAIADDNEUTRAL 1094
 #constant AIACTAIAUTOFACTIONOFF 1095
 Rem end Dark AI constants
+#constant AIACTNEXTLEVEL 1096
 #constant AIACTHUDUSERVAR 1099
 #constant AIACTHUDRESET 1100
 #constant AIACTHUDX 1101
@@ -2414,6 +2415,7 @@ type guivisualsettingstype
  shadowstrength as integer
  shadowshades as integer
  dynamiclightcount as integer
+ ambiencescripted as integer
 endtype
 guivisualsettings as guivisualsettingstype
 guivisualsettings.ambienceoverride=-1
@@ -3675,6 +3677,8 @@ _main_game_freeleveldata:
   internalloaderhud=0
   gcontrollerhinthudid=0
   gcontrollerhintbase=0
+  `
+  guivisualsettings.ambiencescripted=0
   `
   rem Special exception as only arrays that need carrying to new levels
   if leavegamedataalone=0
@@ -10615,6 +10619,7 @@ actword$(AIACTAIADDNEUTRAL)="aiaddneutral"
 actword$(AIACTAIAUTOFACTIONOFF)="aiautofactionoff"
 actword$(AIACTHUDLAYER)="hudlayer" : rem V118 - 110810 - knxrb - Hud Layers
 actword$(AIACTSETHUDX)="sethudx" : rem V118 - 160810 - knxrb - Hud - sethudx Command
+actword$(AIACTNEXTLEVEL)="nextlevel"
 return
 
 _ai_reset_presaveposition:
@@ -14169,7 +14174,8 @@ if aiindex>0
      `
      case AIACTAMBIENCE:
       guivisualsettings.ambience=aiactionseq(seq).value
-      forceambientlightsetting=10
+      forceambientlightsetting=10 : guivisualsettings.updateflag=1
+      guivisualsettings.ambiencescripted=1
       gosub _lighting_postdefaults
      endcase
      case AIACTAMBIENCERED:
@@ -15419,6 +15425,10 @@ if aiindex>0
        endif
       endif
       grawtextcount=25
+     endcase
+     `
+     case AIACTNEXTLEVEL:
+      leveljump=aiactionseq(seq).value
      endcase
      `
      `
@@ -23754,7 +23764,7 @@ while array index valid(infinilight())
  next array index infinilight()
  inc currentindex
 endwhile
-if tokay=0
+if tokay=0 and guivisualsettings.ambiencescripted=0
  rem no lights, use full ambience (zero means no FPI aetting, go for defaults)
  if guseeffectonscenesstate=1
   guivisualsettings.ambience=25
@@ -23769,8 +23779,32 @@ return
 _lighting_ambientcontrol:
 
 rem Irrespective of dynamic light setting
-if inkey$()="," and guivisualsettings.ambience>0 then dec guivisualsettings.ambience : guivisualsettings.updateflag=1
-if inkey$()="." and guivisualsettings.ambience<100 then inc guivisualsettings.ambience : guivisualsettings.updateflag=1
+tempam=guivisualsettings.ambience
+if inkey$()="," and guivisualsettings.ambience>0 then dec guivisualsettings.ambience : guivisualsettings.updateflag=1 : ambiencetimer=5
+if inkey$()="." and guivisualsettings.ambience<100 then inc guivisualsettings.ambience : guivisualsettings.updateflag=1 : ambiencetimer=5
+if ambiencetimer>0 and gtestgamemodefromeditor=1
+ `
+ if grawtextsize<>12 then set text size 12 : grawtextsizelast=-1
+ if grawtextfont$<>"Verdana" then set text font "Verdana" : grawtextfontlast$="Verdana"
+ `
+ ambience$="Ambience: "+str$(guivisualsettings.ambience)+" Red: "+str$(hudambiencered)+" Blue: "+str$(hudambienceblue)+" Green: "+str$(hudambiencegreen)
+ center text (gdisplaywidth/100.0)*50,1,ambience$
+ `
+ time$="Press enter to save ambience: "+str$(ambiencetimer)
+ center text (gdisplaywidth/100.0)*50,Text Height(ambience$)+4,time$
+ if keystate(28)=1
+  rem FPGC - 130710 - if in test mode, save ambient setting from config file
+  if file exist("editors\gridedit\testambience.txt")=1 then delete file "editors\gridedit\testambience.txt"
+  open to write 1,"editors\gridedit\testambience.txt"
+  write string 1,str$(guivisualsettings.ambience)
+  close file 1
+  ambiencetimer=0
+ endif
+ `
+ if ambiencewatch=0 then ambiencewatch=timer()
+ if timer()-ambiencewatch>=1000 then dec ambiencetimer : ambiencewatch=0
+endif
+if ambiencetimer<=0 then ambiencetimer=0
 
 rem FPGC - 130710 - override ambient light
 if guivisualsettings.ambienceoverride<>-1
@@ -28305,11 +28339,13 @@ _gameflow_default:
       rem If arena, pop up game win/lose screens (and repeat game choice)
       if gtestgamemodefromeditor<>0
        `
+       remstart
        rem FPGC - 130710 - if in test mode, save ambient setting from config file
        if file exist("editors\gridedit\testambience.txt")=1 then delete file "editors\gridedit\testambience.txt"
        open to write 1,"editors\gridedit\testambience.txt"
        write string 1,str$(guivisualsettings.ambience)
        close file 1
+       remend
        `
        rem Quick Exit from test arena mode
        repeatsamelevel=0
@@ -28391,8 +28427,13 @@ _gameflow_default:
       endif
       if levelwon=1
        `
-       rem Next level
-       inc level : if level>glevelmax then levelwon=2
+       if leveljump=0
+        rem Next level
+        inc level : if level>glevelmax then levelwon=2
+       else
+        level=leveljump : if level>glevelmax then levelwon=2
+        leveljump=0
+       endif
        `
       endif
       if levelwon=2
