@@ -23693,12 +23693,14 @@ if flak(flakid).obj>0
  if tf<flakelementmax
   Rem if flak has a script turn it into an entity
   if flak(flakid).profile.script$<>""
-   tflakokay=0
+   `
    Rem check to see if we have a free spot for flak
+   tflakokay=0
    for i=1 to entityelementlist
     if entityelement(i).isflak>0 and entityelement(i).beenkilled=1 then tflakokay=i : exit
    next i
    `
+   rem new entity for flak
    if tflakokay=0
     if entityelementlist+1>entityelementmax or entityelementlist=entityelementmax
      inc entityelementlist : inc entityelementmax : dim entityelement(entityelementmax) as entitytype
@@ -23706,8 +23708,7 @@ if flak(flakid).obj>0
     else
      inc entityelementlist
     endif
-    `
-    Rem entity profile data
+    rem entity profile data
     if entidmaster+1>entidmastermax or entidmaster=entidmastermax
      inc entidmaster : inc entidmastermax : dim entityprofile(entidmastermax) as entityprofiletype
     else
@@ -23720,19 +23721,17 @@ if flak(flakid).obj>0
     fentid=entityelement(e).bankindex
    endif
    `
-   Rem Create Flak Object
+   rem Create Flak Object
    flakelement(tf).obj=flakelementoffset+tf
    tfobj=flakelement(tf).obj
    if object exist(tfobj)=1 then delete object tfobj : ode destroy object tfobj
    objecteffect(tfobj)=0
-   `
    instance object tfobj,flak(flakid).obj
-   `
    tfprofobj=entitybankoffset+fentid
    instance object tfprofobj,flak(flakid).obj
    `
+   rem Fill in entity details
    ttempe=e : e=felement
-   Rem Fill in entity details
    entityelement(e).obj=tfobj
    entityelement(e).profileobj=tfprofobj
    entityelement(e).isflak=flakid
@@ -23748,25 +23747,32 @@ if flak(flakid).obj>0
    `
    Rem Entity Profile details
    entityelement(e).bankindex=fentid
-   entityprofile(fentid).ischaracter=1
+   `entityprofile(fentid).ischaracter=1
+   `entityprofile(fentid).physics=flak(flakid).profile.physics
+   `entityprofile(fentid).collisionmode=flak(flakid).profile.collisionmode
+   `entityprofile(fentid).phyweight=flak(flakid).profile.phyweight
+   `entityprofile(fentid).phyfriction=flak(flakid).profile.phyfriction
    entityprofile(fentid).speed=100
-   entityprofile(fentid).collisionmode=flak(flakid).profile.collisionmode
-   entityprofile(fentid).physics=flak(flakid).profile.physics
-   entityprofile(fentid).phyweight=flak(flakid).profile.phyweight
-   entityprofile(fentid).phyfriction=flak(flakid).profile.phyfriction
+   entityprofile(fentid).ischaracter=0 : rem lee - flak entities should not act as characters, they navigate around other characters
+   entityprofile(fentid).physics=2 : rem lee - entity controlled object
+   entityprofile(fentid).collisionmode=0
+   entityprofile(fentid).phyweight=0
+   entityprofile(fentid).phyfriction=0
+   entityprofile(fentid).phyalways=1 : rem lee - ensure script runs despite distance
    `
    rem copy entity profile details into the eleprof
-   entityelement(e).eleprof.speed=entityprofile(entidmaster).speed
+   entityelement(e).eleprof.speed=entityprofile(fentid).speed
    entityelement(e).eleprof.physics=flak(flakid).profile.physics
    entityelement(e).eleprof.phyweight=flak(flakid).profile.phyweight
    entityelement(e).eleprof.phyfriction=flak(flakid).profile.phyfriction
+   entityelement(e).nofloorlogic=1 : rem lee - cannot be stopped in thin air (viscolmap)
+   entityelement(e).nogravity=1 : rem lee - cannot use gravity by default (entities controlled by script)
    `
-   Rem Mark as "active"
+   rem Mark as "active"
    flakelement(tf).active=-1
-
    `
+   rem Rotate flak correctly
    tempobj=obj : obj=tfobj
-   Rem Rotate flak correctly
    if flakowner=0
     set object to camera orientation tfobj
     entityelement(e).rx=Camera Angle X() : entityelement(e).ry=Camera Angle Y() : entityelement(e).rz=Camera Angle Z()
@@ -23775,6 +23781,7 @@ if flak(flakid).obj>0
     entityelement(e).rx=flakpitch : entityelement(e).ry=flakangle : entityelement(e).rz=0
    endif
    `
+   rem create the entity object
    gosub _entity_createelementasobject
    gosub _ode_setupewithphysics
    obj=tempobj
@@ -23782,6 +23789,7 @@ if flak(flakid).obj>0
    rem show flak object
    show object tfobj
    e=ttempe
+   `
   else
    rem found free flak element
    flakelement(tf).flakid=flakid
