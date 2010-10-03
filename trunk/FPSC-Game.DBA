@@ -281,8 +281,8 @@ type saveloadgamepositionentitytype
  daiteam as integer
  spawnleaderid as integer
  ailibindex as integer
- aistate$ as string rem GUI-X9 (String States)
- aioldstate$ as string rem GUI-X9 (String States)
+ aistate as integer
+ aioldstate as integer
  active as integer
  dormant as integer
  beenkilled as integer
@@ -471,6 +471,20 @@ global deactivatecollision=0
 global entitysystemdisabled=0
 global lightingsystemdisabled=0
 gameperftimetracker=timer()
+
+Rem Water
+Global waterobj : waterobj=11
+Global wateron : wateron=0
+Global oldwaterheight# : oldwaterheight#=-1.0
+Global waterheight# : waterheight#=-1.0
+Global tupdatewater : tupdatewater=0
+Global waterfx : waterfx=11
+Global waterbump# : waterbump#=0.2
+Global playerunderwater : playerunderwater=0
+Global tnearsurfaceofwater : tnearsurfaceofwater=100
+Global waterred : waterred=255
+Global watergreen : watergreen=255
+Global waterblue : waterblue=255
 
 rem logic control
 global logicprioritycount=0
@@ -1269,6 +1283,7 @@ type entityeleproftype
 endtype
 rem Entity Elements Data
 type entitytype
+ enterwater as integer
  isflak as integer
  darkai as darkaitype
  curvcmx as integer
@@ -1573,6 +1588,7 @@ rem GUI-X9 (knxrb) >>>
 #constant AICONDCURSORIMAGE 855
 #constant AICONDCHOICEVALUEEQUAL 856
 rem GUI-X9 (knxrb) <<<
+
 #constant AICONDLAST 900
 
 #constant AIACTNONE 0
@@ -1844,7 +1860,6 @@ rem V118 - 160810 - knxrb - Hud - sethudx Command
 #constant AIACTSETHUDXPOS 1263
 rem V118 - 160810 - knxrb - Auto Resolution
 #constant AIACTSETUPAUTORES 1264
-
 rem GUI-X9 (knxrb) >>>
 #constant AIACTLOADIMAGE 1265
 #constant AIACTMAKEHUD 1266
@@ -1914,8 +1929,19 @@ rem GUI-X9 (knxrb) >>>
 #constant AIACTSETHUDNUMERIC 1330
 #constant AIACTSETHUDVALUE 1331
 rem GUI-X9 (knxrb) <<<
+Rem Water commands
+#constant AIACTWATERHEIGHT 1332
+#constant AIACTWATER 1333
+#constant AIACTWATERFOGDIST 1334
+#constant AIACTWATERSPEED 1335
+#constant AIACTWATERFOGRED 1336
+#constant AIACTWATERFOGGREEN 1337
+#constant AIACTWATERFOGBLUE 1338
+#constant AIACTWATERRED 1339
+#constant AIACTWATERGREEN 1340
+#constant AIACTWATERBLUE 1341
 
-#constant AIACTLAST 1332 : rem GUI-X9 (knxrb)
+#constant AIACTLAST 1342
 
 rem V109 BETA3 - 210408 - AI variables
 global aivariablemode : aivariablemode=0 : rem 0-global, 1-local
@@ -2546,13 +2572,24 @@ workhudy as float
 workhudz as float
 
 rem FPSCV104 Fog globals
-hudfogon as integer
-hudfoglaston as integer
-hudfognear as float
-hudfogfar as float
-hudfogred as float
-hudfoggreen as float
-hudfogblue as float
+Global hudfogon as integer
+Global hudfogison as integer
+Global hudfoglaston as integer
+Global hudfognear as float
+Global hudfogfar as float
+Global hudfogred as float
+Global hudfoggreen as float
+Global hudfogblue as float
+
+rem Water Fog globals
+Global waterfogon as integer
+Global waterfogison as integer
+Global waterfoglaston as integer
+Global waterfognear as float
+Global waterfogfar as float : waterfogfar=2000.0
+Global waterfogred as float : waterfogred=55
+Global waterfoggreen as float : waterfoggreen=65
+Global waterfogblue as float : waterfogblue=75
 
 rem World Physics Settings
 global physicson=1
@@ -3509,9 +3546,9 @@ gosub _ode_loadmateriallist_core
 `
 rem FPGC - 231109 - initialise DarkVOICES
 gosub _lipsync_init
+rem GUI-X9 (knxrb)
+gosub _gui_init
 
- rem GUI-X9 (knxrb)
- gosub _gui_init
 `
 rem Run gameflow default screen path
 timestampactivity(0,"Game Flow Started..")
@@ -3900,7 +3937,14 @@ _main_game_core:
  inc gameperftotalcount, perftimer()-gameperftotalcountTOP
  gameperftotalcountTOP=perftimer()
  `
+ Gosub _water_control
+ `
  rem Update screen
+ for i=17 to 18
+  Print "material("+str$(i)+").name$: "+material(i).name$
+  Print "material("+str$(i)+").freq: "+str$(material(i).freq)
+ next i
+ `
  gosub _main_sync
  `
  rem FPGC - 190310 - quick exit keys (for standalone game only)
@@ -4011,7 +4055,36 @@ _main_sync:
   `
  else
   gosub _postprocess_renderdepthcamera
-  sync
+  if wateron=1
+   UpdateWater()
+  else
+   if object visible(waterobj) then Hide Object waterobj
+  endif
+  `
+  Rem Handle fog
+  if hudfogon=1 and waterfogon=0
+   hudfogison=1
+   if fogison=0 then fog on : fogison=1
+   fog distance hudfognear,hudfogfar
+   fog color hudfogred,hudfoggreen,hudfogblue
+  else
+   if hudfogon=0 and waterfogon=0
+    if fogison=1 then fog off : fogison=0
+    hudfogison=0
+   endif
+  endif
+  if waterfogon>0 and hudfogon=1 then hudfogison=0
+  if waterfogon>0
+   if fogison=0 then fog on : fogison=1
+   fog color rgb(waterfogred,waterfoggreen,waterfogblue)
+   if waterfogon=2
+    fog distance 250+(camera position y(0)-waterheight#)*10
+   else
+    fog distance waterfogfar
+   endif
+  endif
+  `
+  set current camera 0 : sync
  endif
 return
 
@@ -4160,6 +4233,8 @@ if gcompilestandaloneexe=0
  debugviewtext(327,"Preparing AI Data...") : gosub _darkai_debug
  Rem Hockeykid - 040410 - Added subroutine to add all .ischaracter's E to ischaracter() array
  debugviewtext(327,"Preparing AI Arrays...") : gosub _Character_Array
+ `
+ debugviewtext(330,"Creating Water...") : MakeWater()
  `
  rem FPGC - 050510 - at end of generation phase, load sounds in (if room)
  debugviewtext(328,strarr$(105)) : gosub _entity_createelements_loadsoundlast
@@ -6652,6 +6727,12 @@ else
  k$=""
 endif
 
+if tupdatewater=1
+ rem when water level changes, rejig entities so they trigger floating
+ gosub _entity_rejigifwaterlevelchanges
+ `tupdatewater=0
+endif
+
 rem Portal Control
 if k$="[" then g_iPortal = 1 : set static portals on : set static objects wireframe on
 if k$="]" then g_iPortal = 0 : set static portals off : set static objects wireframe off
@@ -6858,6 +6939,28 @@ _entity_resetentitiesifplrleaps:
  `
 return
 
+_entity_rejigifwaterlevelchanges:
+ `
+ rem Prepare entities for logical usage
+ for e=1 to entityelementlist
+  if entityelement(e).active=1 and entityelement(e).spawn.leader=0
+   entid=entityelement(e).bankindex
+   if entityelement(e).obj
+    if object exist(entityelement(e).obj)=1
+     if object position y(entityelement(e).obj)<waterheight#
+      if entityelement(e).eleprof.physics=1
+       rem regular physics objects only (not pseudo static entities like windows)
+       ttx#=0 : tty#=2.5 : ttz#=0
+       ttobj=entityelement(e).obj : gosub _physics_setvelocity
+      endif
+     endif
+    endif
+   endif
+  endif
+ next e
+ `
+return
+
 _entity_addetoprioritylist:
  `
  rem add entity to prority status
@@ -6978,7 +7081,7 @@ _entity_showdebugstringinfo:
      tainame$=str$(entityelement(e).ai.libindex)
     endif
     if entityprofile(tentid).ischaracter<>0
-    rem GUI-X9 (String States)
+     rem GUI-X9 (String States)
      center text object screen x(obj),object screen y(obj)+toffsetspawnlabel-20,"A:"+tainame$+" S:"+entityelement(e).ai.state$+" WS:"+str$(entityelement(e).ai.waypoint.state)+" L:"+str$(entityelement(e).eleprof.lives)+" H:"+str$(entityelement(e).health)+" LT:"+str$(entityelement(e).losttargetcount)+"("+str$(int(entityelement(e).actualtargetx))+","+str$(int(entityelement(e).actualtargety))+","+str$(int(entityelement(e).actualtargetz))+") RCC:"+str$(entityelement(e).raycastcount)+" FRAME:"+str$(entityelement(e).animframe)+"\"+str$(entityelement(e).destanimframe)+"  ry="+str$(entityelement(e).ry)
      if entityelement(e).currentweapon>0
       center text object screen x(obj),object screen y(obj)+toffsetspawnlabel,"WA:"+str$(entityelement(e).currentammo)+"\"+str$(entityelement(e).currentclipammo)
@@ -6989,7 +7092,7 @@ _entity_showdebugstringinfo:
       rem GUI-X9 (String States)
       center text object screen x(obj),object screen y(obj)+toffsetspawnlabel-20," AI:"+tainame$+" S:"+entityelement(e).ai.state$+strarr$(99)+str$(gun(tgunid).settings.damage)+" H:"+str$(entityelement(e).health)
      else
-     rem GUI-X9 (String States)
+      rem GUI-X9 (String States)
       center text object screen x(obj),object screen y(obj)+toffsetspawnlabel-20," AI:"+tainame$+" S:"+entityelement(e).ai.state$+" A:"+str$(entityelement(e).activated)+" H:"+str$(entityelement(e).health)+" FRAME:"+str$(entityelement(e).animframe)+"\"+str$(entityelement(e).destanimframe)
       center text object screen x(obj),object screen y(obj)+toffsetspawnlabel,"WP:"+str$(entityelement(e).ai.waypoint.current)+" TRK:"+str$(entityelement(e).ai.waypoint.tracker)+" DIR:"+str$(entityelement(e).ai.waypoint.direction)+" S:"+str$(entityelement(e).ai.waypoint.state)
      endif
@@ -7675,6 +7778,16 @@ for e=1 to entityelementlist
    `
   endif
  endif
+ `
+ rem monitor entity for splash (dead or alive, or not facing at the time)
+ if entityelement(e).dormant=0
+  if obj>0
+   if object exist(obj)=1
+    gosub _entity_monitorforsplash
+   endif
+  endif
+ endif
+ `
 next e
 
 rem Display vis col map (as radar test)
@@ -7716,6 +7829,100 @@ endif
 rem Entity Performance
 inc gameperfentities5, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
 
+return
+
+_entity_monitorforsplash:
+ `
+ rem entity can have a splash if they enter the water at force
+ if (entityelement(e).eleprof.physics=1 or entityelement(e).eleprof.physics=2) and splashdecalid>0
+  rem if regular physics obj or character obj
+  waterlevelforsplash#=waterheight#
+  if entityelement(e).eleprof.physics=2
+   rem character/ragdoll center
+   tactualbaseofobject#=object position y(entityelement(e).obj)
+  else
+   tactualbaseofobject#=object position y(entityelement(e).obj)-(object size y(entityelement(e).obj)/2.0)
+  endif
+  if tactualbaseofobject#<waterlevelforsplash#
+   if entityelement(e).decalloop=0
+    rem measure velocity on impact with water
+    velocity#=0.0
+    if entityelement(e).obj>0 and entityelement(e).obj<array count(phyobjele())
+     ttobj=entityelement(e).obj
+     velocity#=abs(ODE GET BODY LINEAR VELOCITY Y(ttobj))
+    endif
+    if entityelement(e).eleprof.physics=2
+     velocity#=velocity#*5.0
+    endif
+    if velocity#>25.0
+     rem set so only do one splash per entry into water
+     if waterdecalripple<>0
+      rem and only if water does ripple
+      entityelement(e).decalloop=1
+      decalx=object position x(entityelement(e).obj)
+      decalz=object position z(entityelement(e).obj)
+      if camera position y()<waterheight#
+       decaly=waterheight#
+      else
+       decaly=(waterheight#-50)+(velocity#/2.0)
+      endif
+      if decaly>waterheight# then decaly=waterheight#
+      gosub _entity_makeasplash
+     endif
+    endif
+   else
+    rem entity in IN water
+    rem if entity disturbing surface, fire off random rippe now and then
+    if rnd(150)=0 and waterdecalripple<>0
+     rem and only if water does ripple
+     if abs(object position y(entityelement(e).obj)-waterheight#)<25.0
+      decalid=waterdecalripple
+      decalorient=0
+      decalx=object position x(entityelement(e).obj)
+      decaly=waterheight#+1.0
+      decalz=object position z(entityelement(e).obj)
+      decalorient=2
+      decalscalemodx=20+(abs(entityelement(e).eleprof.phyweight)/50.0) : decalscalemody=decalscalemodx
+      decalalpha=15
+      originatore=0 : gosub _decalelement_create
+     endif
+    endif
+   endif
+  else
+   rem if entity leaves water, reset splash flag
+   if entityelement(e).decalloop=1
+    if tactualbaseofobject#>waterlevelforsplash#
+     rem completely out of water, gravity back on
+     entityelement(e).decalloop=0
+    endif
+   endif
+  endif
+ endif
+ `
+return
+
+_entity_makeasplash:
+ `
+ rem takes DECAL X Y Z, velocity#
+ if waterdecalripple<>0
+  `
+  rem show splash
+  decalid=splashdecalid
+  decalorient=0
+  decalscalemodx=100
+  decalscalemody=decalscalemodx
+  decalalpha=velocity# : if decalalpha>50 then decalalpha=50
+  originatore=0 : gosub _decalelement_create
+  `
+  rem play splash sound
+  `tmatindex=17 : tsoundtrigger=material(tmatindex).impactid
+  `tspd#=(material(tmatindex).freq*2)+rnd(material(tmatindex).freq)
+  `tsx#=decalx : tsy#=decaly : tsz#=decalz
+  `tvol#=velocity# : if tvol#>100 then tvol#=100
+  `gosub _ode_triggermaterialsound
+  `
+ endif
+ `
 return
 
 _entity_fillviscolmap:
@@ -9507,6 +9714,61 @@ _entity_hasbulletrayhit:
  brayx2#=x2# : brayy2#=y2# : brayz2#=z2#
  bulletrayhit=0 : bulletrayhitdist#=0.0
  `
+ rem if bullet ray passed waterlevel, create a splash at intersection
+ if (brayy1#>waterheight# and brayy2#<waterheight#) or (brayy1#<waterheight# and brayy2#>waterheight#)
+  `
+  rem calculate intersect vector
+  tbix#=brayx2#-brayx1#
+  tby#=brayy1# : tbiy#=brayy2#-brayy1#
+  tbz#=brayz1# : tbiz#=brayz2#-brayz1#
+  trange=sqrt(abs(tbix#*tbix#)+abs(tbiz#*tbiz#))
+  trange#=trange
+  tbix#=tbix#/trange#
+  tbiy#=tbiy#/trange#
+  tbiz#=tbiz#/trange#
+  tperc#=(brayy1#-waterheight#)/abs(tbiy#)
+  tbx#=brayx1#+(tbix#*tperc#)
+  tby#=brayy1#+(tbiy#*tperc#)
+  tbz#=brayz1#+(tbiz#*tperc#)
+  `
+  rem create a small splash at this point
+  rem and only if water does ripple
+  if waterdecalripple<>0
+   `
+   decalid=splashdecalid
+   decalorient=0
+   decalx=tbx#
+   decalscalemodx=10
+   decalscalemody=decalscalemodx+rnd(10)
+   `decalscalemodx=100
+   `decalscalemody=decalscalemodx
+   decaly=waterheight#-((100-decalscalemody)/2)
+   decalz=tbz#
+   decalalpha=50
+   originatore=0 : gosub _decalelement_create
+   `
+   rem play splash sound
+   tmatindex=17 : tsoundtrigger=material(tmatindex).impactid
+   tspd#=(material(tmatindex).freq*2)+rnd(material(tmatindex).freq)
+   tsx#=decalx : tsy#=decaly : tsz#=decalz
+   tvol#=100.0 : gosub _ode_triggermaterialsound
+   tsoundtrigger=0
+   `
+   rem create a ripple at intersect point
+   decalid=waterdecalripple
+   decalorient=0
+   decalx=tbx#
+   decaly=waterheight#+1.0
+   decalz=tbz#
+   decalorient=2
+   decalscalemodx=25 : decalscalemody=decalscalemodx
+   decalalpha=15
+   originatore=0 : gosub _decalelement_create
+   `
+  endif
+  `
+ endif
+ `
  rem go through entities
  tclosestdist#=99999.0
  tcloseste=0 : tlimbifany=-1
@@ -10800,6 +11062,18 @@ actword$(AIACTHIDECHECKBOX)="hidecheckbox"
 actword$(AIACTSETHUDNUMERIC)="sethudnumeric"
 actword$(AIACTSETHUDVALUE)="sethudvalue"
 rem GUI-X9 (knxrb) <<<
+Rem Water
+actword$(AIACTWATERHEIGHT)="waterheight"
+actword$(AIACTWATER)="water"
+actword$(AIACTWATERFOGDIST)="waterfogdist"
+actword$(AIACTWATERSPEED)="waterspeed"
+actword$(AIACTWATERFOGRED)="waterfogred"
+actword$(AIACTWATERFOGGREEN)="waterfoggreen"
+actword$(AIACTWATERFOGBLUE)="waterfogblue"
+actword$(AIACTWATERRED)="waterred"
+actword$(AIACTWATERGREEN)="watergreen"
+actword$(AIACTWATERBLUE)="waterblue"
+
 return
 
 _ai_reset_presaveposition:
@@ -11096,7 +11370,7 @@ if aiindex>0
    select aiconditionseq(seq).type
     case AICONDNEVER: airesult=0 : endcase
     case AICONDALWAYS: airesult=airesult : endcase
-    case AICONDSTATE: rem GUI-X9 (String States)
+    case AICONDSTATE:
      conda$=entityelement(e).ai.state$
      condb$=aiconditionseq(seq).string1
      if conda$<>condb$ then airesult=0
@@ -14491,7 +14765,7 @@ if aiindex>0
      endcase
      case AIACTFOG:
       if aiactionseq(seq).value>0
-       fog on
+       `fog on
        rem FPSCV104 added global vars for fog
        hudfogon=1
        if aiactionseq(seq).value>1
@@ -14505,24 +14779,24 @@ if aiindex>0
         hudfognear=0
         hudfogfar=1000.0
        endif
-       fog distance hudfognear,hudfogfar
-       fog color hudfogred,hudfoggreen,hudfogblue
+       `fog distance hudfognear,hudfogfar
+       `fog color hudfogred,hudfoggreen,hudfogblue
       else
-       fog off
+       `fog off
        hudfogon=0
       endif
      endcase
      case AIACTFOGRED:
       hudfogred=aiactionseq(seq).value
-      fog color hudfogred,hudfoggreen,hudfogblue
+      `fog color hudfogred,hudfoggreen,hudfogblue
      endcase
      case AIACTFOGGREEN:
       hudfoggreen=aiactionseq(seq).value
-      fog color hudfogred,hudfoggreen,hudfogblue
+      `fog color hudfogred,hudfoggreen,hudfogblue
      endcase
      case AIACTFOGBLUE:
       hudfogblue=aiactionseq(seq).value
-      fog color hudfogred,hudfoggreen,hudfogblue
+      `fog color hudfogred,hudfoggreen,hudfogblue
      endcase
      case AIACTSKY:
       rem Already done during loading of AI-Asset
@@ -14543,9 +14817,8 @@ if aiindex>0
       if aiactionseq(seq).value>0
        rem AirMod - Stop Backdrop Animation if existent
        if animation exist(1) then stop animation 1 : delete animation 1
-       if sprite exist(65534) then delete sprite 65534 : rem GUI-X9 (knxrb)
-       sprite 65534,-10000,-10000,aiactionseq(seq).value
        set sprite 65534,0,0
+       sprite 65534,-10000,-10000,aiactionseq(seq).value
        size sprite 65534,screen width(),screen height()
        paste sprite 65534,0,0
       endif
@@ -14899,7 +15172,7 @@ if aiindex>0
       initLoadSave = 0 : GUILoad = 1 : gosub _gui_run
      endcase
      case AIACTSAVEGAME:
-     remstart
+      remstart
       rem Continue And Save
       saveload.loadswitch=0
       saveloadfile$=""
@@ -15542,17 +15815,17 @@ if aiindex>0
        value=aiactionseq(seq).valueb
        `Allow variable values to be saved for specific lines for the options screen (saves on amount of extra commands needed in fpi)
        if left$(lower$(pass$),len("useeffects"))="useeffects" then value=newuseeffects
-       if left$(lower$(pass$),len("dynamicshadows"))="dynamicshadows" then value=newdynamicshadows 
-       if left$(lower$(pass$),len("dividetexturesize"))="dividetexturesize" then value=newdividetexturesize  
-       if left$(lower$(pass$),len("mousesensitivity"))="mousesensitivity" then value=newmousesensitivity 
-       if left$(lower$(pass$),len("aspectratio"))="aspectratio" then value=newaspectratio 
-       if left$(lower$(pass$),len("postprocessing"))="postprocessing" then value=newpostprocessing 
-       if left$(lower$(pass$),len("width"))="width" then value=newwidth 
-       if left$(lower$(pass$),len("height"))="height" then value=newheight 
-       if left$(lower$(pass$),len("depth"))="depth" then value=newdepth 
-       if left$(lower$(pass$),len("antialias"))="antialias" then value=newantialias 
-       if left$(lower$(pass$),len("invmouse"))="invmouse" then value=newmouseinvert 
-       if left$(lower$(pass$),len("particleused"))="particleused" then value=newparticlesused 
+       if left$(lower$(pass$),len("dynamicshadows"))="dynamicshadows" then value=newdynamicshadows
+       if left$(lower$(pass$),len("dividetexturesize"))="dividetexturesize" then value=newdividetexturesize
+       if left$(lower$(pass$),len("mousesensitivity"))="mousesensitivity" then value=newmousesensitivity
+       if left$(lower$(pass$),len("aspectratio"))="aspectratio" then value=newaspectratio
+       if left$(lower$(pass$),len("postprocessing"))="postprocessing" then value=newpostprocessing
+       if left$(lower$(pass$),len("width"))="width" then value=newwidth
+       if left$(lower$(pass$),len("height"))="height" then value=newheight
+       if left$(lower$(pass$),len("depth"))="depth" then value=newdepth
+       if left$(lower$(pass$),len("antialias"))="antialias" then value=newantialias
+       if left$(lower$(pass$),len("invmouse"))="invmouse" then value=newmouseinvert
+       if left$(lower$(pass$),len("particleused"))="particleused" then value=newparticlesused
        if left$(lower$(pass$),len("autores"))="autores" then value=newautores
        for i=0 to 999
         field$=lower$(setupdata$(i))
@@ -15737,12 +16010,12 @@ if aiindex>0
      `
      case AIACTNEXTLEVEL:
       leveljump=aiactionseq(seq).value
-	 endcase
-	 `
-     rem GUI-X9 (knxrb)
+     endcase
+     `
+          rem GUI-X9 (knxrb)
      case AIACTLOADIMAGE:
         if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> "" then LoadGUIImage(aiactionseq(seq).string1,aiactionseq(seq).string2)
-     endcase     
+     endcase
      case AIACTMAKEHUD:
         ParseValues(aiactionseq(seq).string2)
         if aiactionseq(seq).string1 <> ""
@@ -15861,9 +16134,9 @@ if aiindex>0
                     if guihud(hID).Height = -1 Then guihud(hID).Height = image height(guihud(hID).OverImageNo)
                 endif
             endif
-        endif        
+        endif
      endcase
-     
+
      case AIACTMAKECHECKBOX:
         ParseValues(aiactionseq(seq).string2)
         if aiactionseq(seq).string1 <> ""
@@ -15982,7 +16255,7 @@ if aiindex>0
                     if guicheckbox(cID).Height = -1 Then guicheckbox(cID).Height = image height(guicheckbox(cID).CheckImageNo)
                 endif
             endif
-        endif        
+        endif
      endcase
      case AIACTSETCHECKBOXSTATE:
         if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
@@ -15992,8 +16265,8 @@ if aiindex>0
                 if guicheckbox(cID).CheckState < 0 then guicheckbox(cID).CheckState = 0
                 if guicheckbox(cID).CheckState > 1 then guicheckbox(cID).CheckState = 1
             endif
-        endif        
-     endcase     
+        endif
+     endcase
      case AIACTMAKESLIDER:
         ParseValues(aiactionseq(seq).string2)
         if aiactionseq(seq).string1 <> ""
@@ -16015,7 +16288,7 @@ if aiindex>0
         if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
             cID = -1 : cID = GUISliderFromName(aiactionseq(seq).string1)
             if cID > -1
-                guislider(cID).Top = val(aiactionseq(seq).string2)              
+                guislider(cID).Top = val(aiactionseq(seq).string2)
                 UpdateSliderData(cID)
             endif
         endif
@@ -16098,9 +16371,9 @@ if aiindex>0
                 if guislider(cID).BVal < 0 then guislider(cID).BVal = 0
                 if guislider(cID).BVal > guislider(cID).AW then guislider(cS).BVal = guislider(cID).AW
                 guislider(cID).SL = (guislider(cID).AL - (guislider(cID).AW / 2)) + ((guislider(cID).BVal/guislider(cID).AW)*guislider(cID).AW) - (guislider(cID).SW / 2)
-                guislider(cID).SVal = ((guislider(cID).SL-(guislider(cID).AL-(guislider(cID).AW/2))+(guislider(cID).SW/2))/guislider(cID).AW)*guislider(cID).MaxValue     
+                guislider(cID).SVal = ((guislider(cID).SL-(guislider(cID).AL-(guislider(cID).AW/2))+(guislider(cID).SW/2))/guislider(cID).AW)*guislider(cID).MaxValue
             endif
-        endif        
+        endif
      endcase
      case AIACTMAKECHOICE:
         ParseValues(aiactionseq(seq).string2)
@@ -16123,7 +16396,7 @@ if aiindex>0
         if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
             cID = -1 : cID = GUIChoiceFromName(aiactionseq(seq).string1)
             if cID > -1
-                guichoice(cID).Top = val(aiactionseq(seq).string2)              
+                guichoice(cID).Top = val(aiactionseq(seq).string2)
                 UpdateChoiceData(cID)
             endif
         endif
@@ -16229,7 +16502,7 @@ if aiindex>0
                 if guichoice(cID).TotalStates = 10 then guichoice(cID).TotalStates = 9
                 UpdateChoiceData(cID)
             endif
-        endif        
+        endif
      endcase
      case AIACTSETCHOICESTATE:
         if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
@@ -16273,7 +16546,7 @@ if aiindex>0
                 endif
                 UpdateChoiceData(cID)
             endif
-        endif    
+        endif
      endcase
      case AIACTSETCURSOR:
         if aiactionseq(seq).string1 <> ""
@@ -16284,7 +16557,7 @@ if aiindex>0
                 sprite MouseSprite,-10000,-10000,MouseSprite
                 set sprite MouseSprite,0,1
             endif
-        endif        
+        endif
      endcase
      case AIACTHIDEALL:
         HideAllGUI()
@@ -16524,6 +16797,49 @@ if aiindex>0
                 endif
             endif
         endif
+     endcase
+     `
+     Rem Water
+     case AIACTWATERHEIGHT:
+      oldwaterheight#=waterheight#
+      waterheight#=aiactionseq(seq).value
+     endcase
+     case AIACTWATER:
+      wateron=aiactionseq(seq).value
+     endcase
+     case AIACTWATERFOGRED:
+      waterfogred=aiactionseq(seq).value
+     endcase
+     case AIACTWATERFOGGREEN:
+      waterfoggreen=aiactionseq(seq).value
+     endcase
+     case AIACTWATERFOGBLUE:
+      waterfogblue=aiactionseq(seq).value
+     endcase
+     case AIACTWATERFOGDIST:
+      waterfogfar=aiactionseq(seq).value
+     endcase
+     case AIACTWATERSPEED:
+      speed#=aiactionseq(seq).value
+      if speed#>100 then speed#=100
+      if speed#<0 then speed#=0
+      waterbump#=(speed#/1000.0)
+      set effect constant float waterfx,"WaterBump",waterbump#
+     endcase
+     case AIACTWATERRED:
+      waterred=aiactionseq(seq).value
+      set effect constant integer waterfx,"RefractColor",rgb(waterred,watergreen,waterblue)
+      set effect constant integer waterfx,"ReflectColor",rgb(waterred,watergreen,waterblue)
+     endcase
+     case AIACTWATERGREEN:
+      watergreen=aiactionseq(seq).value
+      set effect constant integer waterfx,"RefractColor",rgb(waterred,watergreen,waterblue)
+      set effect constant integer waterfx,"ReflectColor",rgb(waterred,watergreen,waterblue)
+     endcase
+     case AIACTWATERBLUE:
+      waterblue=aiactionseq(seq).value
+      set effect constant integer waterfx,"RefractColor",rgb(waterred,watergreen,waterblue)
+      set effect constant integer waterfx,"ReflectColor",rgb(waterred,watergreen,waterblue)
      endcase
      `
      `
@@ -18612,6 +18928,12 @@ for plrid=1 to playermax
   playersound(plrid,16)=loadinternalsoundcore(snd$,t3d)
  endif
  `
+ rem Additional WATER sound for main player
+ if plrid=1
+  tsndid=17 : snd$="audiobank\water\WaterIn.wav" : playersound(plrid,tsndid)=loadinternalsoundcore(rootdir$+snd$,t3d)
+  tsndid=18 : snd$="audiobank\water\WaterOut.wav" : playersound(plrid,tsndid)=loadinternalsoundcore(rootdir$+snd$,t3d)
+ endif
+ `
  rem Load tred sounds from material list plrid of 2,3,4 used by entities)
  if tusefullsounds=1 or plrid<=4
   for mi=0 to gmaterialmax
@@ -18647,6 +18969,10 @@ for plrid=1 to playermax
  if gtestgamemodefromeditor=1 and playerstartlives>0 then player(plrid).lives=99
  `
 next plrid
+
+Rem Load underwater sound for players built-in atmos
+snd$="audiobank\atmos\underwater.wav"
+waterunderwatersoundid=loadinternalsound(rootdir$+snd$)
 
 rem place listener far away at start
 position listener -999999,-999999,-999999
@@ -18912,8 +19238,37 @@ _player_playfootfall:
 
 sndid=0
 if colmaterialtype>=0
- if colmaterialtype>=100 then colmaterialtype=colmaterialtype-(int(colmaterialtype/100)*100)
- if colmaterialtype>=0 and colmaterialtype<100
+  if colmaterialtype>=100 then colmaterialtype=colmaterialtype-(int(colmaterialtype/100)*100)
+  if colmaterialtype>=0 and colmaterialtype<100
+  rem Change the material sound if near or under water
+  if plrid>1
+   footaty#=entityelement(e).y
+   playinternal3dsoundfactor(sndid,entityelement(e).x,entityelement(e).y,entityelement(e).z,1.0)
+  else
+   footaty#=camera position y()-(phyeyeheight#+18)
+  endif
+  if footaty#<waterheight#
+   if footaty#<waterheight#-50
+    rem underwater
+    if plrid=1
+     rem extra code to handle swimming sound along surface of water
+     tnearsurfaceofwater=abs(camera position y()-waterheight#)
+     if playerunderwater=0 and tnearsurfaceofwater<15
+      colmaterialtype=17
+     else
+      colmaterialtype=18
+     endif
+    else
+     colmaterialtype=18
+    endif
+   else
+    rem in shallow water
+    if waterdecalripple<>0
+     rem and only if water does ripple
+     colmaterialtype=17
+    endif
+   endif
+  endif
   tt=21+(colmaterialtype*4)
   tplrid=plrid
   for titer=0 to 3
@@ -18952,19 +19307,30 @@ if colmaterialtype>=0
      playinternal3dsoundfactor(sndid,entityelement(e).x,entityelement(e).y,entityelement(e).z,10.0)
     endif
    else
+    rem if in water, footfall sound must be immediate from static pose
+    if plrid=1
+     if colmaterialtype=17 or colmaterialtype=18 : rem V109 - 110209 - replaces colmaterialtype=11
+      if playermovingfromastandingposture=0
+       playermovementstep(plrid)=9999.9
+       playermovingfromastandingposture=1
+      endif
+     endif
+    endif
     rem default timer based footfall
     playermovementstep(plrid)=playermovementstep(plrid)+timeelapsed#
     `if movement=2 then tfootspeed#=2.0 else tfootspeed#=1.0
     rem AirMod - Line Modified for Simple Zoom
     if movement=2 or (gunzoommode <> 0) then tfootspeed#=1.0 +(1.0*firemode(gunid,firemode).settings.zoomwalkspeed) else tfootspeed#=1.0
     if plrid=1
-     if basespeed#<=40.0 then tsteppingsound#=6.0*tfootspeed#
-     if basespeed#>40.0 then tsteppingsound#=5.0*tfootspeed#
-    else
-     if basespeed#<=40.0 then tsteppingsound#=11.0*tfootspeed#
-     if basespeed#>40.0 then tsteppingsound#=7.0*tfootspeed#
-    endif
-    if plrid=1 then tsteppingsound#=tsteppingsound#/playerspeedratio#
+    if basespeed#<=40.0 then tsteppingsound#=6.0*tfootspeed#
+    if basespeed#>40.0 then tsteppingsound#=5.0*tfootspeed#
+   else
+    if basespeed#<=40.0 then tsteppingsound#=11.0*tfootspeed#
+    if basespeed#>40.0 then tsteppingsound#=7.0*tfootspeed#
+   endif
+   if plrid=1 then tsteppingsound#=tsteppingsound#/playerspeedratio#
+   rem water footfalls take longer and are spaced out (wading)
+   if colmaterialtype=9 then tsteppingsound#=tsteppingsound#*1.25
     if playermovementstep(plrid)>tsteppingsound# or leapedlanded=1
      leapedlanded=0 : playermovementstep(plrid)=0.0
      if plrid>1
@@ -18981,6 +19347,19 @@ if colmaterialtype>=0
       set sound volume sndid,88-rnd(5) : rem VERY SUBTLE AS IT SHOULD HAVE BEEN ALL ALONG (AND VOLUME VARIETY)
       play sound sndid
      endif
+     if colmaterialtype=9
+      rem X10 water noise related to intensity
+      if basespeed#>50.0 or leapedlanded=1
+       tsndvolume#=95+rnd(5)
+      else
+       tsndvolume#=85+rnd(5)
+      endif
+      tsndvolume#=(tsndvolume#/100.0)*soundvolumes(0)
+      tvol=tsndvolume#-10 : if tvol<0 then tvol=0
+      if tvol>100 then tvol=100
+      set sound volume sndid,tvol
+     endif
+
     endif
    endif
    `
@@ -24106,6 +24485,27 @@ for f=1 to decalelementmax
  hide object tobj
 next f
 
+rem ensure water ripple decal available
+decal$="ripple"
+gosub _decal_find
+if decalid>0
+ waterdecalripple=decalid
+ decal(waterdecalripple).active=1
+else
+ waterdecalripple=0
+endif
+waterdecalripplemaster=waterdecalripple
+
+rem splash decal
+decal$="splash"
+gosub _decal_find
+if decalid>0
+ splashdecalid=decalid
+ decal(splashdecalid).active=1
+else
+ splashdecalid=0
+endif
+
 return
 
 _decal_loaddata:
@@ -24449,7 +24849,8 @@ for f=1 to decalelementmax
     tdetonate=1
    endif
    rem write UV for correct anim frame
-   if object visible(tobj)=1 and object in screen(tobj)=1 and tdetonate=0
+   if object visible(tobj)=1 and object in screen(tobj)=1 and tdetonate=0 or decalelement(f).decalid=waterdecalripple and tdetonate=0 and object exist(tobj)
+    if decalelement(f).decalid=waterdecalripple and object exist(tobj) then set alpha mapping on tobj,8
     rem rotate to face camera if flagged
     if decalelement(f).orient=0
      point object tobj,camera position x(),camera position y(),camera position z()
@@ -29668,6 +30069,9 @@ _screen_init:
  rem HUD Control
  hudselectionmade=0
  `
+ rem GUI-X9 (knxrb)
+ gosub _gui_run
+ `
 return
 
 _screen_control:
@@ -29683,9 +30087,6 @@ _screen_control:
  `
  rem Run Any HUD activity
  gosub _ai_hud_view
- `
- rem GUI-X9 (knxrb)
- gosub _gui_run
  `
 return
 
@@ -31513,11 +31914,12 @@ _ai_hud_controller:
 return
 
 _ai_hud_view:
-  rem GUI-X9 (knxrb) - Draw background without having to call the 'backdrop' command each draw.
-  if ingameloop=0 and sprite exist(65534)
-    size sprite 65534,screen width(),screen height()
-    paste sprite 65534,0,0
-  endif
+ `
+ rem GUI-X9 (knxrb) - Draw background without having to call the 'backdrop' command each draw.
+ if ingameloop=0 and sprite exist(65534)
+  size sprite 65534,screen width(),screen height()
+  paste sprite 65534,0,0
+ endif
  `
  rem FPGC - 280610 - must be called to ensure we have latest mouse position from mouse input (movemousexy)
  if ingameloop=1 and showgamemenu=0
@@ -32480,6 +32882,13 @@ _version_buildgame:
 return
 
 _version_main_game_buildexe:
+
+rem Despot file collection
+if file exist("..\buildfiles.ini")=1 then delete file "..\buildfiles.ini"
+save array "..\buildfiles.ini",filecollection$()
+
+rem Store root folder
+rootpath$=get dir$()
 
 rem Name without EXE
 exename$=gbuildname$
@@ -33565,6 +33974,13 @@ realcx#=camerapositionx : realcy#=camerapositiony : realcz#=camerapositionz
 rem Umark player pos in viscolmap
 gosub _ode_unmark
 
+rem player can swim underwater
+if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
+ ode set gravity physicsplayerborble,0
+else
+ ode set gravity physicsplayerborble,1
+endif
+
 rem Handle any sudden playe relocations (transportation)
 gosub _ode_playerrelocations
 
@@ -33627,8 +34043,10 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
    rem AirMod - Modified for Simple Zoom
    if firemode(gunid,firemode).settings.simplezoom <> 0
     set camera fov 75.0-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov#
+    set camera fov 1,75-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov# : set camera fov 2,75-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov#
    else
     set camera fov 75.0-(plrzoomin#*7)-gunzoommag#+airmod_camfov#
+    set camera fov 1,75-(plrzoomin#*7)-gunzoommag#+airmod_camfov# : set camera fov 2,75-(plrzoomin#*7)-gunzoommag#+airmod_camfov#
    endif
    rem AirMod - Done
    rem AirMod - Modified for Simple Zoom
@@ -33636,6 +34054,7 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
   else
    rem AirMod - Modified for cam fov
    set camera fov 75.0+airmod_camfov#
+   set camera fov 1,75.0+airmod_camfov# : set camera fov 2,75.0+airmod_camfov#
    if internalzoomhud>0 then hudid=internalzoomhud : hud(hudid).hide=1
   endif
  endif
@@ -33732,39 +34151,57 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
 `  endif
  endif
  `
- rem Only suspend gravity if total movement small
  tmotionx#=ode get body linear velocity x(physicsplayerborble)
  tmotiony#=ode get body linear velocity y(physicsplayerborble)
  tmotionz#=ode get body linear velocity z(physicsplayerborble)
- tmotion#=abs(tmotionx#)+abs(tmotiony#)+abs(tmotionz#)
- phytotalmotion#=phytotalmotion#+tmotion#
- inc phytotalmotioncount
- if phytotalmotioncount>20
-  phytotalmotion#=phytotalmotion#/phytotalmotioncount
-  if phytotalmotion#<10.0
-   physuspendgravity=1
-  else
-   physuspendgravity=0
-  endif
-  phytotalmotioncount=0
-  phytotalmotion#=0
- endif
- rem update gravity with current motion
- grav#=tmotiony#
- rem suspend so can stand on slopes/stairs
- if movement<>0 or jumpaction=1 then physuspendgravity=0
- if physuspendgravity=1 or onladder=1
-  ode set gravity physicsplayerborble,0
-  if physuspendgravity=1 then grav#=0
+ `
+ if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
+
  else
-  ode set gravity physicsplayerborble,1
+  rem Only suspend gravity if total movement small
+  tmotion#=abs(tmotionx#)+abs(tmotiony#)+abs(tmotionz#)
+  phytotalmotion#=phytotalmotion#+tmotion#
+  inc phytotalmotioncount
+  if phytotalmotioncount>20
+   phytotalmotion#=phytotalmotion#/phytotalmotioncount
+   if phytotalmotion#<10.0
+    physuspendgravity=1
+   else
+    physuspendgravity=0
+   endif
+   phytotalmotioncount=0
+   phytotalmotion#=0
+  endif
+  rem update gravity with current motion
+  grav#=tmotiony#
+  rem suspend so can stand on slopes/stairs
+  if movement<>0 or jumpaction=1 then physuspendgravity=0
+  if physuspendgravity=1 or onladder=1
+   ode set gravity physicsplayerborble,0
+   if physuspendgravity=1 then grav#=0
+  else
+   ode set gravity physicsplayerborble,1
+  endif
  endif
  if physicsdebug=1 then print "GRAVITY VALUE=";grav#
  `
- rem pretend movement
- camvelx#=newxvalue(0,phyangle#,cameraspeed)
- camvely#=grav#
- camvelz#=newzvalue(0,phyangle#,cameraspeed)
+ if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
+  rem reduce influence of movement when underwater
+  tunderwaterspeed#=timeelapsed#*0.1
+  camvelx#=tmotionx#+((newxvalue(0,phyangle#,cameraspeed))*tunderwaterspeed#)
+  if (plrkeyS)=1
+   camvely#=tmotiony#+((sin(camera angle x())*cameraspeed*1)*tunderwaterspeed#*2)
+  else
+   camvely#=tmotiony#+((sin(camera angle x())*cameraspeed*-1)*tunderwaterspeed#*2)
+  endif
+  camvelz#=tmotionz#+((newzvalue(0,phyangle#,cameraspeed))*tunderwaterspeed#)
+  camvelx#=camvelx#*cos(camera angle x())
+  camvelz#=camvelz#*cos(camera angle x())
+ else
+  camvelx#=newxvalue(0,phyangle#,cameraspeed)
+  camvely#=grav#
+  camvelz#=newzvalue(0,phyangle#,cameraspeed)
+ endif
  `
  rem Jump Control
  if onladder=0
@@ -33793,9 +34230,15 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
  endif
  `
  rem and apply any force here
- camvelx#=camvelx#+camforcex# : camforcex#=0
- camvely#=camvely#+camforcey# : camforcey#=0
- camvelz#=camvelz#+camforcez# : camforcez#=0
+ if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
+  camvelx#=(camvelx#+camforcex#)/1.1 : camforcex#=0
+  camvely#=(camvely#+camforcey#)/1.1 : camforcey#=0
+  camvelz#=(camvelz#+camforcez#)/1.1 : camforcez#=0
+ else
+  camvelx#=camvelx#+camforcex# : camforcex#=0
+  camvely#=camvely#+camforcey# : camforcey#=0
+  camvelz#=camvelz#+camforcez# : camforcez#=0
+ endif
  `
 else
  `
@@ -33866,11 +34309,15 @@ if deactivatecollision=0 and skipcol=0
  `
  rem check ellipse against movement
  ctx#=camerapositionx+(camvelx#/4.0)
- cty#=camerapositiony
+ if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
+  cty#=camerapositiony+(camvely#/4.0)
+ else
+  cty#=camerapositiony
+ endif
  ctz#=camerapositionz+(camvelz#/4.0)
  rem check if can rouch down from stood
  if crouchmode=1
-  if static volume(ctox#,ctoy#-28,ctoz#,ctx#,(cty#-28)-15,ctz#,0.25)=1
+  if static volume(ctox#,ctoy#-28,ctoz#,ctx#,(cty#-28)-15,ctz#,0.25)=1 `and playerunderwater=0 and tnearsurfaceofwater>=15
    if physicsdebug=1 then print "willgetstyckifcrouch"
   else
    ellipsevolumesize#=phycrouchedellipsevolumesize#
@@ -33927,41 +34374,45 @@ if deactivatecollision=0 and skipcol=0
   endif
  endif
  `
- rem If gravity defeated by player
- if tgravitydefeatedbyphy<>0
-  rem if object entity driven, player can be moved by it
-  if entityelement(tgravitydefeatedbyphye).eleprof.physics=2
-   if camerastoodonphyobj=0
-    lcamerastoodonphyobjmovingx#=object position x(tgravitydefeatedbyphy)
-    lcamerastoodonphyobjmovingz#=object position z(tgravitydefeatedbyphy)
-   endif
-   camerastoodonphyobj=tgravitydefeatedbyphy
-  else
-   camerastoodonphyobj=0
-  endif
-  rem record stood on phy obj
-  if jumpactionnorepeat>1
-   rem when in jump mode, and touching phyobj, do not interfere with a defeat flag
-  else
-   tgravitydefeated=1
-  endif
+ if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
+
  else
-  rem when not detect phy obj, keep record until
-  if tgravitydefeated=1
-   rem stood on static floor (must have walked off phy obj)
-   camerastoodonphyobj=0
+  rem If gravity defeated by player
+  if tgravitydefeatedbyphy<>0
+   rem if object entity driven, player can be moved by it
+   if entityelement(tgravitydefeatedbyphye).eleprof.physics=2
+    if camerastoodonphyobj=0
+     lcamerastoodonphyobjmovingx#=object position x(tgravitydefeatedbyphy)
+     lcamerastoodonphyobjmovingz#=object position z(tgravitydefeatedbyphy)
+    endif
+    camerastoodonphyobj=tgravitydefeatedbyphy
+   else
+    camerastoodonphyobj=0
+   endif
+   rem record stood on phy obj
+   if jumpactionnorepeat>1
+    rem when in jump mode, and touching phyobj, do not interfere with a defeat flag
+   else
+    tgravitydefeated=1
+   endif
+  else
+   rem when not detect phy obj, keep record until
+   if tgravitydefeated=1
+    rem stood on static floor (must have walked off phy obj)
+    camerastoodonphyobj=0
+   endif
   endif
- endif
- if camerastoodonphyobj<>0
-  camerastoodonphyobjmovingx#=object position x(camerastoodonphyobj)-lcamerastoodonphyobjmovingx#
-  camerastoodonphyobjmovingz#=object position z(camerastoodonphyobj)-lcamerastoodonphyobjmovingz#
-  rem only influence of object beneath player borble
-  if object position y(camerastoodonphyobj)<object position y(physicsplayerborble)
-   camvelx#=camvelx#+(camerastoodonphyobjmovingx#*10)
-   camvelz#=camvelz#+(camerastoodonphyobjmovingz#*10)
+  if camerastoodonphyobj<>0
+   camerastoodonphyobjmovingx#=object position x(camerastoodonphyobj)-lcamerastoodonphyobjmovingx#
+   camerastoodonphyobjmovingz#=object position z(camerastoodonphyobj)-lcamerastoodonphyobjmovingz#
+   rem only influence of object beneath player borble
+   if object position y(camerastoodonphyobj)<object position y(physicsplayerborble)
+    camvelx#=camvelx#+(camerastoodonphyobjmovingx#*10)
+    camvelz#=camvelz#+(camerastoodonphyobjmovingz#*10)
+   endif
+   lcamerastoodonphyobjmovingx#=object position x(camerastoodonphyobj)
+   lcamerastoodonphyobjmovingz#=object position z(camerastoodonphyobj)
   endif
-  lcamerastoodonphyobjmovingx#=object position x(camerastoodonphyobj)
-  lcamerastoodonphyobjmovingz#=object position z(camerastoodonphyobj)
  endif
  if tgravitydefeated=1
   if physicsdebug=1 then print "andgravitydefeated"
@@ -33970,7 +34421,7 @@ if deactivatecollision=0 and skipcol=0
    rem player lands after a jump
    if (grav#<-60.0 and jumpaction=0) or (grav#<-40.0 and jumpaction<>0)
     rem player urg sound
-    if playersound(plrid,11)>0
+    if playersound(plrid,11)>0 and playerunderwater=0 and tnearsurfaceofwater>=15
      broadcast3dsound(camera position x(),camera position y(),camera position z(),10.0,-1)
      play sound playersound(plrid,11)
     endif
@@ -33978,7 +34429,7 @@ if deactivatecollision=0 and skipcol=0
     leapedlanded=1
    endif
    rem determine if fall hurt player
-   if playerhurtfall>0
+   if playerhurtfall>0 and playerunderwater=0 and tnearsurfaceofwater>=15
     if cty#<gravlasty#-playerhurtfall
      rem avoid hurt when using stairs
      tokayhurt=0
@@ -33992,7 +34443,8 @@ if deactivatecollision=0 and skipcol=0
       tdst#=static raycast(camerapositionx,camerapositiony-phyeyeheight#,camerapositionz,tppx#,camerapositiony-phyeyeheight#,tppz#)
       if tdst#=0 then tokayhurt=1
      endif
-     if gmultiplayergame=0
+     if playerunderwater=1 or tnearsurfaceofwater<15 then tokayhurt=0
+     if gmultiplayergame=0 and playerunderwater=0 and tnearsurfaceofwater>=15
       rem cannot hurt by falling in arena game
       if tokayhurt=1
        rem level substantial different from last stood on ground
@@ -34218,7 +34670,7 @@ if (player(plrid).health>0 or playerstartstrength=0) and peeklean#<>0.0
 endif
 
 rem if sharp upward velocity (20+), and not jump
-if jumpaction=0
+if jumpaction=0 and tnearsurfaceofwater>=15 and playerunderwater=0
  if camvely#>10
   rem ensure it is dampened so small floor features not send player high (window/door sills,etc)
   camvely#=10.0
@@ -35107,6 +35559,10 @@ _ode_update:
  rem for next run - debug readouts
  if physicsdebug=1 then set cursor 0,0
  `
+return
+
+_physics_setvelocity:
+ ode set linear velocity ttobj,ttx#,tty#,ttz#
 return
 
 rem
@@ -38484,6 +38940,11 @@ _saveload_savebox_dosave:
  tdate$=left$(get time$(),5)+" - "+left$(get date$(),10)
  tnameanddate$=tname$+"  ("+tdate$+")"
  `
+ rem Fill details
+ tname$=strarr$(652)+" "+str$(level)
+ tdate$=left$(get time$(),5)+"-"+left$(get date$(),5)
+ tnameanddate$=tname$+" "+tdate$
+ `
  rem Make entry in slot list and save
  ttfile$="gamesaves\saveload.arr"
  if file exist(ttfile$)=1 then delete file ttfile$
@@ -38744,7 +39205,7 @@ _saveload_savegame:
  close file 1
  `
  rem GUI-X9 (knxrb)
- GUISave = 0 
+ GUISave = 0
 return
 
 _saveload_loadgame:
@@ -38971,7 +39432,7 @@ _saveload_loadgame:
  level=saveloadgameposition.level
  `
  rem GUI-X9 (knxrb)
- GUILoad = 0 
+ GUILoad = 0
 return
 
 _saveload_storesavedata:
@@ -48407,7 +48868,7 @@ _interface_createnewbuildgame:
    copy file rootdir$+"languagebank\"+language$+"\gamebank\templateoriginal\mygame.fpg",tfile$
   else
    copy file rootdir$+"languagebank\"+language$+"\gamebank\templatearena\myarena.fpg",tfile$
-  endif 
+  endif
   `
   rem Manipulate fields to reflect new project name
   gosub _interface_loadbuildgame
@@ -48429,7 +48890,6 @@ _interface_createnewbuildgame:
   endif
   delete_list_item(10,0) : insert_list_item(10,0,tmapnameonly$)
   delete_list_item(11,0) : insert_list_item(11,0,"languagebank\"+language$+"\gamebank\"+result$+"\loadingpage.fpi")
-  
   gosub _interface_savebuildgame
   `
  endif
@@ -52358,11 +52818,11 @@ _postprocess_init:
   rem 2 - depth of field
   tshaderchoice$=bloomfilescreen$
   if gpostprocessing=1 then tshaderchoice$=bloomfilescreen$ : gpostprocessingnotransparency=0 : gdepthcameraid=0
-  if gpostprocessing=2 then tshaderchoice$=depthoffieldfilescreen$ : gpostprocessingnotransparency=0 : gdepthcameraid=2
+  if gpostprocessing=2 then tshaderchoice$=depthoffieldfilescreen$ : gpostprocessingnotransparency=0 : gdepthcameraid=4
   `
   rem FPGC - 200310 - new camera 1 holds post-process screen quad (requires U75+)
-  make camera 1 : load effect tshaderchoice$,65535,0
-  set camera view 1,0,0,1,1
+  make camera 3 : load effect tshaderchoice$,65535,0
+  set camera view 3,0,0,1,1
   set current camera 0
   `
   rem FPGC - 070410 - make a depth camera and assign it to image X
@@ -52386,7 +52846,7 @@ _postprocess_free:
  if gpostprocessmode=1
   delete effect 65535
   delete object 65536
-  delete camera 1 : set current camera 0
+  delete camera 3 : set current camera 0
   if gdepthcameraid<>0 then delete camera gdepthcameraid : set current camera 0 : gdepthcameraid=0
   gpostprocessingnotransparency=0
   gpostprocessmode=0
@@ -52518,6 +52978,105 @@ _postprocess_off:
  `
 return
 
+Rem Water subroutine(s)
+_water_control:
+ if waterbump#>0
+   waterdecalripple=waterdecalripplemaster
+ else
+  waterdecalripple=0
+ endif
+ Rem Handle raising water and lowering water
+ if keystate(201) and gtestgamemodefromeditor=1 then  oldwaterheight#=waterheight# : inc waterheight#
+ if keystate(209) and gtestgamemodefromeditor=1 then  oldwaterheight#=waterheight# : dec waterheight#
+ if waterheight#<1 then waterheight#=0
+ if waterheight#<>oldwaterheight# then tupdatewater=1
+ `
+ Rem Check is swimming along surface
+ tnearsurfaceofwater=abs(camera position y()-waterheight#)
+ if camera position y()>waterheight#
+  `if playerunderwater=1 and tnearsurfaceofwater>=15
+  ` ode set gravity physicsplayerborble,1
+  `endif
+  if playerunderwater=1
+   Rem Leave water sound
+   if playersound(1,17)>0
+    playinternal3dsound(playersound(1,17),camera position x(),camera position y(),camera position z())
+   endif
+   if waterunderwatersoundid>0 then stop sound waterunderwatersoundid
+   triggersplash=2
+  endif
+  playerunderwater=0
+ else
+  if playerunderwater=0
+   Rem Enter water sound
+   if playersound(1,18)>0
+    playinternal3dsound(playersound(1,18),camera position x(),camera position y(),camera position z())
+   endif
+   if waterunderwatersoundid>0 then loop sound waterunderwatersoundid
+   triggersplash=1
+  endif
+  playerunderwater=1
+ endif
+ `
+ rem trigger some ripples using the decal system
+ if waterdecalripple>0
+  ripplex=camera position x()+rnd(4)-2
+  ripplez=camera position z()+rnd(4)-2
+  if (plrkeyC)=1
+   rem crouch causes ripples in water
+   theightofplrcamforripple#=22.0
+  else
+   rem waling in water causes ripples
+   theightofplrcamforripple#=57.0
+  endif
+  if camera position y()<waterheight#+theightofplrcamforripple# and camera position y()>waterheight#
+   if abs(lastripplex-ripplex)>5 or abs(lastripplez-ripplez)>5
+    lastripplex=ripplex : lastripplez=ripplez
+    ripplequantity=70
+   else
+    ripplequantity=5000
+   endif
+   if timer()-rippleplayermakes>ripplequantity
+    rippleplayermakes=timer()
+    decalid=waterdecalripple
+    decalorient=0
+    decalx=ripplex
+    decaly=waterheight#+1.0
+    decalz=ripplez
+    decalorient=2
+    decalscalemodx=50 : decalscalemody=decalscalemodx
+    decalalpha=25
+    originatore=0 : gosub _decalelement_create
+   endif
+  endif
+ endif
+ `
+ rem water splash
+ if splashdecalid>0 and triggersplash<>0
+  if timer()-splashsplash>500
+   splashsplash=timer()
+   decalid=splashdecalid
+   decalorient=0
+   if triggersplash=2
+    decalx=newxvalue(camera position x(),camera angle y(),40.0)
+    decalz=newzvalue(camera position z(),camera angle y(),40.0)
+    decaly=waterheight#-50.0
+    decalscalemodx=50
+   else
+    decalx=camera position x()
+    decalz=camera position z()
+    decaly=waterheight#
+    decalscalemodx=100
+   endif
+   decalscalemody=decalscalemodx
+   decalalpha=100
+   originatore=0 : gosub _decalelement_create
+  endif
+  triggersplash=0
+ endif
+ `
+return
+
 function getintervar(var$)
  select var$
   case "$PH"
@@ -52604,6 +53163,84 @@ function setintervar(var$,alter#)
  endselect
 endfunction
 
+function MakeWater()
+ Img=19876
+ Rem Cameras
+ Sw#=screen width():Sh#=screen height()
+ aspect#=desktop width() : aspect#=aspect#/desktop height()
+ realrange#=9000.0
+ for c=1 to 2
+  make camera c
+  set camera range c,2.0,realrange#
+  set camera aspect c,aspect#
+  backdrop off c
+  if c=1 then set camera to image c,Img,Sw#,Sh#
+  if c=2 then set camera to image c,Img+1,Sw#,Sh#
+  set camera fov c,75
+ next c
+
+ Rem Make Water plain
+ path$="effectbank\common\"
+ if file exist(path$+"water_N.dds") then load image path$+"water_N.dds",Img+2
+ if file exist(path$+"Fresnel.bmp") then load image path$+"Fresnel.bmp",Img+3
+ if file exist(path$+"WaterMask.bmp") then load image path$+"WaterMask.bmp",Img+4
+ `
+ make object plain waterobj,80*100,80*100
+ for i=0 to 4
+  texture object waterobj,i,Img+i
+ next i
+ xrotate object waterobj,270
+ if file exist(path$+"Water.fx") then load effect path$+"Water.fx",waterfx,0 : set object effect waterobj,waterfx
+ set object transparency waterobj,1
+ hide object waterobj
+endfunction
+
+function UpDateWater()
+ set current camera 0
+ Rem UpDate Water plain position
+ position object waterobj,0,waterheight#,0
+ Hide object waterobj
+ Rem Upade Refract and Reflect cameras
+ set effect technique WaterFx,"Refract"
+ UpDateRefraction()
+ if camera position y(0)>waterheight#
+  set effect technique WaterFx,"ReflectRefract"
+  UpDateReflection()
+  if hudfogon=0 then fog off
+  waterfogon=0
+ else
+  waterfogon=1
+ endif
+ show object waterobj
+ set current camera 0
+endfunction
+
+function UpDateRefraction()
+ position camera 1,camera position x(0),camera position y(0),camera position z(0)
+ rotate camera 1,camera angle x(0),camera angle y(0),camera angle z(0)
+ if camera position y(0)>waterheight#
+  set camera clip 1,1,0,waterheight#+30,0,0,-1,0
+  waterfogon=2
+ endif
+ if camera position y(0)<waterheight#
+  set camera clip 1,1,0,waterheight#-30,0,0,1,0
+  waterfogon=1
+ endif
+ set camera clip 2,0,0,0,0,0,0,0
+ sync mask (1 << 1)
+ fastsync
+ sync mask %11111111 - (1 << 1) - (1 << 2)
+endfunction
+
+function UpDateReflection()
+ position camera 2,camera position x(0),waterheight#-(camera position y(0)-waterheight#),camera position z(0)
+ rotate camera 2,-camera angle x(0),camera angle y(0),camera angle z(0)
+ set camera clip 1,0,0,0,0,0,0,0
+ set camera clip 2,1,0,waterheight#-15,0,0,1,0
+ sync mask (1 << 2)
+ fastsync
+ sync mask %11111111 - (1 << 1) - (1 << 2)
+endfunction
 
 rem GUI-X9 (knxrb) >>>
 _gui_types:
@@ -52657,7 +53294,7 @@ _gui_types:
         StrNumeric As String
     endtype
     dim guihud(99) as guihudtype
-    
+
     type guicheckboxtype
         Name As String
         Visible As Boolean
@@ -52678,7 +53315,7 @@ _gui_types:
         iA As Integer
     endtype
     dim guicheckbox(99) as guicheckboxtype
-    
+
     type guichoicetype
         Name As String
         Visible As Boolean
@@ -52721,7 +53358,7 @@ _gui_types:
         iA As Integer
     endtype
     dim guichoice(99) as guichoicetype
-    
+
     type guislidertype
         Name As String
         Visible As Boolean
@@ -52753,7 +53390,7 @@ _gui_types:
         iA As Integer
     endtype
     dim guislider(99) as guislidertype
-    
+
     type guisetupvartype
         Name As String
         Value As String
@@ -52761,7 +53398,7 @@ _gui_types:
         Saved As Boolean
     endtype
     dim guisvar(99) as guisetupvartype
-    
+
     type guitimertype
         Name As String
         Time As Integer
@@ -52769,7 +53406,7 @@ _gui_types:
         Started As Boolean
     endtype
     dim guitimer(99) as guitimertype
-    
+
     type guiimagetype
         Name As String
         ImageNo As Integer
@@ -52778,7 +53415,7 @@ _gui_types:
         Path As String
     endtype
     dim guiimage(99) as guiimagetype
-    
+
     dim guival(maxparse) as string
 return
 
@@ -52933,7 +53570,7 @@ _gui_run:
                     if guislider(cS).BVal < 0 then guislider(cS).BVal = 0
                     if guislider(cS).BVal > guislider(cS).AW then guislider(cS).BVal = guislider(cS).AW
                     guislider(cS).SL = (guislider(cS).AL - (guislider(cS).AW / 2)) + ((guislider(cS).BVal/guislider(cS).AW)*guislider(cS).AW) - (guislider(cS).SW / 2)
-                    guislider(cS).SVal = ((guislider(cS).SL-(guislider(cS).AL-(guislider(cS).AW/2))+(guislider(cS).SW/2))/guislider(cS).AW)*guislider(cS).MaxValue                    
+                    guislider(cS).SVal = ((guislider(cS).SL-(guislider(cS).AL-(guislider(cS).AW/2))+(guislider(cS).SW/2))/guislider(cS).AW)*guislider(cS).MaxValue
                 endif
             endif
         endif
@@ -52980,7 +53617,7 @@ _gui_run:
             if guichoice(cS).TotalStates >= 9 then center text guichoice(cS).AL-(guichoice(cS).AW/2)+(guichoice(cS).StateWidth*8), guichoice(cS).AT+20, guichoice(cS).State9
             if mMouseState = 1
                 if inputmousex() > (guichoice(cS).AL - guichoice(cS).AW / 2) - 10 and inputmousex() < (guichoice(cS).AL + guichoice(cS).AW / 2) + 10 and inputmousey() > (guichoice(cS).AT - guichoice(cS).AH / 2) - 10 and inputmousey() < (guichoice(cS).AT + guichoice(cS).AH / 2)  + 10
-                    nDist# = guichoice(cS).AW+20 : nState = 0 
+                    nDist# = guichoice(cS).AW+20 : nState = 0
                     for sI = 0 To 9 step 1
                         DX# = guichoice(cS).AL-(guichoice(cS).AW/2)+(guichoice(cS).StateWidth*sI)
                         DY# = guichoice(cS).AT
@@ -53004,7 +53641,7 @@ _gui_run:
                 endif
             endif
         endif
-    next cS    
+    next cS
     if GUILoad = 1
         if initLoadSave = 0
            gosub _saveload_savebox_load
@@ -53173,7 +53810,7 @@ function CalcStateDistance(X1# as float, Y1# as float, X2# as float, Y2# as floa
 endfunction retRes#
 
 function LoadGUIImage(Name as string, Path as string)
-    if lower$(Name) <> "na" and Name <> "-" and lower$(Name) <> "none" 
+    if lower$(Name) <> "na" and Name <> "-" and lower$(Name) <> "none"
         if file exist(get dir$()+"\"+Path)
             rINo = -1
             for cI = 0 to totImages-1
@@ -53237,8 +53874,8 @@ function UpdateSliderData(sID)
     guislider(sID).SliderTop = guislider(sID).Top
     guislider(sID).ST =  (ScreenYPos(guislider(sID).SliderTop)/768)*gdisplayheight
     guislider(sID).SL = (guislider(sID).AL - (guislider(sID).AW / 2)) + ((guislider(sID).BVal/guislider(sID).AW)*guislider(sID).AW) - (guislider(sID).SW / 2)
-    guislider(sID).SVal = ((guislider(sID).SL-(guislider(sID).AL-(guislider(sID).AW/2))+(guislider(sID).SW/2))/guislider(sID).AW)*guislider(sID).MaxValue   
-    endfunction
+    guislider(sID).SVal = ((guislider(sID).SL-(guislider(sID).AL-(guislider(sID).AW/2))+(guislider(sID).SW/2))/guislider(sID).AW)*guislider(sID).MaxValue
+endfunction
 
 function UpdateChoiceData(sID)
     guichoice(sID).AL = (ScreenXPos(guichoice(sID).Left)/1024)*gdisplaywidth
@@ -53250,7 +53887,6 @@ function UpdateChoiceData(sID)
     guichoice(sID).StateWidth =  guichoice(sID).AW / (guichoice(sID).TotalStates-1)
     guichoice(sID).SL = guichoice(sID).AL-(guichoice(sID).AW/2)+(guichoice(sID).StateWidth*guichoice(sID).SelectedStateNum)-(guichoice(sID).SW / 2)
 endfunction
-
 function ParseValues(strCheck$ as string)
     for cI = 0 to maxparse step 1
         guival(cI) = ""
@@ -53396,7 +54032,7 @@ function MakeGUISlider(Name as string, BackImage as string, FillImage as string,
             exit
         endif
     next cI
-    if rINo = -1 
+    if rINo = -1
         guislider(tSlider).Name = Name
         guislider(tSlider).Visible = 1
         guislider(tSlider).BackImageNo = GUIImageFromName(BackImage)
@@ -53518,7 +54154,7 @@ function MakeGUISetupVar(Name as string, Value as string, SetupLine as string)
 endfunction
 
 function CheckBuildScripts(ePath$, eName$)
-	rem Copy scripts manually so the default scripts aren't edited incase the user doesn't use GUI-X9 for their next build.
+   rem Copy scripts manually so the default scripts aren't edited incase the user doesn't use GUI-X9 for their next build.
     if file exist(get dir$()+"\files\gx9script.gx9")
         open to read 1,get dir$()+"\files\gx9script.gx9"
         if file open(1)=1
@@ -53573,3 +54209,5 @@ function SortBuildFiles(ePath$, eName$)
     next
 endfunction
 rem GUI-X9 (knxrb) <<<
+
+

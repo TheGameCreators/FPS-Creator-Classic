@@ -8,8 +8,20 @@ History
 
 V1.1.8
 ------
-
- *Added NEXTLEVEL=X this will specify which level to jump to (this command will not end the current level, it will simply jump to the level specified after the current level has ended via winzone, etc.)
+ 
+ * Added water "effects" such as water physics, swimming, water ripple, water splashes...etc
+ * Added WATERFOGDIST=X to change how far away the underwater fog is
+ * Added WATERFOGBLUE=X to change the blue value of the water's underwater color
+ * Added WATERFOGGREEN=X to change the green value of the water's underwater color
+ * Added WATERFOGRED=X to change the red value of the water's underwater color
+ * Added WATERBLUE=X to change the blue value of the water's color
+ * Added WATERGREEN=X to change the green value of the water's color
+ * Added WATERRED=X to change the red value of the water's color
+ * Added WATERSPEED=X to change the water ripple speed
+ * Added WATERHEIGHT=X to specify the water's Y position
+ * Added WATER=X to toggle water on and off
+ * Added Water
+ * Added NEXTLEVEL=X this will specify which level to jump to (this command will not end the current level, it will simply jump to the level specified after the current level has ended via winzone, etc.)
  * Added DIMLOCALVAR=X Works just like DIMVAR=X only makes the variable local to the entity (just like localvar=x only allows 	you to use the new variable system)
  * Added PASSTOSETUP=X Y x is equal to the string you would like to insert/change in the setup .ini Y is the value to give it
 	Example: passtosetup=dynamicshadows 1
