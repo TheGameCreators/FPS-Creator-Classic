@@ -281,8 +281,8 @@ type saveloadgamepositionentitytype
  daiteam as integer
  spawnleaderid as integer
  ailibindex as integer
- aistate as integer
- aioldstate as integer
+ aistate$ as string
+ aioldstate$ as string
  active as integer
  dormant as integer
  beenkilled as integer
@@ -3937,13 +3937,11 @@ _main_game_core:
  inc gameperftotalcount, perftimer()-gameperftotalcountTOP
  gameperftotalcountTOP=perftimer()
  `
- Gosub _water_control
+ if wateron=1
+  Gosub _water_control
+ endif
  `
  rem Update screen
- for i=17 to 18
-  Print "material("+str$(i)+").name$: "+material(i).name$
-  Print "material("+str$(i)+").freq: "+str$(material(i).freq)
- next i
  `
  gosub _main_sync
  `
@@ -9715,7 +9713,7 @@ _entity_hasbulletrayhit:
  bulletrayhit=0 : bulletrayhitdist#=0.0
  `
  rem if bullet ray passed waterlevel, create a splash at intersection
- if (brayy1#>waterheight# and brayy2#<waterheight#) or (brayy1#<waterheight# and brayy2#>waterheight#)
+ if (brayy1#>waterheight# and brayy2#<waterheight#) and wateron=1 or (brayy1#<waterheight# and brayy2#>waterheight#) and wateron=1
   `
   rem calculate intersect vector
   tbix#=brayx2#-brayx1#
@@ -21314,17 +21312,17 @@ if gunmode=7031
 endif
 if gunmode=702 `and object frame(currentgunobj)>=gun(gunid).action.reloadloop.e
  rem actual reload
- tneedfromclip=firemode(gunid,0).settings.reloadqty+gunchamber-weaponammo(weaponammoindex)
+ tneedfromclip=firemode(gunid,firemode).settings.reloadqty+gunchamber-weaponammo(weaponammoindex+ammooffset)
  if tneedfromclip > 1 then tneedfromclip = 1
- tpool=firemode(gunid,0).settings.poolindex
- if tpool=0 then ammo=weaponclipammo(weaponammoindex) else ammo=ammopool(tpool).ammo
+ tpool=firemode(gunid,firemode).settings.poolindex
+ if tpool=0 then ammo=weaponclipammo(weaponammoindex+ammooffset) else ammo=ammopool(tpool).ammo
 
  if tneedfromclip>ammo then tneedfromclip=ammo
  if tneedfromclip>0
-  weaponammo(weaponammoindex)=weaponammo(weaponammoindex)+tneedfromclip
-  if tpool=0 then weaponclipammo(weaponammoindex)=weaponclipammo(weaponammoindex)-tneedfromclip else ammopool(tpool).ammo=ammopool(tpool).ammo-tneedfromclip
+  weaponammo(weaponammoindex+ammooffset)=weaponammo(weaponammoindex+ammooffset)+tneedfromclip
+  if tpool=0 then weaponclipammo(weaponammoindex+ammooffset)=weaponclipammo(weaponammoindex+ammooffset)-tneedfromclip else ammopool(tpool).ammo=ammopool(tpool).ammo-tneedfromclip
   gunmode = 703
-  if firemode(gunid,0).settings.reloadqty+gunchamber-weaponammo(weaponammoindex) < 1 then gunmode = 7041
+  if firemode(gunid,firemode).settings.reloadqty+gunchamber-weaponammo(weaponammoindex+ammooffset) < 1 then gunmode = 7041
   if player(plrid).state.firingmode = 1 then gunmode = 7041
  else
   gunmode = 7041
