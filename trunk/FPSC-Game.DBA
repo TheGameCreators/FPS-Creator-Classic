@@ -281,8 +281,8 @@ type saveloadgamepositionentitytype
  daiteam as integer
  spawnleaderid as integer
  ailibindex as integer
- aistate as integer
- aioldstate as integer
+ aistate$ as string rem GUI-X9 (String States)
+ aioldstate$ as string rem GUI-X9 (String States)
  active as integer
  dormant as integer
  beenkilled as integer
@@ -1086,7 +1086,7 @@ type aistatustype
  libdestroy as integer
  libshoot as integer
  libindex as integer
- state as integer
+ state$ as string rem GUI-X9 (String States)
  alphafade as float
  destalphafade as float
  alphafadeupdate as integer
@@ -1094,7 +1094,7 @@ type aistatustype
  headdestangle as float
  waypoint as aiwaypointtype
  usinginternalai as integer
- oldstate as integer
+ oldstate$ as string rem GUI-X9 (String States)
  oldalphafade as float
  oldwaypointstate as integer
  headshot as integer
@@ -1560,6 +1560,19 @@ rem V118 - 140810 - knxrb - Disable Particles
 #constant AICONDSETUPPARTICLESUSED 844
 rem V118 - 160810 - knxrb - Auto Resolution
 #constant AICONDSETUPAUTORES 845
+rem GUI-X9 (knxrb) >>>
+#constant AICONDHUDMOUSEDOWN 846
+#constant AICONDHUDMOUSEUP 847
+#constant AICONDHUDMOUSEOVER 848
+#constant AICONDLOADVISIBLE 849
+#constant AICONDSAVEVISIBLE 850
+#constant AICONDSTOPWATCHGREATER 851
+#constant AICONDSTOPWATCHLESS 852
+#constant AICONDSTOPWATCHRUNNING 853
+#constant AICONDSETUPVAREQUAL 854
+#constant AICONDCURSORIMAGE 855
+#constant AICONDCHOICEVALUEEQUAL 856
+rem GUI-X9 (knxrb) <<<
 #constant AICONDLAST 900
 
 #constant AIACTNONE 0
@@ -1828,11 +1841,81 @@ rem V118 - 130810 - knxrb - Mouse Invert (Options Screen)
 rem V118 - 140810 - knxrb - Disable Particles (Options Screen)
 #constant AIACTSETUPPARTICLESUSED 1262
 rem V118 - 160810 - knxrb - Hud - sethudx Command
-#constant AIACTSETHUDX 1263
+#constant AIACTSETHUDXPOS 1263
 rem V118 - 160810 - knxrb - Auto Resolution
 #constant AIACTSETUPAUTORES 1264
 
-#constant AIACTLAST 1300
+rem GUI-X9 (knxrb) >>>
+#constant AIACTLOADIMAGE 1265
+#constant AIACTMAKEHUD 1266
+#constant AIACTSETHUDX 1267
+#constant AIACTSETHUDY 1268
+#constant AIACTSETHUDW 1269
+#constant AIACTSETHUDH 1270
+#constant AIACTSETHUDCOLOUR 1271
+#constant AIACTSETHUDCOLOR 1272
+#constant AIACTSETHUDALPHA 1273
+#constant AIACTSETHUDNIMAGE 1274
+#constant AIACTSETHUDOIMAGE 1275
+#constant AIACTMAKECHECKBOX 1276
+#constant AIACTSETCHECKBOXX 1277
+#constant AIACTSETCHECKBOXY 1278
+#constant AIACTSETCHECKBOXW 1279
+#constant AIACTSETCHECKBOXH 1280
+#constant AIACTSETCHECKBOXCOLOUR 1281
+#constant AIACTSETCHECKBOXCOLOR 1282
+#constant AIACTSETCHECKBOXALPHA 1283
+#constant AIACTSETCHECKBOXNIMAGE 1284
+#constant AIACTSETCHECKBOXCIMAGE 1285
+#constant AIACTSETCHECKBOXSTATE 1286
+#constant AIACTMAKESLIDER 1287
+#constant AIACTSETSLIDERX 1288
+#constant AIACTSETSLIDERY 1289
+#constant AIACTSETSLIDERW 1290
+#constant AIACTSETSLIDERH 1291
+#constant AIACTSETSLIDERCOLOUR 1292
+#constant AIACTSETSLIDERCOLOR 1293
+#constant AIACTSETSLIDERALPHA 1294
+#constant AIACTSETSLIDERVALUE 1295
+#constant AIACTMAKECHOICE 1296
+#constant AIACTSETCHOICEX 1297
+#constant AIACTSETCHOICEY 1298
+#constant AIACTSETCHOICEW 1299
+#constant AIACTSETCHOICEH 1300
+#constant AIACTSETCHOICECOLOUR 1301
+#constant AIACTSETCHOICECOLOR 1302
+#constant AIACTSETCHOICEALPHA 1303
+#constant AIACTADDCHOICESTATE 1304
+#constant AIACTSETCHOICESTATE 1305
+#constant AIACTSETCURSOR 1306
+#constant AIACTHIDEALL 1307
+#constant AIACTREPLACEIMAGE 1308
+#constant AIACTSHOWHUD 1309
+#constant AIACTHIDEHUD 1310
+#constant AIACTSHOWCURSOR 1311
+#constant AIACTHIDECURSOR 1312
+#constant AIACTCLEARGUI 1313
+#constant AIACTMAKESTOPWATCH 1314
+#constant AIACTSTARTSTOPWATCH 1315
+#constant AIACTSTOPSTOPWATCH 1316
+#constant AIACTMAKESETUPVAR 1317
+#constant AIACTSETSETUPVARVALUE 1318
+#constant AIACTSETSETUPVARLINE 1319
+#constant AIACTREADSETUPVARVALUE 1320
+#constant AIACTSAVESETUPVARS 1321
+#constant AIACTSETHUDCLICKABLE 1322
+#constant AIACTSETSETUPTOCOMP 1323
+#constant AIACTSHOWCHOICE 1324
+#constant AIACTHIDECHOICE 1325
+#constant AIACTSHOWSLIDER 1326
+#constant AIACTHIDESLIDER 1327
+#constant AIACTSHOWCHECKBOX 1328
+#constant AIACTHIDECHECKBOX 1329
+#constant AIACTSETHUDNUMERIC 1330
+#constant AIACTSETHUDVALUE 1331
+rem GUI-X9 (knxrb) <<<
+
+#constant AIACTLAST 1332 : rem GUI-X9 (knxrb)
 
 rem V109 BETA3 - 210408 - AI variables
 global aivariablemode : aivariablemode=0 : rem 0-global, 1-local
@@ -3426,6 +3509,9 @@ gosub _ode_loadmateriallist_core
 `
 rem FPGC - 231109 - initialise DarkVOICES
 gosub _lipsync_init
+
+ rem GUI-X9 (knxrb)
+ gosub _gui_init
 `
 rem Run gameflow default screen path
 timestampactivity(0,"Game Flow Started..")
@@ -3952,6 +4038,9 @@ rem LEES Game Runner Code
 rem
 
 _load_game_scene:
+
+rem GUI-X9 (knxrb)
+GUILoad=0 : GUISave=0 : gosub _gui_run : rem (Clears screen of unnecessary GUI parts)
 
 rem Loading Screen
 if gdebugreportmodestate=0 then set camera view 0,0,1,1
@@ -6186,6 +6275,12 @@ function debugviewtext(progress,gamedebugviewtext$)
   tscrhighdiff#=screen height()
   tscrhighdiff#=tscrhighdiff#/800.0
   if internalloaderhud>0 and internalloaderhud<=array count(hud())
+   rem GUI-X9 (knxrb) - (This area of code is not yet finished.)
+   if sprite exist(65534)
+    size sprite 65534,screen width(),screen height()
+    paste sprite 65534,0,0
+   endif
+   gosub _gui_run
    rem Image Expand Bar Progress
    t1=hud(internalloaderhud).width*progress#
    size sprite internalloaderhud,t1,hud(internalloaderhud).height*tscrhighdiff#
@@ -6883,16 +6978,19 @@ _entity_showdebugstringinfo:
      tainame$=str$(entityelement(e).ai.libindex)
     endif
     if entityprofile(tentid).ischaracter<>0
-     center text object screen x(obj),object screen y(obj)+toffsetspawnlabel-20,"A:"+tainame$+" S:"+str$(entityelement(e).ai.state)+" WS:"+str$(entityelement(e).ai.waypoint.state)+" L:"+str$(entityelement(e).eleprof.lives)+" H:"+str$(entityelement(e).health)+" LT:"+str$(entityelement(e).losttargetcount)+"("+str$(int(entityelement(e).actualtargetx))+","+str$(int(entityelement(e).actualtargety))+","+str$(int(entityelement(e).actualtargetz))+") RCC:"+str$(entityelement(e).raycastcount)+" FRAME:"+str$(entityelement(e).animframe)+"\"+str$(entityelement(e).destanimframe)+"  ry="+str$(entityelement(e).ry)
+    rem GUI-X9 (String States)
+     center text object screen x(obj),object screen y(obj)+toffsetspawnlabel-20,"A:"+tainame$+" S:"+entityelement(e).ai.state$+" WS:"+str$(entityelement(e).ai.waypoint.state)+" L:"+str$(entityelement(e).eleprof.lives)+" H:"+str$(entityelement(e).health)+" LT:"+str$(entityelement(e).losttargetcount)+"("+str$(int(entityelement(e).actualtargetx))+","+str$(int(entityelement(e).actualtargety))+","+str$(int(entityelement(e).actualtargetz))+") RCC:"+str$(entityelement(e).raycastcount)+" FRAME:"+str$(entityelement(e).animframe)+"\"+str$(entityelement(e).destanimframe)+"  ry="+str$(entityelement(e).ry)
      if entityelement(e).currentweapon>0
       center text object screen x(obj),object screen y(obj)+toffsetspawnlabel,"WA:"+str$(entityelement(e).currentammo)+"\"+str$(entityelement(e).currentclipammo)
      endif
     else
      if entityprofile(tentid).isweapon<>0
       tgunid=entityprofile(tentid).isweapon
-      center text object screen x(obj),object screen y(obj)+toffsetspawnlabel-20," AI:"+tainame$+" S:"+str$(entityelement(e).ai.state)+strarr$(99)+str$(gun(tgunid).settings.damage)+" H:"+str$(entityelement(e).health)
+      rem GUI-X9 (String States)
+      center text object screen x(obj),object screen y(obj)+toffsetspawnlabel-20," AI:"+tainame$+" S:"+entityelement(e).ai.state$+strarr$(99)+str$(gun(tgunid).settings.damage)+" H:"+str$(entityelement(e).health)
      else
-      center text object screen x(obj),object screen y(obj)+toffsetspawnlabel-20," AI:"+tainame$+" S:"+str$(entityelement(e).ai.state)+" A:"+str$(entityelement(e).activated)+" H:"+str$(entityelement(e).health)+" FRAME:"+str$(entityelement(e).animframe)+"\"+str$(entityelement(e).destanimframe)
+     rem GUI-X9 (String States)
+      center text object screen x(obj),object screen y(obj)+toffsetspawnlabel-20," AI:"+tainame$+" S:"+entityelement(e).ai.state$+" A:"+str$(entityelement(e).activated)+" H:"+str$(entityelement(e).health)+" FRAME:"+str$(entityelement(e).animframe)+"\"+str$(entityelement(e).destanimframe)
       center text object screen x(obj),object screen y(obj)+toffsetspawnlabel,"WP:"+str$(entityelement(e).ai.waypoint.current)+" TRK:"+str$(entityelement(e).ai.waypoint.tracker)+" DIR:"+str$(entityelement(e).ai.waypoint.direction)+" S:"+str$(entityelement(e).ai.waypoint.state)
      endif
     endif
@@ -7685,7 +7783,7 @@ if entityelement(e).ai.libindex=entityelement(e).ai.libmain
   entityelement(e).ai.libindex=entityelement(e).ai.libdestroy
   entityelement(e).ai.waypoint.state=0
   entityelement(e).ai.headangle=0
-  entityelement(e).ai.state=0
+  entityelement(e).ai.state$="0" rem GUI-X9 (String States)
  endif
 endif
 
@@ -8027,7 +8125,7 @@ if trundefaultscript>0
   rem restore old state values
   entityelement(e).ai.waypoint.state=entityelement(e).ai.oldwaypointstate
   entityelement(e).ai.alphafade=entityelement(e).ai.oldalphafade
-  entityelement(e).ai.state=entityelement(e).ai.oldstate
+  entityelement(e).ai.state$=entityelement(e).ai.oldstate$ rem GUI-X9 (String States)
   entityelement(e).ai.usinginternalai=0
   `
   rem V109 - 210308 - prevents death anim from throw going back to middle of main anim which might be 2600-2650! goes through all anims
@@ -8042,7 +8140,7 @@ if trundefaultscript>0
    gosub _entity_storemainai
   endif
   entityelement(e).ai.waypoint.state=0
-  entityelement(e).ai.state=0
+  entityelement(e).ai.state$="0" rem GUI-X9 (String States)
  endif
  `
  rem Always reset these after AI script switch
@@ -8305,11 +8403,11 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
       entityelement(te).ai.waypoint.state=0
       entityelement(te).ai.waypoint.tracker=0
       entityelement(te).ai.waypoint.current=0
-      entityelement(te).ai.state=0
+      entityelement(te).ai.state$="0" rem GUI-X9 (String States)
       entityelement(te).ai.headangle=0
       entityelement(te).ai.headdestangle=0
       entityelement(te).ai.usinginternalai=0
-      entityelement(te).ai.oldstate=0
+      entityelement(te).ai.oldstate$="0" rem GUI-X9 (String States)
       entityelement(te).ai.alphafade=0
       entityelement(te).ai.oldalphafade=0
       entityelement(te).ai.destalphafade=100
@@ -9359,7 +9457,7 @@ _entity_storemainai:
  if entityelement(e).ai.usinginternalai=0
   entityelement(e).ai.oldwaypointstate=entityelement(e).ai.waypoint.state
   entityelement(e).ai.oldalphafade=entityelement(e).ai.alphafade
-  entityelement(e).ai.oldstate=entityelement(e).ai.state
+  entityelement(e).ai.oldstate$=entityelement(e).ai.state$ rem GUI-X9 (String States)
   entityelement(e).ai.usinginternalai=1
   entityelement(e).logiccount=0
   `
@@ -9392,7 +9490,7 @@ _entity_setnewai:
  entityelement(e).ai.destalphafade=100
  entityelement(e).ai.oldalphafade=99
  entityelement(e).ai.alphafadeupdate=1
- entityelement(e).ai.state=0
+ entityelement(e).ai.state$="0" rem GUI-X9 (String States)
  rem some resets to prevent cross-code
  entityelement(e).animframe=entityelement(e).destanimframe
  entityelement(e).animtime=0
@@ -10353,6 +10451,19 @@ conword$(AICONDSETUPPARTICLESUSED)="particlesvar" : rem V118 - 140810 - knxrb - 
 conword$(AICONDSETUPAUTORES)="autoresvar" : rem V118 - 160810 - knxrb - Auto Resolution
 rem V118 - 120810 - knxrb - 'mousestate=X' command
 conword$(AICONDMOUSESTATE)="mousestate"
+rem GUI-X9 (knxrb) >>>
+conword$(AICONDHUDMOUSEDOWN)="hudmousedown"
+conword$(AICONDHUDMOUSEUP)="hudmouseup"
+conword$(AICONDHUDMOUSEOVER)="hudmouseover"
+conword$(AICONDSAVEVISIBLE)="savegamevisible"
+conword$(AICONDLOADVISIBLE)="loadgamevisible"
+conword$(AICONDSTOPWATCHGREATER)="swgreater"
+conword$(AICONDSTOPWATCHLESS)="swless"
+conword$(AICONDSTOPWATCHRUNNING)="swrunning"
+conword$(AICONDSETUPVAREQUAL)="svarequal"
+conword$(AICONDCURSORIMAGE)="cursorimage"
+conword$(AICONDCHOICEVALUEEQUAL)="choicevalueequal"
+rem GUI-X9 (knxrb) <<<
 
 rem Set all action keywords
 dim actword$(AIACTLAST)
@@ -10618,8 +10729,77 @@ actword$(AIACTAIADDENEMY)="aiaddenemy"
 actword$(AIACTAIADDNEUTRAL)="aiaddneutral"
 actword$(AIACTAIAUTOFACTIONOFF)="aiautofactionoff"
 actword$(AIACTHUDLAYER)="hudlayer" : rem V118 - 110810 - knxrb - Hud Layers
-actword$(AIACTSETHUDX)="sethudx" : rem V118 - 160810 - knxrb - Hud - sethudx Command
+actword$(AIACTSETHUDXPOS)="sethudxpos" : rem V118 - 160810 - knxrb - Hud - sethudx Command
 actword$(AIACTNEXTLEVEL)="nextlevel"
+rem GUI-X9 (knxrb) >>>
+actword$(AIACTLOADIMAGE)="loadimage"
+actword$(AIACTMAKEHUD)="makehud"
+actword$(AIACTSETHUDX)="sethudx"
+actword$(AIACTSETHUDY)="sethudy"
+actword$(AIACTSETHUDW)="sethudw"
+actword$(AIACTSETHUDH)="sethudh"
+actword$(AIACTSETHUDCOLOUR)="sethudcolour"
+actword$(AIACTSETHUDCOLOR)="sethudcolor"
+actword$(AIACTSETHUDALPHA)="sethudalpha"
+actword$(AIACTSETHUDNIMAGE)="sethudnimage"
+actword$(AIACTSETHUDOIMAGE)="sethudoimage"
+actword$(AIACTMAKECHECKBOX)="makecheckbox"
+actword$(AIACTSETCHECKBOXX)="setcheckboxx"
+actword$(AIACTSETCHECKBOXY)="setcheckboxy"
+actword$(AIACTSETCHECKBOXW)="setcheckboxw"
+actword$(AIACTSETCHECKBOXH)="setcheckboxh"
+actword$(AIACTSETCHECKBOXCOLOUR)="setcheckboxcolour"
+actword$(AIACTSETCHECKBOXCOLOR)="setcheckboxcolor"
+actword$(AIACTSETCHECKBOXALPHA)="setcheckboxalpha"
+actword$(AIACTSETCHECKBOXNIMAGE)="setcheckboxnimage"
+actword$(AIACTSETCHECKBOXCIMAGE)="setcheckboxcimage"
+actword$(AIACTSETCHECKBOXSTATE)="setcheckboxchecked"
+actword$(AIACTMAKESLIDER)="makeslider"
+actword$(AIACTSETSLIDERX)="setsliderx"
+actword$(AIACTSETSLIDERY)="setslidery"
+actword$(AIACTSETSLIDERW)="setsliderw"
+actword$(AIACTSETSLIDERH)="setsliderh"
+actword$(AIACTSETSLIDERCOLOUR)="setslidercolour"
+actword$(AIACTSETSLIDERCOLOR)="setslidercolor"
+actword$(AIACTSETSLIDERALPHA)="setslideralpha"
+actword$(AIACTSETSLIDERVALUE)="setslidervalue"
+actword$(AIACTMAKECHOICE)="makechoice"
+actword$(AIACTSETCHOICEX)="setchoicex"
+actword$(AIACTSETCHOICEY)="setchoicey"
+actword$(AIACTSETCHOICEW)="setchoicew"
+actword$(AIACTSETCHOICEH)="setchoiceh"
+actword$(AIACTSETCHOICECOLOUR)="setchoicecolour"
+actword$(AIACTSETCHOICECOLOR)="setchoicecolor"
+actword$(AIACTSETCHOICEALPHA)="setchoicealpha"
+actword$(AIACTADDCHOICESTATE)="addchoicevalue"
+actword$(AIACTSETCHOICESTATE)="setchoicevalue"
+actword$(AIACTSETCURSOR)="setcursor"
+actword$(AIACTHIDEALL)="hideall"
+actword$(AIACTREPLACEIMAGE)="replaceimage"
+actword$(AIACTSHOWHUD)="showhud"
+actword$(AIACTHIDEHUD)="hidehud"
+actword$(AIACTSHOWCURSOR)="showcursor"
+actword$(AIACTHIDECURSOR)="hidecursor"
+actword$(AIACTCLEARGUI)="resetgui"
+actword$(AIACTMAKESTOPWATCH)="makesw"
+actword$(AIACTSTARTSTOPWATCH)="startsw"
+actword$(AIACTSTOPSTOPWATCH)="stopsw"
+actword$(AIACTMAKESETUPVAR)="makesvar"
+actword$(AIACTSETSETUPVARVALUE)="setsvarvalue"
+actword$(AIACTSETSETUPVARLINE)="setsvarline"
+actword$(AIACTREADSETUPVARVALUE)="readsetupline"
+actword$(AIACTSAVESETUPVARS)="savesvars"
+actword$(AIACTSETHUDCLICKABLE)="hudclickable"
+actword$(AIACTSETSETUPTOCOMP)="setsvartogui"
+actword$(AIACTSHOWCHOICE)="showchoice"
+actword$(AIACTHIDECHOICE)="hidechoice"
+actword$(AIACTSHOWSLIDER)="showslider"
+actword$(AIACTHIDESLIDER)="hideslider"
+actword$(AIACTSHOWCHECKBOX)="showcheckbox"
+actword$(AIACTHIDECHECKBOX)="hidecheckbox"
+actword$(AIACTSETHUDNUMERIC)="sethudnumeric"
+actword$(AIACTSETHUDVALUE)="sethudvalue"
+rem GUI-X9 (knxrb) <<<
 return
 
 _ai_reset_presaveposition:
@@ -10916,10 +11096,10 @@ if aiindex>0
    select aiconditionseq(seq).type
     case AICONDNEVER: airesult=0 : endcase
     case AICONDALWAYS: airesult=airesult : endcase
-    case AICONDSTATE:
-     conda=entityelement(e).ai.state
-     condb=aiconditionseq(seq).valuea
-     if conda<>condb then airesult=0
+    case AICONDSTATE: rem GUI-X9 (String States)
+     conda$=entityelement(e).ai.state$
+     condb$=aiconditionseq(seq).string1
+     if conda$<>condb$ then airesult=0
     endcase
     case AICONDRANDOM:
      conda=aiconditionseq(seq).valuea
@@ -12174,6 +12354,125 @@ if aiindex>0
     case AICONDMOUSESTATE:
       if aiconditionseq(seq).valuea <> control_mouseclick() then airesult=0
     endcase
+    rem GUI-X9 (knxrb) >>>
+    case AICONDHUDMOUSEDOWN:
+        if lower$(MouseDownHud$) = lower$(aiconditionseq(seq).string1)
+            if aiconditionseq(seq).valueb = 0
+                airesult=0
+            else
+                MouseDownHud$ = ""
+            endif
+        else
+            if aiconditionseq(seq).valueb = 1
+                airesult=0
+            else
+                MouseDownHud$ = ""
+            endif
+        endif
+    endcase
+    case AICONDHUDMOUSEUP:
+        if lower$(MouseUpHud$) = lower$(aiconditionseq(seq).string1)
+            if aiconditionseq(seq).valueb = 0
+                airesult=0
+            else
+                MouseUpHud$ = ""
+            endif
+        else
+            if aiconditionseq(seq).valueb = 1
+                airesult=0
+            else
+                MouseUpHud$ = ""
+            endif
+        endif
+    endcase
+    case AICONDHUDMOUSEOVER:
+        if lower$(MouseOverHud$) = lower$(aiconditionseq(seq).string1)
+            if aiconditionseq(seq).valueb = 0
+                airesult=0
+            else
+                MouseOverHud$ = ""
+            endif
+        else
+            if aiconditionseq(seq).valueb = 1
+                airesult=0
+            else
+                MouseOverHud$ = ""
+            endif
+        endif
+    endcase
+    case AICONDSAVEVISIBLE:
+        if GUISave = 1
+            if aiconditionseq(seq).valuea = 0 then airesult=0
+        else
+            if aiconditionseq(seq).valuea = 1 then airesult=0
+        endif
+    endcase
+    case AICONDLOADVISIBLE:
+        if GUILoad = 1
+            if aiconditionseq(seq).valuea = 0 then airesult=0
+        else
+            if aiconditionseq(seq).valuea = 1 then airesult=0
+        endif
+    endcase
+    case AICONDSTOPWATCHGREATER:
+        if aiconditionseq(seq).string1 <> "" and aiconditionseq(seq).string2 <> ""
+            cID = -1 : cID = GUITimerFromName(aiconditionseq(seq).string1)
+            if cID > -1
+                 if guitimer(cID).Started = 1
+                    tTime = timer()-guitimer(cID).Time
+                    if tTime <= val(aiconditionseq(seq).string2) then airesult = 0
+                 endif
+            endif
+        endif
+    endcase
+    case AICONDSTOPWATCHLESS:
+        if aiconditionseq(seq).string1 <> "" and aiconditionseq(seq).string2 <> ""
+            cID = -1 : cID = GUITimerFromName(aiconditionseq(seq).string1)
+            if cID > -1
+                 if guitimer(cID).Started = 1
+                     tTime = timer()-guitimer(cID).Time
+                     if tTime >= val(aiconditionseq(seq).string2) then airesult = 0
+                 endif
+            endif
+        endif
+    endcase
+    case AICONDSTOPWATCHRUNNING:
+        if aiconditionseq(seq).string1 <> "" and aiconditionseq(seq).string2 <> ""
+            cID = -1 : cID = GUITimerFromName(aiconditionseq(seq).string1)
+            if cID > -1
+                 if guitimer(cID).Started = 1
+                     if guitimer(cID).Started = 1 and aiconditionseq(seq).string2 = "0" then airesult = 0
+                     if guitimer(cID).Started = 0 and aiconditionseq(seq).string2 = "1" then airesult = 0
+                 endif
+            endif
+        endif
+    endcase
+    case AICONDSETUPVAREQUAL:
+        if aiconditionseq(seq).string1 <> "" and aiconditionseq(seq).string2 <> ""
+            cID = -1 : cID = GUISVarFromName(aiconditionseq(seq).string1)
+            if cID > -1
+               if guisvar(cID).Value <> aiconditionseq(seq).string2 then airesult=0
+            endif
+        endif
+    endcase
+    case AICONDCURSORIMAGE:
+        if aiconditionseq(seq).string1 <> "" and aiconditionseq(seq).string2 <> ""
+            cID = -1 : cID = GUIImageFromname(aiconditionseq(seq).string1)
+            if cID > -1
+               if MouseSprite = cID and aiconditionseq(seq).string2 = "0" then airesult = 0
+               if MouseSprite <> cID and aiconditionseq(seq).string2 = "1" then airesult = 0
+            endif
+        endif
+    endcase
+    case AICONDCHOICEVALUEEQUAL:
+        if aiconditionseq(seq).string1 <> "" and aiconditionseq(seq).string2 <> ""
+            cID = -1 : cID = GUIChoiceFromName(aiconditionseq(seq).string1)
+            if cID > -1
+               if lower$(guichoice(cID).SelectedState) <> lower$(aiconditionseq(seq).string2) then airesult=0
+            endif
+        endif
+    endcase
+    rem GUI-X9 (knxrb) <<<
     `
     `
     `
@@ -12419,10 +12718,10 @@ if aiindex>0
     select aiactionseq(seq).type
      `
      case AIACTSTATE:
-      entityelement(e).ai.state=aiactionseq(seq).value
+      entityelement(e).ai.state$=aiactionseq(seq).string1 rem GUI-X9 (String States)
      endcase
      case AIACTINCSTATE:
-      entityelement(e).ai.state=entityelement(e).ai.state+aiactionseq(seq).value
+      entityelement(e).ai.state$=str$(val(entityelement(e).ai.state$)+aiactionseq(seq).value) rem GUI-X9 (String States)
      endcase
      `
      case AIACTDESTROY:
@@ -14244,8 +14543,9 @@ if aiindex>0
       if aiactionseq(seq).value>0
        rem AirMod - Stop Backdrop Animation if existent
        if animation exist(1) then stop animation 1 : delete animation 1
-       set sprite 65534,0,0
+       if sprite exist(65534) then delete sprite 65534 : rem GUI-X9 (knxrb)
        sprite 65534,-10000,-10000,aiactionseq(seq).value
+       set sprite 65534,0,0
        size sprite 65534,screen width(),screen height()
        paste sprite 65534,0,0
       endif
@@ -14565,7 +14865,7 @@ if aiindex>0
       next hudid
      endcase
      rem V118 - 160810 - knxrb - Hud - sethudx Command
-     case AIACTSETHUDX:
+     case AIACTSETHUDXPOS:
       hName$ = aiactionseq(seq).string1
       for hudid=1 to hudmax
           if lower$(hud(hudid).name$) = lower$(hName$)
@@ -14580,6 +14880,7 @@ if aiindex>0
      endcase
      case AIACTLOADGAME:
       rem Continue And Load
+      remstart
       saveload.loadswitch=1
       saveloadfile$=""
       inputpositionmouse(screen width()/2,(screen height()/4)*3.5)
@@ -14593,8 +14894,12 @@ if aiindex>0
       inputpositionmouse(screen width()/2,(screen height()/4)*3.5)
       cleardelta=mousemovex() : cleardelta=mousemovey()
       hudselectionmade=0
+      remend
+      rem GUI-X9 (knxrb)
+      initLoadSave = 0 : GUILoad = 1 : gosub _gui_run
      endcase
      case AIACTSAVEGAME:
+     remstart
       rem Continue And Save
       saveload.loadswitch=0
       saveloadfile$=""
@@ -14610,6 +14915,9 @@ if aiindex>0
       inputpositionmouse(screen width()/2,(screen height()/4)*3.5)
       cleardelta=mousemovex() : cleardelta=mousemovey()
       hudselectionmade=0
+      remend
+      rem GUI-X9 (knxrb)
+      initLoadSave = 0 : GUISave = 1 : gosub _gui_run
      endcase
      case AIACTQUICKLOADGAME:
       rem Quick Load no prompt
@@ -15234,17 +15542,17 @@ if aiindex>0
        value=aiactionseq(seq).valueb
        `Allow variable values to be saved for specific lines for the options screen (saves on amount of extra commands needed in fpi)
        if left$(lower$(pass$),len("useeffects"))="useeffects" then value=newuseeffects
-       if left$(lower$(pass$),len("dynamicshadows"))="dynamicshadows" then value=newdynamicshadows
-       if left$(lower$(pass$),len("dividetexturesize"))="dividetexturesize" then value=newdividetexturesize
-       if left$(lower$(pass$),len("mousesensitivity"))="mousesensitivity" then value=newmousesensitivity
-       if left$(lower$(pass$),len("aspectratio"))="aspectratio" then value=newaspectratio
-       if left$(lower$(pass$),len("postprocessing"))="postprocessing" then value=newpostprocessing
-       if left$(lower$(pass$),len("width"))="width" then value=newwidth
-       if left$(lower$(pass$),len("height"))="height" then value=newheight
-       if left$(lower$(pass$),len("depth"))="depth" then value=newdepth
-       if left$(lower$(pass$),len("antialias"))="antialias" then value=newantialias
-       if left$(lower$(pass$),len("invmouse"))="invmouse" then value=newmouseinvert
-       if left$(lower$(pass$),len("particleused"))="particleused" then value=newparticlesused
+       if left$(lower$(pass$),len("dynamicshadows"))="dynamicshadows" then value=newdynamicshadows 
+       if left$(lower$(pass$),len("dividetexturesize"))="dividetexturesize" then value=newdividetexturesize  
+       if left$(lower$(pass$),len("mousesensitivity"))="mousesensitivity" then value=newmousesensitivity 
+       if left$(lower$(pass$),len("aspectratio"))="aspectratio" then value=newaspectratio 
+       if left$(lower$(pass$),len("postprocessing"))="postprocessing" then value=newpostprocessing 
+       if left$(lower$(pass$),len("width"))="width" then value=newwidth 
+       if left$(lower$(pass$),len("height"))="height" then value=newheight 
+       if left$(lower$(pass$),len("depth"))="depth" then value=newdepth 
+       if left$(lower$(pass$),len("antialias"))="antialias" then value=newantialias 
+       if left$(lower$(pass$),len("invmouse"))="invmouse" then value=newmouseinvert 
+       if left$(lower$(pass$),len("particleused"))="particleused" then value=newparticlesused 
        if left$(lower$(pass$),len("autores"))="autores" then value=newautores
        for i=0 to 999
         field$=lower$(setupdata$(i))
@@ -15429,6 +15737,793 @@ if aiindex>0
      `
      case AIACTNEXTLEVEL:
       leveljump=aiactionseq(seq).value
+	 endcase
+	 `
+     rem GUI-X9 (knxrb)
+     case AIACTLOADIMAGE:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> "" then LoadGUIImage(aiactionseq(seq).string1,aiactionseq(seq).string2)
+     endcase     
+     case AIACTMAKEHUD:
+        ParseValues(aiactionseq(seq).string2)
+        if aiactionseq(seq).string1 <> ""
+            if parsetotal = 5 then MakeGUIHud(aiactionseq(seq).string1,guival(0),guival(1),val(guival(2)),val(guival(3)),-1,-1)
+            if parsetotal = 6 then MakeGUIHud(aiactionseq(seq).string1,guival(0),guival(1),val(guival(2)),val(guival(3)),val(guival(4)),-1)
+            if parsetotal = 7 then MakeGUIHud(aiactionseq(seq).string1,guival(0),guival(1),val(guival(2)),val(guival(3)),val(guival(4)),val(guival(5)))
+        endif
+     endcase
+     case AIACTSETHUDX:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            hID = -1 : hID = GUIHudFromName(aiactionseq(seq).string1)
+            if hID > -1
+                guihud(hID).Left = val(aiactionseq(seq).string2)
+                guihud(hID).AL = (ScreenXPos(guihud(hID).Left)/1024)*gdisplaywidth
+            endif
+        endif
+     endcase
+     case AIACTSETHUDY:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            hID = -1 : hID = GUIHudFromName(aiactionseq(seq).string1)
+            if hID > -1
+                guihud(hID).Top = val(aiactionseq(seq).string2)
+                guihud(hID).AT = (ScreenYPos(guihud(hID).Top)/768)*gdisplayheight
+            endif
+        endif
+     endcase
+     case AIACTSETHUDW:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            hID = -1 : hID = GUIHudFromName(aiactionseq(seq).string1)
+            if hID > -1
+                guihud(hID).Width = val(aiactionseq(seq).string2)
+                guihud(hID).AW = (guihud(hID).Width/1024)*gdisplaywidth
+            endif
+        endif
+     endcase
+     case AIACTSETHUDH:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            hID = -1 : hID = GUIHudFromName(aiactionseq(seq).string1)
+            if hID > -1
+                guihud(hID).Height = val(aiactionseq(seq).string2)
+                guihud(hID).AH = (guihud(hID).Height/768)*gdisplayheight
+            endif
+        endif
+     endcase
+     case AIACTSETHUDCOLOUR:
+         if aiactionseq(seq).string2 <> ""
+            ParseValues(aiactionseq(seq).string2)
+            if parsetotal = 4
+                if aiactionseq(seq).string1 <> ""
+                    hID = -1 : hID = GUIHudFromName(aiactionseq(seq).string1)
+                    if hID > -1
+                        guihud(hID).dR = val(guival(0))
+                        guihud(hID).dG = val(guival(1))
+                        guihud(hID).dB = val(guival(2))
+                        if guihud(hID).dR < 0 then guihud(hID).dR = 0
+                        if guihud(hID).dR > 255 then guihud(hID).dR = 255
+                        if guihud(hID).dG < 0 then guihud(hID).dG = 0
+                        if guihud(hID).dG > 255 then guihud(hID).dG = 255
+                        if guihud(hID).dB < 0 then guihud(hID).dB = 0
+                        if guihud(hID).dB > 255 then guihud(hID).dB = 255
+                    endif
+                endif
+            endif
+        endif
+     endcase
+     case AIACTSETHUDCOLOR:
+         if aiactionseq(seq).string2 <> ""
+            ParseValues(aiactionseq(seq).string2)
+            if parsetotal = 4
+                if aiactionseq(seq).string1 <> ""
+                    hID = -1 : hID = GUIHudFromName(aiactionseq(seq).string1)
+                    if hID > -1
+                        guihud(hID).dR = val(guival(0))
+                        guihud(hID).dG = val(guival(1))
+                        guihud(hID).dB = val(guival(2))
+                        if guihud(hID).dR < 0 then guihud(hID).dR = 0
+                        if guihud(hID).dR > 255 then guihud(hID).dR = 255
+                        if guihud(hID).dG < 0 then guihud(hID).dG = 0
+                        if guihud(hID).dG > 255 then guihud(hID).dG = 255
+                        if guihud(hID).dB < 0 then guihud(hID).dB = 0
+                        if guihud(hID).dB > 255 then guihud(hID).dB = 255
+                    endif
+                endif
+            endif
+        endif
+     endcase
+     case AIACTSETHUDALPHA:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            hID = -1 : hID = GUIHudFromName(aiactionseq(seq).string1)
+            if hID > -1
+                guihud(hID).iA = val(aiactionseq(seq).string2)
+                if guihud(hID).iA < 0 then guihud(hID).iA = 0
+                if guihud(hID).iA > 255 then guihud(hID).iA = 255
+            endif
+        endif
+     endcase
+     case AIACTSETHUDNIMAGE:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            hID = -1 : hID = GUIHudFromName(aiactionseq(seq).string1)
+            if hID > -1
+                guihud(hID).NormImageNo = GUIImageFromName(aiactionseq(seq).string2)
+                if guihud(hID).NormImageNo > -1
+                    if guihud(hID).Width = -1 Then guihud(hID).Width = image width(guihud(hID).NormImageNo)
+                    if guihud(hID).Height = -1 Then guihud(hID).Height = image height(guihud(hID).NormImageNo)
+                endif
+            endif
+        endif
+     endcase
+     case AIACTSETHUDOIMAGE:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            hID = -1 : hID = GUIHudFromName(aiactionseq(seq).string1)
+            if hID > -1
+                guihud(hID).OverImageNo = GUIImageFromName(aiactionseq(seq).string2)
+                if guihud(hID).OverImageNo > -1
+                    if guihud(hID).Width = -1 Then guihud(hID).Width = image width(guihud(hID).OverImageNo)
+                    if guihud(hID).Height = -1 Then guihud(hID).Height = image height(guihud(hID).OverImageNo)
+                endif
+            endif
+        endif        
+     endcase
+     
+     case AIACTMAKECHECKBOX:
+        ParseValues(aiactionseq(seq).string2)
+        if aiactionseq(seq).string1 <> ""
+            if parsetotal = 5 then MakeGUICheckbox(aiactionseq(seq).string1,guival(0),guival(1),val(guival(2)),val(guival(3)),-1,-1)
+            if parsetotal = 6 then MakeGUICheckbox(aiactionseq(seq).string1,guival(0),guival(1),val(guival(2)),val(guival(3)),val(guival(4)),-1)
+            if parsetotal = 7 then MakeGUICheckbox(aiactionseq(seq).string1,guival(0),guival(1),val(guival(2)),val(guival(3)),val(guival(4)),val(guival(5)))
+        endif
+     endcase
+     case AIACTSETCHECKBOXX:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            cID = -1 : cID = GUICheckboxFromName(aiactionseq(seq).string1)
+            if cID > -1
+                guicheckbox(cID).Left = val(aiactionseq(seq).string2)
+                guicheckbox(cID).AL = (ScreenXPos(guicheckbox(cID).Left)/1024)*gdisplaywidth
+            endif
+        endif
+     endcase
+     case AIACTSETCHECKBOXY:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            cID = -1 : cID = GUICheckboxFromName(aiactionseq(seq).string1)
+            if cID > -1
+                guicheckbox(cID).Top = val(aiactionseq(seq).string2)
+                guicheckbox(cID).AT = (ScreenYPos(guicheckbox(cID).Top)/768)*gdisplayheight
+            endif
+        endif
+     endcase
+     case AIACTSETCHECKBOXW:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            cID = -1 : cID = GUICheckboxFromName(aiactionseq(seq).string1)
+            if cID > -1
+                guicheckbox(cID).Width = val(aiactionseq(seq).string2)
+                guicheckbox(cID).AW = (guicheckbox(cID).Width/1024)*gdisplaywidth
+            endif
+        endif
+     endcase
+     case AIACTSETCHECKBOXH:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            cID = -1 : cID = GUICheckboxFromName(aiactionseq(seq).string1)
+            if cID > -1
+                guicheckbox(cID).Height = val(aiactionseq(seq).string2)
+                guicheckbox(cID).AH = (guicheckbox(cID).Height/768)*gdisplayheight
+            endif
+        endif
+     endcase
+     case AIACTSETCHECKBOXCOLOUR:
+         if aiactionseq(seq).string2 <> ""
+            ParseValues(aiactionseq(seq).string2)
+            if parsetotal = 4
+                if aiactionseq(seq).string1 <> ""
+                    cID = -1 : cID = GUICheckboxFromName(aiactionseq(seq).string1)
+                    if cID > -1
+                        guicheckbox(cID).dR = val(guival(0))
+                        guicheckbox(cID).dG = val(guival(1))
+                        guicheckbox(cID).dB = val(guival(2))
+                        if guicheckbox(cID).dR < 0 then guicheckbox(cID).dR = 0
+                        if guicheckbox(cID).dR > 255 then guicheckbox(cID).dR = 255
+                        if guicheckbox(cID).dG < 0 then guicheckbox(cID).dG = 0
+                        if guicheckbox(cID).dG > 255 then guicheckbox(cID).dG = 255
+                        if guicheckbox(cID).dB < 0 then guicheckbox(cID).dB = 0
+                        if guicheckbox(cID).dB > 255 then guicheckbox(cID).dB = 255
+                    endif
+                endif
+            endif
+        endif
+     endcase
+     case AIACTSETCHECKBOXCOLOR:
+         if aiactionseq(seq).string2 <> ""
+            ParseValues(aiactionseq(seq).string2)
+            if parsetotal = 4
+                if aiactionseq(seq).string1 <> ""
+                    cID = -1 : cID = GUICheckboxFromName(aiactionseq(seq).string1)
+                    if cID > -1
+                        guicheckbox(cID).dR = val(guival(0))
+                        guicheckbox(cID).dG = val(guival(1))
+                        guicheckbox(cID).dB = val(guival(2))
+                        if guicheckbox(cID).dR < 0 then guicheckbox(cID).dR = 0
+                        if guicheckbox(cID).dR > 255 then guicheckbox(cID).dR = 255
+                        if guicheckbox(cID).dG < 0 then guicheckbox(cID).dG = 0
+                        if guicheckbox(cID).dG > 255 then guicheckbox(cID).dG = 255
+                        if guicheckbox(cID).dB < 0 then guicheckbox(cID).dB = 0
+                        if guicheckbox(cID).dB > 255 then guicheckbox(cID).dB = 255
+                    endif
+                endif
+            endif
+        endif
+     endcase
+     case AIACTSETCHECKBOXALPHA:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            cID = -1 : cID = GUICheckboxFromName(aiactionseq(seq).string1)
+            if cID > -1
+                guicheckbox(cID).iA = val(aiactionseq(seq).string2)
+                if guicheckbox(cID).iA < 0 then guicheckbox(cID).iA = 0
+                if guicheckbox(cID).iA > 255 then guicheckbox(cID).iA = 255
+            endif
+        endif
+     endcase
+     case AIACTSETCHECKBOXNIMAGE:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            cID = -1 : cID = GUICheckboxFromName(aiactionseq(seq).string1)
+            if cID > -1
+                guicheckbox(cID).NormImageNo = GUIImageFromName(aiactionseq(seq).string2)
+                if guicheckbox(cID).NormImageNo > -1
+                    if guicheckbox(cID).Width = -1 Then guicheckbox(cID).Width = image width(guicheckbox(cID).NormImageNo)
+                    if guicheckbox(cID).Height = -1 Then guicheckbox(cID).Height = image height(guicheckbox(cID).NormImageNo)
+                endif
+            endif
+        endif
+     endcase
+     case AIACTSETCHECKBOXCIMAGE:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            cID = -1 : cID = GUICheckboxFromName(aiactionseq(seq).string1)
+            if cID > -1
+                guicheckbox(cID).CheckImageNo = GUIImageFromName(aiactionseq(seq).string2)
+                if guicheckbox(cID).CheckImageNo > -1
+                    if guicheckbox(cID).Width = -1 Then guicheckbox(cID).Width = image width(guicheckbox(cID).CheckImageNo)
+                    if guicheckbox(cID).Height = -1 Then guicheckbox(cID).Height = image height(guicheckbox(cID).CheckImageNo)
+                endif
+            endif
+        endif        
+     endcase
+     case AIACTSETCHECKBOXSTATE:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            cID = -1 : cID = GUICheckboxFromName(aiactionseq(seq).string1)
+            if cID > -1
+                guicheckbox(cID).CheckState = val(aiactionseq(seq).string2)
+                if guicheckbox(cID).CheckState < 0 then guicheckbox(cID).CheckState = 0
+                if guicheckbox(cID).CheckState > 1 then guicheckbox(cID).CheckState = 1
+            endif
+        endif        
+     endcase     
+     case AIACTMAKESLIDER:
+        ParseValues(aiactionseq(seq).string2)
+        if aiactionseq(seq).string1 <> ""
+            if parsetotal = 6 then MakeGUISlider(aiactionseq(seq).string1,guival(0),guival(1),guival(2),val(guival(3)),val(guival(4)),-1,-1)
+            if parsetotal = 7 then MakeGUISlider(aiactionseq(seq).string1,guival(0),guival(1),guival(2),val(guival(3)),val(guival(4)),val(guival(5)),-1)
+            if parsetotal = 8 then MakeGUISlider(aiactionseq(seq).string1,guival(0),guival(1),guival(2),val(guival(3)),val(guival(4)),val(guival(5)),val(guival(6)))
+        endif
+     endcase
+     case AIACTSETSLIDERX:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            cID = -1 : cID = GUISliderFromName(aiactionseq(seq).string1)
+            if cID > -1
+                guislider(cID).Left = val(aiactionseq(seq).string2)
+                UpdateSliderData(cID)
+            endif
+        endif
+     endcase
+     case AIACTSETSLIDERY:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            cID = -1 : cID = GUISliderFromName(aiactionseq(seq).string1)
+            if cID > -1
+                guislider(cID).Top = val(aiactionseq(seq).string2)              
+                UpdateSliderData(cID)
+            endif
+        endif
+     endcase
+     case AIACTSETSLIDERW:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            cID = -1 : cID = GUISliderFromName(aiactionseq(seq).string1)
+            if cID > -1
+                guislider(cID).Width = val(aiactionseq(seq).string2)
+                UpdateSliderData(cID)
+            endif
+        endif
+     endcase
+     case AIACTSETSLIDERH:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            cID = -1 : cID = GUISliderFromName(aiactionseq(seq).string1)
+            if cID > -1
+                guislider(cID).Height = val(aiactionseq(seq).string2)
+                UpdateSliderData(cID)
+            endif
+        endif
+     endcase
+     case AIACTSETSLIDERCOLOUR:
+         if aiactionseq(seq).string2 <> ""
+            ParseValues(aiactionseq(seq).string2)
+            if parsetotal = 4
+                if aiactionseq(seq).string1 <> ""
+                    cID = -1 : cID = GUISliderFromName(aiactionseq(seq).string1)
+                    if cID > -1
+                        guislider(cID).dR = val(guival(0))
+                        guislider(cID).dG = val(guival(1))
+                        guislider(cID).dB = val(guival(2))
+                        if guislider(cID).dR < 0 then guislider(cID).dR = 0
+                        if guislider(cID).dR > 255 then guislider(cID).dR = 255
+                        if guislider(cID).dG < 0 then guislider(cID).dG = 0
+                        if guislider(cID).dG > 255 then guislider(cID).dG = 255
+                        if guislider(cID).dB < 0 then guislider(cID).dB = 0
+                        if guislider(cID).dB > 255 then guislider(cID).dB = 255
+                    endif
+                endif
+            endif
+        endif
+     endcase
+     case AIACTSETSLIDERCOLOR:
+         if aiactionseq(seq).string2 <> ""
+            ParseValues(aiactionseq(seq).string2)
+            if parsetotal = 4
+                if aiactionseq(seq).string1 <> ""
+                    cID = -1 : cID = GUISliderFromName(aiactionseq(seq).string1)
+                    if cID > -1
+                        guislider(cID).dR = val(guival(0))
+                        guislider(cID).dG = val(guival(1))
+                        guislider(cID).dB = val(guival(2))
+                        if guislider(cID).dR < 0 then guislider(cID).dR = 0
+                        if guislider(cID).dR > 255 then guislider(cID).dR = 255
+                        if guislider(cID).dG < 0 then guislider(cID).dG = 0
+                        if guislider(cID).dG > 255 then guislider(cID).dG = 255
+                        if guislider(cID).dB < 0 then guislider(cID).dB = 0
+                        if guislider(cID).dB > 255 then guislider(cID).dB = 255
+                    endif
+                endif
+            endif
+        endif
+     endcase
+     case AIACTSETSLIDERALPHA:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            cID = -1 : cID = GUISliderFromName(aiactionseq(seq).string1)
+            if cID > -1
+                guislider(cID).iA = val(aiactionseq(seq).string2)
+                if guislider(cID).iA < 0 then guislider(cID).iA = 0
+                if guislider(cID).iA > 255 then guislider(cID).iA = 255
+            endif
+        endif
+     endcase
+     case AIACTSETSLIDERVALUE:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            cID = -1 : cID = GUISliderFromName(aiactionseq(seq).string1)
+            if cID > -1
+                guislider(cID).BVal = val(aiactionseq(seq).string2)
+                if guislider(cID).BVal < 0 then guislider(cID).BVal = 0
+                if guislider(cID).BVal > guislider(cID).AW then guislider(cS).BVal = guislider(cID).AW
+                guislider(cID).SL = (guislider(cID).AL - (guislider(cID).AW / 2)) + ((guislider(cID).BVal/guislider(cID).AW)*guislider(cID).AW) - (guislider(cID).SW / 2)
+                guislider(cID).SVal = ((guislider(cID).SL-(guislider(cID).AL-(guislider(cID).AW/2))+(guislider(cID).SW/2))/guislider(cID).AW)*guislider(cID).MaxValue     
+            endif
+        endif        
+     endcase
+     case AIACTMAKECHOICE:
+        ParseValues(aiactionseq(seq).string2)
+        if aiactionseq(seq).string1 <> ""
+            if parsetotal = 8 then MakeGUIChoice(aiactionseq(seq).string1,guival(0),guival(1),guival(2),guival(3),guival(4),val(guival(5)),val(guival(6)),-1,-1)
+            if parsetotal = 9 then MakeGUIChoice(aiactionseq(seq).string1,guival(0),guival(1),guival(2),guival(3),guival(4),val(guival(5)),val(guival(6)),val(guival(7)),-1)
+            if parsetotal = 10 then MakeGUIChoice(aiactionseq(seq).string1,guival(0),guival(1),guival(2),guival(3),guival(4),val(guival(5)),val(guival(6)),val(guival(7)),val(guival(8)))
+        endif
+     endcase
+     case AIACTSETCHOICEX:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            cID = -1 : cID = GUIChoiceFromName(aiactionseq(seq).string1)
+            if cID > -1
+                guichoice(cID).Left = val(aiactionseq(seq).string2)
+                UpdateChoiceData(cID)
+            endif
+        endif
+     endcase
+     case AIACTSETCHOICEY:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            cID = -1 : cID = GUIChoiceFromName(aiactionseq(seq).string1)
+            if cID > -1
+                guichoice(cID).Top = val(aiactionseq(seq).string2)              
+                UpdateChoiceData(cID)
+            endif
+        endif
+     endcase
+     case AIACTSETCHOICEW:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            cID = -1 : cID = GUIChoiceFromName(aiactionseq(seq).string1)
+            if cID > -1
+                guichoice(cID).Width = val(aiactionseq(seq).string2)
+                UpdateChoiceData(cID)
+            endif
+        endif
+     endcase
+     case AIACTSETCHOICEH:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            cID = -1 : cID = GUIChoiceFromName(aiactionseq(seq).string1)
+            if cID > -1
+                guichoice(cID).Height = val(aiactionseq(seq).string2)
+                UpdateChoiceData(cID)
+            endif
+        endif
+     endcase
+     case AIACTSETCHOICECOLOUR:
+         if aiactionseq(seq).string2 <> ""
+            ParseValues(aiactionseq(seq).string2)
+            if parsetotal = 4
+                if aiactionseq(seq).string1 <> ""
+                    cID = -1 : cID = GUIChoiceFromName(aiactionseq(seq).string1)
+                    if cID > -1
+                        guichoice(cID).dR = val(guival(0))
+                        guichoice(cID).dG = val(guival(1))
+                        guichoice(cID).dB = val(guival(2))
+                        if guichoice(cID).dR < 0 then guichoice(cID).dR = 0
+                        if guichoice(cID).dR > 255 then guichoice(cID).dR = 255
+                        if guichoice(cID).dG < 0 then guichoice(cID).dG = 0
+                        if guichoice(cID).dG > 255 then guichoice(cID).dG = 255
+                        if guichoice(cID).dB < 0 then guichoice(cID).dB = 0
+                        if guichoice(cID).dB > 255 then guichoice(cID).dB = 255
+                    endif
+                endif
+            endif
+        endif
+     endcase
+     case AIACTSETCHOICECOLOR:
+         if aiactionseq(seq).string2 <> ""
+            ParseValues(aiactionseq(seq).string2)
+            if parsetotal = 4
+                if aiactionseq(seq).string1 <> ""
+                    cID = -1 : cID = GUIChoiceFromName(aiactionseq(seq).string1)
+                    if cID > -1
+                        guichoice(cID).dR = val(guival(0))
+                        guichoice(cID).dG = val(guival(1))
+                        guichoice(cID).dB = val(guival(2))
+                        if guichoice(cID).dR < 0 then guichoice(cID).dR = 0
+                        if guichoice(cID).dR > 255 then guichoice(cID).dR = 255
+                        if guichoice(cID).dG < 0 then guichoice(cID).dG = 0
+                        if guichoice(cID).dG > 255 then guichoice(cID).dG = 255
+                        if guichoice(cID).dB < 0 then guichoice(cID).dB = 0
+                        if guichoice(cID).dB > 255 then guichoice(cID).dB = 255
+                    endif
+                endif
+            endif
+        endif
+     endcase
+     case AIACTSETCHOICEALPHA:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            cID = -1 : cID = GUIChoiceFromName(aiactionseq(seq).string1)
+            if cID > -1
+                guichoice(cID).iA = val(aiactionseq(seq).string2)
+                if guichoice(cID).iA < 0 then guichoice(cID).iA = 0
+                if guichoice(cID).iA > 255 then guichoice(cID).iA = 255
+            endif
+        endif
+     endcase
+     case AIACTADDCHOICESTATE:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            cID = -1 : cID = GUIChoiceFromName(aiactionseq(seq).string1)
+            if cID > -1
+                select guichoice(cID).TotalStates
+                    case 2
+                        guichoice(cID).State3 = aiactionseq(seq).string2
+                    endcase
+                    case 3
+                        guichoice(cID).State4 = aiactionseq(seq).string2
+                    endcase
+                    case 4
+                        guichoice(cID).State5 = aiactionseq(seq).string2
+                    endcase
+                    case 5
+                        guichoice(cID).State6 = aiactionseq(seq).string2
+                    endcase
+                    case 6
+                        guichoice(cID).State7 = aiactionseq(seq).string2
+                    endcase
+                    case 7
+                        guichoice(cID).State8 = aiactionseq(seq).string2
+                    endcase
+                    case 8
+                        guichoice(cID).State9 = aiactionseq(seq).string2
+                    endcase
+                 endselect
+                guichoice(cID).TotalStates = guichoice(cID).TotalStates + 1
+                if guichoice(cID).TotalStates = 10 then guichoice(cID).TotalStates = 9
+                UpdateChoiceData(cID)
+            endif
+        endif        
+     endcase
+     case AIACTSETCHOICESTATE:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            cID = -1 : cID = GUIChoiceFromName(aiactionseq(seq).string1)
+            if cID > -1
+                if lower$(guichoice(cID).State1) = lower$(aiactionseq(seq).string2)
+                    guichoice(cID).SelectedState = guichoice(cID).State1
+                    guichoice(cID).SelectedStateNum = 0
+                endif
+                if lower$(guichoice(cID).State2) = lower$(aiactionseq(seq).string2)
+                    guichoice(cID).SelectedState = guichoice(cID).State2
+                    guichoice(cID).SelectedStateNum = 1
+                endif
+                if lower$(guichoice(cID).State3) = lower$(aiactionseq(seq).string2)
+                    guichoice(cID).SelectedState = guichoice(cID).State3
+                    guichoice(cID).SelectedStateNum = 2
+                endif
+                if lower$(guichoice(cID).State4) = lower$(aiactionseq(seq).string2)
+                    guichoice(cID).SelectedState = guichoice(cID).State4
+                    guichoice(cID).SelectedStateNum = 3
+                endif
+                if lower$(guichoice(cID).State5) = lower$(aiactionseq(seq).string2)
+                    guichoice(cID).SelectedState = guichoice(cID).State5
+                    guichoice(cID).SelectedStateNum = 4
+                endif
+                if lower$(guichoice(cID).State6) = lower$(aiactionseq(seq).string2)
+                    guichoice(cID).SelectedState = guichoice(cID).State6
+                    guichoice(cID).SelectedStateNum = 5
+                endif
+                if lower$(guichoice(cID).State7) = lower$(aiactionseq(seq).string2)
+                    guichoice(cID).SelectedState = guichoice(cID).State7
+                    guichoice(cID).SelectedStateNum = 6
+                endif
+                if lower$(guichoice(cID).State8) = lower$(aiactionseq(seq).string2)
+                    guichoice(cID).SelectedState = guichoice(cID).State8
+                    guichoice(cID).SelectedStateNum = 7
+                endif
+                if lower$(guichoice(cID).State9) = lower$(aiactionseq(seq).string2)
+                    guichoice(cID).SelectedState = guichoice(cID).State9
+                    guichoice(cID).SelectedStateNum = 8
+                endif
+                UpdateChoiceData(cID)
+            endif
+        endif    
+     endcase
+     case AIACTSETCURSOR:
+        if aiactionseq(seq).string1 <> ""
+            cID = GUIImageFromName(aiactionseq(seq).string1)
+            if cID > -1
+                MouseSprite = cID
+                if sprite exist(MouseSprite) then delete sprite MouseSprite
+                sprite MouseSprite,-10000,-10000,MouseSprite
+                set sprite MouseSprite,0,1
+            endif
+        endif        
+     endcase
+     case AIACTHIDEALL:
+        HideAllGUI()
+        gosub _gui_run
+     endcase
+     case AIACTREPLACEIMAGE:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> "" then ReplaceGUIImage(aiactionseq(seq).string1,aiactionseq(seq).string2)
+     endcase
+     case AIACTSHOWHUD:
+        if aiactionseq(seq).string1 <> ""
+            hID = -1 : hID = GUIHudFromName(aiactionseq(seq).string1)
+            if hID > -1
+                guihud(hID).Visible = 1
+                gosub _gui_run
+            endif
+        endif
+     endcase
+     case AIACTHIDEHUD:
+        if aiactionseq(seq).string1 <> ""
+            hID = -1 : hID = GUIHudFromName(aiactionseq(seq).string1)
+            if hID > -1
+                guihud(hID).Visible = 0
+                gosub _gui_run
+            endif
+        endif
+     endcase
+     case AIACTSHOWCURSOR:
+        GUIDC = 1
+     endcase
+     case AIACTHIDECURSOR:
+        GUIDC = 0
+     endcase
+     case AIACTCLEARGUI:
+        ClearAllGUI()
+     endcase
+     case AIACTMAKESTOPWATCH:
+        if aiactionseq(seq).string1 <> ""
+            if aiactionseq(seq).string2 = "0" or lower$(aiactionseq(seq).string2) = "n" then tS = 0
+            if aiactionseq(seq).string2 = "1" or lower$(aiactionseq(seq).string2) = "y" then tS = 1
+            MakeGUITimer(aiactionseq(seq).string1,tS)
+        endif
+     endcase
+     case AIACTSTARTSTOPWATCH:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            cID = -1 : cID = GUITimerFromName(aiactionseq(seq).string1)
+            if cID > -1
+                guitimer(cID).Started = 1
+                if aiactionseq(seq).string2 = "1" or lower$(aiactionseq(seq).string2) = "y" then guitimer(cID).Time = timer()
+            endif
+        endif
+     endcase
+     case AIACTSTOPSTOPWATCH:
+        if aiactionseq(seq).string1 <> ""
+            cID = -1 : cID = GUITimerFromName(aiactionseq(seq).string1)
+            if cID > -1
+                guitimer(cID).Started = 0
+            endif
+        endif
+     endcase
+     case AIACTMAKESETUPVAR:
+        ParseValues(aiactionseq(seq).string2)
+        if aiactionseq(seq).string1 <> ""
+            if parsetotal = 3 then MakeGUISetupVar(aiactionseq(seq).string1,guival(0),guival(1))
+        endif
+     endcase
+     case AIACTSETSETUPVARVALUE:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            cID = -1 : cID = GUISVarFromName(aiactionseq(seq).string1)
+            if cID > -1
+                guisvar(cID).Value =  aiactionseq(seq).string2
+            endif
+        endif
+     endcase
+     case AIACTSETSETUPVARLINE:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            cID = -1 : cID = GUISVarFromName(aiactionseq(seq).string1)
+            if cID > -1
+                guisvar(cID).SetupLine =  aiactionseq(seq).string2
+                if right$(guisvar(cID).SetupLine,1) = "=" then guisvar(cID).SetupLine=left$(guisvar(cID).SetupLine,len(guisvar(cID).SetupLine)-1)
+            endif
+        endif
+     endcase
+     case AIACTREADSETUPVARVALUE:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            cID = -1 : cID = GUISVarFromName(aiactionseq(seq).string1)
+            if cID > -1
+               dim setupdata$(999)
+               load array exeroot$+"\"+setupfilename$,setupdata$()
+               for i=0 to 999
+                field$=lower$(setupdata$(i)) : num=len(aiactionseq(seq).string2)
+                if left$(field$,num)=lower$(aiactionseq(seq).string2) then guisvar(cID).Value=right$(field$,len(field$)-(num+1)) : exit
+               next i
+               undim setupdata$()
+            endif
+        endif
+     endcase
+     case AIACTSAVESETUPVARS:
+         SaveSetupVariables()
+     endcase
+     case AIACTSETHUDCLICKABLE:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            hID = -1 : hID = GUIHudFromName(aiactionseq(seq).string1)
+            if hID > -1
+                if aiactionseq(seq).string2 = "0" or lower$(aiactionseq(seq).string2) = "n" then guihud(hID).IsButton = 0
+                if aiactionseq(seq).string2 = "1" or lower$(aiactionseq(seq).string2) = "y" then guihud(hID).IsButton = 1
+            endif
+        endif
+     endcase
+     case AIACTSETSETUPTOCOMP:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            cID = -1 : cID = GUISVarFromName(aiactionseq(seq).string1)
+            if cID > -1
+                rID = GUIChoiceFromName(aiactionseq(seq).string2) : rT$ = "c"
+                if rID = -1 then rID = GUISliderFromName(aiactionseq(seq).string2) : rT$ = "s"
+                if rID = -1 then rID = GUICheckboxFromName(aiactionseq(seq).string2) : rT$ = "ch"
+                if rID > -1 and rT$ <> ""
+                    if rT$ = "c" then guisvar(cID).Value = guichoice(rID).SelectedState
+                    if rT$ = "s" then guisvar(cID).Value = str$(guislider(rID).SVal)
+                    if rT$ = "ch" then guisvar(cID).Value = str$(guicheckbox(rID).CheckState)
+                endif
+            endif
+        endif
+     endcase
+     case AIACTSHOWCHOICE:
+        if aiactionseq(seq).string1 <> ""
+            hID = -1 : hID = GUIChoiceFromName(aiactionseq(seq).string1)
+            if hID > -1
+                guichoice(hID).Visible = 1
+                gosub _gui_run
+            endif
+        endif
+     endcase
+     case AIACTHIDECHOICE:
+        if aiactionseq(seq).string1 <> ""
+            hID = -1 : hID = GUIChoiceFromName(aiactionseq(seq).string1)
+            if hID > -1
+                guichoice(hID).Visible = 0
+                gosub _gui_run
+            endif
+        endif
+     endcase
+     case AIACTSHOWSLIDER:
+        if aiactionseq(seq).string1 <> ""
+            hID = -1 : hID = GUISliderFromName(aiactionseq(seq).string1)
+            if hID > -1
+                guislider(hID).Visible = 1
+                gosub _gui_run
+            endif
+        endif
+     endcase
+     case AIACTHIDESLIDER:
+        if aiactionseq(seq).string1 <> ""
+            hID = -1 : hID = GUISliderFromName(aiactionseq(seq).string1)
+            if hID > -1
+                guislider(hID).Visible = 0
+                gosub _gui_run
+            endif
+        endif
+     endcase
+     case AIACTSHOWCHECKBOX:
+        if aiactionseq(seq).string1 <> ""
+            hID = -1 : hID = GUICheckboxFromName(aiactionseq(seq).string1)
+            if hID > -1
+                guicheckbox(hID).Visible = 1
+                gosub _gui_run
+            endif
+        endif
+     endcase
+     case AIACTHIDECHECKBOX:
+        if aiactionseq(seq).string1 <> ""
+            hID = -1 : hID = GUICheckboxFromName(aiactionseq(seq).string1)
+            if hID > -1
+                guicheckbox(hID).Visible = 0
+                gosub _gui_run
+            endif
+        endif
+     endcase
+     case AIACTSETHUDNUMERIC:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            hID = -1 : hID = GUIHudFromName(aiactionseq(seq).string1)
+            if hID > -1
+                if aiactionseq(seq).string2="0" then guihud(hID).IsNumeric = 0 : gosub _gui_run
+                if aiactionseq(seq).string2="1" then guihud(hID).IsNumeric = 1 : gosub _gui_run
+            endif
+        endif
+     endcase
+     case AIACTSETHUDVALUE:
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            hID = -1 : hID = GUIHudFromName(aiactionseq(seq).string1)
+            if hID > -1
+                if guihud(hID).IsNumeric = 1
+                    sA = 0
+                    if lower$(aiactionseq(seq).string2) = "lives"
+                        guihud(hID).StrNumeric = str$(player(1).lives) : sA = 1
+                    endif
+                    if lower$(aiactionseq(seq).string2) = "health"
+                        guihud(hID).StrNumeric = str$(player(1).health) : sA = 1
+                    endif
+                    if lower$(aiactionseq(seq).string2) = "ammo"
+                        if weaponammoindex>0
+                            if firemode(gunid,firemode).settings.reloadqty>0
+                                if gun(gunid).settings.weaponisammo=1
+                                    guihud(hID).StrNumeric = str$(weaponammo(weaponammoindex)) : sA = 1
+                                else
+                                    tpool=firemode(gunid,firemode).settings.poolindex
+                                    if tpool=0 then ammo=weaponclipammo(weaponammoindex+ammooffset) else ammo=ammopool(tpool).ammo
+                                   guihud(hID).StrNumeric = str$(weaponammo(weaponammoindex+ammooffset))+"\"+str$(ammo) : sA = 1
+                                endif
+                            else
+                                guihud(hID).StrNumeric = "" : sA = 1
+                            endif
+                        else
+                            guihud(hID).StrNumeric = "" : sA = 1
+                        endif
+                    endif
+                    if lower$(aiactionseq(seq).string2) = "frags"
+                        if ggameobjectivetype<>1
+                            fr$=str$(frags(iLocalEL))
+                            if ggameobjectivetype=2 then fr$=fr$+"\"+str$(ggameobjectivevalue)
+                        else
+                            fr$=""
+                        endif
+                        guihud(hID).StrNumeric = fr$ : sA = 1
+                    endif
+                    if lower$(aiactionseq(seq).string2) = "time"
+                        if ggameobjectivetype=3
+                            fr$=str$((timer()-dwStartTime)/1024)+"\"+str$(ggameobjectivevalue)
+                        else
+                            fr$=""
+                        endif
+                        guihud(hID).StrNumeric = fr$ : sA = 1
+                    endif
+                    if sA = 0
+                        guihud(hID).StrNumeric = aiactionseq(seq).string2
+                    endif
+                    gosub _gui_run
+                endif
+            endif
+        endif
      endcase
      `
      `
@@ -18139,7 +19234,7 @@ for plrid=1 to playermax
    entid=entityelement(e).bankindex
    `
    rem Item Entities expect a state incrememt if player drops after pickup
-   entityelement(e).ai.state=entityelement(e).ai.state+1
+   entityelement(e).ai.state$=str$(val(entityelement(e).ai.state$)+1) rem GUI-X9 (String States)
    `
    rem Handle main player internal resources
    if plrid=1
@@ -24082,7 +25177,7 @@ while array index valid(infinilightshortlist())
   if tat#>180 then tat#=360-tat#
   t$=strarr$(150)+str$(tindex)+strarr$(151)+str$(lightindex)+strarr$(152)+str$(int(tat#))
   if infinilight(tindex).e>0
-   t$=t$+"  state="+str$(entityelement(infinilight(tindex).e).ai.state)
+   t$=t$+"  state="+entityelement(infinilight(tindex).e).ai.state$ rem GUI-X9 (String States)
    t$=t$+"  localvar0="+str$(ailocals(infinilight(tindex).e,0))
   endif
   if object exist(tobj)=1
@@ -27069,7 +28164,7 @@ _entity_configueelementforuse:
  entityelement(e).ai.libindex=entityelement(e).ai.libinit
  entityelement(e).mover.da=entityelement(e).ry
  entityelement(e).ai.waypoint.state=0
- entityelement(e).ai.state=0
+ entityelement(e).ai.state$="0" rem GUI-X9 (String States)
  entityelement(e).darkai.active=1
  `
  rem FPGC - 030710 - reset extra entity flags
@@ -28169,6 +29264,7 @@ _gameflow_default:
     gosub _screen_control
     sync
    endwhile
+   hide mouse : rem GUI-X9 (knxrb)
   else
    rem in test mode, we are the 'host'
    if gtestgamemodefromeditor<>0 then createorjoin=1
@@ -28559,7 +29655,7 @@ _screen_init:
   dim entityshadervar(e,globalselectedshadermax)
  endif
  entityelement(e).active=1
- entityelement(e).ai.state=0
+ entityelement(e).ai.state$="0" rem GUI-X9 (String States)
  `
  rem HUD Control
  hudselectionmade=0
@@ -28579,6 +29675,9 @@ _screen_control:
  `
  rem Run Any HUD activity
  gosub _ai_hud_view
+ `
+ rem GUI-X9 (knxrb)
+ gosub _gui_run
  `
 return
 
@@ -30406,6 +31505,11 @@ _ai_hud_controller:
 return
 
 _ai_hud_view:
+  rem GUI-X9 (knxrb) - Draw background without having to call the 'backdrop' command each draw.
+  if ingameloop=0 and sprite exist(65534)
+    size sprite 65534,screen width(),screen height()
+    paste sprite 65534,0,0
+  endif
  `
  rem FPGC - 280610 - must be called to ensure we have latest mouse position from mouse input (movemousexy)
  if ingameloop=1 and showgamemenu=0
@@ -30722,7 +31826,7 @@ next cLayer : rem V118 - 110810 - knxrb - Hud Layers
  for hudid=1 to hudmax
   `
   rem Special HUD Pointer
-  if hud(hudid).maintype=2
+  if hud(hudid).maintype=2 and MouseSprite = -1 : rem GUI-X9 (knxrb)
    `
    rem FPGC - 220210 - Contoller
    ttmouseclick=0 : ttcontrolofmousepos=1 : gosub _ai_hud_controller
@@ -31369,13 +32473,6 @@ return
 
 _version_main_game_buildexe:
 
-rem Despot file collection
-if file exist("..\buildfiles.ini")=1 then delete file "..\buildfiles.ini"
-save array "..\buildfiles.ini",filecollection$()
-
-rem Store root folder
-rootpath$=get dir$()
-
 rem Name without EXE
 exename$=gbuildname$
 if lower$(right$(exename$,4))=".exe"
@@ -31390,6 +32487,16 @@ else
 endif
 if right$(exepath$,1)<>"\" then exepath$=exepath$+"\"
 if path exist(exepath$)=0 then exepath$=rootpath$+"\..\MyGames\"
+
+rem GUI-X9 - knxrb
+SortBuildFiles(exepath$, exename$)
+
+rem Despot file collection
+if file exist("..\buildfiles.ini")=1 then delete file "..\buildfiles.ini"
+save array "..\buildfiles.ini",filecollection$()
+
+rem Store root folder
+rootpath$=get dir$()
 
 rem FPSCV104RC7 - user can delete the MyGames folder?
 if path exist(exepath$)=0
@@ -31570,6 +32677,8 @@ if fpgcgenre=1
  set dir exepath$ : set dir exename$ : set dir "Files\gamecore\"
  if path exist("guns")=0 then make directory "guns"
 endif
+rem GUI-X9 - knxrb
+set dir exepath$ : set dir ".." : CheckBuildScripts(exepath$,exename$)
 `
 rem Restore directory
 set dir rootpath$
@@ -37174,7 +38283,17 @@ _saveload_maindialogloop:
   if saveloadmousex>saveload.saveloadx+560 then saveloadmousex=saveload.saveloadx+560
   if saveloadmousey<saveload.saveloady then saveloadmousey=saveload.saveloady
   if saveloadmousey>saveload.saveloady+310 then saveloadmousey=saveload.saveloady+310
-  paste image aihudpointerimagestore,saveloadmousex,saveloadmousey,1
+  rem GUI-X9 (knxrb) >>>
+  if aihudpointerimagestore > 0
+    if image exist(aihudpointerimagestore)=1
+      paste image aihudpointerimagestore,saveloadmousex,saveloadmousey,1
+    else
+      if sprite exist(MouseSprite)=1 then paste sprite MouseSprite,saveloadmousex,saveloadmousey
+    endif
+  else
+    if sprite exist(MouseSprite)=1 then paste sprite MouseSprite,saveloadmousex,saveloadmousey
+  endif
+  rem GUI-X9 (knxrb) <<<
   sync
  endwhile
  aifreezemouseclicks=0
@@ -37351,8 +38470,11 @@ _saveload_savebox_dosave:
  `
  rem Fill details
  tname$=strarr$(652)+" "+str$(level)
- tdate$=left$(get time$(),5)+"-"+left$(get date$(),5)
- tnameanddate$=tname$+" "+tdate$
+ rem GUI-X9 (knxrb)
+ `tdate$=left$(get time$(),5)+"-"+left$(get date$(),5)
+ `tnameanddate$=tname$+" "+tdate$
+ tdate$=left$(get time$(),5)+" - "+left$(get date$(),10)
+ tnameanddate$=tname$+"  ("+tdate$+")"
  `
  rem Make entry in slot list and save
  ttfile$="gamesaves\saveload.arr"
@@ -37436,8 +38558,8 @@ _saveload_savegame:
   for lsi=0 to entityelementmax
    a#=saveloadgamepositionentity(lsi).spawnleaderid : write float 1,a#
    a#=saveloadgamepositionentity(lsi).ailibindex : write float 1,a#
-   a#=saveloadgamepositionentity(lsi).aistate : write float 1,a#
-   a#=saveloadgamepositionentity(lsi).aioldstate : write float 1,a#
+   a$=saveloadgamepositionentity(lsi).aistate$ : write string 1,a$ rem GUI-X9 (String States)
+   a$=saveloadgamepositionentity(lsi).aioldstate$ : write string 1,a$ rem GUI-X9 (String States)
    a#=saveloadgamepositionentity(lsi).active : write float 1,a#
    a#=saveloadgamepositionentity(lsi).dormant : write float 1,a#
    a#=saveloadgamepositionentity(lsi).beenkilled : write float 1,a#
@@ -37613,6 +38735,8 @@ _saveload_savegame:
  endif
  close file 1
  `
+ rem GUI-X9 (knxrb)
+ GUISave = 0 
 return
 
 _saveload_loadgame:
@@ -37653,8 +38777,8 @@ _saveload_loadgame:
   for lsi=0 to entityelementmax
    read float 1,a# : saveloadgamepositionentity(lsi).spawnleaderid=a#
    read float 1,a# : saveloadgamepositionentity(lsi).ailibindex=a#
-   read float 1,a# : saveloadgamepositionentity(lsi).aistate=a#
-   read float 1,a# : saveloadgamepositionentity(lsi).aioldstate=a#
+   read string 1,a$ : saveloadgamepositionentity(lsi).aistate$=a$ rem GUI-X9 (String States)
+   read string 1,a$ : saveloadgamepositionentity(lsi).aioldstate$=a$ rem GUI-X9 (String States)
    read float 1,a# : saveloadgamepositionentity(lsi).active=a#
    read float 1,a# : saveloadgamepositionentity(lsi).dormant=a#
    read float 1,a# : saveloadgamepositionentity(lsi).beenkilled=a#
@@ -37838,6 +38962,8 @@ _saveload_loadgame:
  rem Immediate data required (prior to level loading) - 'saveload_retrievesavedata' used after level loaded
  level=saveloadgameposition.level
  `
+ rem GUI-X9 (knxrb)
+ GUILoad = 0 
 return
 
 _saveload_storesavedata:
@@ -37878,8 +39004,8 @@ _saveload_storesavedata:
  for lsi=0 to entityelementmax
   saveloadgamepositionentity(lsi).spawnleaderid=entityelement(lsi).spawn.leaderid
   saveloadgamepositionentity(lsi).ailibindex=entityelement(lsi).ai.libindex
-  saveloadgamepositionentity(lsi).aistate=entityelement(lsi).ai.state
-  saveloadgamepositionentity(lsi).aioldstate=entityelement(lsi).ai.oldstate
+  saveloadgamepositionentity(lsi).aistate$=entityelement(lsi).ai.state$ rem GUI-X9 (String States)
+  saveloadgamepositionentity(lsi).aioldstate$=entityelement(lsi).ai.oldstate$ rem GUI-X9 (String States)
   saveloadgamepositionentity(lsi).active=entityelement(lsi).active
   saveloadgamepositionentity(lsi).dormant=entityelement(lsi).dormant
   saveloadgamepositionentity(lsi).beenkilled=entityelement(lsi).beenkilled
@@ -38045,8 +39171,8 @@ _saveload_retrievesavedata:
    if entityprofile(lsientid).ischaracter=1
     rem leeadd - 111208 - v114b4 - introduce saving character positions and states
     entityelement(lsi).ai.libindex=saveloadgamepositionentity(lsi).ailibindex
-    entityelement(lsi).ai.state=saveloadgamepositionentity(lsi).aistate
-    entityelement(lsi).ai.oldstate=saveloadgamepositionentity(lsi).aioldstate
+    entityelement(lsi).ai.state$=saveloadgamepositionentity(lsi).aistate$ rem GUI-X9 (String States)
+    entityelement(lsi).ai.oldstate$=saveloadgamepositionentity(lsi).aioldstate$ rem GUI-X9 (String States)
     entityelement(lsi).active=saveloadgamepositionentity(lsi).active
     entityelement(lsi).dormant=saveloadgamepositionentity(lsi).dormant
     entityelement(lsi).beenkilled=saveloadgamepositionentity(lsi).beenkilled
@@ -38057,8 +39183,8 @@ _saveload_retrievesavedata:
    else
     rem FPGC - 191009 - ailibindex and oldstate where commented out prior to BETA16?
     entityelement(lsi).ai.libindex=saveloadgamepositionentity(lsi).ailibindex
-    entityelement(lsi).ai.state=saveloadgamepositionentity(lsi).aistate
-    entityelement(lsi).ai.oldstate=saveloadgamepositionentity(lsi).aioldstate
+    entityelement(lsi).ai.state$=saveloadgamepositionentity(lsi).aistate$ rem GUI-X9 (String States)
+    entityelement(lsi).ai.oldstate$=saveloadgamepositionentity(lsi).aioldstate$ rem GUI-X9 (String States)
     entityelement(lsi).floorposy=saveloadgamepositionentity(lsi).floorposy
    endif
    rem V109 - 090209 - added ANIM SET AND DO back in so can retain the animating of the entities (and collision)
@@ -38358,7 +39484,7 @@ _saveload_retrievesavedata:
       entityelement(e).animdo=11
       entityelement(e).animtime=0
       entityelement(e).health=0
-      entityelement(e).ai.state=0
+      entityelement(e).ai.state$="0" rem GUI-X9 (String States)
       entityelement(e).activated=0
       tbaseframe=entityelement(e).animdo : gosub _entity_getactualframefinish : tffinish=tactualframe
       rem FPGC - 091009 - new field to store frame
@@ -38380,7 +39506,7 @@ _saveload_retrievesavedata:
        rem if it has been killed - drain health to zero
        entityelement(e).eleprof.cantakeweapon=0
        entityelement(e).health=0
-       entityelement(e).ai.state=0
+       entityelement(e).ai.state$="0" rem GUI-X9 (String States)
        entityelement(e).activated=0
        entityelement(e).obj=0
       endif
@@ -47273,7 +48399,7 @@ _interface_createnewbuildgame:
    copy file rootdir$+"languagebank\"+language$+"\gamebank\templateoriginal\mygame.fpg",tfile$
   else
    copy file rootdir$+"languagebank\"+language$+"\gamebank\templatearena\myarena.fpg",tfile$
-  endif
+  endif 
   `
   rem Manipulate fields to reflect new project name
   gosub _interface_loadbuildgame
@@ -47295,6 +48421,7 @@ _interface_createnewbuildgame:
   endif
   delete_list_item(10,0) : insert_list_item(10,0,tmapnameonly$)
   delete_list_item(11,0) : insert_list_item(11,0,"languagebank\"+language$+"\gamebank\"+result$+"\loadingpage.fpi")
+  
   gosub _interface_savebuildgame
   `
  endif
@@ -51468,3 +52595,973 @@ function setintervar(var$,alter#)
   endcase
  endselect
 endfunction
+
+
+rem GUI-X9 (knxrb) >>>
+_gui_types:
+    global mMouseState as integer = 0
+    global mMouseUp as integer = 0
+    global MouseDownHud$ as string = ""
+    global MouseUpHud$ as string = ""
+    global MouseOverHud$ as string = ""
+    global RImageOffset as integer = 15000
+    global totImages as integer = 0
+    global tHuds as integer = 0
+    global tCheckbox as integer = 0
+    global tChoice as integer = 0
+    global tSlider as integer = 0
+    global tVar as integer = 0
+    global tSVar as integer = 0
+    global tTimer as integer = 0
+    global MouseSprite as integer = -1
+    global maxparse as integer = 8
+    global parsetotal as integer = 0
+    global GUILoad as integer = 0
+    global LoadHudX as float = 0.0
+    global LoadHudY as float = 0.0
+    global GUISave as integer = 0
+    global SaveHudX as float = 0.0
+    global SaveHudY as float = 0.0
+    global initLoadSave as integer = 0
+    global GUIDC as integer = 1
+    global ScaleGUI as integer = 1
+
+    type guihudtype
+        Name As String
+        Visible As Boolean
+        NormImageNo As Integer
+        OverImageNo As Integer
+        Hovered As Boolean
+        Left As Float
+        Top As Float
+        Width As Float
+        Height As Float
+        AL As Float
+        AT As Float
+        AW As Float
+        AH As Float
+        dR As Integer
+        dG As Integer
+        dB As Integer
+        iA As Integer
+        IsButton As Integer
+        IsNumeric As Integer
+        StrNumeric As String
+    endtype
+    dim guihud(99) as guihudtype
+    
+    type guicheckboxtype
+        Name As String
+        Visible As Boolean
+        NormImageNo As Integer
+        CheckImageNo As Integer
+        CheckState As Boolean
+        Left As Float
+        Top As Float
+        Width As Float
+        Height As Float
+        AL As Float
+        AT As Float
+        AW As Float
+        AH As Float
+        dR As Integer
+        dG As Integer
+        dB As Integer
+        iA As Integer
+    endtype
+    dim guicheckbox(99) as guicheckboxtype
+    
+    type guichoicetype
+        Name As String
+        Visible As Boolean
+        State0 As String
+        State1 As String
+        State2 As String
+        State3 As String
+        State4 As String
+        State5 As String
+        State6 As String
+        State7 As String
+        State8 As String
+        State9 As String
+        TotalStates As Integer
+        SelectedState As String
+        SelectedStateNum As Integer
+        StateWidth As Float
+        BackImageNo As Integer
+        FillImageNo As Integer
+        SliderImageNo As Integer
+        Left As Float
+        Top As Float
+        Width As Float
+        Height As Float
+        AL As Float
+        AT As Float
+        AW As Float
+        AH As Float
+        SliderLeft As Float
+        SliderTop As Float
+        SliderWidth As Float
+        SliderHeight As Float
+        SL As Float
+        ST As Float
+        SW As Float
+        SH As Float
+        dR As Integer
+        dG As Integer
+        dB As Integer
+        iA As Integer
+    endtype
+    dim guichoice(99) as guichoicetype
+    
+    type guislidertype
+        Name As String
+        Visible As Boolean
+        BackImageNo As Integer
+        FillImageNo As Integer
+        SliderImageNo As Integer
+        BVal As Float
+        SVal As Integer
+        MaxValue As Integer
+        Left As Float
+        Top As Float
+        Width As Float
+        Height As Float
+        AL As Float
+        AT As Float
+        AW As Float
+        AH As Float
+        SliderLeft As Float
+        SliderTop As Float
+        SliderWidth As Float
+        SliderHeight As Float
+        SL As Float
+        ST As Float
+        SW As Float
+        SH As Float
+        dR As Integer
+        dG As Integer
+        dB As Integer
+        iA As Integer
+    endtype
+    dim guislider(99) as guislidertype
+    
+    type guisetupvartype
+        Name As String
+        Value As String
+        SetupLine As String
+        Saved As Boolean
+    endtype
+    dim guisvar(99) as guisetupvartype
+    
+    type guitimertype
+        Name As String
+        Time As Integer
+        RunTime As Integer
+        Started As Boolean
+    endtype
+    dim guitimer(99) as guitimertype
+    
+    type guiimagetype
+        Name As String
+        ImageNo As Integer
+        Width As Float
+        Height As Float
+        Path As String
+    endtype
+    dim guiimage(99) as guiimagetype
+    
+    dim guival(maxparse) as string
+return
+
+_gui_init:
+    if MenuInit = 0
+        MenuInit = 1
+        gosub _gui_types
+    endif
+return
+
+_gui_run:
+    MouseOverHud$ = ""
+    if mMouseUp = 2 then mMouseUp = 0
+    mMouseState = mouseclick()
+    if mMouseState = 1 and mMouseUp = 0
+        mMouseUp = 1
+        MouseUpHud$ = ""
+    endif
+    if mMouseState = 0 and mMouseUp = 1
+        mMouseUp = 2
+        MouseDownHud$ = ""
+    endif
+    for cH = 0 to tHuds-1
+        if guihud(cH).Visible = 1
+            if guihud(cH).IsButton = 1 and guihud(cH).IsNumeric = 0
+                if inputmousex() > guihud(cH).AL-(guihud(cH).AW/2) and inputmousex() < guihud(cH).AL+(guihud(cH).AW/2) and inputmousey() > guihud(cH).AT-(guihud(cH).AH/2) and inputmousey() < guihud(cH).AT+(guihud(cH).AH/2)
+                    guihud(cH).Hovered = 1
+                    MouseOverHud$ = guihud(cH).Name
+                    if mMouseUp = 1 then MouseDownHud$ = guihud(cH).Name
+                    if mMouseUp = 2 then MouseUpHud$ = guihud(cH).Name
+                else
+                    guihud(cH).Hovered = 0
+                endif
+                if guihud(cH).Hovered = 0
+                    if guihud(cH).NormImageNo > 0
+                        if sprite exist(guihud(cH).NormImageNo)
+                            set sprite alpha guihud(cH).NormImageNo,guihud(cH).iA
+                            set sprite diffuse guihud(cH).NormImageNo,guihud(cH).dR,guihud(cH).dG,guihud(cH).dB
+                            size sprite guihud(cH).NormImageNo,guihud(cH).AW,guihud(cH).AH
+                            paste sprite guihud(cH).NormImageNo,guihud(cH).AL-(guihud(cH).AW/2),guihud(cH).AT-(guihud(cH).AH/2)
+                        endif
+                    endif
+                else
+                    if guihud(cH).OverImageNo > 0
+                        if sprite exist(guihud(cH).OverImageNo)
+                            set sprite alpha guihud(cH).OverImageNo,guihud(cH).iA
+                            set sprite diffuse guihud(cH).OverImageNo,guihud(cH).dR,guihud(cH).dG,guihud(cH).dB
+                            size sprite guihud(cH).OverImageNo,guihud(cH).AW,guihud(cH).AH
+                            paste sprite guihud(cH).OverImageNo,guihud(cH).AL-(guihud(cH).AW/2),guihud(cH).AT-(guihud(cH).AH/2)
+                        endif
+                    endif
+                endif
+            endif
+            if guihud(cH).IsButton = 0 and guihud(cH).IsNumeric = 0
+                if guihud(cH).NormImageNo > 0
+                    if sprite exist(guihud(cH).NormImageNo)
+                        set sprite alpha guihud(cH).NormImageNo,guihud(cH).iA
+                        set sprite diffuse guihud(cH).NormImageNo,guihud(cH).dR,guihud(cH).dG,guihud(cH).dB
+                        size sprite guihud(cH).NormImageNo,guihud(cH).AW,guihud(cH).AH
+                        paste sprite guihud(cH).NormImageNo,guihud(cH).AL-(guihud(cH).AW/2),guihud(cH).AT-(guihud(cH).AH/2)
+                    endif
+                endif
+            endif
+            if guihud(cH).IsNumeric = 1
+                for tP=1 to len(guihud(cH).StrNumeric)
+                    tPNX=-1
+                    if mid$(guihud(cH).StrNumeric,tP)="." then tPNX=10
+                    if mid$(guihud(cH).StrNumeric,tP)="\" then tPNX=11
+                    if tPNX=-1 then tPNX=asc(mid$(guihud(cH).StrNumeric,tP))-asc("0")
+                    if tPNX<>-1
+                        tPNY=tPNX/4 : tPNX=tPNX-(tPNY*4) : tPX#=(1.0/64.0)*16 : tPY#=(1.0/64.0)*16
+                        if guihud(cH).NormImageNo>0
+                            set sprite texture coord guihud(cH).NormImageNo,0,(tPX#*tPNX),(tPY#*tPNY)
+                            set sprite texture coord guihud(cH).NormImageNo,1,(tPX#*tPNX)+tPX#,(tPY#*tPNY)
+                            set sprite texture coord guihud(cH).NormImageNo,2,(tPX#*tPNX),(tPY#*tPNY)+tPY#
+                            set sprite texture coord guihud(cH).NormImageNo,3,(tPX#*tPNX)+tPX#,(tPY#*tPNY)+tPY#
+                            size sprite guihud(cH).NormImageNo,16,16
+                            paste sprite guihud(cH).NormImageNo,(guihud(cH).AL-8)+((tP-1)*12),guihud(cH).AT-8
+                        endif
+                    endif
+                next tP
+            endif
+        endif
+    next cH
+    for cC = 0 to tCheckbox-1
+        if guicheckbox(cC).Visible = 1
+            if guicheckbox(cC).CheckState = 0
+                if guicheckbox(cC).NormImageNo > 0
+                    if sprite exist(guicheckbox(cC).NormImageNo)
+                        set sprite alpha guicheckbox(cC).NormImageNo,guicheckbox(cC).iA
+                        set sprite diffuse guicheckbox(cC).NormImageNo,guicheckbox(cC).dR,guicheckbox(cC).dG,guicheckbox(cC).dB
+                        size sprite guicheckbox(cC).NormImageNo,guicheckbox(cC).AW,guicheckbox(cC).AH
+                        paste sprite guicheckbox(cC).NormImageNo,guicheckbox(cC).AL-(guicheckbox(cC).AW/2),guicheckbox(cC).AT-(guicheckbox(cC).AH/2)
+                    endif
+                endif
+            else
+                if guicheckbox(cC).CheckImageNo > 0
+                    if sprite exist(guicheckbox(cC).CheckImageNo)
+                        set sprite alpha guicheckbox(cC).CheckImageNo,guicheckbox(cC).iA
+                        set sprite diffuse guicheckbox(cC).CheckImageNo,guicheckbox(cC).dR,guicheckbox(cC).dG,guicheckbox(cC).dB
+                        size sprite guicheckbox(cC).CheckImageNo,guicheckbox(cC).AW,guicheckbox(cC).AH
+                        paste sprite guicheckbox(cC).CheckImageNo,guicheckbox(cC).AL-(guicheckbox(cC).AW/2),guicheckbox(cC).AT-(guicheckbox(cC).AH/2)
+                    endif
+                endif
+            endif
+            if mMouseUp = 2
+               if inputmousex() > guicheckbox(cC).AL-(guicheckbox(cC).AW/2) and inputmousex() < guicheckbox(cC).AL+(guicheckbox(cC).AW/2) and inputmousey() > guicheckbox(cC).AT-(guicheckbox(cC).AH/2) and inputmousey() < guicheckbox(cC).AT+(guicheckbox(cC).AH/2)
+                   if guicheckbox(cC).CheckState = 1
+                        guicheckbox(cC).CheckState = 0
+                   else
+                        guicheckbox(cC).CheckState = 1
+                   endif
+               endif
+           endif
+        endif
+    next cC
+    for cS = 0 to tSlider-1
+        if guislider(cS).Visible = 1
+            box (guislider(cS).AL - guislider(cS).AW / 2),(guislider(cS).AT - guislider(cS).AH / 2),(guislider(cS).AL + guislider(cS).AW / 2),(guislider(cS).AT + guislider(cS).AH / 2)
+            if guislider(cS).BackImageNo > 0
+                if sprite exist(guislider(cS).BackImageNo)
+                    set sprite alpha guislider(cS).BackImageNo,guislider(cS).iA
+                    set sprite diffuse guislider(cS).BackImageNo,guislider(cS).dR,guislider(cS).dG,guislider(cS).dB
+                    size sprite guislider(cS).BackImageNo,guislider(cS).AW,guislider(cS).AH
+                    paste sprite guislider(cS).BackImageNo,guislider(cS).AL-(guislider(cS).AW/2),guislider(cS).AT-(guislider(cS).AH/2)
+                endif
+            endif
+            if guislider(cS).FillImageNo > 0
+                if sprite exist(guislider(cS).FillImageNo)
+                    set sprite alpha guislider(cS).FillImageNo,guislider(cS).iA
+                    set sprite diffuse guislider(cS).FillImageNo,guislider(cS).dR,guislider(cS).dG,guislider(cS).dB
+                    sX = (guislider(cS).AL - guislider(cS).AW / 2) - 2
+                    sDiff = (guislider(cS).SL - (guislider(cS).AL - (guislider(cS).AW / 2)))
+                    iW = image width(guislider(cS).FillImageNo)
+                    iH = image height(guislider(cS).FillImageNo)
+                    for cX = sX to sX + sDiff step iW
+                        paste sprite guislider(cS).FillImageNo,cX+2,guislider(cS).ST-(iH/2)
+                    next
+                endif
+            endif
+            if guislider(cS).SliderImageNo > 0
+                if sprite exist(guislider(cS).SliderImageNo)
+                    set sprite alpha guislider(cS).SliderImageNo,guislider(cS).iA
+                    set sprite diffuse guislider(cS).SliderImageNo,guislider(cS).dR,guislider(cS).dG,guislider(cS).dB
+                    size sprite guislider(cS).SliderImageNo,guislider(cS).SW,guislider(cS).SH
+                    paste sprite guislider(cS).SliderImageNo,guislider(cS).SL,guislider(cS).ST-(guislider(cS).SH/2)
+                endif
+            endif
+            if mMouseState = 1
+                if inputmousex() > (guislider(cS).AL - guislider(cS).AW / 2) - 10 and inputmousex() < (guislider(cS).AL + guislider(cS).AW / 2) + 10 and inputmousey() > (guislider(cS).AT - guislider(cS).AH / 2) - 10 and inputmousey() < (guislider(cS).AT + guislider(cS).AH / 2)  + 10
+                    guislider(cS).BVal = inputmousex() - guislider(cS).AL + (guislider(cS).AW/2)
+                    if guislider(cS).BVal < 0 then guislider(cS).BVal = 0
+                    if guislider(cS).BVal > guislider(cS).AW then guislider(cS).BVal = guislider(cS).AW
+                    guislider(cS).SL = (guislider(cS).AL - (guislider(cS).AW / 2)) + ((guislider(cS).BVal/guislider(cS).AW)*guislider(cS).AW) - (guislider(cS).SW / 2)
+                    guislider(cS).SVal = ((guislider(cS).SL-(guislider(cS).AL-(guislider(cS).AW/2))+(guislider(cS).SW/2))/guislider(cS).AW)*guislider(cS).MaxValue                    
+                endif
+            endif
+        endif
+    next cS
+    for cS = 0 to tChoice-1
+        if guichoice(cS).Visible = 1
+            if guichoice(cS).BackImageNo > 0
+                if sprite exist(guichoice(cS).BackImageNo)
+                    set sprite alpha guichoice(cS).BackImageNo,guichoice(cS).iA
+                    set sprite diffuse guichoice(cS).BackImageNo,guichoice(cS).dR,guichoice(cS).dG,guichoice(cS).dB
+                    size sprite guichoice(cS).BackImageNo,guichoice(cS).AW,guichoice(cS).AH
+                    paste sprite guichoice(cS).BackImageNo,guichoice(cS).AL-(guichoice(cS).AW/2),guichoice(cS).AT-(guichoice(cS).AH/2)
+                endif
+            endif
+            if guichoice(cS).FillImageNo > 0
+                if sprite exist(guichoice(cS).FillImageNo)
+                    set sprite alpha guichoice(cS).FillImageNo,guichoice(cS).iA
+                    set sprite diffuse guichoice(cS).FillImageNo,guichoice(cS).dR,guichoice(cS).dG,guichoice(cS).dB
+                    sX = (guichoice(cS).AL - guichoice(cS).AW / 2) - 2
+                    sDiff = (guichoice(cS).SL - (guichoice(cS).AL - (guichoice(cS).AW / 2)))
+                    iW = image width(guichoice(cS).FillImageNo)
+                    iH = image height(guichoice(cS).FillImageNo)
+                    for cX = sX to sX + sDiff step iW
+                        paste sprite guichoice(cS).FillImageNo,cX+2,guichoice(cS).ST-(iH/2)
+                    next
+                endif
+            endif
+            if guichoice(cS).SliderImageNo > 0
+                if sprite exist(guichoice(cS).SliderImageNo)
+                    set sprite alpha guichoice(cS).SliderImageNo,guichoice(cS).iA
+                    set sprite diffuse guichoice(cS).SliderImageNo,guichoice(cS).dR,guichoice(cS).dG,guichoice(cS).dB
+                    size sprite guichoice(cS).SliderImageNo,guichoice(cS).SW,guichoice(cS).SH
+                    paste sprite guichoice(cS).SliderImageNo,guichoice(cS).SL,guichoice(cS).ST-(guichoice(cS).SH/2)
+                endif
+            endif
+            if guichoice(cS).TotalStates >= 2 then center text guichoice(cS).AL-(guichoice(cS).AW/2), guichoice(cS).AT+20, guichoice(cS).State1
+            if guichoice(cS).TotalStates >= 2 then center text guichoice(cS).AL-(guichoice(cS).AW/2)+guichoice(cS).StateWidth, guichoice(cS).AT+20, guichoice(cS).State2
+            if guichoice(cS).TotalStates >= 3 then center text guichoice(cS).AL-(guichoice(cS).AW/2)+(guichoice(cS).StateWidth*2), guichoice(cS).AT+20, guichoice(cS).State3
+            if guichoice(cS).TotalStates >= 4 then center text guichoice(cS).AL-(guichoice(cS).AW/2)+(guichoice(cS).StateWidth*3), guichoice(cS).AT+20, guichoice(cS).State4
+            if guichoice(cS).TotalStates >= 5 then center text guichoice(cS).AL-(guichoice(cS).AW/2)+(guichoice(cS).StateWidth*4), guichoice(cS).AT+20, guichoice(cS).State5
+            if guichoice(cS).TotalStates >= 6 then center text guichoice(cS).AL-(guichoice(cS).AW/2)+(guichoice(cS).StateWidth*5), guichoice(cS).AT+20, guichoice(cS).State6
+            if guichoice(cS).TotalStates >= 7 then center text guichoice(cS).AL-(guichoice(cS).AW/2)+(guichoice(cS).StateWidth*6), guichoice(cS).AT+20, guichoice(cS).State7
+            if guichoice(cS).TotalStates >= 8 then center text guichoice(cS).AL-(guichoice(cS).AW/2)+(guichoice(cS).StateWidth*7), guichoice(cS).AT+20, guichoice(cS).State8
+            if guichoice(cS).TotalStates >= 9 then center text guichoice(cS).AL-(guichoice(cS).AW/2)+(guichoice(cS).StateWidth*8), guichoice(cS).AT+20, guichoice(cS).State9
+            if mMouseState = 1
+                if inputmousex() > (guichoice(cS).AL - guichoice(cS).AW / 2) - 10 and inputmousex() < (guichoice(cS).AL + guichoice(cS).AW / 2) + 10 and inputmousey() > (guichoice(cS).AT - guichoice(cS).AH / 2) - 10 and inputmousey() < (guichoice(cS).AT + guichoice(cS).AH / 2)  + 10
+                    nDist# = guichoice(cS).AW+20 : nState = 0 
+                    for sI = 0 To 9 step 1
+                        DX# = guichoice(cS).AL-(guichoice(cS).AW/2)+(guichoice(cS).StateWidth*sI)
+                        DY# = guichoice(cS).AT
+                        CD# = CalcStateDistance(inputmousex(),inputmousey(),DX#,DY#)
+                        if CD# <= nDist#
+                            nDist# = CD#
+                            nState = sI
+                            guichoice(cS).SelectedStateNum = nState + 1
+                            guichoice(cS).SL = guichoice(cS).AL-(guichoice(cS).AW/2)+(guichoice(cS).StateWidth*sI)-(guichoice(cS).SW / 2)
+                        endif
+                    next
+                    if guichoice(cS).SelectedStateNum = 1 Then guichoice(cS).SelectedState = guichoice(cS).State1
+                    if guichoice(cS).SelectedStateNum = 2 Then guichoice(cS).SelectedState = guichoice(cS).State2
+                    if guichoice(cS).SelectedStateNum = 3 Then guichoice(cS).SelectedState = guichoice(cS).State3
+                    if guichoice(cS).SelectedStateNum = 4 Then guichoice(cS).SelectedState = guichoice(cS).State4
+                    if guichoice(cS).SelectedStateNum = 5 Then guichoice(cS).SelectedState = guichoice(cS).State5
+                    if guichoice(cS).SelectedStateNum = 6 Then guichoice(cS).SelectedState = guichoice(cS).State6
+                    if guichoice(cS).SelectedStateNum = 7 Then guichoice(cS).SelectedState = guichoice(cS).State7
+                    if guichoice(cS).SelectedStateNum = 8 Then guichoice(cS).SelectedState = guichoice(cS).State8
+                    if guichoice(cS).SelectedStateNum = 9 Then guichoice(cS).SelectedState = guichoice(cS).State9
+                endif
+            endif
+        endif
+    next cS    
+    if GUILoad = 1
+        if initLoadSave = 0
+           gosub _saveload_savebox_load
+           if sprite exist(saveload.saveloadimg+1)=0
+                sprite saveload.saveloadimg+1,-10000,-10000,saveload.saveloadimg+1
+                set sprite saveload.saveloadimg+1,0,1
+           endif
+           initLoadSave = 1
+        endif
+        LoadHudX = (gdisplaywidth/2)-image width(saveload.saveloadimg+1)/2
+        LoadHudY = (gdisplayheight/2)-image height(saveload.saveloadimg+1)/2
+        saveload.slothighlight = -1
+        if sprite exist(saveload.saveloadimg+1) then paste sprite saveload.saveloadimg+1,LoadHudX,LoadHudY
+        ink rgb(255,255,255),0 : center text LoadHudX+300,LoadHudY+6,strarr$(646)
+        for sloti = 1 to 9
+            dY# = LoadHudY+20+(sloti*27)
+            if  inputmousex() > LoadHudX and inputmousex() < LoadHudX+280 and inputmousey() > dY# and inputmousey() < dY#+27
+                 if saveloadslot$(sloti) <> strarr$(645)
+                    saveload.slothighlight = sloti
+                    if saveload.slothighlight>0
+                        slotimg = saveload.saveloadimg + 10 + saveload.slothighlight
+                        if image exist(slotimg) = 1 then paste image slotimg,LoadHudX+320,LoadHudY+40,1
+                    endif
+                    ink rgb(255,255,255),0
+                endif
+            else
+                ink rgb(35,35,35),0
+            endif
+            text LoadHudX+25,dY#+4,str$(sloti)+") "+saveloadslot$(sloti)
+        next sloti
+        if mMouseUp = 2 and saveload.slothighlight <> -1
+            if sprite exist(saveload.saveloadimg+1) then delete sprite saveload.saveloadimg+1
+            GUILoad = 0 : GUISave = 0 : saveload.slotselected = saveload.slothighlight : saveload.slothighlight = -1
+            saveloadfile$ = "gamesaves\slot"+str$(saveload.slotselected)+".dat" : saveload.slotselected = -1
+            loadsavedlevel$ = saveloadfile$ : saveloadfile$ = "" : gosub _saveload_savebox_free
+            continueokay = 1 : levelwon = 3 : HideAllGUI() : mMouseUp = 0 : MouseUpHud$ = ""
+        endif
+        if escapekey() then GUILoad = 0 : GUISave = 0 : gosub _saveload_savebox_free : HideAllGUI()
+    endif
+    if GUISave = 1
+        if initLoadSave = 0
+           gosub _saveload_savebox_load
+           if sprite exist(saveload.saveloadimg+1)=0
+                sprite saveload.saveloadimg+1,-10000,-10000,saveload.saveloadimg+1
+                set sprite saveload.saveloadimg+1,0,1
+           endif
+           initLoadSave = 1
+        endif
+        SaveHudX = (gdisplaywidth/2)-image width(saveload.saveloadimg+1)/2
+        SaveHudY = (gdisplayheight/2)-image height(saveload.saveloadimg+1)/2
+        saveload.slothighlight = -1
+        if sprite exist(saveload.saveloadimg+1) then paste sprite saveload.saveloadimg+1,SaveHudX,SaveHudY
+        ink rgb(255,255,255),0 : center text SaveHudX+300,SaveHudY+6,strarr$(647)
+        for sloti = 1 to 9
+            dY# = SaveHudY+20+(sloti*27)
+            if inputmousex() > SaveHudX and inputmousex() < SaveHudX+280 and inputmousey() > dY# and inputmousey() < dY#+27
+                 saveload.slothighlight = sloti
+                 if saveload.slothighlight>0
+                    slotimg = saveload.saveloadimg + 10 + saveload.slothighlight
+                    if image exist(slotimg) = 1 then paste image slotimg,SaveHudX+320,SaveHudY+40,1
+                endif
+                ink rgb(255,255,255),0
+            else
+                ink rgb(35,35,35),0
+            endif
+            text SaveHudX+25,dY#+4,str$(sloti)+") "+saveloadslot$(sloti)
+        next sloti
+        if mMouseUp = 2 and saveload.slothighlight <> -1
+            if sprite exist(saveload.saveloadimg+1) then delete sprite saveload.saveloadimg+1
+            GUILoad=  0 : GUISave = 0 : saveload.slotselected = saveload.slothighlight : saveload.slothighlight = -1
+            saveloadfile$ = "gamesaves\slot"+str$(saveload.slotselected)+".dat"
+            gosub _saveload_savebox_dosave : gosub _saveload_savegame : saveload.slotselected = -1
+            gosub _saveload_savebox_free : HideAllGUI() : mMouseUp = 0 : MouseUpHud$ = ""
+        endif
+        if escapekey() then GUILoad = 0 : GUISave = 0 : gosub _saveload_savebox_free : HideAllGUI()
+    endif
+    if GUIDC=1
+        if MouseSprite > 0
+            if sprite exist(MouseSprite)
+                hide mouse
+                paste sprite MouseSprite,inputmousex(),inputmousey()
+            else
+                show mouse
+            endif
+        else
+            show mouse
+        endif
+    endif
+return
+
+function GUIImageFromName(CheckName as string)
+    rINo = -1
+    for cI = 0 to totImages-1
+        if lower$(guiimage(cI).Name) = lower$(CheckName)
+            rINo = guiimage(ci).ImageNo
+            exit
+        endif
+    next cI
+endfunction rINo
+
+function GUIHudFromName(CheckName as string)
+    rINo = -1
+    for cI = 0 to tHuds-1
+        if rIno = -1 and lower$(guihud(cI).Name) = lower$(CheckName)
+            rINo = cI
+            exit
+        endif
+    next cI
+endfunction rINo
+
+function GUICheckboxFromName(CheckName as string)
+    rINo = -1
+    for cI = 0 to tCheckbox-1
+        if rIno = -1 and lower$(guicheckbox(cI).Name) = lower$(CheckName)
+            rINo = cI
+            exit
+        endif
+    next cI
+endfunction rINo
+
+function GUISliderFromName(CheckName as string)
+    rINo = -1
+    for cI = 0 to tSlider-1
+        if rIno = -1 and lower$(guislider(cI).Name) = lower$(CheckName)
+            rINo = cI
+            exit
+        endif
+    next cI
+endfunction rINo
+
+function GUIChoiceFromName(CheckName as string)
+    rINo = -1
+    for cI = 0 to tChoice-1
+        if rIno = -1 and lower$(guichoice(cI).Name) = lower$(CheckName)
+            rINo = cI
+            exit
+        endif
+    next cI
+endfunction rINo
+
+function GUITimerFromName(CheckName as string)
+    rINo = -1
+    for cI = 0 to tTimer-1
+        if rIno = -1 and lower$(guitimer(cI).Name) = lower$(CheckName)
+            rINo = cI
+            exit
+        endif
+    next cI
+endfunction rINo
+
+function GUISVarFromName(CheckName as string)
+    rINo = -1
+    for cI = 0 to tSVar-1
+        if rIno = -1 and lower$(guisvar(cI).Name) = lower$(CheckName)
+            rINo = cI
+            exit
+        endif
+    next cI
+endfunction rINo
+
+function CalcStateDistance(X1# as float, Y1# as float, X2# as float, Y2# as float)
+   null = make vector2(99)
+   set vector2 99, X1#-X2#, Y1#-Y2#
+   retRes# = length vector2(99)
+   null = delete vector2(99)
+endfunction retRes#
+
+function LoadGUIImage(Name as string, Path as string)
+    if lower$(Name) <> "na" and Name <> "-" and lower$(Name) <> "none" 
+        if file exist(get dir$()+"\"+Path)
+            rINo = -1
+            for cI = 0 to totImages-1
+                if lower$(guiimage(cI).Name) = lower$(Name)
+                    rINo = cI
+                    exit
+                endif
+            next cI
+            if rINo = -1
+                if image exist(RImageOffset+totImages) then delete image RImageOffset+totImages
+                if sprite exist(RImageOffset+totImages) then delete sprite RImageOffset+totImages
+                guiimage(totImages).Name = Name
+                guiimage(totImages).Path = get dir$()+"\"+Path
+                guiimage(totImages).ImageNo = RImageOffset+totImages
+                load image guiimage(totImages).Path,guiimage(totImages).ImageNo
+                sprite guiimage(totImages).ImageNo,-10000,-10000,guiimage(totImages).ImageNo
+                set sprite guiimage(totImages).ImageNo,0,1
+                guiimage(totImages).Width = image width(guiimage(totImages).ImageNo)
+                guiimage(totImages).Height = image height(guiimage(totImages).ImageNo)
+                totImages=totImages+1
+            endif
+        endif
+    endif
+endfunction
+
+function ReplaceGUIImage(Name as string, Path as string)
+    if file exist(get dir$()+"\"+Path)
+        rINo = -1
+        for cI = 0 to totImages-1
+            if lower$(guiimage(cI).Name) = lower$(Name)
+                rINo = cI
+                exit
+            endif
+        next cI
+        if rINo <> -1
+            if image exist(guiimage(rINo).ImageNo) then delete image guiimage(rINo).ImageNo
+            if sprite exist(guiimage(rINo).ImageNo) then delete sprite guiimage(rINo).ImageNo
+            guiimage(rINo).Path = get dir$()+"\"+Path
+            load image guiimage(rINo).Path,guiimage(rINo).ImageNo
+            sprite guiimage(rINo).ImageNo,-10000,-10000,guiimage(rINo).ImageNo
+            set sprite guiimage(rINo).ImageNo,0,1
+            guiimage(rINo).Width = image width(guiimage(rINo).ImageNo)
+            guiimage(rINo).Height = image height(guiimage(rINo).ImageNo)
+        endif
+    endif
+endfunction
+
+function ScreenXPos(uX as float)
+    retX# = (10.24)*uX
+endfunction retX#
+
+function ScreenYPos(uY as float)
+    retY# = (7.68)*uY
+endfunction retY#
+
+function UpdateSliderData(sID)
+    guislider(sID).AL = (ScreenXPos(guislider(sID).Left)/1024)*gdisplaywidth
+    guislider(sID).AT = (ScreenYPos(guislider(sID).Top)/768)*gdisplayheight
+    guislider(sID).AW = (guislider(sID).Width/1024)*gdisplaywidth
+    guislider(sID).AH = (guislider(sID).Height/768)*gdisplayheight
+    guislider(sID).SliderTop = guislider(sID).Top
+    guislider(sID).ST =  (ScreenYPos(guislider(sID).SliderTop)/768)*gdisplayheight
+    guislider(sID).SL = (guislider(sID).AL - (guislider(sID).AW / 2)) + ((guislider(sID).BVal/guislider(sID).AW)*guislider(sID).AW) - (guislider(sID).SW / 2)
+    guislider(sID).SVal = ((guislider(sID).SL-(guislider(sID).AL-(guislider(sID).AW/2))+(guislider(sID).SW/2))/guislider(sID).AW)*guislider(sID).MaxValue   
+    endfunction
+
+function UpdateChoiceData(sID)
+    guichoice(sID).AL = (ScreenXPos(guichoice(sID).Left)/1024)*gdisplaywidth
+    guichoice(sID).AT = (ScreenYPos(guichoice(sID).Top)/768)*gdisplayheight
+    guichoice(sID).AW = (guichoice(sID).Width/1024)*gdisplaywidth
+    guichoice(sID).AH = (guichoice(sID).Height/768)*gdisplayheight
+    guichoice(sID).sliderTop = guichoice(sID).Top
+    guichoice(sID).ST = (ScreenYPos(guichoice(sID).sliderTop)/768)*gdisplayheight
+    guichoice(sID).StateWidth =  guichoice(sID).AW / (guichoice(sID).TotalStates-1)
+    guichoice(sID).SL = guichoice(sID).AL-(guichoice(sID).AW/2)+(guichoice(sID).StateWidth*guichoice(sID).SelectedStateNum)-(guichoice(sID).SW / 2)
+endfunction
+
+function ParseValues(strCheck$ as string)
+    for cI = 0 to maxparse step 1
+        guival(cI) = ""
+    next
+    totval = 0 : parsetotal = 0: guival(totval) = first token$(strCheck$," ") : totval = 1 : parsetotal = 1
+    repeat
+        guival(totval) = next token$(" ")
+        totval = totval + 1 : parsetotal = parsetotal + 1
+    until totval = maxparse or guival(totval-1) = ""
+endfunction
+
+function HideAllGUI()
+    for cH = 0 to tHuds-1
+       guihud(cH).Visible = 0
+    next cH
+    for cC = 0 to tCheckbox-1
+       guicheckbox(cC).Visible = 0
+    next cC
+    for cS = 0 to tSlider-1
+       guislider(cS).Visible = 0
+    next cS
+    for cS = 0 to tChoice-1
+       guichoice(cS).Visible = 0
+    next cS
+endfunction
+
+function ClearAllGUI()
+    tHuds = 0
+    tCheckbox = 0
+    tSlider = 0
+    tChoice = 0
+    tVar = 0
+    tSVar = 0
+    tTimer = 0
+    totImages = 0
+endfunction
+
+function SaveSetupVariables()
+       dim startsetup$(999)
+       load array exeroot$+"\"+setupfilename$,startsetup$()
+       tLines = 0
+       for cV=1 to 999
+           if startsetup$(cV)=""
+               if startsetup$(cV-1)<>"" then tLines=tLines+1
+           else
+               tLines=tLines+1
+           endif
+       next cV
+       tLines=tLines+1
+       tL = 0
+       for cV=0 to tSVar
+           if guisvar(cV).Name<>"" and guisvar(cV).SetupLine<>"" and guisvar(cV).Value<>""
+               fLine = -1
+               for cL=0 to 999
+                   if lower$(left$(startsetup$(cL),len(guisvar(cV).SetupLine)))=lower$(guisvar(cV).SetupLine) then fLine = cL : exit
+               next cL
+               if fLine <> -1
+                   startsetup$(fLine)=guisvar(cV).SetupLine+"="+guisvar(cV).Value
+                   guisvar(cV).Saved=1
+               else
+                   startsetup$(tLines+tL)=guisvar(cV).SetupLine+"="+guisvar(cV).Value
+                   tL = tL + 1 : guisvar(cV).Saved=1
+               endif
+           endif
+       next cV
+       save array exeroot$+"\"+setupfilename$,startsetup$()
+       undim startsetup$()
+endfunction
+
+function MakeGUIHud(Name as string, NormImage as string, OverImage as string, L as float, T as float, W as float, H as float)
+    rINo = -1
+    for cI = 0 to tHuds-1
+        if lower$(guihud(cI).Name) = lower$(Name)
+            rINo = cI
+            exit
+        endif
+    next cI
+    if rINo = -1
+        guihud(tHuds).Name = Name
+        guihud(tHuds).Visible = 1
+        guihud(tHuds).NormImageNo = GUIImageFromName(NormImage)
+        guihud(tHuds).OverImageNo = GUIImageFromName(OverImage)
+        guihud(tHuds).Hovered = 0
+        guihud(tHuds).Left = L
+        guihud(tHuds).Top = T
+        guihud(tHuds).Width = W
+        guihud(tHuds).Height = H
+        guihud(tHuds).dR = 255
+        guihud(tHuds).dG = 255
+        guihud(tHuds).dB = 255
+        guihud(tHuds).iA = 255
+        guihud(tHuds).IsButton = 1
+        guihud(tHuds).IsNumeric = 0
+        if guihud(tHuds).NormImageNo > -1
+            if W = -1 Then guihud(tHuds).Width = image width(guihud(tHuds).NormImageNo)
+            if H = -1 Then guihud(tHuds).Height = image height(guihud(tHuds).NormImageNo)
+        endif
+        guihud(tHuds).AL = (ScreenXPos(guihud(tHuds).Left)/1024)*gdisplaywidth
+        guihud(tHuds).AT = (ScreenYPos(guihud(tHuds).Top)/768)*gdisplayheight
+        guihud(tHuds).AW = (guihud(tHuds).Width/1024)*gdisplaywidth
+        guihud(tHuds).AH = (guihud(tHuds).Height/768)*gdisplayheight
+        tHuds = tHuds + 1
+    endif
+endfunction
+
+function MakeGUICheckbox(Name as string, NormImage as string, CheckImage as string, L as float, T as float, W as float, H as float)
+    rINo = -1
+    for cI = 0 to tCheckbox-1
+        if lower$(guicheckbox(cI).Name) = lower$(Name)
+            rINo = cI
+            exit
+        endif
+    next cI
+    if rINo = -1
+        guicheckbox(tCheckbox).Name = Name
+        guicheckbox(tCheckbox).Visible = 1
+        guicheckbox(tCheckbox).NormImageNo = GUIImageFromName(NormImage)
+        guicheckbox(tCheckbox).CheckImageNo = GUIImageFromName(CheckImage)
+        guicheckbox(tCheckbox).CheckState = 0
+        guicheckbox(tCheckbox).Left = L
+        guicheckbox(tCheckbox).Top = T
+        guicheckbox(tCheckbox).Width = W
+        guicheckbox(tCheckbox).Height = H
+        guicheckbox(tCheckbox).dR = 255
+        guicheckbox(tCheckbox).dG = 255
+        guicheckbox(tCheckbox).dB = 255
+        guicheckbox(tCheckbox).iA = 255
+        if W = -1 Then guicheckbox(tCheckbox).Width = image width(guicheckbox(tCheckbox).NormImageNo)
+        if H = -1 Then guicheckbox(tCheckbox).Height = image height(guicheckbox(tCheckbox).NormImageNo)
+        guicheckbox(tCheckbox).AL = (ScreenXPos(guicheckbox(tCheckbox).Left)/1024)*gdisplaywidth
+        guicheckbox(tCheckbox).AT = (ScreenYPos(guicheckbox(tCheckbox).Top)/768)*gdisplayheight
+        guicheckbox(tCheckbox).AW = (guicheckbox(tCheckbox).Width/1024)*gdisplaywidth
+        guicheckbox(tCheckbox).AH = (guicheckbox(tCheckbox).Height/768)*gdisplayheight
+        tCheckbox = tCheckbox + 1
+    endif
+endfunction
+
+function MakeGUISlider(Name as string, BackImage as string, FillImage as string, SliderImage as string, L as float, T as float, W as float, H as float)
+    rINo = -1
+    for cI = 0 to tSlider-1
+        if lower$(guislider(cI).Name) = lower$(Name)
+            rINo = cI
+            exit
+        endif
+    next cI
+    if rINo = -1 
+        guislider(tSlider).Name = Name
+        guislider(tSlider).Visible = 1
+        guislider(tSlider).BackImageNo = GUIImageFromName(BackImage)
+        guislider(tSlider).FillImageNo = -1
+        if lower$(FillImage) <> "none" Then guislider(tSlider).FillImageNo = GUIImageFromName(FillImage)
+        guislider(tSlider).SliderImageNo = GUIImageFromName(SliderImage)
+        guislider(tSlider).BVal = 0
+        guislider(tSlider).SVal = 0
+        guislider(tSlider).MaxValue = 100
+        guislider(tSlider).Left = L
+        guislider(tSlider).Top = T
+        guislider(tSlider).Width = W
+        guislider(tSlider).Height = H
+        guislider(tSlider).dR = 255
+        guislider(tSlider).dG = 255
+        guislider(tSlider).dB = 255
+        guislider(tSlider).iA = 255
+        if W = -1 Then guislider(tSlider).Width = image width(guislider(tSlider).BackImageNo)
+        if H = -1 Then guislider(tSlider).Height = image height(guislider(tSlider).BackImageNo)
+        guislider(tSlider).AL = (ScreenXPos(guislider(tSlider).Left)/1024)*gdisplaywidth
+        guislider(tSlider).AT = (ScreenYPos(guislider(tSlider).Top)/768)*gdisplayheight
+        guislider(tSlider).AW = (guislider(tSlider).Width/1024)*gdisplaywidth
+        guislider(tSlider).AH = (guislider(tSlider).Height/768)*gdisplayheight
+        guislider(tSlider).SliderLeft = L
+        guislider(tSlider).SliderTop = T
+        guislider(tSlider).SliderWidth = image width(guislider(tSlider).SliderImageNo)
+        guislider(tSlider).SliderHeight = image height(guislider(tSlider).SliderImageNo)
+        guislider(tSlider).ST =  (ScreenYPos(guislider(tSlider).SliderTop)/768)*gdisplayheight
+        guislider(tSlider).SW = (guislider(tSlider).SliderWidth/1024)*gdisplaywidth
+        guislider(tSlider).SH = (guislider(tSlider).SliderHeight/768)*gdisplayheight
+        guislider(tSlider).SL = (guislider(tSlider).AL - (guislider(tSlider).AW / 2)) + (guislider(tSlider).BVal / 100) * guislider(tSlider).AW - (guislider(tSlider).SW / 2)
+        tSlider = tSlider + 1
+    endif
+endfunction
+
+function MakeGUIChoice(Name as string, BackImage as string, FillImage as string, SliderImage as string, State1 as string, State2 as string, L as float, T as float, W as float, H as float)
+    rINo = -1
+    for cI = 0 to tChoice-1
+        if lower$(guichoice(cI).Name) = lower$(Name)
+            rINo = cI
+            exit
+        endif
+    next cI
+    if rINo = -1
+        guichoice(tChoice).Name = Name
+        guichoice(tChoice).Visible = 1
+        guichoice(tChoice).BackImageNo = GUIImageFromName(BackImage)
+        guichoice(tChoice).FillImageNo = -1
+        if lower$(FillImage) <> "none" Then guichoice(tChoice).FillImageNo = GUIImageFromName(FillImage)
+        guichoice(tChoice).SliderImageNo = GUIImageFromName(SliderImage)
+        guichoice(tChoice).State1 = State1
+        guichoice(tChoice).State2 = State2
+        guichoice(tChoice).TotalStates = 2
+        guichoice(tChoice).SelectedStateNum = 1
+        guichoice(tChoice).SelectedState = State1
+        guichoice(tChoice).Left = L
+        guichoice(tChoice).Top = T
+        guichoice(tChoice).Width = W
+        guichoice(tChoice).Height = H
+        guichoice(tChoice).dR = 255
+        guichoice(tChoice).dB = 255
+        guichoice(tChoice).dG = 255
+        guichoice(tChoice).iA = 255
+        if W = -1 Then guichoice(tChoice).Width = image width(guichoice(tChoice).BackImageNo)
+        if H = -1 Then guichoice(tChoice).Height = image height(guichoice(tChoice).BackImageNo)
+        guichoice(tChoice).AL = (guichoice(tChoice).Left/1024)*gdisplaywidth
+        guichoice(tChoice).AT = (guichoice(tChoice).Top/768)*gdisplayheight
+        guichoice(tChoice).AL = (ScreenXPos(guichoice(tChoice).Left)/1024)*gdisplaywidth
+        guichoice(tChoice).AT = (ScreenYPos(guichoice(tChoice).Top)/768)*gdisplayheight
+        guichoice(tChoice).AW = (guichoice(tChoice).Width/1024)*gdisplaywidth
+        guichoice(tChoice).AH = (guichoice(tChoice).Height/768)*gdisplayheight
+        guichoice(tChoice).SliderLeft = L
+        guichoice(tChoice).SliderTop = T
+        guichoice(tChoice).SliderWidth = image width(guichoice(tChoice).SliderImageNo)
+        guichoice(tChoice).SliderHeight = image height(guichoice(tChoice).SliderImageNo)
+        guichoice(tChoice).ST = (ScreenYPos(guichoice(tChoice).SliderTop)/768)*gdisplayheight
+        guichoice(tChoice).SW = (guichoice(tChoice).SliderWidth/1024)*gdisplaywidth
+        guichoice(tChoice).SH = (guichoice(tChoice).SliderHeight/768)*gdisplayheight
+        guichoice(tChoice).SL = guichoice(tChoice).AL-(guichoice(tChoice).AW/2)+guichoice(tChoice).StateWidth-(guichoice(tChoice).SW / 2)
+        guichoice(tChoice).StateWidth =  guichoice(tChoice).AW / (guichoice(tChoice).TotalStates-1)
+        tChoice = tChoice + 1
+    endif
+endfunction
+
+function MakeGUITimer(Name as string, Start as integer)
+    rINo = -1
+    for cI = 0 to tTimer-1
+        if lower$(guitimer(cI).Name) = lower$(Name)
+            rINo = cI
+            exit
+        endif
+    next cI
+    if rINo = -1
+        guitimer(tTimer).Name = Name
+        guitimer(tTimer).Time = timer()
+        guitimer(tTimer).RunTime = 0
+        if Start < 0 then Start = 0 : if Start > 1 then Start = 1
+        guitimer(tTimer).Started = Start
+        tTimer = tTimer + 1
+    endif
+endfunction
+
+function MakeGUISetupVar(Name as string, Value as string, SetupLine as string)
+    rINo = -1
+    for cI = 0 to tHuds-1
+        if lower$(guisvar(cI).Name) = lower$(Name)
+            rINo = cI
+            exit
+        endif
+    next cI
+    if rINo = -1
+        guisvar(tSVar).Name = Name
+        guisvar(tSVar).Value = Value
+        if right$(SetupLine,1) = "=" then SetupLine=left$(SetupLine,len(SetupLine)-1)
+        guisvar(tSVar).SetupLine = SetupLine
+        guisvar(tSVar).Saved = 0
+        tSVar = tSVar + 1
+    endif
+endfunction
+
+function CheckBuildScripts(ePath$, eName$)
+	rem Copy scripts manually so the default scripts aren't edited incase the user doesn't use GUI-X9 for their next build.
+    if file exist(get dir$()+"\files\gx9script.gx9")
+        open to read 1,get dir$()+"\files\gx9script.gx9"
+        if file open(1)=1
+            read string 1,strTitlePage$
+            read string 1,strLoadingScreen$
+            read string 1,strSetupLevel$
+            read string 1,strGameOver$
+            read string 1,strGameWon$
+        endif
+        close file 1
+    endif
+    cFPG$ = left$(currentFPG$,len(currentFPG$)-4)
+    open to write 1,"path.txt"
+    write string 1,ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+cFPG$
+    close file 1
+    if path exist(ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+eName$)=0 then make directory ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+cFPG$
+    if file exist(ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+eName$+"\titlepage.fpi") then delete file ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+cFPG$+"\titlepage.fpi"
+    if file exist(ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+eName$+"\loadingpage.fpi") then delete file ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+cFPG$+"\loadingpage.fpi"
+    if file exist(ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+eName$+"\setuplevel.fpi") then delete file ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+cFPG$+"\setuplevel.fpi"
+    if file exist(ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+eName$+"\gameover.fpi") then delete file ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+cFPG$+"\gameover.fpi"
+    if file exist(ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+eName$+"\gamewon.fpi") then delete file ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+cFPG$+"\gamewon.fpi"
+    if file exist(get dir$()+"\"+strTitlePage$) then copy file get dir$()+"\"+strTitlePage$,ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+cFPG$+"\titlepage.fpi"
+    if file exist(get dir$()+"\"+strLoadingScreen$) then copy file get dir$()+"\"+strLoadingScreen$,ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+cFPG$+"\loadingpage.fpi"
+    if file exist(get dir$()+"\"+strSetupLevel$) then copy file get dir$()+"\"+strSetupLevel$,ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+cFPG$+"\setuplevel.fpi"
+    if file exist(get dir$()+"\"+strGameOver$) then copy file get dir$()+"\"+strGameOver$,ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+cFPG$+"\gameover.fpi"
+    if file exist(get dir$()+"\"+strGameWon$) then copy file get dir$()+"\"+strGameWon$,ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+cFPG$+"\gamewon.fpi"
+endfunction
+
+function SortBuildFiles(ePath$, eName$)
+    dim fArray(999,1) as string : tF = 0
+    if file exist("gx9script.gx9")
+        open to read 1,"gx9script.gx9"
+        if file open(1)=1
+            read string 1,unused$
+            read string 1,unused$
+            read string 1,unused$
+            read string 1,unused$
+            read string 1,unused$
+            while file end(1)=0
+                read string 1,fArray(tF,0)
+                read string 1,fArray(tF,1)
+                tF = tF + 1
+            endwhile
+        endif
+        close file 1
+    endif
+    for cF = 0 to tF-1
+        if fArray(cF,0) <> "" and fArray(cF,1) <> ""
+            copy file get dir$()+"\"+fArray(cF,0),get dir$()+"\languagebank\"+language$+"\gamecore\backdrops\basic\"+fArray(cF,1)
+            addfiletocollection("languagebank\"+language$+"\gamecore\backdrops\basic\"+fArray(cF,1))
+        endif
+    next
+endfunction
+rem GUI-X9 (knxrb) <<<
