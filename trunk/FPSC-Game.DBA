@@ -9339,7 +9339,6 @@ _entity_controlmovements:
  `
  rem uses MOVER IX IY IZ and STEPCOUNT to move entity around the scene
  tstep#=entityelement(e).mover.stepcount
-`!! if entityelement(e).eleprof.isimmobile=0 lee - was this a typo 100610 ?
  if entityelement(e).eleprof.isimmobile=0
   `
   rem server controlled entities never have motion
@@ -9427,9 +9426,9 @@ _entity_controlmovements:
       `if entityelement(e).isflak=0
        entityelement(e).y=entityelement(e).y-entityelement(e).mover.grav
       `endif
-      if entityelement(e).isflak>0
-       Print "X:"+str$(entityelement(e).x)+" Y:"+str$(entityelement(e).y)+" Z:"+str$(entityelement(e).z)
-      endif
+      `if entityelement(e).isflak>0
+      ` Print "X:"+str$(entityelement(e).x)+" Y:"+str$(entityelement(e).y)+" Z:"+str$(entityelement(e).z)
+      `endif
       if static volume(toldx#,toldy#+30,toldz#,entityelement(e).x,entityelement(e).y+30,entityelement(e).z,1.0)=1
        `Print "Hit static volume, moving back to collision point"
        entityelement(e).x=toldx#+get static collision x()
@@ -11141,7 +11140,6 @@ if aiindex>0
   for seq=aicond(conindex).first to aicond(conindex).last
    if gshowdebugtextingamestate=1
     if debugviewtog=1
-     `if aiconditionseq(seq).type>10 or aiconttimer<>0
      if aiconditionseq(seq).type>10 or aiconttimer<>0
       if aiconttimer=0 then print " : ";
       if aiconttimer<>0 then print ", ";
@@ -24109,6 +24107,8 @@ if flak(flakid).obj>0
    `
    rem Fill in entity details
    ttempe=e : e=felement
+   entityelement(e).eleprof.name$="flak "+str$(e)
+   entityelement(e).ai.state$="0" 
    entityelement(e).obj=tfobj
    entityelement(e).profileobj=tfprofobj
    entityelement(e).isflak=flakid
@@ -24138,7 +24138,8 @@ if flak(flakid).obj>0
    entityprofile(fentid).phyalways=1 : rem lee - ensure script runs despite distance
    `
    rem copy entity profile details into the eleprof
-   entityelement(e).eleprof.speed=entityprofile(fentid).speed
+`   entityelement(e).eleprof.speed=entityprofile(fentid).speed
+   entityelement(e).eleprof.speed=entityprofile(entidmaster).speed
    entityelement(e).eleprof.physics=flak(flakid).profile.physics
    entityelement(e).eleprof.phyweight=flak(flakid).profile.phyweight
    entityelement(e).eleprof.phyfriction=flak(flakid).profile.phyfriction
