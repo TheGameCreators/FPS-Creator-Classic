@@ -1,0 +1,163 @@
+;material list (default)
+
+;header
+
+materialmax   = 18
+
+;core materials (SID=Scrape,Impact,Destroy)
+
+matdesc0      = GenericSoft
+matwave0      = audiobank\materials\0ground.wav
+matwaves0     = audiobank\materials\0groundS.wav
+matwavei0     = audiobank\materials\0groundI.wav
+matwaved0     = audiobank\materials\0groundD.wav
+matfreq0      = 22000
+matdecal0     = dust
+
+matdesc1      = Stone
+matwave1      = audiobank\materials\1stone.wav
+matwaves1     = audiobank\materials\1stoneS.wav
+matwavei1     = audiobank\materials\1stoneI.wav
+matwaved1     = audiobank\materials\1stoneD.wav
+matfreq1      = 22000
+matdecal1     = dust
+
+matdesc2      = Metal
+matwave2      = audiobank\materials\2metal.wav
+matwaves2     = audiobank\materials\2metalS.wav
+matwavei2     = audiobank\materials\2metalI.wav
+matwaved2     = audiobank\materials\2metalD.wav
+matfreq2      = 22000
+matdecal2     = sparks
+
+matdesc3      = Wood
+matwave3      = audiobank\materials\3wood.wav
+matwaves3     = audiobank\materials\3woodS.wav
+matwavei3     = audiobank\materials\3woodI.wav
+matwaved3     = audiobank\materials\3woodD.wav
+matfreq3      = 22000
+matdecal3     = splinters
+
+matdesc4      = Glass
+matwave4      = audiobank\materials\4glass.wav
+matwaves4     = audiobank\materials\4glassS.wav
+matwavei4     = audiobank\materials\4glassI.wav
+matwaved4     = audiobank\materials\4glassD.wav
+matfreq4      = 22000
+matdecal4     = shards
+
+matdesc5      = Liquid Splashy Wet
+matwave5      = audiobank\materials\5liquid.wav
+matwaves5     = audiobank\materials\5liquidS.wav
+matwavei5     = audiobank\materials\5liquidI.wav
+matwaved5     = audiobank\materials\5liquidD.wav
+matfreq5      = 22000
+matdecal5     = 
+
+matdesc6      = Cloth / Flesh / Soft Absorbant
+matwave6      = audiobank\materials\6cloth.wav
+matwaves6     = audiobank\materials\6clothS.wav
+matwavei6     = audiobank\materials\6clothI.wav
+matwaved6     = audiobank\materials\6clothD.wav
+matfreq6      = 22000
+matdecal6     = 
+
+matdesc7      = Hollow Drum Metal
+matwave7      = audiobank\materials\7drum.wav
+matwaves7     = audiobank\materials\7drumS.wav
+matwavei7     = audiobank\materials\7drumI.wav
+matwaved7     = audiobank\materials\7drumD.wav
+matfreq7      = 22000
+matdecal7     = sparks
+
+matdesc8      = Small High Pitch Tin
+matwave8      = audiobank\materials\8tin.wav
+matwaves8     = audiobank\materials\8tinS.wav
+matwavei8     = audiobank\materials\8tinI.wav
+matwaved8     = audiobank\materials\8tinD.wav
+matfreq8      = 22000
+matdecal8     = sparks
+
+matdesc9      = Small Low Pitch Tin
+matwave9      = audiobank\materials\8tin.wav
+matwaves9     = audiobank\materials\8tinS.wav
+matwavei9     = audiobank\materials\8tinI.wav
+matwaved9     = audiobank\materials\8tinD.wav
+matfreq9      = 11000
+matdecal9     = sparks
+
+;additional materials
+
+matdesc10     = Silly Material
+matwave10     = audiobank\materials\10silly.wav
+matwaves10    = audiobank\materials\10sillyS.wav
+matwavei10    = audiobank\materials\10sillyI.wav
+matwaved10    = audiobank\materials\10sillyD.wav
+matfreq10     = 22000
+matdecal10    = blood
+
+matdesc11     = Marble
+matwave11     = audiobank\materials\11bathroom.wav
+matwaves11    = audiobank\materials\4glassS.wav
+matwavei11    = audiobank\materials\4glassI.wav
+matwaved11    = audiobank\materials\4glassD.wav
+matfreq11     = 22000
+matdecal11    = dust
+
+matdesc12     = Cobble
+matwave12     = audiobank\materials\12cobble.wav
+matwaves12    = audiobank\materials\1stoneS.wav
+matwavei12    = audiobank\materials\1stoneI.wav
+matwaved12    = audiobank\materials\1stoneD.wav
+matfreq12     = 22000
+matdecal12    = dust
+
+matdesc13     = Gravel
+matwave13     = audiobank\materials\13gravel.wav
+matwaves13    = audiobank\materials\1stoneS.wav
+matwavei13    = audiobank\materials\1stoneI.wav
+matwaved13    = audiobank\materials\1stoneD.wav
+matfreq13     = 22000
+matdecal13    = dust
+
+matdesc14     = Soft Metal
+matwave14     = audiobank\materials\14metal.wav
+matwaves14    = audiobank\materials\2metalS.wav
+matwavei14    = audiobank\materials\2metalI.wav
+matwaved14    = audiobank\materials\2metalD.wav
+matfreq14     = 22000
+matdecal14    = sparks
+
+matdesc15     = Old Stone
+matwave15     = audiobank\materials\15stone.wav
+matwaves15    = audiobank\materials\1stoneS.wav
+matwavei15    = audiobank\materials\1stoneI.wav
+matwaved15    = audiobank\materials\1stoneD.wav
+matfreq15     = 22000
+matdecal15    = dust
+
+matdesc16     = Old Wood
+matwave16     = audiobank\materials\16oldwood.wav
+matwaves16    = audiobank\materials\3woodS.wav
+matwavei16    = audiobank\materials\3woodI.wav
+matwaved16    = audiobank\materials\3woodD.wav
+matfreq16     = 22000
+matdecal16    = splinters
+
+matdesc17      = Shallow Water
+matwave17     = audiobank\materials\17Wading.wav
+matwaves17     = audiobank\materials\17WadingS.wav
+matwavei17     = audiobank\materials\17wadingI.wav
+matwaved17     = audiobank\materials\17WadingD.wav
+matfreq17      = 22000
+;44000
+matdecal17     =
+
+matdesc18     = Underwater
+matwave18     = audiobank\materials\18Underwater.wav
+matwaves18    = audiobank\materials\18UnderwaterS.wav
+matwavei18    = audiobank\materials\18UnderwaterI.wav
+matwaved18    = audiobank\materials\18UnderwaterD.wav
+matfreq18     = 22000 
+;44000
+matdecal18    =

@@ -1,0 +1,7 @@
+;decal spec
+
+;DECAL
+across         = 4
+down           = 4
+offsety        = 50
+
