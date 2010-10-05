@@ -3548,6 +3548,7 @@ rem FPGC - 231109 - initialise DarkVOICES
 gosub _lipsync_init
 rem GUI-X9 (knxrb)
 gosub _gui_init
+if gcompilestandaloneexe=1 and gimageblockmode=1 then GUI_ATIB()
 
 `
 rem Run gameflow default screen path
@@ -30087,6 +30088,9 @@ _screen_control:
  rem Run Any HUD activity
  gosub _ai_hud_view
  `
+ rem GUI-X9 (knxrb)
+ gosub _gui_run
+ `
 return
 
 _screen_close:
@@ -32904,8 +32908,7 @@ endif
 if right$(exepath$,1)<>"\" then exepath$=exepath$+"\"
 if path exist(exepath$)=0 then exepath$=rootpath$+"\..\MyGames\"
 
-rem GUI-X9 - knxrb
-SortBuildFiles(exepath$, exename$)
+if gimageblockmode=0 then GUI_CITF(exepath$, exename$) : rem GUI-X9 (knxrb)
 
 rem Despot file collection
 if file exist("..\buildfiles.ini")=1 then delete file "..\buildfiles.ini"
@@ -53269,6 +53272,7 @@ _gui_types:
     global initLoadSave as integer = 0
     global GUIDC as integer = 1
     global ScaleGUI as integer = 1
+    global guiIA as integer = 0
 
     type guihudtype
         Name As String
@@ -53412,6 +53416,7 @@ _gui_types:
         Width As Float
         Height As Float
         Path As String
+        LFIB As Integer
     endtype
     dim guiimage(99) as guiimagetype
 
@@ -53426,6 +53431,7 @@ _gui_init:
 return
 
 _gui_run:
+ if guiIA=1
     MouseOverHud$ = ""
     if mMouseUp = 2 then mMouseUp = 0
     mMouseState = mouseclick()
@@ -53723,12 +53729,17 @@ _gui_run:
                 hide mouse
                 paste sprite MouseSprite,inputmousex(),inputmousey()
             else
-                show mouse
+                if aihudpointerimagestore > 0
+                    if image exist(aihudpointerimagestore)=0 then show mouse
+                endif
             endif
         else
-            show mouse
+            if aihudpointerimagestore > 0
+                if image exist(aihudpointerimagestore)=0 then show mouse
+            endif
         endif
     endif
+ endif
 return
 
 function GUIImageFromName(CheckName as string)
@@ -53810,28 +53821,43 @@ endfunction retRes#
 
 function LoadGUIImage(Name as string, Path as string)
     if lower$(Name) <> "na" and Name <> "-" and lower$(Name) <> "none"
-        if file exist(get dir$()+"\"+Path)
-            rINo = -1
-            for cI = 0 to totImages-1
-                if lower$(guiimage(cI).Name) = lower$(Name)
-                    rINo = cI
-                    exit
+        rINo = -1
+        for cI = 0 to totImages-1
+            if lower$(guiimage(cI).Name) = lower$(Name)
+                rINo = cI
+                exit
+            endif
+        next cI
+        if rINo = -1
+            if image exist(RImageOffset+totImages) then delete image RImageOffset+totImages
+            if sprite exist(RImageOffset+totImages) then delete sprite RImageOffset+totImages
+            guiimage(totImages).Name = Name
+            guiimage(totImages).Path = Path
+            guiimage(totImages).ImageNo = RImageOffset+totImages
+            if file exist("imageblock.bin")=0
+                if file exist(get dir$()+"\"+guiimage(totImages).Path) then load image get dir$()+"\"+guiimage(totImages).Path,guiimage(totImages).ImageNo
+                if image exist(guiimage(totImages).ImageNo) then guiimage(totImages).LFIB = 0
+            endif
+            if file exist("imageblock.bin")=1
+                if image file exist(guiimage(totImages).Path)=1
+                    load image guiimage(totImages).Path,guiimage(totImages).ImageNo
+                    if image exist(guiimage(totImages).ImageNo) then guiimage(totImages).LFIB = 1
                 endif
-            next cI
-            if rINo = -1
-                if image exist(RImageOffset+totImages) then delete image RImageOffset+totImages
-                if sprite exist(RImageOffset+totImages) then delete sprite RImageOffset+totImages
-                guiimage(totImages).Name = Name
-                guiimage(totImages).Path = get dir$()+"\"+Path
-                guiimage(totImages).ImageNo = RImageOffset+totImages
-                load image guiimage(totImages).Path,guiimage(totImages).ImageNo
+                if image file exist(guiimage(totImages).Path)=0 and guiimage(totImages).LFIB <> 1
+                    if file exist(get dir$()+"\"+guiimage(totImages).Path) then load image get dir$()+"\"+guiimage(totImages).Path,guiimage(totImages).ImageNo
+                    if image exist(guiimage(totImages).ImageNo) then guiimage(totImages).LFIB = 0
+                endif
+            endif
+            if image exist(guiimage(totImages).ImageNo)
                 sprite guiimage(totImages).ImageNo,-10000,-10000,guiimage(totImages).ImageNo
                 set sprite guiimage(totImages).ImageNo,0,1
                 guiimage(totImages).Width = image width(guiimage(totImages).ImageNo)
                 guiimage(totImages).Height = image height(guiimage(totImages).ImageNo)
-                totImages=totImages+1
+            else
+                guiimage(totImages).ImageNo = -1
             endif
-        endif
+            totImages=totImages+1
+        Endif
     endif
 endfunction
 
@@ -53845,14 +53871,16 @@ function ReplaceGUIImage(Name as string, Path as string)
             endif
         next cI
         if rINo <> -1
-            if image exist(guiimage(rINo).ImageNo) then delete image guiimage(rINo).ImageNo
-            if sprite exist(guiimage(rINo).ImageNo) then delete sprite guiimage(rINo).ImageNo
-            guiimage(rINo).Path = get dir$()+"\"+Path
-            load image guiimage(rINo).Path,guiimage(rINo).ImageNo
-            sprite guiimage(rINo).ImageNo,-10000,-10000,guiimage(rINo).ImageNo
-            set sprite guiimage(rINo).ImageNo,0,1
-            guiimage(rINo).Width = image width(guiimage(rINo).ImageNo)
-            guiimage(rINo).Height = image height(guiimage(rINo).ImageNo)
+            if guiimage(rINo).LFIB = 0
+                if image exist(guiimage(rINo).ImageNo) then delete image guiimage(rINo).ImageNo
+                if sprite exist(guiimage(rINo).ImageNo) then delete sprite guiimage(rINo).ImageNo
+                guiimage(rINo).Path = get dir$()+"\"+Path
+                load image guiimage(rINo).Path,guiimage(rINo).ImageNo
+                sprite guiimage(rINo).ImageNo,-10000,-10000,guiimage(rINo).ImageNo
+                set sprite guiimage(rINo).ImageNo,0,1
+                guiimage(rINo).Width = image width(guiimage(rINo).ImageNo)
+                guiimage(rINo).Height = image height(guiimage(rINo).ImageNo)
+            endif
         endif
     endif
 endfunction
@@ -53886,6 +53914,7 @@ function UpdateChoiceData(sID)
     guichoice(sID).StateWidth =  guichoice(sID).AW / (guichoice(sID).TotalStates-1)
     guichoice(sID).SL = guichoice(sID).AL-(guichoice(sID).AW/2)+(guichoice(sID).StateWidth*guichoice(sID).SelectedStateNum)-(guichoice(sID).SW / 2)
 endfunction
+
 function ParseValues(strCheck$ as string)
     for cI = 0 to maxparse step 1
         guival(cI) = ""
@@ -53920,6 +53949,10 @@ function ClearAllGUI()
     tVar = 0
     tSVar = 0
     tTimer = 0
+    for cI = RImageOffset to RImageOffset+totImages-1
+        if image exist(cI) then delete image cI
+        if sprite exist(cI) then delete sprite cI
+    next
     totImages = 0
 endfunction
 
@@ -54166,9 +54199,6 @@ function CheckBuildScripts(ePath$, eName$)
         close file 1
     endif
     cFPG$ = left$(currentFPG$,len(currentFPG$)-4)
-    open to write 1,"path.txt"
-    write string 1,ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+cFPG$
-    close file 1
     if path exist(ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+eName$)=0 then make directory ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+cFPG$
     if file exist(ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+eName$+"\titlepage.fpi") then delete file ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+cFPG$+"\titlepage.fpi"
     if file exist(ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+eName$+"\loadingpage.fpi") then delete file ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+cFPG$+"\loadingpage.fpi"
@@ -54182,10 +54212,10 @@ function CheckBuildScripts(ePath$, eName$)
     if file exist(get dir$()+"\"+strGameWon$) then copy file get dir$()+"\"+strGameWon$,ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+cFPG$+"\gamewon.fpi"
 endfunction
 
-function SortBuildFiles(ePath$, eName$)
+function GUI_ATIB()
     dim fArray(999,1) as string : tF = 0
-    if file exist("gx9script.gx9")
-        open to read 1,"gx9script.gx9"
+    if file exist("script.gx9")
+        open to read 1,"script.gx9"
         if file open(1)=1
             read string 1,unused$
             read string 1,unused$
@@ -54203,10 +54233,41 @@ function SortBuildFiles(ePath$, eName$)
     for cF = 0 to tF-1
         if fArray(cF,0) <> "" and fArray(cF,1) <> ""
             copy file get dir$()+"\"+fArray(cF,0),get dir$()+"\languagebank\"+language$+"\gamecore\backdrops\basic\"+fArray(cF,1)
-            addfiletocollection("languagebank\"+language$+"\gamecore\backdrops\basic\"+fArray(cF,1))
+            if file exist("languagebank\"+language$+"\gamecore\backdrops\basic\"+fArray(cF,1)) then load image "languagebank\"+language$+"\gamecore\backdrops\basic\"+fArray(cF,1),80000+cF
+        endif
+    next
+endfunction
+
+function GUI_CITF(ePath$, eName$)
+    dim fArray(999,1) as string : tF = 0
+    if file exist("script.gx9")
+        open to read 1,"script.gx9"
+        if file open(1)=1
+            read string 1,unused$
+            read string 1,unused$
+            read string 1,unused$
+            read string 1,unused$
+            read string 1,unused$
+            while file end(1)=0
+                read string 1,fArray(tF,0)
+                read string 1,fArray(tF,1)
+                tF = tF + 1
+            endwhile
+        endif
+        close file 1
+    endif
+    cFPG$ = left$(currentFPG$,len(currentFPG$)-4)
+    for cF = 0 to tF-1
+        if fArray(cF,0) <> "" and fArray(cF,1) <> ""
+            if path exist(ePath$+eName$)=0 then make directory ePath$+eName$
+            if path exist(ePath$+eName$+"\files\")=0 then make directory ePath$+eName$+"\files\"
+            if path exist(ePath$+eName$+"\files\languagebank\")=0 then make directory ePath$+eName$+"\files\languagebank\"
+            if path exist(ePath$+eName$+"\files\languagebank\"+language$)=0 then make directory ePath$+eName$+"\files\languagebank\"+language$
+            if path exist(ePath$+eName$+"\files\languagebank\"+language$+"\gamecore\")=0 then make directory ePath$+eName$+"\files\languagebank\"+language$+"\gamecore\"
+            if path exist(ePath$+eName$+"\files\languagebank\"+language$+"\gamecore\backdrops\")=0 then make directory ePath$+eName$+"\files\languagebank\"+language$+"\gamecore\backdrops\"
+            if path exist(ePath$+eName$+"\files\languagebank\"+language$+"\gamecore\backdrops\basic\")=0 then make directory ePath$+eName$+"\files\languagebank\"+language$+"\gamecore\backdrops\basic\"
+            if file exist(get dir$()+"\"+fArray(cF,0)) then copy file get dir$()+"\"+fArray(cF,0),ePath$+eName$+"\files\languagebank\"+language$+"\gamecore\backdrops\basic\"+fArray(cF,1)
         endif
     next
 endfunction
 rem GUI-X9 (knxrb) <<<
-
-
