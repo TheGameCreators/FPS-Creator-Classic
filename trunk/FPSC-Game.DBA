@@ -16561,7 +16561,7 @@ if aiindex>0
         gosub _gui_run
      endcase
      case AIACTREPLACEIMAGE:
-        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> "" then ReplaceGUIImage(aiactionseq(seq).string1,aiactionseq(seq).string2)
+        rem if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> "" then ReplaceGUIImage(aiactionseq(seq).string1,aiactionseq(seq).string2)
      endcase
      case AIACTSHOWHUD:
         if aiactionseq(seq).string1 <> ""
@@ -53272,7 +53272,7 @@ _gui_types:
     global initLoadSave as integer = 0
     global GUIDC as integer = 1
     global ScaleGUI as integer = 1
-    global guiIA as integer = 0
+    global guiIA as integer = 1
 
     type guihudtype
         Name As String
@@ -53862,25 +53862,42 @@ function LoadGUIImage(Name as string, Path as string)
 endfunction
 
 function ReplaceGUIImage(Name as string, Path as string)
-    if file exist(get dir$()+"\"+Path)
-        rINo = -1
-        for cI = 0 to totImages-1
-            if lower$(guiimage(cI).Name) = lower$(Name)
-                rINo = cI
-                exit
-            endif
-        next cI
-        if rINo <> -1
-            if guiimage(rINo).LFIB = 0
-                if image exist(guiimage(rINo).ImageNo) then delete image guiimage(rINo).ImageNo
-                if sprite exist(guiimage(rINo).ImageNo) then delete sprite guiimage(rINo).ImageNo
-                guiimage(rINo).Path = get dir$()+"\"+Path
+    rINo = -1
+    for cI = 0 to totImages-1
+        if lower$(guiimage(cI).Name) = lower$(Name)
+            rINo = cI
+            exit
+        endif
+    next cI
+    if rINo <> -1
+        if guiimage(rINo).ImageNo <> -1
+            if image exist(guiimage(rINo).ImageNo) then delete image guiimage(rINo).ImageNo
+        endif
+        if guiimage(rINo).ImageNo <> -1
+            if sprite exist(guiimage(rINo).ImageNo) then delete sprite guiimage(rINo).ImageNo
+        endif
+        guiimage(rINo).Path = Path              
+        if file exist("imageblock.bin")=0
+            if file exist(get dir$()+"\"+guiimage(rINo).Path) then load image get dir$()+"\"+guiimage(rINo).Path,guiimage(rINo).ImageNo
+            if image exist(guiimage(rINo).ImageNo) then guiimage(rINo).LFIB = 0
+        endif
+        if file exist("imageblock.bin")=1
+            if image file exist(guiimage(rINo).Path)=1
                 load image guiimage(rINo).Path,guiimage(rINo).ImageNo
-                sprite guiimage(rINo).ImageNo,-10000,-10000,guiimage(rINo).ImageNo
-                set sprite guiimage(rINo).ImageNo,0,1
-                guiimage(rINo).Width = image width(guiimage(rINo).ImageNo)
-                guiimage(rINo).Height = image height(guiimage(rINo).ImageNo)
+                if image exist(guiimage(rINo).ImageNo) then guiimage(rINo).LFIB = 1
             endif
+            if image file exist(guiimage(rINo).Path)=0 and guiimage(rINo).LFIB <> 1
+                if file exist(get dir$()+"\"+guiimage(rINo).Path) then load image get dir$()+"\"+guiimage(rINo).Path,guiimage(rINo).ImageNo
+                if image exist(guiimage(rINo).ImageNo) then guiimage(rINo).LFIB = 0
+            endif
+        endif 
+        if image exist(guiimage(rINo).ImageNo)
+            sprite guiimage(rINo).ImageNo,-10000,-10000,guiimage(rINo).ImageNo
+            set sprite guiimage(rINo).ImageNo,0,1
+            guiimage(rINo).Width = image width(guiimage(rINo).ImageNo)
+            guiimage(rINo).Height = image height(guiimage(rINo).ImageNo)
+        else
+            guiimage(rINo).ImageNo = -1
         endif
     endif
 endfunction
@@ -54169,7 +54186,7 @@ endfunction
 
 function MakeGUISetupVar(Name as string, Value as string, SetupLine as string)
     rINo = -1
-    for cI = 0 to tHuds-1
+    for cI = 0 to tSVar-1
         if lower$(guisvar(cI).Name) = lower$(Name)
             rINo = cI
             exit
