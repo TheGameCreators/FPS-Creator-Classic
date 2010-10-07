@@ -1940,8 +1940,11 @@ Rem Water commands
 #constant AIACTWATERRED 1339
 #constant AIACTWATERGREEN 1340
 #constant AIACTWATERBLUE 1341
-
-#constant AIACTLAST 1342
+rem GUI-X9 (knxrb) >>>
+#constant AIACTEYEHURTTIME 1342
+#constant AIACTFADERSPEED 1343
+rem GUI-X9 (knxrb) <<<
+#constant AIACTLAST 1344
 
 rem V109 BETA3 - 210408 - AI variables
 global aivariablemode : aivariablemode=0 : rem 0-global, 1-local
@@ -6348,17 +6351,20 @@ function debugviewtext(progress,gamedebugviewtext$)
   tscrwiddiff#=tscrwiddiff#/1024.0 : progress#=progress#*tscrwiddiff#
   tscrhighdiff#=screen height()
   tscrhighdiff#=tscrhighdiff#/800.0
-  if internalloaderhud>0 and internalloaderhud<=array count(hud())
+  rem if internalloaderhud>0 and internalloaderhud<=array count(hud()) : rem GUI-X9 (knxrb)
+  if guiloaderhud > -1
    rem GUI-X9 (knxrb) - (This area of code is not yet finished.)
    if sprite exist(65534)
     size sprite 65534,screen width(),screen height()
     paste sprite 65534,0,0
    endif
-   gosub _gui_run
+   guiloadprogress = progress# : gosub _gui_run
    rem Image Expand Bar Progress
+   remstart
    t1=hud(internalloaderhud).width*progress#
    size sprite internalloaderhud,t1,hud(internalloaderhud).height*tscrhighdiff#
    paste sprite internalloaderhud,hud(internalloaderhud).posx,hud(internalloaderhud).posy
+   remend
   else
    rem Default Bar Progress
    if gdebugreportmodestate=1
@@ -11059,6 +11065,8 @@ actword$(AIACTSHOWCHECKBOX)="showcheckbox"
 actword$(AIACTHIDECHECKBOX)="hidecheckbox"
 actword$(AIACTSETHUDNUMERIC)="sethudnumeric"
 actword$(AIACTSETHUDVALUE)="sethudvalue"
+actword$(AIACTEYEHURTTIME)="eyehudtime"
+actword$(AIACTFADERSPEED)="faderspeed"
 rem GUI-X9 (knxrb) <<<
 Rem Water
 actword$(AIACTWATERHEIGHT)="waterheight"
@@ -11071,7 +11079,6 @@ actword$(AIACTWATERFOGBLUE)="waterfogblue"
 actword$(AIACTWATERRED)="waterred"
 actword$(AIACTWATERGREEN)="watergreen"
 actword$(AIACTWATERBLUE)="waterblue"
-
 return
 
 _ai_reset_presaveposition:
@@ -16011,7 +16018,18 @@ if aiindex>0
      `
           rem GUI-X9 (knxrb)
      case AIACTLOADIMAGE:
-        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> "" then LoadGUIImage(aiactionseq(seq).string1,aiactionseq(seq).string2)
+        if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
+            LoadGUIImage(aiactionseq(seq).string1,aiactionseq(seq).string2)
+            if GUIImageFromName(aiactionseq(seq).string1) = -1
+                LoadGUIImage(left$(aiactionseq(seq).string1,len(aiactionseq(seq).string1)-4)+".tga",aiactionseq(seq).string2)
+            endif
+            if GUIImageFromName(aiactionseq(seq).string1) = -1
+                LoadGUIImage(left$(aiactionseq(seq).string1,len(aiactionseq(seq).string1)-4)+".dds",aiactionseq(seq).string2)
+            endif
+            if GUIImageFromName(aiactionseq(seq).string1) = -1
+                LoadGUIImage(left$(aiactionseq(seq).string1,len(aiactionseq(seq).string1)-4)+".png",aiactionseq(seq).string2)
+            endif
+        endif
      endcase
      case AIACTMAKEHUD:
         ParseValues(aiactionseq(seq).string2)
@@ -16793,6 +16811,16 @@ if aiindex>0
                     gosub _gui_run
                 endif
             endif
+        endif
+     endcase
+     case AIACTEYEHURTTIME:
+        if aiactionseq(seq).string1 <> ""
+            guihurttime = val(aiactionseq(seq).string1)
+        endif
+     endcase
+     case AIACTFADERSPEED:
+        if aiactionseq(seq).string1 <> ""
+            guifaderspeed = val(aiactionseq(seq).string1)
         endif
      endcase
      `
@@ -19450,6 +19478,26 @@ else
  `
 endif
 
+rem GUI-X9 (knxrb) Fade Out Screen
+if triggergameexitfade > 0
+    if guifaderhud > -1
+        inc guifaderalpha,guifaderspeed
+        if guifaderalpha > 255 then guifaderalpha = 255
+        gosub _gui_run
+        if guifaderalpha=255
+            if player(1).health<=0 and playerstartstrength>0 then levelwon=0
+            if gmultiplayergame=1
+                gosub _multi_missioncomplete
+            else
+                continueokay=1
+            endif
+            guifaderalpha=0
+            triggergameexitfade=0
+        endif
+    endif
+endif
+
+remstart - Original fader code.
 rem Fading system prior to WIN/LOSE logic escape
 if triggergameexitfade>0
  `
@@ -19482,6 +19530,7 @@ if triggergameexitfade>0
  endif
  `
 endif
+remend
 
 return
 
@@ -19882,11 +19931,18 @@ if player(plrid).lives=0 and player(plrid).health<=0 and playerstartlives>0
  tsetplayereyehud=1
 endif
 if tsetplayereyehud=1
+ rem GUI-X9 (knxrb) Eyehud
+ if guieyehud > -1
+    guieyetimer = guihurttime+400
+    gosub _gui_run
+ endif 
+ remstart Original eyehud code
  rem update sprite used for screen fade
  if internaleyehud>0
   hudid=internaleyehud : hud(hudid).hide=0
   hud(hudid).hidedelay=5
  endif
+ remend
 endif
 
 return
@@ -25036,9 +25092,16 @@ if (tdamage>0 and player(plrid).health>0 and playerstartstrength>0) or (playerst
   endif
  endif
  rem cause eyehud(red) to flare quickly
+ rem GUI-X9 (knxrb) - Eyehud
+ if guieyehud > -1
+    guieyetimer = guihurttime
+    gosub _gui_run
+ endif
+ remstart Original eyehud code
  hudid=internaleyehud
  hud(hudid).hidedelay=3
  hud(hudid).hide=0
+  remend
 endif
 `
 endif
@@ -32647,9 +32710,6 @@ if thudi>hudmax
  if workhudmake$="internal"
   hud(hudid).maintype=5
   hud(hudid).typemode=workhudtype : rem 1loader,2eyehud,3fader,4zoom
-  if workhudtype=1 then internalloaderhud=hudid
-  if workhudtype=2 then internaleyehud=hudid
-  if workhudtype=3 then internalfaderhud=hudid
   if workhudtype=4 then internalzoomhud=hudid : internalzoomhudimage=workhudimage
  endif
  if workhudmake$="numeric"
@@ -33096,8 +33156,9 @@ if fpgcgenre=1
  set dir exepath$ : set dir exename$ : set dir "Files\gamecore\"
  if path exist("guns")=0 then make directory "guns"
 endif
+`
 rem GUI-X9 - knxrb
-set dir exepath$ : set dir ".." : CheckBuildScripts(exepath$,exename$)
+set dir exepath$ : set dir ".." : CheckBuildScripts(exepath$+exename$,language$)
 `
 rem Restore directory
 set dir rootpath$
@@ -53172,7 +53233,7 @@ function MakeWater()
  aspect#=desktop width() : aspect#=aspect#/desktop height()
  realrange#=9000.0
  for c=1 to 2
-  make camera c
+  if camera exist(c)=0 then make camera c : rem (Sean: I added the camera exist check as it crashed if you re-entered game.)
   set camera range c,2.0,realrange#
   set camera aspect c,aspect#
   backdrop off c
@@ -53245,6 +53306,13 @@ function UpDateReflection()
 endfunction
 
 rem GUI-X9 (knxrb) >>>
+_gui_init:
+    if MenuInit = 0
+        MenuInit = 1
+        gosub _gui_types
+    endif
+return
+
 _gui_types:
     global mMouseState as integer = 0
     global mMouseUp as integer = 0
@@ -53273,7 +53341,15 @@ _gui_types:
     global GUIDC as integer = 1
     global ScaleGUI as integer = 1
     global guiIA as integer = 1
-
+    global guiloaderhud as integer = -1
+    global guieyehud as integer = -1
+    global guifaderhud as integer = -1
+    global guifaderalpha as integer = 0
+    global guieyetimer as integer = 0
+    global guihurttime as integer = 100
+    global guifaderspeed as integer = 4
+    global guiloadprogress as float = 100.0
+    
     type guihudtype
         Name As String
         Visible As Boolean
@@ -53296,7 +53372,7 @@ _gui_types:
         IsNumeric As Integer
         StrNumeric As String
     endtype
-    dim guihud(99) as guihudtype
+    dim guihud(299) as guihudtype
 
     type guicheckboxtype
         Name As String
@@ -53317,7 +53393,7 @@ _gui_types:
         dB As Integer
         iA As Integer
     endtype
-    dim guicheckbox(99) as guicheckboxtype
+    dim guicheckbox(299) as guicheckboxtype
 
     type guichoicetype
         Name As String
@@ -53360,7 +53436,7 @@ _gui_types:
         dB As Integer
         iA As Integer
     endtype
-    dim guichoice(99) as guichoicetype
+    dim guichoice(299) as guichoicetype
 
     type guislidertype
         Name As String
@@ -53392,7 +53468,7 @@ _gui_types:
         dB As Integer
         iA As Integer
     endtype
-    dim guislider(99) as guislidertype
+    dim guislider(299) as guislidertype
 
     type guisetupvartype
         Name As String
@@ -53400,7 +53476,7 @@ _gui_types:
         SetupLine As String
         Saved As Boolean
     endtype
-    dim guisvar(99) as guisetupvartype
+    dim guisvar(299) as guisetupvartype
 
     type guitimertype
         Name As String
@@ -53408,7 +53484,7 @@ _gui_types:
         RunTime As Integer
         Started As Boolean
     endtype
-    dim guitimer(99) as guitimertype
+    dim guitimer(299) as guitimertype
 
     type guiimagetype
         Name As String
@@ -53418,16 +53494,9 @@ _gui_types:
         Path As String
         LFIB As Integer
     endtype
-    dim guiimage(99) as guiimagetype
+    dim guiimage(999) as guiimagetype
 
     dim guival(maxparse) as string
-return
-
-_gui_init:
-    if MenuInit = 0
-        MenuInit = 1
-        gosub _gui_types
-    endif
 return
 
 _gui_run:
@@ -53739,6 +53808,39 @@ _gui_run:
             endif
         endif
     endif
+    if guiloaderhud > -1
+        if guihud(guiloaderhud).NormImageNo > -1
+            if sprite exist(guihud(guiloaderhud).NormImageNo)
+                set sprite alpha guihud(guiloaderhud).NormImageNo,255
+                t1#=guihud(guiloaderhud).Width*guiloadprogress
+                size sprite guihud(guiloaderhud).NormImageNo,t1#,guihud(guiloaderhud).AH
+                paste sprite guihud(guiloaderhud).NormImageNo,guihud(guiloaderhud).AL-(guihud(guiloaderhud).Width/2),guihud(guiloaderhud).AT-(guihud(guiloaderhud).Height/2)
+                guihud(guiloaderhud).Visible = 0
+            endif
+        endif
+    endif
+    if guifaderhud > -1
+        if guihud(guifaderhud).NormImageNo > -1
+            if sprite exist(guihud(guifaderhud).NormImageNo)
+                size sprite guihud(guifaderhud).NormImageNo,screen width(),screen height()
+                set sprite alpha guihud(guifaderhud).NormImageNo,guifaderalpha
+                paste sprite guihud(guifaderhud).NormImageNo,0,0
+                guihud(guifaderhud).Visible = 0
+            endif
+        endif
+    endif
+    if guieyehud > -1 and guieyetimer > 0
+        if guihud(guieyehud).NormImageNo > -1
+            if sprite exist(guihud(guieyehud).NormImageNo)
+                set sprite alpha guihud(guieyehud).NormImageNo,255
+                size sprite guihud(guieyehud).NormImageNo,screen width(),screen height()
+                paste sprite guihud(guieyehud).NormImageNo,0,0
+                guieyetimer = guieyetimer - 1
+                if guieyetimer < 0 then guieyetimer = 0
+                guihud(guieyehud).Visible = 0
+            endif
+        endif
+    endif
  endif
 return
 
@@ -53959,6 +54061,9 @@ function HideAllGUI()
 endfunction
 
 function ClearAllGUI()
+    guiloaderhud = -1
+    guieyehud = -1
+    guifaderhud = -1
     tHuds = 0
     tCheckbox = 0
     tSlider = 0
@@ -54037,6 +54142,9 @@ function MakeGUIHud(Name as string, NormImage as string, OverImage as string, L 
         guihud(tHuds).AT = (ScreenYPos(guihud(tHuds).Top)/768)*gdisplayheight
         guihud(tHuds).AW = (guihud(tHuds).Width/1024)*gdisplaywidth
         guihud(tHuds).AH = (guihud(tHuds).Height/768)*gdisplayheight
+        if lower$(Name) = "loader" then guiloaderhud = tHuds
+        if lower$(Name) = "fader" then guifaderhud = tHuds
+        if lower$(Name) = "eyehud" then guieyehud = tHuds
         tHuds = tHuds + 1
     endif
 endfunction
@@ -54202,10 +54310,10 @@ function MakeGUISetupVar(Name as string, Value as string, SetupLine as string)
     endif
 endfunction
 
-function CheckBuildScripts(ePath$, eName$)
+function CheckBuildScripts(ePath$, tLanguage$)
    rem Copy scripts manually so the default scripts aren't edited incase the user doesn't use GUI-X9 for their next build.
-    if file exist(get dir$()+"\files\gx9script.gx9")
-        open to read 1,get dir$()+"\files\gx9script.gx9"
+    if file exist(get dir$()+"\Files\script.gx9")
+        open to read 1,get dir$()+"\Files\script.gx9"
         if file open(1)=1
             read string 1,strTitlePage$
             read string 1,strLoadingScreen$
@@ -54215,18 +54323,22 @@ function CheckBuildScripts(ePath$, eName$)
         endif
         close file 1
     endif
-    cFPG$ = left$(currentFPG$,len(currentFPG$)-4)
-    if path exist(ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+eName$)=0 then make directory ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+cFPG$
-    if file exist(ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+eName$+"\titlepage.fpi") then delete file ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+cFPG$+"\titlepage.fpi"
-    if file exist(ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+eName$+"\loadingpage.fpi") then delete file ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+cFPG$+"\loadingpage.fpi"
-    if file exist(ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+eName$+"\setuplevel.fpi") then delete file ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+cFPG$+"\setuplevel.fpi"
-    if file exist(ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+eName$+"\gameover.fpi") then delete file ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+cFPG$+"\gameover.fpi"
-    if file exist(ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+eName$+"\gamewon.fpi") then delete file ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+cFPG$+"\gamewon.fpi"
-    if file exist(get dir$()+"\"+strTitlePage$) then copy file get dir$()+"\"+strTitlePage$,ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+cFPG$+"\titlepage.fpi"
-    if file exist(get dir$()+"\"+strLoadingScreen$) then copy file get dir$()+"\"+strLoadingScreen$,ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+cFPG$+"\loadingpage.fpi"
-    if file exist(get dir$()+"\"+strSetupLevel$) then copy file get dir$()+"\"+strSetupLevel$,ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+cFPG$+"\setuplevel.fpi"
-    if file exist(get dir$()+"\"+strGameOver$) then copy file get dir$()+"\"+strGameOver$,ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+cFPG$+"\gameover.fpi"
-    if file exist(get dir$()+"\"+strGameWon$) then copy file get dir$()+"\"+strGameWon$,ePath$+eName$+"\files\languagebank\"+language$+"\gamebank\"+cFPG$+"\gamewon.fpi"
+    if lower$(right$(currentFPG$,4))=".fpg"
+        guiFPG$=left$(currentFPG$,len(currentFPG$)-4)
+    else
+        guiFPG$=currentFPG$
+    endif
+    if path exist(ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$)=0 then make directory ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$
+    if file exist(ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\titlepage.fpi") then delete file ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\titlepage.fpi"
+    if file exist(ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\loadingpage.fpi") then delete file ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\loadingpage.fpi"
+    if file exist(ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\setuplevel.fpi") then delete file ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\setuplevel.fpi"
+    if file exist(ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\gameover.fpi") then delete file ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\gameover.fpi"
+    if file exist(ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\gamewon.fpi") then delete file ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\gamewon.fpi"
+    if file exist(get dir$()+"\"+strTitlePage$) then copy file get dir$()+"\"+strTitlePage$,ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\titlepage.fpi"
+    if file exist(get dir$()+"\"+strLoadingScreen$) then copy file get dir$()+"\"+strLoadingScreen$,ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\loadingpage.fpi"
+    if file exist(get dir$()+"\"+strSetupLevel$) then copy file get dir$()+"\"+strSetupLevel$,ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\setuplevel.fpi"
+    if file exist(get dir$()+"\"+strGameOver$) then copy file get dir$()+"\"+strGameOver$,ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\gameover.fpi"
+    if file exist(get dir$()+"\"+strGameWon$) then copy file get dir$()+"\"+strGameWon$,ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\gamewon.fpi"
 endfunction
 
 function GUI_ATIB()
@@ -54249,7 +54361,7 @@ function GUI_ATIB()
     endif
     for cF = 0 to tF-1
         if fArray(cF,0) <> "" and fArray(cF,1) <> ""
-            copy file get dir$()+"\"+fArray(cF,0),get dir$()+"\languagebank\"+language$+"\gamecore\backdrops\basic\"+fArray(cF,1)
+            copy file fArray(cF,0),get dir$()+"\languagebank\"+language$+"\gamecore\backdrops\basic\"+fArray(cF,1)
             if file exist("languagebank\"+language$+"\gamecore\backdrops\basic\"+fArray(cF,1)) then load image "languagebank\"+language$+"\gamecore\backdrops\basic\"+fArray(cF,1),80000+cF
         endif
     next
@@ -54273,7 +54385,6 @@ function GUI_CITF(ePath$, eName$)
         endif
         close file 1
     endif
-    cFPG$ = left$(currentFPG$,len(currentFPG$)-4)
     for cF = 0 to tF-1
         if fArray(cF,0) <> "" and fArray(cF,1) <> ""
             if path exist(ePath$+eName$)=0 then make directory ePath$+eName$
@@ -54283,7 +54394,7 @@ function GUI_CITF(ePath$, eName$)
             if path exist(ePath$+eName$+"\files\languagebank\"+language$+"\gamecore\")=0 then make directory ePath$+eName$+"\files\languagebank\"+language$+"\gamecore\"
             if path exist(ePath$+eName$+"\files\languagebank\"+language$+"\gamecore\backdrops\")=0 then make directory ePath$+eName$+"\files\languagebank\"+language$+"\gamecore\backdrops\"
             if path exist(ePath$+eName$+"\files\languagebank\"+language$+"\gamecore\backdrops\basic\")=0 then make directory ePath$+eName$+"\files\languagebank\"+language$+"\gamecore\backdrops\basic\"
-            if file exist(get dir$()+"\"+fArray(cF,0)) then copy file get dir$()+"\"+fArray(cF,0),ePath$+eName$+"\files\languagebank\"+language$+"\gamecore\backdrops\basic\"+fArray(cF,1)
+            if file exist(fArray(cF,0)) then copy file fArray(cF,0),ePath$+eName$+"\files\languagebank\"+language$+"\gamecore\backdrops\basic\"+fArray(cF,1)
         endif
     next
 endfunction
