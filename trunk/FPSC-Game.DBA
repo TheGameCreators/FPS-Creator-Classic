@@ -2819,6 +2819,7 @@ global gaspectratio : gaspectratio=0
 global gnewblossershaders : gnewblossershaders=1
 global gpostprocessing : gpostprocessing=0
 global gpostprocessingnotransparency : gpostprocessingnotransparency=0
+global gfinalrendercameraid : gfinalrendercameraid=0
 global gdepthcameraid : gdepthcameraid=0
 global gshowaioutlines : gshowaioutlines=0
 global gdisablepeeking : gdisablepeeking=0
@@ -52898,9 +52899,10 @@ _postprocess_init:
   if gpostprocessing=1 then tshaderchoice$=bloomfilescreen$ : gpostprocessingnotransparency=0 : gdepthcameraid=0
   if gpostprocessing=2 then tshaderchoice$=depthoffieldfilescreen$ : gpostprocessingnotransparency=0 : gdepthcameraid=4
   `
-  rem FPGC - 200310 - new camera 1 holds post-process screen quad (requires U75+)
-  make camera 3 : load effect tshaderchoice$,65535,0
-  set camera view 3,0,0,1,1
+  rem FPGC - 200310 - new camera 3 holds post-process screen quad (requires U75+)
+  gfinalrendercameraid=3
+  make camera gfinalrendercameraid : load effect tshaderchoice$,65535,0
+  set camera view gfinalrendercameraid,0,0,1,1
   set current camera 0
   `
   rem FPGC - 070410 - make a depth camera and assign it to image X
@@ -52924,7 +52926,7 @@ _postprocess_free:
  if gpostprocessmode=1
   delete effect 65535
   delete object 65536
-  delete camera 3 : set current camera 0
+  if gfinalrendercameraid>0 then delete camera gfinalrendercameraid : set current camera 0 : gfinalrendercameraid=0
   if gdepthcameraid<>0 then delete camera gdepthcameraid : set current camera 0 : gdepthcameraid=0
   gpostprocessingnotransparency=0
   gpostprocessmode=0
@@ -52965,7 +52967,8 @@ _postprocess_apply:
   if object exist(65536)=1
    show object 65536
   else
-   make object plain 65536,2,2 : set object effect 65536,65535 : set object mask 65536,%10
+   make object plain 65536,2,2 : set object effect 65536,65535
+   set object mask 65536,(1 << gfinalrendercameraid)
   endif
   set camera to image 0,65536,screen width(),screen height(),2
   texture object 65536,0,65536
@@ -52973,7 +52976,9 @@ _postprocess_apply:
    set camera to image gdepthcameraid,65537,screen width(),screen height(),2
    texture object 65536,1,65537
   endif
-  set camera view 1,0,0,screen width(),screen height()
+  if gfinalrendercameraid>0
+   set camera view gfinalrendercameraid,0,0,screen width(),screen height()
+  endif
   `
  endif
  `
@@ -53050,7 +53055,9 @@ _postprocess_off:
   `
   if object exist(65536)=1 then hide object 65536
   set camera view 0,0,0,screen width(),screen height()
-  set camera view 1,0,0,1,1
+  if gfinalrendercameraid>0
+   set camera view gfinalrendercameraid,0,0,1,1
+  endif
   `
  endif
  `
