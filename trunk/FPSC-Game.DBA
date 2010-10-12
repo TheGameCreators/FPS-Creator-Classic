@@ -33157,6 +33157,21 @@ if fpgcgenre=1
  if path exist("guns")=0 then make directory "guns"
 endif
 `
+rem Cannot depend on FPG being preserved, find from file collection
+currentFPG$="mygame"
+for fileindex=0 to filesmax
+ src$=filecollection$(fileindex)
+ if right$(lower$(src$),14)="\titlepage.fpi"
+  tsrc$=left$(src$,len(src$)-14)
+  for nn=len(tsrc$) to 1 step -1
+   if mid$(tsrc$,nn)="\" or mid$(tsrc$,nn)="/"
+    currentFPG$=right$(tsrc$,len(tsrc$)-nn)
+    nn=0 : exit
+   endif
+  next nn
+ endif
+next fileindex
+`
 rem GUI-X9 - knxrb
 set dir exepath$ : set dir ".." : CheckBuildScripts(exepath$+exename$,language$)
 `
@@ -54328,6 +54343,7 @@ function CheckBuildScripts(ePath$, tLanguage$)
     else
         guiFPG$=currentFPG$
     endif
+    
     if path exist(ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$)=0 then make directory ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$
     if file exist(ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\titlepage.fpi") then delete file ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\titlepage.fpi"
     if file exist(ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\loadingpage.fpi") then delete file ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\loadingpage.fpi"
