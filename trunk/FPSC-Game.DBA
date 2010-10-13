@@ -1943,8 +1943,9 @@ Rem Water commands
 rem GUI-X9 (knxrb) >>>
 #constant AIACTEYEHURTTIME 1342
 #constant AIACTFADERSPEED 1343
+#constant AIACTUSEGUIX9 1344
 rem GUI-X9 (knxrb) <<<
-#constant AIACTLAST 1344
+#constant AIACTLAST 1345
 
 rem V109 BETA3 - 210408 - AI variables
 global aivariablemode : aivariablemode=0 : rem 0-global, 1-local
@@ -6352,33 +6353,35 @@ function debugviewtext(progress,gamedebugviewtext$)
   tscrwiddiff#=tscrwiddiff#/1024.0 : progress#=progress#*tscrwiddiff#
   tscrhighdiff#=screen height()
   tscrhighdiff#=tscrhighdiff#/800.0
-  rem if internalloaderhud>0 and internalloaderhud<=array count(hud()) : rem GUI-X9 (knxrb)
-  if guiloaderhud > -1
-   rem GUI-X9 (knxrb) - (This area of code is not yet finished.)
-   if sprite exist(65534)
-    size sprite 65534,screen width(),screen height()
-    paste sprite 65534,0,0
-   endif
-   guiloadprogress = progress# : gosub _gui_run
-   rem Image Expand Bar Progress
-   remstart
-   t1=hud(internalloaderhud).width*progress#
-   size sprite internalloaderhud,t1,hud(internalloaderhud).height*tscrhighdiff#
-   paste sprite internalloaderhud,hud(internalloaderhud).posx,hud(internalloaderhud).posy
-   remend
+  if guiUsed = 0
+       if internalloaderhud>0 and internalloaderhud<=array count(hud())
+           rem Image Expand Bar Progress
+           t1=hud(internalloaderhud).width*progress#
+           size sprite internalloaderhud,t1,hud(internalloaderhud).height*tscrhighdiff#
+           paste sprite internalloaderhud,hud(internalloaderhud).posx,hud(internalloaderhud).posy
+       else
+           rem Default Bar Progress
+           if gdebugreportmodestate=1
+                progressx=54 : progressy=392 : progressh=18
+                progressw=screen width()-100.0001
+                if screen width()=800 then progressw=693
+                t1=progressw*progress# : t2=progressx+t1
+                ty=(screen height()-150)-(screen height()/10)
+                if screen height()=600 then ty=progressy
+                if t2>progressx then ink rgb(255,255,255),0 : box progressx,ty,t2,ty+(progressh*tscrhighdiff#)
+                if t2<progressx+progressw then ink rgb(0,0,0),0 : box t2,ty,progressx+progressw,ty+(progressh*tscrhighdiff#)
+           endif
+       endif
   else
-   rem Default Bar Progress
-   if gdebugreportmodestate=1
-    progressx=54 : progressy=392 : progressh=18
-    progressw=screen width()-100.0001
-    if screen width()=800 then progressw=693
-    t1=progressw*progress# : t2=progressx+t1
-    ty=(screen height()-150)-(screen height()/10)
-    if screen height()=600 then ty=progressy
-    if t2>progressx then ink rgb(255,255,255),0 : box progressx,ty,t2,ty+(progressh*tscrhighdiff#)
-    if t2<progressx+progressw then ink rgb(0,0,0),0 : box t2,ty,progressx+progressw,ty+(progressh*tscrhighdiff#)
+      if guiloaderhud > -1
+       rem GUI-X9 (knxrb)
+       if sprite exist(65534)
+        size sprite 65534,screen width(),screen height()
+        paste sprite 65534,0,0
+       endif
+       guiloadprogress = progress# : gosub _gui_run
+      endif
    endif
-  endif
  endif
  if gdebugreportmodestate=0 then sync
  `
@@ -11068,6 +11071,7 @@ actword$(AIACTSETHUDNUMERIC)="sethudnumeric"
 actword$(AIACTSETHUDVALUE)="sethudvalue"
 actword$(AIACTEYEHURTTIME)="eyehudtime"
 actword$(AIACTFADERSPEED)="faderspeed"
+actword$(AIACTUSEGUIX9)="usegui"
 rem GUI-X9 (knxrb) <<<
 Rem Water
 actword$(AIACTWATERHEIGHT)="waterheight"
@@ -15158,44 +15162,46 @@ if aiindex>0
      endcase
      case AIACTLOADGAME:
       rem Continue And Load
-      remstart
-      saveload.loadswitch=1
-      saveloadfile$=""
-      inputpositionmouse(screen width()/2,(screen height()/4)*3.5)
-      cleardelta=mousemovex() : cleardelta=mousemovey()
-      gosub _saveload_maindialogloop
-      if saveloadfile$<>""
-       rem Load level from scratch (using loadsavedlevel$)
-       loadsavedlevel$=saveloadfile$ : saveloadfile$=""
-       continueokay=1 : levelwon=3
+      if guiUsed = 0
+          saveload.loadswitch=1
+          saveloadfile$=""
+          inputpositionmouse(screen width()/2,(screen height()/4)*3.5)
+          cleardelta=mousemovex() : cleardelta=mousemovey()
+          gosub _saveload_maindialogloop
+          if saveloadfile$<>""
+           rem Load level from scratch (using loadsavedlevel$)
+           loadsavedlevel$=saveloadfile$ : saveloadfile$=""
+           continueokay=1 : levelwon=3
+          endif
+          inputpositionmouse(screen width()/2,(screen height()/4)*3.5)
+          cleardelta=mousemovex() : cleardelta=mousemovey()
+          hudselectionmade=0
+      else
+        rem GUI-X9 (knxrb)
+        initLoadSave = 0 : GUILoad = 1 : gosub _gui_run
       endif
-      inputpositionmouse(screen width()/2,(screen height()/4)*3.5)
-      cleardelta=mousemovex() : cleardelta=mousemovey()
-      hudselectionmade=0
-      remend
-      rem GUI-X9 (knxrb)
-      initLoadSave = 0 : GUILoad = 1 : gosub _gui_run
      endcase
      case AIACTSAVEGAME:
-      remstart
-      rem Continue And Save
-      saveload.loadswitch=0
-      saveloadfile$=""
-      inputpositionmouse(screen width()/2,(screen height()/4)*3.5)
-      cleardelta=mousemovex() : cleardelta=mousemovey()
-      gosub _saveload_maindialogloop
-      if saveloadfile$<>""
-       rem Save the current game position using 'saveloadfile$'
-       gosub _saveload_savegame
-       saveloadfile$=""
+      if guiUsed = 0
+          rem Continue And Save
+          saveload.loadswitch=0
+          saveloadfile$=""
+          inputpositionmouse(screen width()/2,(screen height()/4)*3.5)
+          cleardelta=mousemovex() : cleardelta=mousemovey()
+          gosub _saveload_maindialogloop
+          if saveloadfile$<>""
+           rem Save the current game position using 'saveloadfile$'
+           gosub _saveload_savegame
+           saveloadfile$=""
+          endif
+          while control_mouseclick()<>0 : endwhile
+          inputpositionmouse(screen width()/2,(screen height()/4)*3.5)
+          cleardelta=mousemovex() : cleardelta=mousemovey()
+          hudselectionmade=0
+      else
+        rem GUI-X9 (knxrb)
+        initLoadSave = 0 : GUISave = 1 : gosub _gui_run
       endif
-      while control_mouseclick()<>0 : endwhile
-      inputpositionmouse(screen width()/2,(screen height()/4)*3.5)
-      cleardelta=mousemovex() : cleardelta=mousemovey()
-      hudselectionmade=0
-      remend
-      rem GUI-X9 (knxrb)
-      initLoadSave = 0 : GUISave = 1 : gosub _gui_run
      endcase
      case AIACTQUICKLOADGAME:
       rem Quick Load no prompt
@@ -16822,6 +16828,13 @@ if aiindex>0
      case AIACTFADERSPEED:
         if aiactionseq(seq).string1 <> ""
             guifaderspeed = val(aiactionseq(seq).string1)
+        endif
+     endcase
+     case AIACTUSEGUIX9:
+        if aiactionseq(seq).string1 <> ""
+            guiUsed = val(aiactionseq(seq).string1)
+            if guiUsed > 1 then guiUsed = 1
+            if guiUsed < 0 then guiUsed = 0
         endif
      endcase
      `
@@ -19480,58 +19493,58 @@ else
 endif
 
 rem GUI-X9 (knxrb) Fade Out Screen
-if triggergameexitfade > 0
-    if guifaderhud > -1
-        inc guifaderalpha,guifaderspeed
-        if guifaderalpha > 255 then guifaderalpha = 255
-        gosub _gui_run
-        if guifaderalpha=255
-            if player(1).health<=0 and playerstartstrength>0 then levelwon=0
-            if gmultiplayergame=1
-                gosub _multi_missioncomplete
-            else
-                continueokay=1
+if guiUsed = 0
+    rem Fading system prior to WIN/LOSE logic escape
+    if triggergameexitfade>0
+     `
+     rem Fade out screen
+     inc triggergameexitfade,4
+     if triggergameexitfade>255
+      triggergameexitfade=255
+     endif
+     `
+     rem apply fade to hud
+     if internalfaderhud>0
+      hudid=internalfaderhud : hud(hudid).hide=0
+      set sprite alpha hudid,triggergameexitfade
+     endif
+     `
+     rem When fade complete, can continue win/lose triggers
+     if triggergameexitfade=255
+      rem can switch from WIN to LOSE if no health by time fade done
+      if player(1).health<=0 and playerstartstrength>0 then levelwon=0
+      rem complete game session
+      if gmultiplayergame=1
+       rem allow multi code to determine conclusion actions (multiplayer)
+       gosub _multi_missioncomplete
+      else
+       rem exit level (single player)
+       continueokay=1
+      endif
+      rem reset fader
+      triggergameexitfade=0
+     endif
+     `
+    endif
+else
+    if triggergameexitfade > 0
+        if guifaderhud > -1
+            inc guifaderalpha,guifaderspeed
+            if guifaderalpha > 255 then guifaderalpha = 255
+            gosub _gui_run
+            if guifaderalpha=255
+                if player(1).health<=0 and playerstartstrength>0 then levelwon=0
+                if gmultiplayergame=1
+                    gosub _multi_missioncomplete
+                else
+                    continueokay=1
+                endif
+                guifaderalpha=0
+                triggergameexitfade=0
             endif
-            guifaderalpha=0
-            triggergameexitfade=0
         endif
     endif
 endif
-
-remstart - Original fader code.
-rem Fading system prior to WIN/LOSE logic escape
-if triggergameexitfade>0
- `
- rem Fade out screen
- inc triggergameexitfade,4
- if triggergameexitfade>255
-  triggergameexitfade=255
- endif
- `
- rem apply fade to hud
- if internalfaderhud>0
-  hudid=internalfaderhud : hud(hudid).hide=0
-  set sprite alpha hudid,triggergameexitfade
- endif
- `
- rem When fade complete, can continue win/lose triggers
- if triggergameexitfade=255
-  rem can switch from WIN to LOSE if no health by time fade done
-  if player(1).health<=0 and playerstartstrength>0 then levelwon=0
-  rem complete game session
-  if gmultiplayergame=1
-   rem allow multi code to determine conclusion actions (multiplayer)
-   gosub _multi_missioncomplete
-  else
-   rem exit level (single player)
-   continueokay=1
-  endif
-  rem reset fader
-  triggergameexitfade=0
- endif
- `
-endif
-remend
 
 return
 
@@ -19933,17 +19946,18 @@ if player(plrid).lives=0 and player(plrid).health<=0 and playerstartlives>0
 endif
 if tsetplayereyehud=1
  rem GUI-X9 (knxrb) Eyehud
- if guieyehud > -1
-    guieyetimer = guihurttime+400
-    gosub _gui_run
+ if guiUsed = 0
+     rem update sprite used for screen fade
+     if internaleyehud>0
+      hudid=internaleyehud : hud(hudid).hide=0
+      hud(hudid).hidedelay=5
+     endif
+ else
+     if guieyehud > -1
+        guieyetimer = guihurttime+400
+        gosub _gui_run
+     endif 
  endif 
- remstart Original eyehud code
- rem update sprite used for screen fade
- if internaleyehud>0
-  hudid=internaleyehud : hud(hudid).hide=0
-  hud(hudid).hidedelay=5
- endif
- remend
 endif
 
 return
@@ -25094,15 +25108,16 @@ if (tdamage>0 and player(plrid).health>0 and playerstartstrength>0) or (playerst
  endif
  rem cause eyehud(red) to flare quickly
  rem GUI-X9 (knxrb) - Eyehud
- if guieyehud > -1
-    guieyetimer = guihurttime
-    gosub _gui_run
+ if guiUsed=0
+     hudid=internaleyehud
+     hud(hudid).hidedelay=3
+     hud(hudid).hide=0
+ else
+     if guieyehud > -1
+        guieyetimer = guihurttime
+        gosub _gui_run
+     endif
  endif
- remstart Original eyehud code
- hudid=internaleyehud
- hud(hudid).hidedelay=3
- hud(hudid).hide=0
-  remend
 endif
 `
 endif
@@ -31983,9 +31998,11 @@ return
 _ai_hud_view:
  `
  rem GUI-X9 (knxrb) - Draw background without having to call the 'backdrop' command each draw.
- if ingameloop=0 and sprite exist(65534)
-  size sprite 65534,screen width(),screen height()
-  paste sprite 65534,0,0
+ if guiUsed = 1
+     if ingameloop=0 and sprite exist(65534)
+      size sprite 65534,screen width(),screen height()
+      paste sprite 65534,0,0
+     endif
  endif
  `
  rem FPGC - 280610 - must be called to ensure we have latest mouse position from mouse input (movemousexy)
@@ -32303,7 +32320,7 @@ next cLayer : rem V118 - 110810 - knxrb - Hud Layers
  for hudid=1 to hudmax
   `
   rem Special HUD Pointer
-  if hud(hudid).maintype=2 and MouseSprite = -1 : rem GUI-X9 (knxrb)
+  if hud(hudid).maintype=2 and guiUsed = 0 and MouseSprite = -1 : rem GUI-X9 (knxrb)
    `
    rem FPGC - 220210 - Contoller
    ttmouseclick=0 : ttcontrolofmousepos=1 : gosub _ai_hud_controller
@@ -32711,6 +32728,9 @@ if thudi>hudmax
  if workhudmake$="internal"
   hud(hudid).maintype=5
   hud(hudid).typemode=workhudtype : rem 1loader,2eyehud,3fader,4zoom
+  if workhudtype=1 then internalloaderhud=hudid
+  if workhudtype=2 then internaleyehud=hudid
+  if workhudtype=3 then internalfaderhud=hudid
   if workhudtype=4 then internalzoomhud=hudid : internalzoomhudimage=workhudimage
  endif
  if workhudmake$="numeric"
@@ -32969,7 +32989,7 @@ endif
 if right$(exepath$,1)<>"\" then exepath$=exepath$+"\"
 if path exist(exepath$)=0 then exepath$=rootpath$+"\..\MyGames\"
 
-if gimageblockmode=0 then GUI_CITF(exepath$, exename$) : rem GUI-X9 (knxrb)
+if gimageblockmode=0 and guiUsed=1 then GUI_CITF(exepath$, exename$) : rem GUI-X9 (knxrb)
 
 rem Despot file collection
 if file exist("..\buildfiles.ini")=1 then delete file "..\buildfiles.ini"
@@ -33174,7 +33194,8 @@ for fileindex=0 to filesmax
 next fileindex
 `
 rem GUI-X9 - knxrb
-set dir exepath$ : set dir ".." : CheckBuildScripts(exepath$+exename$,language$)
+set dir exepath$ : set dir ".."
+if guiUsed=1 then CheckBuildScripts(exepath$+exename$,language$)
 `
 rem Restore directory
 set dir rootpath$
@@ -39014,15 +39035,13 @@ _saveload_savebox_dosave:
  rem Fill details
  tname$=strarr$(652)+" "+str$(level)
  rem GUI-X9 (knxrb)
- `tdate$=left$(get time$(),5)+"-"+left$(get date$(),5)
- `tnameanddate$=tname$+" "+tdate$
- tdate$=left$(get time$(),5)+" - "+left$(get date$(),10)
- tnameanddate$=tname$+"  ("+tdate$+")"
- `
- rem Fill details
- tname$=strarr$(652)+" "+str$(level)
- tdate$=left$(get time$(),5)+"-"+left$(get date$(),5)
- tnameanddate$=tname$+" "+tdate$
+ if guiUsed=0
+     tdate$=left$(get time$(),5)+"-"+left$(get date$(),5)
+     tnameanddate$=tname$+" "+tdate$
+ else
+     tdate$=left$(get time$(),5)+" - "+left$(get date$(),10)
+     tnameanddate$=tname$+"  ("+tdate$+")"
+ endif
  `
  rem Make entry in slot list and save
  ttfile$="gamesaves\saveload.arr"
@@ -53336,6 +53355,7 @@ _gui_init:
 return
 
 _gui_types:
+    global guiUsed as integer = 0
     global mMouseState as integer = 0
     global mMouseUp as integer = 0
     global MouseDownHud$ as string = ""
@@ -54350,7 +54370,11 @@ function CheckBuildScripts(ePath$, tLanguage$)
     else
         guiFPG$=currentFPG$
     endif
-    
+    if strTitlePage$ = "" then strTitlePage$ = "Files\GUI-X9\titlepage.fpi"
+    if strLoadingScreen$ = "" then strLoadingScreen$ = "Files\GUI-X9\loadingpage.fpi"
+    if strSetupLevel$ = "" then strSetupLevel$ = "Files\GUI-X9\setuplevel.fpi"
+    if strGameOver$ = "" then strGameOver$ = "Files\GUI-X9\gameover.fpi"
+    if strGameWon$ = "" then strGameWon$ = "Files\GUI-X9\gamewon.fpi"
     if path exist(ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$)=0 then make directory ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$
     if file exist(ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\titlepage.fpi") then delete file ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\titlepage.fpi"
     if file exist(ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\loadingpage.fpi") then delete file ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\loadingpage.fpi"
