@@ -1587,6 +1587,7 @@ rem GUI-X9 (knxrb) >>>
 #constant AICONDSETUPVAREQUAL 854
 #constant AICONDCURSORIMAGE 855
 #constant AICONDCHOICEVALUEEQUAL 856
+#constant AICONDSLIDERVALUEEQUAL 857
 rem GUI-X9 (knxrb) <<<
 
 #constant AICONDLAST 900
@@ -10746,6 +10747,7 @@ conword$(AICONDSTOPWATCHRUNNING)="swrunning"
 conword$(AICONDSETUPVAREQUAL)="svarequal"
 conword$(AICONDCURSORIMAGE)="cursorimage"
 conword$(AICONDCHOICEVALUEEQUAL)="choicevalueequal"
+conword$(AICONDSLIDERVALUEEQUAL)="slidervalueequal"
 rem GUI-X9 (knxrb) <<<
 
 rem Set all action keywords
@@ -12765,6 +12767,14 @@ if aiindex>0
             cID = -1 : cID = GUIChoiceFromName(aiconditionseq(seq).string1)
             if cID > -1
                if lower$(guichoice(cID).SelectedState) <> lower$(aiconditionseq(seq).string2) then airesult=0
+            endif
+        endif
+    endcase
+    case AICONDSLIDERVALUEEQUAL:
+        if aiconditionseq(seq).string1 <> "" and aiconditionseq(seq).string2 <> ""
+            cID = -1 : cID = GUISliderFromName(aiconditionseq(seq).string1)
+            if cID > -1
+               if lower$(str$(guislider(cID).SVal)) <> lower$(aiconditionseq(seq).string2) then airesult=0
             endif
         endif
     endcase
