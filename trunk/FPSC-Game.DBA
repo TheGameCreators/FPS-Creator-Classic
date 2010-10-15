@@ -4060,7 +4060,20 @@ _main_sync:
  else
   gosub _postprocess_renderdepthcamera
   if wateron=1
+   Rem Hide crosshair from camera renders
+   if gunid>0
+    if gun(gunid).settings.crosshairimg>0 then hide object hudbankoffset+31
+   endif
+   if currentgunobj>0
+    if object visible(currentgunobj)
+     Hide Object currentgunobj : tguncurrenthidden=1
+    endif
+   endif
    UpdateWater()
+   if gunid>0
+    if gun(gunid).settings.crosshairimg>0 then show object hudbankoffset+31
+   endif
+   if currentgunobj>0 and tguncurrenthidden=1 then show object currentgunobj : tguncurrenthidden=0
   else
    if object visible(waterobj) then Hide Object waterobj
   endif
@@ -4214,6 +4227,8 @@ if gmultiplayergame=0 then debugviewtext(315,"Loading Flak Scripts...") :   gosu
 rem Entities can intropduce fake players, init all
 debugviewtext(318,strarr$(145)) : gosub _player_init : gosub _player_resetobjectives
 debugviewtext(320,strarr$(146)) : gosub _entity_startentitiesoff
+`
+debugviewtext(330,"Creating Water...") : MakeWater()
 
 rem Okay for start of game, can skip for exe construction
 if gcompilestandaloneexe=0
@@ -4237,8 +4252,6 @@ if gcompilestandaloneexe=0
  debugviewtext(327,"Preparing AI Data...") : gosub _darkai_debug
  Rem Hockeykid - 040410 - Added subroutine to add all .ischaracter's E to ischaracter() array
  debugviewtext(327,"Preparing AI Arrays...") : gosub _Character_Array
- `
- debugviewtext(330,"Creating Water...") : MakeWater()
  `
  rem FPGC - 050510 - at end of generation phase, load sounds in (if room)
  debugviewtext(328,strarr$(105)) : gosub _entity_createelements_loadsoundlast
@@ -19956,8 +19969,8 @@ if tsetplayereyehud=1
      if guieyehud > -1
         guieyetimer = guihurttime+400
         gosub _gui_run
-     endif 
- endif 
+     endif
+ endif
 endif
 
 return
@@ -24180,7 +24193,7 @@ if flak(flakid).obj>0
    rem Fill in entity details
    ttempe=e : e=felement
    entityelement(e).eleprof.name$="flak "+str$(e)
-   entityelement(e).ai.state$="0" 
+   entityelement(e).ai.state$="0"
    entityelement(e).obj=tfobj
    entityelement(e).profileobj=tfprofobj
    entityelement(e).isflak=flakid
@@ -24987,6 +25000,7 @@ _decal_triggermaterialdebris:
  rem takes tsoundmaterial,tsx#,tsy#,tsz#
  if tsoundmaterial>0
   decalid=material(tsoundmaterial-1).decalid
+  if tsy#<waterheight#+10 then decalid=0
   if decalid>0
    rem create the decal for this event
    decalscalemodx=0 : rem FPSCV101 - fix
@@ -25363,8 +25377,8 @@ _lighting_ambientcontrol:
 
 rem Irrespective of dynamic light setting
 tempam=guivisualsettings.ambience
-if inkey$()="," and guivisualsettings.ambience>0 then dec guivisualsettings.ambience : guivisualsettings.updateflag=1 : ambiencetimer=5
-if inkey$()="." and guivisualsettings.ambience<100 then inc guivisualsettings.ambience : guivisualsettings.updateflag=1 : ambiencetimer=5
+if inkey$()="," and guivisualsettings.ambience>0 then dec guivisualsettings.ambience : guivisualsettings.updateflag=1 : ambiencetimer=5 : watertimer=0
+if inkey$()="." and guivisualsettings.ambience<100 then inc guivisualsettings.ambience : guivisualsettings.updateflag=1 : ambiencetimer=5 : watertimer=0
 if ambiencetimer>0 and gtestgamemodefromeditor=1
  `
  if grawtextsize<>12 then set text size 12 : grawtextsizelast=-1
@@ -35461,6 +35475,9 @@ _ode_sounds:
  rem also handle shadows
  gosub _ode_shadowcontrol
  `
+ rem now go through all objects to see how they react in water out of water
+ gosub _ode_waterandgravity
+ `
 return
 
 _ode_shadowcontrol:
@@ -35547,6 +35564,97 @@ _ode_shadowcontrol:
    `
   endif
  next e
+ `
+return
+
+_ode_waterandgravity_item:
+ `
+ rem obj is twaterobj, optional e
+ rem if have associated entity
+ twatere=phyobjele(twaterobj)
+ rem depth of surface resistance
+ depth#=40.0
+ rem if deep enough to cover entity, switch gravity off
+ tactualtopofobject#=object position y(twaterobj)+(object size y(twaterobj)/2.0)
+ if twatere>0
+  rem if character, test higher
+  if entityprofile(entityelement(twatere).bankindex).ischaracter=1
+   tactualtopofobject#=tactualtopofobject#+25.0
+  endif
+ endif
+ if tactualtopofobject#<waterheight#
+  rem no gravity
+  `if physxedition=1
+   `entityelement(twatere).nogravity=1
+   `ttobj=twaterobj : ode set gravity ttobj,0
+ ` else
+   ode set gravity twaterobj,0
+  `endif
+  rem current velocity of entity (natural damping)
+  tvelokay=1
+  if tvelokay=1
+   rem regular underwater handling
+   oldvelx#=ODE GET BODY LINEAR VELOCITY X(twaterobj)*0.97
+   oldvely#=ODE GET BODY LINEAR VELOCITY Y(twaterobj)*0.97
+   oldvelz#=ODE GET BODY LINEAR VELOCITY Z(twaterobj)*0.97
+   rem resist zero gravity and entity leaves surface of water (very subtle!)
+   if object position y(twaterobj)>waterheight#-depth#
+    resistby#=depth#-abs(object position y(twaterobj)-waterheight#)
+    oldvely#=oldvely#-(resistby#*0.0005)
+   endif
+   rem raise/lower entity based on weight (750 = 10x10x10 cube) (based on depth)
+   depthfactor#=abs(object position y(twaterobj)-waterheight#)/100.0
+   if twatere>0
+    depthdecent#=((entityelement(twatere).eleprof.phyweight-2000)/5000.0)*depthfactor#
+    oldvely#=oldvely#-depthdecent#
+   else
+    rem if not entity (debris or ragdoll) sink
+    depthdecent#=0.0001
+    oldvely#=oldvely#-0.0001
+   endif
+  endif
+  rem 220707 - random chaos in water based on water speed
+  hudwaterspeed=waterbump#
+  if hudwaterspeed>0
+   rem nudge in X and Z randomly factored by water speed
+   tnudge#=((depthdecent#/25.0)*(hudwaterspeed+0.1))
+   cyclicchaos#=cyclicchaos#+0.03
+   if rnd(5)<>1 then tnudge#=0.0
+   oldvelx#=oldvelx#+(cos(cyclicchaos#)*tnudge#)
+   oldvelz#=oldvelz#+(sin(cyclicchaos#)*tnudge#)
+  endif
+  rem finally apply new velocity
+  ode set linear velocity twaterobj,oldvelx#,oldvely#,oldvelz#
+ else
+  rem gravity on
+  ode set gravity twaterobj,1
+ endif
+ `
+return
+
+_ode_waterandgravity:
+ `
+ rem go through all entities
+ for e=1 to entityelementmax
+  twaterobj=entityelement(e).obj
+  if twaterobj>0
+   if entityelement(e).eleprof.physics=1
+    rem only physics objects that are subject to ODE gravity
+    twatere=e : gosub _ode_waterandgravity_item
+   endif
+  endif
+ next e
+ `
+ rem go through all debris
+ for twaterobj=fragmentobjectoffset to fragmentobjectoffsetmax
+  if object exist(twaterobj)=1
+   if object visible(twaterobj)=1
+    if twaterobj>0
+     twatere=0 : gosub _ode_waterandgravity_item
+    endif
+   endif
+  endif
+ next twaterobj
  `
 return
 
@@ -53090,10 +53198,35 @@ _water_control:
   waterdecalripple=0
  endif
  Rem Handle raising water and lowering water
- if keystate(201) and gtestgamemodefromeditor=1 then  oldwaterheight#=waterheight# : inc waterheight#
- if keystate(209) and gtestgamemodefromeditor=1 then  oldwaterheight#=waterheight# : dec waterheight#
+ tupdatewater=0
+ if keystate(201) and gtestgamemodefromeditor=1 then inc waterheight# : watertimer=5 : ambiencetimer=0
+ if keystate(209) and gtestgamemodefromeditor=1 then dec waterheight# : watertimer=5 : ambiencetimer=0
  if waterheight#<1 then waterheight#=0
- if waterheight#<>oldwaterheight# then tupdatewater=1
+ if waterheight#<>oldwaterheight# then tupdatewater=1 : oldwaterheight#=waterheight#
+ `
+ if watertimer>0 and gtestgamemodefromeditor=1
+  `
+  if grawtextsize<>12 then set text size 12 : grawtextsizelast=-1
+  if grawtextfont$<>"Verdana" then set text font "Verdana" : grawtextfontlast$="Verdana"
+  `
+  water$="Water Height: "+str$(waterheight#)`+" Red: "+str$(hudambiencered)+" Blue: "+str$(hudambienceblue)+" Green: "+str$(hudambiencegreen)
+  center text (gdisplaywidth/100.0)*50,1,water$
+  `
+  time$="Press enter to save water height: "+str$(watertimer)
+  center text (gdisplaywidth/100.0)*50,Text Height(water$)+4,time$
+  if keystate(28)=1
+   rem FPGC - 130710 - if in test mode, save ambient setting from config file
+   if file exist("editors\gridedit\testwater.txt")=1 then delete file "editors\gridedit\testwater.txt"
+   open to write 1,"editors\gridedit\testwater.txt"
+   write string 1,str$(waterheight#)
+   close file 1
+   watertimer=0
+  endif
+  `
+  if waterwatch=0 then waterwatch=timer()
+  if timer()-waterwatch>=1000 then dec watertimer : waterwatch=0
+ endif
+ if watertimer<=0 then watertimer=0
  `
  Rem Check is swimming along surface
  tnearsurfaceofwater=abs(camera position y()-waterheight#)
@@ -53268,6 +53401,16 @@ function setintervar(var$,alter#)
 endfunction
 
 function MakeWater()
+ `
+ rem TestGameFromEditor Mode Water Height
+ if gtestgamemodefromeditor<>0
+  if file exist("editors\gridedit\testwater.txt")=1
+   open to read 1,"editors\gridedit\testwater.txt"
+   read string 1,a$ : waterheight#=val(a$)
+   close file 1
+  endif
+ endif
+ `
  Img=19876
  Rem Cameras
  Sw#=screen width():Sh#=screen height()
@@ -53285,16 +53428,16 @@ function MakeWater()
 
  Rem Make Water plain
  path$="effectbank\common\"
- if file exist(path$+"water_N.dds") then load image path$+"water_N.dds",Img+2
- if file exist(path$+"Fresnel.bmp") then load image path$+"Fresnel.bmp",Img+3
- if file exist(path$+"WaterMask.bmp") then load image path$+"WaterMask.bmp",Img+4
+ if file exist(path$+"water_N.dds") then load image path$+"water_N.dds",Img+2 : addfiletocollection(path$+"water_N.dds")
+ if file exist(path$+"Fresnel.bmp") then load image path$+"Fresnel.bmp",Img+3 : addfiletocollection(path$+"Fresnel.bmp")
+ if file exist(path$+"WaterMask.bmp") then load image path$+"WaterMask.bmp",Img+4 : addfiletocollection(path$+"WaterMask.bmp")
  `
  make object plain waterobj,80*100,80*100
  for i=0 to 4
   texture object waterobj,i,Img+i
  next i
  xrotate object waterobj,270
- if file exist(path$+"Water.fx") then load effect path$+"Water.fx",waterfx,0 : set object effect waterobj,waterfx
+ if file exist(path$+"Water.fx") then load effect path$+"Water.fx",waterfx,0 : set object effect waterobj,waterfx : addfiletocollection(path$+"Water.fx")
  set object transparency waterobj,1
  hide object waterobj
 endfunction
@@ -53391,7 +53534,7 @@ _gui_types:
     global guihurttime as integer = 100
     global guifaderspeed as integer = 4
     global guiloadprogress as float = 100.0
-    
+
     type guihudtype
         Name As String
         Visible As Boolean
@@ -54020,7 +54163,7 @@ function ReplaceGUIImage(Name as string, Path as string)
         if guiimage(rINo).ImageNo <> -1
             if sprite exist(guiimage(rINo).ImageNo) then delete sprite guiimage(rINo).ImageNo
         endif
-        guiimage(rINo).Path = Path              
+        guiimage(rINo).Path = Path
         if file exist("imageblock.bin")=0
             if file exist(get dir$()+"\"+guiimage(rINo).Path) then load image get dir$()+"\"+guiimage(rINo).Path,guiimage(rINo).ImageNo
             if image exist(guiimage(rINo).ImageNo) then guiimage(rINo).LFIB = 0
@@ -54034,7 +54177,7 @@ function ReplaceGUIImage(Name as string, Path as string)
                 if file exist(get dir$()+"\"+guiimage(rINo).Path) then load image get dir$()+"\"+guiimage(rINo).Path,guiimage(rINo).ImageNo
                 if image exist(guiimage(rINo).ImageNo) then guiimage(rINo).LFIB = 0
             endif
-        endif 
+        endif
         if image exist(guiimage(rINo).ImageNo)
             sprite guiimage(rINo).ImageNo,-10000,-10000,guiimage(rINo).ImageNo
             set sprite guiimage(rINo).ImageNo,0,1
