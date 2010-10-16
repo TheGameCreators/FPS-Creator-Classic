@@ -1482,7 +1482,10 @@ rem AI constants
 #constant AICONDPLRELEVWITHIN 106
 #constant AICONDPLRELEVFURTHER 107
 #constant AICONDPLRFACING 108
+#constant AICONDPLRNOTFACING 109
+#constant AICONDPLRUNDERWATER 110
 #constant AICONDPLRALIVE 111
+#constant AICONDUNDERWATER 120
 #constant AICONDSHOTDAMAGE 121
 #constant AICONDIFWEAPON 122
 #constant AICONDCANTAKE 131
@@ -10643,6 +10646,9 @@ conword$(AICONDPLRHIGHER)="plrhigher"
 conword$(AICONDPLRELEVWITHIN)="plrelevwithin"
 conword$(AICONDPLRELEVFURTHER)="plrelevfurther"
 conword$(AICONDPLRFACING)="plrfacing"
+conword$(AICONDPLRUNDERWATER)="plrunderwater"
+conword$(AICONDUNDERWATER)="underwater"
+conword$(AICONDNOTPLRFACING)="plrnotfacing"
 conword$(AICONDANYWITHIN)="anywithin"
 conword$(AICONDANYFURTHER)="anyfurther"
 conword$(AICONDPLRCANBESEEN)="plrcanbeseen"
@@ -11745,6 +11751,42 @@ if aiindex>0
       rem player facing entity
      else
       airesult=0
+     endif
+    endcase
+    `
+    case AICONDPLRNOTFACING:
+     tmp=aiconditionseq(seq).valuea
+     if tmp=0 then tmp=35
+     tmpx#=entityelement(e).x-mex#
+     tmpz#=entityelement(e).z-mez#
+     rem FPGC - 100310 - adjust actual viewing angle with VR tracker
+     tmpcamy#=camera angle y()
+     if gvrmode<>0 then tmpcamy#=tmpcamy#-vrmodetrackery#
+     tentitya#=wrapvalue(atanfull(tmpx#,tmpz#))-tmpcamy#
+     tentitya#=wrapvalue(tentitya#)
+     `if tentitya#<0.0 then tentitya#=tentitya#+360.0
+     `if tentitya#>=360.0 then tentitya#=tentitya#-360.0
+     if (tentitya#>0-tmp and tentitya#<0+tmp) or (tentitya#>360-tmp and tentitya#<360+tmp)
+      rem player facing entity
+      airesult=0
+     else
+      airesult=1
+     endif
+    endcase
+    `
+    case AICONDPLRUNDERWATER:
+     if wateron=1
+      conda=aiconditionseq(seq).valuea
+      if conda=0 and playerunderwater=1 then airesult=0
+      if conda=1 and playerunderwater=0 then airesult=0
+     endif
+    endcase
+    case AICONDUNDERWATER:
+     if wateron=1
+      conda=aiconditionseq(seq).valuea
+      tactualtopofobject#=object position y(entityelement(e).obj)+(object size y(entityelement(e).obj)/2.0)
+      if conda=0 and tactualtopofobject#<waterheight# then airesult=0
+      if conda=1 and tactualtopofobject#>waterheight# then airesult=0
      endif
     endcase
     `

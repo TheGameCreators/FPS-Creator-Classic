@@ -9,6 +9,9 @@ History
 V1.1.8
 ------
  
+ * Added new FPI condition called UNDERWATER=X this will return true if the entity is under the water surface
+ * Added new FPI condition called PLRUNDERWATER=X this will return true if the player is under the water surface
+ * Added new FPI condition called PLRNOTFACING which is true when the player is not facing the entity scripted
  * Added water "effects" such as water physics, swimming, water ripple, water splashes...etc
  * Added WATERFOGDIST=X to change how far away the underwater fog is
  * Added WATERFOGBLUE=X to change the blue value of the water's underwater color
