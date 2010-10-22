@@ -3952,7 +3952,6 @@ _main_game_core:
  endif
  `
  rem Update screen
- `
  gosub _main_sync
  `
  rem FPGC - 190310 - quick exit keys (for standalone game only)
@@ -4073,7 +4072,16 @@ _main_sync:
      Hide Object currentgunobj : tguncurrenthidden=1
     endif
    endif
+   `
+   Rem ensure skybox is rendered
+   if object exist(65123)
+    if object visible(65123)=0 then show object 65123 : wasinvisible=1
+   endif
    UpdateWater()
+   if object exist(65123)
+    if wasinvisible=1 then hide object 65123 : wasinvisible=0
+   endif
+   `
    if gunid>0
     if gun(gunid).settings.crosshairimg>0 then show object hudbankoffset+31
    endif
@@ -17245,6 +17253,7 @@ if desc$<>""
          set object light 65123,0
          set object cull 65123,0
          set object fog 65123,0
+         set object mask 65123,%111
         endif
        endif
       endif
@@ -21776,7 +21785,7 @@ if gunshoot=1
    endif
   endif
   bulletdamage=firemode(gunid,firemode).settings.damage
-  if gun(gunid).settings.ismelee=2 then bulletdamage=firemode(gunid,firemode).settings.meleedamage
+  if gun(gunid).settings.ismelee=2 then bulletdamage=firemode(gunid,firemode).settings.meleedamage : trayiter=1
   `
   rem Special ZOOMODE kill in multiplayer
   if gmultiplayergame=1
@@ -53472,7 +53481,7 @@ function MakeWater()
   if camera exist(c)=0 then make camera c : rem (Sean: I added the camera exist check as it crashed if you re-entered game.)
   set camera range c,2.0,realrange#
   set camera aspect c,aspect#
-  backdrop off c
+  backdrop off c`n c : color backdrop c,rgb(0,255,0)
   if c=1 then set camera to image c,Img,Sw#,Sh#
   if c=2 then set camera to image c,Img+1,Sw#,Sh#
   set camera fov c,75
