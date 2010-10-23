@@ -21888,7 +21888,8 @@ if gunshoot=1
   `
   rem Special ZOOMODE kill in multiplayer
   if gmultiplayergame=1
-   if gunzoommode<>0
+   Rem don't allow a gun using iron sights to use the on shot kill
+   if gunzoommode<>0 and firemode(gunid,firemode).settings.simplezoom=0
     bulletdamage=65500
    endif
   endif
