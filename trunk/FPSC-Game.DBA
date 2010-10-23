@@ -1735,6 +1735,7 @@ rem GUI-X9 (knxrb) <<<
 #constant AIACTMUSICOVERRIDE 1014
 #constant AIACTVIDEO 1021
 #constant AIACTWEBLINK 1031
+#constant AIACTEXPLODE 1032
 #constant AIACTLIGHTON 1051
 #constant AIACTLIGHTOFF 1052
 #constant AIACTLIGHTRED 1053
@@ -10907,6 +10908,7 @@ actword$(AIACTMUSICVOLUME)="musicvolume"
 actword$(AIACTSOUNDSCALE)="soundscale"
 actword$(AIACTVIDEO)="video"
 actword$(AIACTWEBLINK)="weblink"
+actword$(AIACTEXPLODE)="explode"
 actword$(AIACTLIGHTON)="lighton"
 actword$(AIACTLIGHTOFF)="lightoff"
 actword$(AIACTLIGHTRED)="lightred"
@@ -15024,6 +15026,82 @@ if aiindex>0
         execute file "iexplore.exe",weblinkaddress$,"C:\Program Files\Internet Explorer",1
         window to front
        endif
+      endif
+     endcase
+     `
+     case AIACTEXPLODE:
+      texplodable=entityelement(e).eleprof.explodable
+      tentid=entityelement(e).bankindex
+      `
+      if texplodable=1
+       rem the visual and audio bang part
+       frox#=entityelement(e).x : froy#=entityelement(e).y : froz#=entityelement(e).z
+       gosub _part_triggerexplosion
+       rem the force part
+       spheredamage=entityelement(e).eleprof.explodedamage
+       spherex#=frox# : spherey#=froy# : spherez#=froz#
+       sphereforce#=1.0 : gosub _entity_addforcesphere
+       rem characters disappear when they explode
+       if entityprofile(tentid).ischaracter=1
+        rem destroy object completely
+        gosub _ode_switchoffe
+        rem hide object
+        tobj=entityelement(e).obj
+        hide object tobj
+        rem hide blob shadow if any
+        if entityelement(e).attachmentblobobj>0
+         if object exist(entityelement(e).attachmentblobobj)=1
+          hide object entityelement(e).attachmentblobobj
+         endif
+        endif
+        rem triggers the throwback scripts to skip, direct to destroy AI
+        tresult=4
+       endif
+      endif
+      `
+      if texplodable=2 and explosionscorch<>0
+       rem not quite explode, just scorch (as though internally fried)
+       tobj=entityelement(e).obj
+       set blend mapping on tobj, 1, explosionscorch, 3, 6
+       set object transparency tobj,0
+      endif
+      `
+      Rem entity is scriptable flak - blow it up as if it were a normal piece of flak
+      if texplodable=3
+       tobj=entityelement(e).obj
+       rem USED TO hide flak object - Lets let it live so we can have flak objects blow up multiple times
+       `hide object tobj
+       rem trigger exploder
+       frox#=object position x(tobj)
+       froy#=object position y(tobj)
+       froz#=object position z(tobj)
+       gosub _part_triggerexplosion
+       rem make sound seem louder by moving it closer to player
+       playinternal3dsound(flak(tflakid).sound.sndexplodeid,decalx,decaly,decalz)
+       rem ONLY affect decal with ZBIAS if explosion that needs to be seen by player in full
+       if object exist(tobj)=1 then enable object zbias tobj,-500.0,0.0
+       rem initial blast creates scorch (in six directions)
+       for tscdir=1 to 6
+        if tscdir=1 then t=static raycast(frox#+0,froy#,froz#,frox#-400,froy#,froz#) `200
+        if tscdir=2 then t=static raycast(frox#+0,froy#,froz#,frox#+400,froy#,froz#)
+        if tscdir=3 then t=static raycast(frox#,froy#+0,froz#,frox#,froy#-400,froz#)
+        if tscdir=4 then t=static raycast(frox#,froy#+0,froz#,frox#,froy#+400,froz#)
+        if tscdir=5 then t=static raycast(frox#,froy#,froz#+0,frox#,froy#,froz#-400)
+        if tscdir=6 then t=static raycast(frox#,froy#,froz#+0,frox#,froy#,froz#+400)
+        tsize#=45-rnd(30) : if t=1 then add static scorch tsize#,4+rnd(3)
+       next tscdir
+       rem initial blast creates light flash
+       spotflash=100 : tx#=decalx : ty#=decaly : tz#=decalz
+       tcolr=255
+       tcolg=255
+       tcolb=0
+       gosub _lighting_spotflash
+       rem all entities that can take damage (characters, windows)
+       tx#=object position x(tobj) : ty#=object position y(tobj) : tz#=object position z(tobj)
+       spheredamage=flak(entityelement(e).isflak).profile.damage
+       spherex#=tx# : spherey#=ty# : spherez#=tz# : sphereforce#=1.0
+       gosub _entity_addforcesphere
+       disable object zbias tobj
       endif
      endcase
      `
@@ -24285,6 +24363,7 @@ if flak(flakid).obj>0
    entityelement(e).obj=tfobj
    entityelement(e).profileobj=tfprofobj
    entityelement(e).isflak=flakid
+   entityelement(e).eleprof.explodable=3
    entityelement(e).ai.libindex=flak(flakid).libindex
    entityelement(e).x=flakx
    entityelement(e).y=flaky
@@ -24316,6 +24395,7 @@ if flak(flakid).obj>0
    entityelement(e).eleprof.physics=flak(flakid).profile.physics
    entityelement(e).eleprof.phyweight=flak(flakid).profile.phyweight
    entityelement(e).eleprof.phyfriction=flak(flakid).profile.phyfriction
+   entityelement(e).eleprof.phyalways=1
    entityelement(e).nofloorlogic=1 : rem lee - cannot be stopped in thin air (viscolmap)
    entityelement(e).nogravity=1 : rem lee - cannot use gravity by default (entities controlled by script)
    `

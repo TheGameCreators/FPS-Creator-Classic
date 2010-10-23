@@ -9,6 +9,8 @@ History
 V1.1.8
 ------
  
+ * Added new FPI action called EXPLODE this will cause an explodable entity to trigger its explosion OR if the object is a scriptable flak object then the flak will explode
+    NOTE: If it is a scriptable flak object, upon explosion the entity/flak will not die allowing flak to have multiple explosions, for flak destory must be called to destroy the flak object
  * Added new gunspec switchtoalt=x,y by default to switch to an alternate weapon you have to press the number key of the weapon you are currently on.
     this command allows you to change that (THE Y PERAMATER IS OPTIONAL). 
     For example switchtoalt=33 will allow you to use the 'F' key to switch to your weapons alternate mode. 
