@@ -9,6 +9,10 @@ History
 V1.1.8
 ------
  
+ * Added new gunspec switchtoalt=x,y by default to switch to an alternate weapon you have to press the number key of the weapon you are currently on.
+    this command allows you to change that (THE Y PERAMATER IS OPTIONAL). 
+    For example switchtoalt=33 will allow you to use the 'F' key to switch to your weapons alternate mode. 
+    The Y peramater allows you to do key combos, for example switchtoalt=33,56 will allow it so you use 'ALT' + 'F' to swap to your weapons alternate mode.  
  * Added new FPI condition called UNDERWATER=X this will return true if the entity is under the water surface
  * Added new FPI condition called PLRUNDERWATER=X this will return true if the player is under the water surface
  * Added new FPI condition called PLRNOTFACING which is true when the player is not facing the entity scripted

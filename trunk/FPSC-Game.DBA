@@ -2106,6 +2106,8 @@ endtype
 
 rem Gun Settings Data Structure
 type gunsettingstype
+ altswapkey1 as integer
+ altswapkey2 as integer
  meleekey as integer
  meleedamage as integer
  meleerange as integer
@@ -19916,43 +19918,60 @@ if gxbox=1 : rem define in a config later
 endif
 
 rem Keyboard
-if k$<>"" and gunzoommode=0
- if keyboardpress=0
-  `
-  rem Change weapon
-  if player(plrid).health>0 or playerstartstrength=0
+altswapkeycalled=0
+if gun(gunid).settings.altswapkey1>-1 and keystate(gun(gunid).settings.altswapkey1) and gunzoommode=0 then altswapkeycalled=1
+if k$<>"" and gunzoommode=0 or altswapkeycalled=1
+ if altswapkeycalled=1 and gun(gunid).settings.altswapkey2>-1 and keystate(gun(gunid).settings.altswapkey2) or altswapkeycalled=1 and gun(gunid).settings.altswapkey2=-1 or altswapkeycalled=0
+  if keyboardpress=0
    `
-   rem Weapon select
-   wepsel=0
-   `
-   rem Keyboard input
-   if (k$>="1" and k$<="9")
-    sel=(asc(k$)-asc("1")) : wepsel=1+sel
-   endif
-   if k$="0" then wepsel=-1
-   `
-   rem Actual weapon change
-   if wepsel>0
-    weaponkeyselection=wepsel
-    weaponindex=weaponslot(weaponkeyselection).got
-    if weaponindex>0 then player(plrid).command.newweapon=weaponindex
-   endif
-   if wepsel=-1
-    if gunid<>0
-     gunmode=31 : gunselectionafterhide=0
+   rem Change weapon
+    if player(plrid).health>0 or playerstartstrength=0
+    `
+    rem Weapon select
+    wepsel=0
+    `
+    rem Keyboard input
+    if (k$>="1" and k$<="9") and altswapkeycalled=0
+     sel=(asc(k$)-asc("1")) : wepsel=1+sel
     endif
+    if k$="0" then wepsel=-1
+    if altswapkeycalled=1 then wepsel=-2
+    `
+    rem Actual weapon change
+    if altswapkeycalled=0
+     if wepsel>0
+      weaponkeyselection=wepsel
+      weaponindex=weaponslot(weaponkeyselection).got
+      if weaponindex>0 then player(plrid).command.newweapon=weaponindex
+     endif
+     if wepsel=-1
+      if gunid<>0
+       gunmode=31 : gunselectionafterhide=0
+      endif
+     endif
+    endif
+    if altswapkeycalled=1
+     if gunid<>0
+      if (gun(gunid).settings.alternateisflak = 1 or gun(gunid).settings.alternateisray = 1) and gunmode <= 100
+       if gun(gunid).settings.alternate = 1 then gunmode=2009 : gun(gunid).settings.alternate = 0 : else : gunmode=2007 : gun(gunid).settings.alternate = 1
+      endif
+     endif
+    endif
+    `
    endif
    `
+   rem Restart if in recovermode, early start
+   if player(plrid).recovershield>0 and player(plrid).recovershield<50 and k$=" "
+    player(plrid).recovershield=1
+   endif
+   `
+   rem Cannot keypress until release
+   keyboardpress=1
+   `
+   altswapkeycalled=0
   endif
-  `
-  rem Restart if in recovermode, early start
-  if player(plrid).recovershield>0 and player(plrid).recovershield<50 and k$=" "
-   player(plrid).recovershield=1
-  endif
-  `
-  rem Cannot keypress until release
-  keyboardpress=1
-  `
+ else
+  keyboardpress=0
  endif
 else
  keyboardpress=0
@@ -20482,8 +20501,10 @@ if gunselectionlockdown=0
     rem AirMod - Alternate Fire >>>
    else
     `gunzoommode = 0 and
-    if (gun(gunid).settings.alternateisflak = 1 or gun(gunid).settings.alternateisray = 1) and gunmode <= 100
-     if gun(gunid).settings.alternate = 1 then gunmode=2009 : gun(gunid).settings.alternate = 0 : else : gunmode=2007 : gun(gunid).settings.alternate = 1
+    if gun(gunid).settings.altswapkey1=-1
+     if (gun(gunid).settings.alternateisflak = 1 or gun(gunid).settings.alternateisray = 1) and gunmode <= 100
+      if gun(gunid).settings.alternate = 1 then gunmode=2009 : gun(gunid).settings.alternate = 0 : else : gunmode=2007 : gun(gunid).settings.alternate = 1
+     endif
     endif
     rem AirMod - Done <<<<
    endif
@@ -22233,7 +22254,9 @@ for i=0 to 1
  firemode(gunid,i).settings.rotz#=0
  `
 next i
-
+`
+gun(gunid).settings.altswapkey1=-1 : gun(gunid).settings.altswapkey2=-1
+`
 rem AirMod - Extend the Length of Gunspecs to 300
 dim data$(300)
 filename$="gamecore\"+fpgchuds$+"\"+gun$+"\gunspec.txt"
@@ -22470,6 +22493,10 @@ for l=0 to 299
    if field$="alternateisray" then gun(gunid).settings.alternateisray=value1
    if field$="altto" or field$="alt to" then gun(gunid).altaction.to.s=value1 : gun(gunid).altaction.to.e=value2
    if field$="altfrom" or field$="alt from" then gun(gunid).altaction.from.s=value1 : gun(gunid).altaction.from.e=value2
+   if field$="switchtoalt"
+    gun(gunid).settings.altswapkey1=value1 : gun(gunid).settings.altswapkey2=value2
+    if value2=0 then gun(gunid).settings.altswapkey2=-1
+   endif
    if field$="addtospare" then gun(gunid).settings.addtospare=value1
    `
    rem GUN VISUALS
