@@ -2542,6 +2542,7 @@ guivisualsettings.ambienceoverride=-1
 
 rem HUD structure
 type hudtype
+ uservarislocal as integer
  uservar as integer
  name$ as string
  maintype as integer
@@ -15168,7 +15169,7 @@ if aiindex>0
       workhudname$=""
       workhudhide=0
       rem Need to reset the hud uservar as well
-      workhuduservar=-1
+      workhuduservar=-1 : workhuduservarlocal=0
      endcase
      case AIACTHUDX:
       workhudx=(gdisplaywidth/100.0)*aiactionseq(seq).value
@@ -15281,14 +15282,25 @@ if aiindex>0
      rem Plystire - Added this action to set a HUD to corespond with a User Variable when set as Numeric type
      case AIACTHUDUSERVAR:
       rem First we gotta find the variable the user wants to use
+      foundvar=0
       for uvar = 0 to array count(uservars())
        if uservars(uvar).name = aiactionseq(seq).string1 and uservars(uvar).used = 1
         rem Found it, let's set up the workhud to use it
-        workhuduservar = uvar
+        workhuduservar = uvar : foundvar=1
         rem And Exit the For Loop
         exit
        endif
       next uvar
+      if foundvar=0
+       for lvar = 0 to 99
+        if aiuserlocals(e,lvar).name = aiactionseq(seq).string1 and aiuserlocals(e,lvar).used = 1
+         rem Found it, let's set up the workhud to use it
+         workhuduservar = lvar : foundvar=1 : workhuduservarlocal=e
+         rem And Exit the For Loop
+         exit
+        endif
+       next lvar
+      endif
      endcase
      rem V118 - 110810 - knxrb - Hud Layers
      case AIACTHUDLAYER:
@@ -32253,7 +32265,8 @@ _ai_hud_view:
    rem Variable System - Need this section in order to update the numeric HUD
    if hud(hudid).typemode=6 and hud(hudid).maintype=6
     rem user variable
-    hud(hudid).text$=str$(uservars(hud(hudid).uservar).value)
+    if hud(hudid).uservarislocal=0 then hud(hudid).text$=str$(uservars(hud(hudid).uservar).value)
+    if hud(hudid).uservarislocal>0 then hud(hudid).text$=str$(aiuserlocals(hud(hudid).uservarislocal,hud(hudid).uservar).value)
    endif
   endif
   `
@@ -32968,6 +32981,7 @@ if thudi>hudmax
  hud(hudid).highlighted=0
  rem Gotta set the user variable index that we want for numeric variables
  hud(hudid).uservar=workhuduservar
+ hud(hudid).uservarislocal=workhuduservarlocal
  `
  rem Calculate bounds of HUD (for selectability)
  if workhudsizex>0
