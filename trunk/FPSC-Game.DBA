@@ -16818,7 +16818,7 @@ if aiindex>0
         if aiactionseq(seq).string1 <> "" and aiactionseq(seq).string2 <> ""
             cID = -1 : cID = GUISVarFromName(aiactionseq(seq).string1)
             if cID > -1
-                guisvar(cID).Value =  aiactionseq(seq).string2
+                guisvar(cID).Value = aiactionseq(seq).string2
             endif
         endif
      endcase
@@ -33190,7 +33190,7 @@ endif
 if right$(exepath$,1)<>"\" then exepath$=exepath$+"\"
 if path exist(exepath$)=0 then exepath$=rootpath$+"\..\MyGames\"
 
-if gimageblockmode=0 and guiUsed=1 then GUI_CITF(exepath$, exename$) : rem GUI-X9 (knxrb)
+if gimageblockmode=0 then GUI_CITF(exepath$, exename$) : rem GUI-X9 (knxrb)
 
 rem Despot file collection
 if file exist("..\buildfiles.ini")=1 then delete file "..\buildfiles.ini"
@@ -33396,7 +33396,7 @@ next fileindex
 `
 rem GUI-X9 - knxrb
 set dir exepath$ : set dir ".."
-if guiUsed=1 then CheckBuildScripts(exepath$+exename$,language$)
+CheckBuildScripts(exepath$+exename$,language$)
 `
 rem Restore directory
 set dir rootpath$
@@ -53933,14 +53933,14 @@ _gui_run:
                     if mid$(guihud(cH).StrNumeric,tP)="\" then tPNX=11
                     if tPNX=-1 then tPNX=asc(mid$(guihud(cH).StrNumeric,tP))-asc("0")
                     if tPNX<>-1
-                        tPNY=tPNX/4 : tPNX=tPNX-(tPNY*4) : tPX#=(1.0/64.0)*16 : tPY#=(1.0/64.0)*16
+                        tPNY=tPNX/4 : tPNX=tPNX-(tPNY*4) : tPX#=(1.0/guihud(cH).AW)*(guihud(cH).AW/4) : tPY#=(1.0/guihud(cH).AH)*(guihud(cH).AH/4)
                         if guihud(cH).NormImageNo>0
                             set sprite texture coord guihud(cH).NormImageNo,0,(tPX#*tPNX),(tPY#*tPNY)
                             set sprite texture coord guihud(cH).NormImageNo,1,(tPX#*tPNX)+tPX#,(tPY#*tPNY)
                             set sprite texture coord guihud(cH).NormImageNo,2,(tPX#*tPNX),(tPY#*tPNY)+tPY#
                             set sprite texture coord guihud(cH).NormImageNo,3,(tPX#*tPNX)+tPX#,(tPY#*tPNY)+tPY#
-                            size sprite guihud(cH).NormImageNo,16,16
-                            paste sprite guihud(cH).NormImageNo,(guihud(cH).AL-8)+((tP-1)*12),guihud(cH).AT-8
+                            size sprite guihud(cH).NormImageNo,guihud(cH).AW/4,guihud(cH).AH/4
+                            paste sprite guihud(cH).NormImageNo,(guihud(cH).AL-((guihud(cH).AW/4)/2))+((tP-1)*((guihud(cH).AW/4))-2),guihud(cH).AT-((guihud(cH).AW/4)/2)
                         endif
                     endif
                 next tP
@@ -54701,22 +54701,27 @@ function CheckBuildScripts(ePath$, tLanguage$)
     else
         guiFPG$=currentFPG$
     endif
-    if strTitlePage$ = "" then strTitlePage$ = "Files\GUI-X9\titlepage.fpi"
-    if strLoadingScreen$ = "" then strLoadingScreen$ = "Files\GUI-X9\loadingpage.fpi"
-    if strSetupLevel$ = "" then strSetupLevel$ = "Files\GUI-X9\setuplevel.fpi"
-    if strGameOver$ = "" then strGameOver$ = "Files\GUI-X9\gameover.fpi"
-    if strGameWon$ = "" then strGameWon$ = "Files\GUI-X9\gamewon.fpi"
     if path exist(ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$)=0 then make directory ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$
-    if file exist(ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\titlepage.fpi") then delete file ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\titlepage.fpi"
-    if file exist(ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\loadingpage.fpi") then delete file ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\loadingpage.fpi"
-    if file exist(ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\setuplevel.fpi") then delete file ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\setuplevel.fpi"
-    if file exist(ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\gameover.fpi") then delete file ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\gameover.fpi"
-    if file exist(ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\gamewon.fpi") then delete file ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\gamewon.fpi"
-    if file exist(get dir$()+"\"+strTitlePage$) then copy file get dir$()+"\"+strTitlePage$,ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\titlepage.fpi"
-    if file exist(get dir$()+"\"+strLoadingScreen$) then copy file get dir$()+"\"+strLoadingScreen$,ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\loadingpage.fpi"
-    if file exist(get dir$()+"\"+strSetupLevel$) then copy file get dir$()+"\"+strSetupLevel$,ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\setuplevel.fpi"
-    if file exist(get dir$()+"\"+strGameOver$) then copy file get dir$()+"\"+strGameOver$,ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\gameover.fpi"
-    if file exist(get dir$()+"\"+strGameWon$) then copy file get dir$()+"\"+strGameWon$,ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\gamewon.fpi"
+    if file exist(get dir$()+"\"+strTitlePage$)
+        if file exist(ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\titlepage.fpi") then delete file ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\titlepage.fpi"
+    endif
+    if file exist(get dir$()+"\"+strLoadingScreen$)
+         if file exist(ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\loadingpage.fpi") then delete file ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\loadingpage.fpi"
+    endif
+    if file exist(get dir$()+"\"+strSetupLevel$)
+         if file exist(ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\setuplevel.fpi") then delete file ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\setuplevel.fpi"
+    endif
+    if file exist(get dir$()+"\"+strGameOver$)
+        if file exist(ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\gameover.fpi") then delete file ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\gameover.fpi"
+    endif
+    if file exist(get dir$()+"\"+strGameWon$)
+        if file exist(ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\gamewon.fpi") then delete file ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\gamewon.fpi"
+    endif
+    if strTitlepage$ <> "" and file exist(get dir$()+"\"+strTitlePage$) then copy file get dir$()+"\"+strTitlePage$,ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\titlepage.fpi"
+    if strLoadingScreen$ <> "" and file exist(get dir$()+"\"+strLoadingScreen$) then copy file get dir$()+"\"+strLoadingScreen$,ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\loadingpage.fpi"
+    if strSetupLevel$ <> "" and file exist(get dir$()+"\"+strSetupLevel$) then copy file get dir$()+"\"+strSetupLevel$,ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\setuplevel.fpi"
+    if strGameOver$ <> "" and file exist(get dir$()+"\"+strGameOver$) then copy file get dir$()+"\"+strGameOver$,ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\gameover.fpi"
+    if strGameWon$ <> "" and file exist(get dir$()+"\"+strGameWon$) then copy file get dir$()+"\"+strGameWon$,ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\gamewon.fpi"
 endfunction
 
 function GUI_ATIB()
@@ -54740,7 +54745,9 @@ function GUI_ATIB()
     for cF = 0 to tF-1
         if fArray(cF,0) <> "" and fArray(cF,1) <> ""
             copy file fArray(cF,0),get dir$()+"\languagebank\"+language$+"\gamecore\backdrops\basic\"+fArray(cF,1)
-            if file exist("languagebank\"+language$+"\gamecore\backdrops\basic\"+fArray(cF,1)) then load image "languagebank\"+language$+"\gamecore\backdrops\basic\"+fArray(cF,1),80000+cF
+            if right$(lower$(fArray(cF,1)),4) = ".png" or right$(lower$(fArray(cF,1)),4) = ".jpg" or right$(lower$(fArray(cF,1)),4) = ".gif" or right$(lower$(fArray(cF,1)),4) = ".bmp" or right$(lower$(fArray(cF,1)),4) = ".dds" or right$(lower$(fArray(cF,1)),4) = ".tga"
+                if file exist("languagebank\"+language$+"\gamecore\backdrops\basic\"+fArray(cF,1)) then load image "languagebank\"+language$+"\gamecore\backdrops\basic\"+fArray(cF,1),80000+cF
+            endif
         endif
     next
 endfunction
