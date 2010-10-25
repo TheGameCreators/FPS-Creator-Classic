@@ -476,6 +476,7 @@ Rem Water
 Global waterobj : waterobj=11
 Global wateron : wateron=0
 Global oldwaterheight# : oldwaterheight#=-1.0
+Global prevwaterheight# : prevwaterheight#=-1.0
 Global waterheight# : waterheight#=-1.0
 Global tupdatewater : tupdatewater=0
 Global waterfx : waterfx=11
@@ -4117,6 +4118,8 @@ _main_sync:
    endif
   endif
   `
+  Rem When water is off exclude the render of cameras 1 and 2
+  if wateron=0 then sync mask %11111001
   set current camera 0 : sync
  endif
 return
@@ -7871,6 +7874,7 @@ return
 
 _entity_monitorforsplash:
  `
+ if wateron=0 then return
  rem entity can have a splash if they enter the water at force
  if (entityelement(e).eleprof.physics=1 or entityelement(e).eleprof.physics=2) and splashdecalid>0
   rem if regular physics obj or character obj
@@ -19452,7 +19456,7 @@ if colmaterialtype>=0
   else
    footaty#=camera position y()-(phyeyeheight#+18)
   endif
-  if footaty#<waterheight#
+  if footaty#<waterheight# and wateron=1
    if footaty#<waterheight#-50
     rem underwater
     if plrid=1
@@ -35817,6 +35821,7 @@ return
 
 _ode_waterandgravity:
  `
+ if wateron=0 then return
  rem go through all entities
  for e=1 to entityelementmax
   twaterobj=entityelement(e).obj
