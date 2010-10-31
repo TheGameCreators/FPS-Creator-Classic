@@ -2108,6 +2108,13 @@ endtype
 
 rem Gun Settings Data Structure
 type gunsettingstype
+ bulletamount as integer
+ currentbullet as integer
+ bulletlimbsmax as integer
+ bulletlimbstart as integer
+ bulletlimbend as integer
+ bulletreset as integer
+ bulletmod as integer
  altswapkey1 as integer
  altswapkey2 as integer
  meleekey as integer
@@ -2295,6 +2302,8 @@ endtype
 dim gun(100) as guntype
 dim firemode(100,1) as guntype
 Global firemode : firemode=0
+Global bulletlimbsmax : bulletlimbsmax=0
+`dim bulletlimbs(100,25)
 `dim gunsound(100,5) as gunsoundbanktype
 `dim gunsoundcompanion(100,5,2) as gunsoundbankcompaniontype
 Rem AirMod - Extended to 15 Sounds
@@ -3796,6 +3805,7 @@ _main_game_freeleveldata:
   `undim debris()
   undim gun()
   undim firemode()
+  undim bulletlimbs()
   undim gunsound()
   undim gunsoundcompanion()
   undim gunsounditem()
@@ -20620,6 +20630,16 @@ if gunid>0
  if object exist(currentgunobj)=1
   firemode=gun(gunid).settings.alternate
   ammooffset=firemode*10
+  `
+  if gun(gunid).settings.bulletmod=1
+   if object frame(currentgunobj)>=gun(gunid).settings.bulletreset and object frame(currentgunobj)<=gun(gunid).settings.bulletreset+5
+    for p=gun(gunid).settings.bulletlimbstart to gun(gunid).settings.bulletlimbend
+     limbnumber=bulletlimbs(p)
+     scale limb currentgunobj,limbnumber,100,100,100
+    next p
+   endif
+  endif
+  `
   gosub _gun_control
   gosub _gun_shoot
   if gun(gunid).settings.flashlimb>=0 then gosub _gun_flash
@@ -21910,6 +21930,20 @@ if gunshoot=1
    endif
   endif
   `
+  if firemode=0
+   if gun(gunid).settings.bulletmod=1 and weaponammo(weaponammoindex)<gun(gunid).settings.bulletamount `and weaponammo(weaponammoindex)>0
+    limbnum=bulletlimbs(gun(gunid).settings.bulletlimbstart+weaponammo(weaponammoindex))
+    if limbnum>0
+     if limb exist(currentgunobj,limbnum)
+      for p=0 to weaponammo(weaponammoindex)
+       if limb scale x(currentgunobj,limbnum)<>1 then scale limb currentgunobj,limbnum,1,1,1
+       show limb currentgunobj,bulletlimbs(gun(gunid).settings.bulletlimbstart+p)
+      next p
+     endif
+    endif
+   endif
+  endif
+  `
   rem for some weapons, blunderbus style five-ray shot
   multiplayerdamagecollected=0
   for traycount=1 to trayiter
@@ -22594,6 +22628,14 @@ for l=0 to 299
    endif
    if field$="addtospare" then gun(gunid).settings.addtospare=value1
    `
+   if field$="bullethidemod" then gun(gunid).settings.bulletmod=value1
+   if field$="bullethidereset" then gun(gunid).settings.bulletreset=value1
+   if field$="bulletlimbtotal" then gun(gunid).settings.bulletlimbsmax=value1
+   if field$="bullethidestart"
+    gun(gunid).settings.bulletamount=value1
+    gun(gunid).settings.currentbullet=value1+1
+   endif
+   `
    rem GUN VISUALS
    tryfield$="textured"
    if field$=tryfield$ then gun(gunid).texd$=value$
@@ -22825,6 +22867,19 @@ set object fov currentgunobj,45
 rem Perform scan to determine hotspot markers
 flashlimb=-1 : brasslimb=-1 : smokelimb=-1 : handlimb=-1
 flashlimb2=-1 : brasslimb2=-1 : smokelimb2=-1
+
+if gun(gunid).settings.bulletmod=1
+ gun(gunid).settings.bulletlimbstart=bulletlimbsmax+1
+ inc bulletlimbsmax,gun(gunid).settings.bulletlimbsmax
+ gun(gunid).settings.bulletlimbend=bulletlimbsmax
+ `
+ dim bulletlimbs(bulletlimbsmax)
+ `
+ for p=0 to gun(gunid).settings.bulletlimbsmax
+  if gun(gunid).settings.bulletlimbstart+p<=bulletlimbsmax then bulletlimbs(gun(gunid).settings.bulletlimbstart+p)=-1
+ next p
+endif
+
 perform checklist for object limbs currentgunobj
 for c=1 to checklist quantity()
  name$=upper$(checklist string$(c))
@@ -22839,6 +22894,12 @@ for c=1 to checklist quantity()
  if name$="SMOKE02" then smokelimb2=c-1
  if name$="HAND" then handlimb=c-1
  if name$="X3DS_HAND" then handlimb=c-1
+ `
+ if gun(gunid).settings.bulletmod=1
+  for p=0 to gun(gunid).settings.bulletlimbsmax
+   if name$="BULLET"+str$(p) and gun(gunid).settings.bulletlimbstart+p<=bulletlimbsmax then bulletlimbs(gun(gunid).settings.bulletlimbstart+p)=c-1
+  next p
+ endif
 next c
 
 rem Store limbs in limb-data
@@ -25424,6 +25485,7 @@ if array count(filelist$())>0
  gunmax=gunid-1
  dim gun(gunmax+1) as guntype
  dim firemode(gunmax+1,1) as guntype
+ `dim bulletlimbs(gunmax+1,25)
  `dim gunsound(gunmax+1,5) as gunsoundbanktype
  `dim gunsoundcompanion(gunmax+1,5,2) as gunsoundbankcompaniontype
  Rem AirMod - Update next two lines for additional gun sounds
@@ -25480,6 +25542,7 @@ if array count(filelist$())>0
      inc gunmax
      dim gun(gunmax+1) as guntype
      dim firemode(gunmax+1,1) as guntype
+     `dim bulletlimbs(gunmax+1,25)
      dim gunsound(gunmax+1,5) as gunsoundbanktype
      dim gunsoundcompanion(gunmax+1,5,2) as gunsoundbankcompaniontype
      dim gunsounditem(gunmax+1,50) as gunsounditemtype

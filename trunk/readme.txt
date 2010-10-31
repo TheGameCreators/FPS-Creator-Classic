@@ -9,6 +9,13 @@ History
 V1.1.8
 ------
  
+ * Added new gunspec command BULLETLIMBTOTAL=X X is the amount of bullet limbs the weapon has 
+ * Added new gunspec command BULLETHIDERESET=X X is the animation frame at which the bullets will all be scaled back to 100%
+ * Added new gunspec command BULLETHIDESTART=X X is the amount of ammo for the system to begin to hide the visible bullets
+ * Added new gunspec command BULLETHIDEMOD=X if x=1 then the weapon will use the bullet hide system
+    NOTE!: Weapon MUST have the bullets limb's named correctly "BULLET" prefix and then which number bullet it is (limbs will be hidden from max limbs to 0).
+     EXAMPLE!: BULLET0,BULLET1,BULLET2,BULLET3,BULLET4, ETC.... 
+ * Added new BULLET HIDE feture (all bullet hide gunspec commands are a must for the system to work)
  * Added new FPI action called EXPLODE this will cause an explodable entity to trigger its explosion OR if the object is a scriptable flak object then the flak will explode
     NOTE: If it is a scriptable flak object, upon explosion the entity/flak will not die allowing flak to have multiple explosions, for flak destory must be called to destroy the flak object
  * Added new gunspec switchtoalt=x,y by default to switch to an alternate weapon you have to press the number key of the weapon you are currently on.
