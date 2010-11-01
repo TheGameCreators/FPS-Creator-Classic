@@ -2851,7 +2851,7 @@ global gantialias : gantialias=0
 rem V118 - 130810 - knxrb - Invert Mouse
 global gminvert : gminvert=0
 rem V118 - 140810 - knxrb - Disable Particles
-global gparticlesused : gparticlesused=0
+global gparticlesnotused : gparticlesnotused=0
 rem V118 - 160810 - knxrb - Auto Resolution
 global gautores : gautores=0
 
@@ -3032,7 +3032,7 @@ if file exist(tfile$)=1
     rem V118 - 130810 - knxrb - Invert Mouse
     tryfield$="invmouse" : if field$=tryfield$ then gminvert=value1 : newmouseinvert=value1
     rem V118 - 140810 - knxrb - Disable Particles
-    tryfield$="particleused" : if field$=tryfield$ then gparticlesused=value1 : newparticlesused=value1
+    tryfield$="disableparticles" : if field$=tryfield$ then gparticlesnotused=value1 : newparticlesused=value1
     rem V118 - 160810 - knxrb - Auto Resolution
     tryfield$="autores" : if field$=tryfield$ then gautores=value1 : newautores=value1
     `
@@ -12711,7 +12711,7 @@ if aiindex>0
     endcase
     rem V118 - 140810 - knxrb - Disable Particles
     case AICONDSETUPPARTICLESUSED:
-      if aiconditionseq(seq).valuea <> gparticlesused then airesult=0
+      if aiconditionseq(seq).valuea <> gparticlesnotused then airesult=0
     endcase
     rem V118 - 160810 - knxrb - Auto Resolution
     case AICONDSETUPAUTORES:
@@ -13880,7 +13880,7 @@ if aiindex>0
       else
        entityelement(e).decalindex=1
        rem V118 - 140810 - knxrb - Disable Particles
-       if gparticlesused = 0 and tdecalmode = 7
+       if gparticlesnotused = 1 and tdecalmode = 7
         entityelement(e).decalmode = 2 `Use 2 as default for disabled particles
        else
         entityelement(e).decalmode=tdecalmode
@@ -33384,6 +33384,7 @@ setuparr$(i)="newblossershaders="+str$( gnewblossershaders ) : inc i
 setuparr$(i)="postprocessing="+str$( gpostprocessing ) : inc i
 setuparr$(i)="showaioutlines="+str$( gshowaioutlines ) : inc i
 setuparr$(i)="disablepeeking="+str$( gdisablepeeking ) : inc i
+setuparr$(i)="disableparticles="+str$( gparticlesnotused ) : inc i
 `
 setuparr$(i)="" : inc i
 setuparr$(i)="[GAMEMULTIPLAYER]" : inc i
@@ -49887,6 +49888,7 @@ setuparr$(i)="newblossershaders="+str$( gnewblossershaders ) : inc i
 setuparr$(i)="postprocessing="+str$( gpostprocessing ) : inc i
 setuparr$(i)="showaioutlines="+str$( gshowaioutlines ) : inc i
 setuparr$(i)="disablepeeking="+str$( gdisablepeeking ) : inc i
+setuparr$(i)="disableparticles="+str$( gparticlesnotused ) : inc i
 `
 setuparr$(i)="" : inc i
 setuparr$(i)="[GAMEMULTIPLAYER]" : inc i
