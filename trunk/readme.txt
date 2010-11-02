@@ -9,6 +9,7 @@ History
 V1.1.8
 ------
  
+ * Added cool new adaptive bloom shader written by Mark Blosser (the legend)
  * Added new gunspec command BULLETLIMBTOTAL=X X is the amount of bullet limbs the weapon has 
  * Added new gunspec command BULLETHIDERESET=X X is the animation frame at which the bullets will all be scaled back to 100%
  * Added new gunspec command BULLETHIDESTART=X X is the amount of ammo for the system to begin to hide the visible bullets
