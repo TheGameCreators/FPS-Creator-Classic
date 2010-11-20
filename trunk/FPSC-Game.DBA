@@ -3980,8 +3980,6 @@ _main_game_core:
   Gosub _water_control
  endif
  `
- Print "Waterheight#: "+Str$(waterheight#)+" Object Y: "+str$(object position y(waterobj))
- `
  rem Update screen
  gosub _main_sync
  `
