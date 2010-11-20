@@ -59,6 +59,9 @@ else
  endif
 endif
 
+if file exist("virtualmemory.txt") then delete file "virtualmemory.txt"
+open to write 21,"virtualmemory.txt"
+
 Global exeroot$ : exeroot$=get dir$()
 
 rem V118 - 110810 - knxrb - Hud Layers
@@ -106,8 +109,9 @@ global gloadreportstate : gloadreportstate=0
 global gloadreporttime : gloadreporttime=0
 global gloadreportlasttime : gloadreportlasttime=0
 global gloadreportindex : gloadreportindex=0
-dim loadreport$(100000)
-
+global loadreportarraydimmed : loadreportarraydimmed=0
+Rem SAVE MEMORY! loadreport is rarley used! lets only dim the array when its being used!
+`dim loadreport$(100000)
 
 Rem Hockeykid - 250210 - Entity DarkAI
 type darkaitype
@@ -438,6 +442,7 @@ goto _FPSC_Setup
 
 rem Subroutine to completely construct FPSCData
 _FPSC_Full_Data_Init:
+write string 21,"_FPSC_Full_Data_Init start....  "
 
 `
 ` Performance globals
@@ -2240,6 +2245,13 @@ type gunsettingstype
  addtospare as integer
 endtype
 
+type gunparticletype
+ rem gun particles
+ id as integer
+ velocity as float
+ decal$ as string
+endtype
+
 rem Gun Actions Data Structure
 type gunanimtype
  s as integer
@@ -2272,6 +2284,7 @@ endtype
 
 rem Gun Data Structure (is 10 our maximum for the entire game, ie weapon slots max?)
 type guntype
+ particle as gunparticletype
  firemode as integer
  activeingame as integer
  obj as integer
@@ -2741,6 +2754,7 @@ rem Server Scores
 dim frags(multiplayermax) as integer
 
 rem End of FULL-DATA-INIT Subroutine
+write string 21,"_FPSC_Full_Data_Init end....  ("+str$(system smem available(2)/1024)+"MB used)"
 return
 
 
@@ -3561,16 +3575,16 @@ endif
 `
 rem V109BETA5 - 250408 - reset material usage flags before entity/segment load
 rem V109BETA10 - 1204508 - flak loads data only (to keep flak indexing same as gun usage)
-gosub _flak_init
-gosub _ode_loadmateriallist_init
-gosub _player_resetmaterialsused
+write string 21,"_flak_init start....  ("+str$(system smem available(2)/1024)+"MB used)" : gosub _flak_init : write string 21,"_flak_init end....  ("+str$(system smem available(2)/1024)+"MB used)"
+write string 21,"_ode_loadmateriallist_init start....  " : gosub _ode_loadmateriallist_init : write string 21,"_ode_loadmateriallist_init end....  ("+str$(system smem available(2)/1024)+"MB used)"
+write string 21,"_player_resetmaterialsused start....  " : gosub _player_resetmaterialsused : write string 21,"_player_resetmaterialsused end....  ("+str$(system smem available(2)/1024)+"MB used)"
 if grealgameviewstate=1 then gosub _player_loadmaterialsused
-gosub _ode_loadmateriallist_core
+write string 21,"_ode_loadmateriallist_core start....  " : gosub _ode_loadmateriallist_core : write string 21,"_ode_loadmateriallist_core end....  ("+str$(system smem available(2)/1024)+"MB used)"
 `
 rem FPGC - 231109 - initialise DarkVOICES
-gosub _lipsync_init
+write string 21,"_lipsync_init start....  " : gosub _lipsync_init : write string 21,"_lipsync_init end....  ("+str$(system smem available(2)/1024)+"MB used)"
 rem GUI-X9 (knxrb)
-gosub _gui_init
+write string 21,"_gui_init start....  " : gosub _gui_init : write string 21,"_gui_init end....  ("+str$(system smem available(2)/1024)+"MB used)"
 if gcompilestandaloneexe=1 and gimageblockmode=1 then GUI_ATIB()
 
 `
@@ -3966,6 +3980,8 @@ _main_game_core:
   Gosub _water_control
  endif
  `
+ Print "Waterheight#: "+Str$(waterheight#)+" Object Y: "+str$(object position y(waterobj))
+ `
  rem Update screen
  gosub _main_sync
  `
@@ -4249,6 +4265,7 @@ debugviewtext(313,strarr$(143)) : gosub _gun_loadonlypresent
 rem V109 BETA10 - 120508 - moved here to load FLAK after GUNLOADS (usedinlevel flag)
 if gmultiplayergame=0 then debugviewtext(313,strarr$(128)) : gosub _flak_initonlyused
 debugviewtext(314,strarr$(144)) : gosub _decal_loadonlyactivedecals
+Gosub _gun_decaldetails
 `
 Rem load flak scripts
 if gmultiplayergame=0 then debugviewtext(315,"Loading Flak Scripts...") :   gosub _flak_load_script
@@ -6354,6 +6371,7 @@ function debugviewtext(progress,gamedebugviewtext$)
  `
  rem FPSCV104RC9 - loading time readout to file
  if gloadreportstate=1
+  if loadreportarraydimmed=0 then dim loadreport$(100000) : loadreportarraydimmed=1
   rem get time, distance from last time, description, etc..
   if gloadreporttime=0 then gloadreporttime=timer()
   thetime=timer()-gloadreporttime
@@ -6366,6 +6384,8 @@ function debugviewtext(progress,gamedebugviewtext$)
   if progress>gprogressmax-10
    rem only save in last 10 counts before end of progress bar
    save array rootdir$+"\loadreport.txt",loadreport$()
+   rem Hockeykid - 011110 - engine is done using the load report array, lets get rid of it!
+   `undim loadreport$(100000) : loadreportarraydimmed=0
   endif
  endif
  `
@@ -10674,7 +10694,7 @@ conword$(AICONDPLRELEVFURTHER)="plrelevfurther"
 conword$(AICONDPLRFACING)="plrfacing"
 conword$(AICONDPLRUNDERWATER)="plrunderwater"
 conword$(AICONDUNDERWATER)="underwater"
-conword$(AICONDNOTPLRFACING)="plrnotfacing"
+conword$(AICONDPLRNOTFACING)="plrnotfacing"
 conword$(AICONDANYWITHIN)="anywithin"
 conword$(AICONDANYFURTHER)="anyfurther"
 conword$(AICONDPLRCANBESEEN)="plrcanbeseen"
@@ -17021,6 +17041,7 @@ if aiindex>0
      case AIACTWATERHEIGHT:
       oldwaterheight#=waterheight#
       waterheight#=aiactionseq(seq).value
+      position object waterobj,0,waterheight#,0
      endcase
      case AIACTWATER:
       wateron=aiactionseq(seq).value
@@ -20458,6 +20479,22 @@ rem V111 - 140608 - modifier to adjust gun animation speed based on change from 
 
 return
 
+_gun_decaldetails:
+ for i=1 to gunmax
+  for y=0 to 1
+   if firemode(i,y).particle.decal$>""
+    decal$=firemode(i,y).particle.decal$
+    Gosub _decal_find
+    if decalid<>-1
+     firemode(i,y).particle.id=decalid
+    else
+     firemode(i,y).particle.decal$=""
+    endif
+   endif
+  next y
+ next i
+Return
+
 _gun_loadonlypresent:
  `
  rem Load only active guns from slots (and from playerstartentry)
@@ -21340,7 +21377,30 @@ if gunmode=103
 endif
 if gunmode=104
  `if weaponammo(weaponammoindex)>0
+  `
+ Rem create decal particles
+ if firemode(gunid,firemode).particle.decal$>""
+  if firemode(gunid,firemode).settings.simplezoom <> 0 and gunzoommode <> 0 and firemode(gunid,firemode).settings.simplezoomflash = 1
+   x1#=object position x(currentgunobj)+firemode(gunid,firemode).settings.zoommuzzlex#
+   y1#=object position y(currentgunobj)+firemode(gunid,firemode).settings.zoommuzzley#
+   z1#=object position z(currentgunobj)+firemode(gunid,firemode).settings.zoommuzzlez#
+  else
+   x1#=object position x(currentgunobj)+firemode(gunid,firemode).settings.muzzlex#
+   y1#=object position y(currentgunobj)+firemode(gunid,firemode).settings.muzzley#
+   z1#=object position z(currentgunobj)+firemode(gunid,firemode).settings.muzzlez#
+  endif
+  decalid=firemode(gunid,firemode).particle.id
+  Print firemode(gunid,firemode).particle.id
+  Print x1# : Print y1# : Print z1#
+  decalorient=2
+  decalx=x1#
+  decaly=y1#
+  decalz=z1#
+  decalscalemodx=100 : decalscalemody=decalscalemodx
+  originatore=0 : gosub _decalelement_create
+ endif
  if weaponammo(weaponammoindex+ammooffset)>0
+  `
   rem lee - 140310 - timer based deductions
   dec gunbrasscount,timeelapsed#
   dec gunsmokecount,timeelapsed#
@@ -22598,6 +22658,10 @@ for l=0 to 299
     if field$=alt$+"rotx" then firemode(gunid,x).settings.rotx#=value1
     if field$=alt$+"roty" then firemode(gunid,x).settings.roty#=value1
     if field$=alt$+"rotz" then firemode(gunid,x).settings.rotz#=value1
+    `
+    Rem GUN PARTICLES
+    if field$=alt$+"particledecal" then firemode(gunid,x).particle.decal$=value$
+    if field$=alt$+"particlespeed" then firemode(gunid,x).particle.velocity=value1
     `
     Rem GUN AMMO POOLING
     if field$=alt$+"poolammo"
@@ -35833,7 +35897,8 @@ _ode_waterandgravity_item:
    tactualtopofobject#=tactualtopofobject#+25.0
   endif
  endif
- if tactualtopofobject#<waterheight#
+ rem object's origin is centered
+ if object position y(twaterobj)<waterheight#
   rem no gravity
   `if physxedition=1
    `entityelement(twatere).nogravity=1
@@ -35850,8 +35915,8 @@ _ode_waterandgravity_item:
    oldvelz#=ODE GET BODY LINEAR VELOCITY Z(twaterobj)*0.97
    rem resist zero gravity and entity leaves surface of water (very subtle!)
    if object position y(twaterobj)>waterheight#-depth#
-    resistby#=depth#-abs(object position y(twaterobj)-waterheight#)
-    oldvely#=oldvely#-(resistby#*0.0005)
+    `resistby#=depth#-abs(object position y(twaterobj)-waterheight#)
+    `oldvely#=oldvely#-(resistby#*0.0005)
    endif
    rem raise/lower entity based on weight (750 = 10x10x10 cube) (based on depth)
    depthfactor#=abs(object position y(twaterobj)-waterheight#)/100.0
@@ -53455,7 +53520,7 @@ _water_control:
  if keystate(201) and gtestgamemodefromeditor=1 then inc waterheight# : watertimer=5 : ambiencetimer=0
  if keystate(209) and gtestgamemodefromeditor=1 then dec waterheight# : watertimer=5 : ambiencetimer=0
  if waterheight#<1 then waterheight#=0
- if waterheight#<>oldwaterheight# then tupdatewater=1 : oldwaterheight#=waterheight#
+ if waterheight#<>oldwaterheight# then tupdatewater=1 : oldwaterheight#=waterheight# : position object waterobj,0,waterheight#,0
  `
  if watertimer>0 and gtestgamemodefromeditor=1
   `
