@@ -1,0 +1,13 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Instant On
+
+;Triggers
+
+:state=0:dimlocalvar=sid,setvar=sid 2,dimvar=nextsnum,dimvar=resetswitches,dimvar=scount,addvar=scount 1
+:state=0,varequal=nextsnum 0:setvar=nextsnum 1
+:state=0:setalphafade=100,runfpidefault=1
+
+;End of Script
