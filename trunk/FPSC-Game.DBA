@@ -442,7 +442,6 @@ goto _FPSC_Setup
 
 rem Subroutine to completely construct FPSCData
 _FPSC_Full_Data_Init:
-write string 21,"_FPSC_Full_Data_Init start....  "
 
 `
 ` Performance globals
@@ -2754,7 +2753,6 @@ rem Server Scores
 dim frags(multiplayermax) as integer
 
 rem End of FULL-DATA-INIT Subroutine
-write string 21,"_FPSC_Full_Data_Init end....  ("+str$(system smem available(2)/1024)+"MB used)"
 return
 
 
@@ -3575,16 +3573,16 @@ endif
 `
 rem V109BETA5 - 250408 - reset material usage flags before entity/segment load
 rem V109BETA10 - 1204508 - flak loads data only (to keep flak indexing same as gun usage)
-write string 21,"_flak_init start....  ("+str$(system smem available(2)/1024)+"MB used)" : gosub _flak_init : write string 21,"_flak_init end....  ("+str$(system smem available(2)/1024)+"MB used)"
-write string 21,"_ode_loadmateriallist_init start....  " : gosub _ode_loadmateriallist_init : write string 21,"_ode_loadmateriallist_init end....  ("+str$(system smem available(2)/1024)+"MB used)"
-write string 21,"_player_resetmaterialsused start....  " : gosub _player_resetmaterialsused : write string 21,"_player_resetmaterialsused end....  ("+str$(system smem available(2)/1024)+"MB used)"
+gosub _flak_init
+gosub _ode_loadmateriallist_init
+gosub _player_resetmaterialsused
 if grealgameviewstate=1 then gosub _player_loadmaterialsused
-write string 21,"_ode_loadmateriallist_core start....  " : gosub _ode_loadmateriallist_core : write string 21,"_ode_loadmateriallist_core end....  ("+str$(system smem available(2)/1024)+"MB used)"
+gosub _ode_loadmateriallist_core
 `
 rem FPGC - 231109 - initialise DarkVOICES
-write string 21,"_lipsync_init start....  " : gosub _lipsync_init : write string 21,"_lipsync_init end....  ("+str$(system smem available(2)/1024)+"MB used)"
+gosub _lipsync_init
 rem GUI-X9 (knxrb)
-write string 21,"_gui_init start....  " : gosub _gui_init : write string 21,"_gui_init end....  ("+str$(system smem available(2)/1024)+"MB used)"
+gosub _gui_init
 if gcompilestandaloneexe=1 and gimageblockmode=1 then GUI_ATIB()
 
 `
@@ -11037,7 +11035,6 @@ actword$(AIACTAIREMOVE)="airemove"
 actword$(AIACTAIMOVEMENT)="allowmove"
 actword$(AIACTAIACTIVE)="setaiactive"
 actword$(AIACTTOGGLEACTIVE)="alwaysactive"
-actword$(AIACTADDZOMBIE)="addzombie"
 actword$(AIACTAIACTION)="aiaction"
 actword$(AIACTAIFOLLOWPLR)="aifollowplr"
 actword$(AIACTAIMOVETOSOUND)="aimovetosound"
