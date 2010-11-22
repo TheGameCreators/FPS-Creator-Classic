@@ -54818,6 +54818,7 @@ function CheckBuildScripts(ePath$, tLanguage$)
             read string 1,strSetupLevel$
             read string 1,strGameOver$
             read string 1,strGameWon$
+            read string 1,strSky$
         endif
         close file 1
     endif
@@ -54847,6 +54848,13 @@ function CheckBuildScripts(ePath$, tLanguage$)
     if strSetupLevel$ <> "" and file exist(get dir$()+"\"+strSetupLevel$) then copy file get dir$()+"\"+strSetupLevel$,ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\setuplevel.fpi"
     if strGameOver$ <> "" and file exist(get dir$()+"\"+strGameOver$) then copy file get dir$()+"\"+strGameOver$,ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\gameover.fpi"
     if strGameWon$ <> "" and file exist(get dir$()+"\"+strGameWon$) then copy file get dir$()+"\"+strGameWon$,ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\gamewon.fpi"
+    if path exist(ePath$+"/Files/skybank/")=0 then make directory ePath$+"/Files/skybank/"
+    if path exist(ePath$+"/Files/skybank/GUIX9/")=0 then make directory ePath$+"/Files/skybank/GUIX9/"
+    if file exist(get dir$()+"/Files/skybank/GUIX9/"+strSky$) then load object get dir$()+"/Files/skybank/GUIX9/"+strSky$,55555
+    if object exist(55555)
+        save object ePath$+"/Files/skybank/GUIX9/"+left$(strSky$,3)+".dbo",55555
+        delete object 55555
+    endif
 endfunction
 
 function GUI_ATIB()
@@ -54854,6 +54862,7 @@ function GUI_ATIB()
     if file exist("script.gx9")
         open to read 1,"script.gx9"
         if file open(1)=1
+            read string 1,unused$
             read string 1,unused$
             read string 1,unused$
             read string 1,unused$
@@ -54869,9 +54878,16 @@ function GUI_ATIB()
     endif
     for cF = 0 to tF-1
         if fArray(cF,0) <> "" and fArray(cF,1) <> ""
-            copy file fArray(cF,0),get dir$()+"\languagebank\"+language$+"\gamecore\backdrops\basic\"+fArray(cF,1)
-            if right$(lower$(fArray(cF,1)),4) = ".png" or right$(lower$(fArray(cF,1)),4) = ".jpg" or right$(lower$(fArray(cF,1)),4) = ".gif" or right$(lower$(fArray(cF,1)),4) = ".bmp" or right$(lower$(fArray(cF,1)),4) = ".dds" or right$(lower$(fArray(cF,1)),4) = ".tga"
-                if file exist("languagebank\"+language$+"\gamecore\backdrops\basic\"+fArray(cF,1)) then load image "languagebank\"+language$+"\gamecore\backdrops\basic\"+fArray(cF,1),80000+cF
+            if left$(lower$(fArray(cF,1)),3) = "sky"
+                copy file fArray(cF,0),get dir$()+"\skybank\GUIX9\"+right$(fArray(cF,1),len(fArray(cF,1))-3)
+                if right$(lower$(fArray(cF,1)),4) = ".dds" or right$(lower$(fArray(cF,1)),4) = ".tga"
+                    if file exist("skybank\GUIX9\"+right$(fArray(cF,1),len(fArray(cF,1))-3)) then load image "skybank\GUIX9\"+right$(fArray(cF,1),len(fArray(cF,1))-3),80000+cF
+                endif
+            else
+                copy file fArray(cF,0),get dir$()+"\languagebank\"+language$+"\gamecore\backdrops\basic\"+fArray(cF,1)
+                if right$(lower$(fArray(cF,1)),4) = ".png" or right$(lower$(fArray(cF,1)),4) = ".jpg" or right$(lower$(fArray(cF,1)),4) = ".gif" or right$(lower$(fArray(cF,1)),4) = ".bmp" or right$(lower$(fArray(cF,1)),4) = ".dds" or right$(lower$(fArray(cF,1)),4) = ".tga"
+                    if file exist("languagebank\"+language$+"\gamecore\backdrops\basic\"+fArray(cF,1)) then load image "languagebank\"+language$+"\gamecore\backdrops\basic\"+fArray(cF,1),80000+cF
+                endif
             endif
         endif
     next
@@ -54882,6 +54898,7 @@ function GUI_CITF(ePath$, eName$)
     if file exist("script.gx9")
         open to read 1,"script.gx9"
         if file open(1)=1
+            read string 1,unused$
             read string 1,unused$
             read string 1,unused$
             read string 1,unused$
