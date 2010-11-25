@@ -490,6 +490,7 @@ Global tnearsurfaceofwater : tnearsurfaceofwater=100
 Global waterred : waterred=255
 Global watergreen : watergreen=255
 Global waterblue : waterblue=255
+Global excludewatercams : excludewatercams=0
 
 rem logic control
 global logicprioritycount=0
@@ -4141,7 +4142,7 @@ _main_sync:
   endif
   `
   Rem When water is off exclude the render of cameras 1 and 2
-  if wateron=0 then sync mask %11111001
+  if wateron=0 or excludewatercams=1 then sync mask %11111001
   set current camera 0 : sync
  endif
 return
@@ -53771,6 +53772,7 @@ function UpDateWater()
  else
   waterfogon=1
  endif
+ `
  show object waterobj
  set current camera 0
 endfunction
@@ -53779,11 +53781,21 @@ function UpDateRefraction()
  position camera 1,camera position x(0),camera position y(0),camera position z(0)
  rotate camera 1,camera angle x(0),camera angle y(0),camera angle z(0)
  if camera position y(0)>waterheight#
-  set camera clip 1,1,0,waterheight#+30,0,0,-1,0
+  Rem TEMPORARY solution - if full effects are on, turn off camera clipping
+  if guseeffectstate=0
+   set camera clip 1,1,0,waterheight#+30,0,0,-1,0
+  else
+   set camera clip 1,0,0,0,0,0,0,0
+  endif
   waterfogon=2
  endif
  if camera position y(0)<waterheight#
-  set camera clip 1,1,0,waterheight#-30,0,0,1,0
+  Rem TEMPORARY solution - if full effects are on, turn off camera clipping
+  if guseeffectstate=0
+   set camera clip 1,1,0,waterheight#-30,0,0,1,0
+  else
+   set camera clip 1,0,0,0,0,0,0,0
+  endif
   waterfogon=1
  endif
  set camera clip 2,0,0,0,0,0,0,0
@@ -53796,7 +53808,12 @@ function UpDateReflection()
  position camera 2,camera position x(0),waterheight#-(camera position y(0)-waterheight#),camera position z(0)
  rotate camera 2,-camera angle x(0),camera angle y(0),camera angle z(0)
  set camera clip 1,0,0,0,0,0,0,0
- set camera clip 2,1,0,waterheight#-15,0,0,1,0
+ Rem TEMPORARY solution - if full effects are on, turn off camera clipping
+ `if guseeffectstate=0
+  set camera clip 2,1,0,waterheight#-15,0,0,1,0
+ `else
+  `set camera clip 2,0,0,0,0,0,0,0
+ `endif
  sync mask (1 << 2)
  fastsync
  sync mask %11111111 - (1 << 1) - (1 << 2)
