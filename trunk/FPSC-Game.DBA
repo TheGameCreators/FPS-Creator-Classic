@@ -40675,7 +40675,6 @@ _obs_generate_pertile:
      maplines(l,x,y,0)=1
      rem no-floor flag
      if mapsymbol=1 then maplines(l,x,y,0)=0
-     rem CSG for doors must be considered!!
      rem walls
      if maptile=00 then maplines(l,x,y,OBS_NN)=0
      if maptile=01 then maplines(l,x,y,OBS_NN)=1 : maplines(l,x,y,OBS_EE)=1 : maplines(l,x,y,OBS_SS)=1 : maplines(l,x,y,OBS_WW)=1
@@ -40698,6 +40697,47 @@ _obs_generate_pertile:
       maplines(l,x,y,OBS_NN)=0 : maplines(l,x,y,OBS_EE)=0
       maplines(l,x,y,OBS_SS)=0 : maplines(l,x,y,OBS_WW)=0
      endif
+     `
+     rem LEE - 281110 - some platforms/corridors are NOT overlays, but base map segments, which have 
+     rem specific walls and edge-guides which the AI system must take account for..
+     if 1
+      if segmentswhichchangeobsdata(mapselection)>=5 and segmentswhichchangeobsdata(mapselection)<=9
+       rem add walls based on corridor symbols (segment blueprint MODE)
+       rem 3=straight (5)
+       if segmentswhichchangeobsdata(mapselection)=5
+        if maporient=0 then maplines(l,x,y,OBS_EE)=1 : maplines(l,x,y,OBS_WW)=1
+        if maporient=1 then maplines(l,x,y,OBS_NN)=1 : maplines(l,x,y,OBS_SS)=1
+        if maporient=2 then maplines(l,x,y,OBS_EE)=1 : maplines(l,x,y,OBS_WW)=1
+        if maporient=3 then maplines(l,x,y,OBS_NN)=1 : maplines(l,x,y,OBS_SS)=1
+       endif
+       rem 4=corner (6)
+       if segmentswhichchangeobsdata(mapselection)=6
+        if maporient=0 then maplines(l,x,y,OBS_CC)=2
+        if maporient=1 then maplines(l,x,y,OBS_CC)=3
+        if maporient=2 then maplines(l,x,y,OBS_CC)=4
+        if maporient=3 then maplines(l,x,y,OBS_CC)=5
+       endif
+       rem 5=tjunction (7)
+       if segmentswhichchangeobsdata(mapselection)=7
+        if maporient=0 then maplines(l,x,y,OBS_NN)=1
+        if maporient=1 then maplines(l,x,y,OBS_EE)=1
+        if maporient=2 then maplines(l,x,y,OBS_SS)=1
+        if maporient=3 then maplines(l,x,y,OBS_WW)=1
+       endif
+       rem 6=cross (8)
+       if segmentswhichchangeobsdata(mapselection)=8
+        rem no walls
+       endif
+       rem 7=deadend (9)
+       if segmentswhichchangeobsdata(mapselection)=9
+        if maporient=0 then maplines(l,x,y,OBS_WW)=1 : maplines(l,x,y,OBS_NN)=1 : maplines(l,x,y,OBS_EE)=1
+        if maporient=1 then maplines(l,x,y,OBS_NN)=1 : maplines(l,x,y,OBS_EE)=1 : maplines(l,x,y,OBS_SS)=1
+        if maporient=2 then maplines(l,x,y,OBS_WW)=1 : maplines(l,x,y,OBS_EE)=1 : maplines(l,x,y,OBS_SS)=1
+        if maporient=3 then maplines(l,x,y,OBS_WW)=1 : maplines(l,x,y,OBS_NN)=1 : maplines(l,x,y,OBS_SS)=1
+       endif
+      endif 
+     endif    
+     `
      if maprotate>0
       rem rotate lines data
       while maprotate>0
