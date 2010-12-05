@@ -1425,6 +1425,7 @@ type entitytype
  nobulletcol as boolean
  isaltammo as integer
  Rem Airmod - Done <<<
+ hideshadow as integer
 endtype
 rem Entity Breadcrumbs Data
 type entitybreadcrumbstype
@@ -1956,7 +1957,8 @@ rem GUI-X9 (knxrb) >>>
 #constant AIACTFADERSPEED 1343
 #constant AIACTUSEGUIX9 1344
 rem GUI-X9 (knxrb) <<<
-#constant AIACTLAST 1345
+#constant AIACTHIDESHADOW 1345
+#constant AIACTLAST 1346
 
 rem V109 BETA3 - 210408 - AI variables
 global aivariablemode : aivariablemode=0 : rem 0-global, 1-local
@@ -7816,6 +7818,7 @@ for e=1 to entityelementlist
        else
         hide object entityelement(e).attachmentblobobj
        endif
+       if entityelement(e).hideshadow=1 then hide object entityelement(e).attachmentblobobj
       endif
      endif
      `
@@ -11137,6 +11140,7 @@ actword$(AIACTEYEHURTTIME)="eyehudtime"
 actword$(AIACTFADERSPEED)="faderspeed"
 actword$(AIACTUSEGUIX9)="usegui"
 rem GUI-X9 (knxrb) <<<
+actword$(AIACTHIDESHADOW)="hideshadow"
 Rem Water
 actword$(AIACTWATERHEIGHT)="waterheight"
 actword$(AIACTWATER)="water"
@@ -17030,6 +17034,18 @@ if aiindex>0
             guiUsed = val(aiactionseq(seq).string1)
             if guiUsed > 1 then guiUsed = 1
             if guiUsed < 0 then guiUsed = 0
+        endif
+     endcase
+     case AIACTHIDESHADOW:
+        if aiactionseq(seq).string1 <> ""
+            entityelement(e).hideshadow = val(aiactionseq(seq).string1)
+            if entityelement(e).hideshadow < 0 then entityelement(e).hideshadow = 0
+            if entityelement(e).hideshadow > 1 then entityelement(e).hideshadow = 1
+            if entityelement(e).attachmentblobobj > 0
+                if object exist(entityelement(e).attachmentblobobj)
+                    if entityelement(e).hideshadow=1 then hide object entityelement(e).attachmentblobobj
+                endif
+            endif
         endif
      endcase
      `
@@ -28468,7 +28484,7 @@ _entity_fillelementfromprofile:
  entityelement(e).eleprof.coneheight=entityprofile(entid).coneheight
  entityelement(e).eleprof.coneangle=entityprofile(entid).coneangle
  `
- rem Textre and Effect Data (zero to begin with
+ rem Texture and Effect Data (zero to begin with
  entityelement(e).eleprof.uniqueelement=0
  entityelement(e).eleprof.texd$=entityprofile(entid).texd$
  entityelement(e).eleprof.texaltd$=entityprofile(entid).texaltd$
@@ -28578,7 +28594,7 @@ _entity_fillgrideleproffromprofile:
  grideleprof.coneheight=entityprofile(entid).coneheight
  grideleprof.coneangle=entityprofile(entid).coneangle
  `
- rem Textre and Effect Data
+ rem Texture and Effect Data
  grideleprof.uniqueelement=0
  grideleprof.texd$=entityprofile(entid).texd$
  grideleprof.texaltd$=entityprofile(entid).texaltd$
@@ -28743,6 +28759,7 @@ _entity_createattachment:
    ttexid=loadinternaltextureex("gamecore\decals\blob\blob.png",5,1)
    texture object ttobj,ttexid
    set object transparency ttobj,2
+   if entityelement(e).hideshadow=1 then hide object ttobj
   endif
  endif
  `
