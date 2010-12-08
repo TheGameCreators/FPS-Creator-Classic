@@ -40747,10 +40747,15 @@ _obs_generate_pertile:
        endif
        rem 7=deadend (9)
        if segmentswhichchangeobsdata(mapselection)=9
-        if maporient=0 then maplines(l,x,y,OBS_WW)=1 : maplines(l,x,y,OBS_NN)=1 : maplines(l,x,y,OBS_EE)=1
-        if maporient=1 then maplines(l,x,y,OBS_NN)=1 : maplines(l,x,y,OBS_EE)=1 : maplines(l,x,y,OBS_SS)=1
-        if maporient=2 then maplines(l,x,y,OBS_WW)=1 : maplines(l,x,y,OBS_EE)=1 : maplines(l,x,y,OBS_SS)=1
-        if maporient=3 then maplines(l,x,y,OBS_WW)=1 : maplines(l,x,y,OBS_NN)=1 : maplines(l,x,y,OBS_SS)=1
+        `if maporient=0 then maplines(l,x,y,OBS_WW)=1 : maplines(l,x,y,OBS_NN)=1 : maplines(l,x,y,OBS_EE)=1
+        `if maporient=1 then maplines(l,x,y,OBS_NN)=1 : maplines(l,x,y,OBS_EE)=1 : maplines(l,x,y,OBS_SS)=1
+        `if maporient=2 then maplines(l,x,y,OBS_WW)=1 : maplines(l,x,y,OBS_EE)=1 : maplines(l,x,y,OBS_SS)=1
+        `if maporient=3 then maplines(l,x,y,OBS_WW)=1 : maplines(l,x,y,OBS_NN)=1 : maplines(l,x,y,OBS_SS)=1
+        rem completely block off dead ends and blocked corridors (primary segment not overlays)
+        maplines(l,x,y,OBS_WW)=1
+        maplines(l,x,y,OBS_NN)=1
+        maplines(l,x,y,OBS_EE)=1
+        maplines(l,x,y,OBS_SS)=1
        endif
       endif 
      endif    
