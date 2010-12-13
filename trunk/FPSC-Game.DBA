@@ -2856,6 +2856,7 @@ global gpostprocessingnotransparency : gpostprocessingnotransparency=0
 global gfinalrendercameraid : gfinalrendercameraid=0
 global gdepthcameraid : gdepthcameraid=0
 global gshowaioutlines : gshowaioutlines=0
+global gairadius : gairadius=20
 global gdisablepeeking : gdisablepeeking=0
 global gsystemmemorycapoff : gsystemmemorycapoff=0
 global gentitytogglingoff : gentitytogglingoff=0
@@ -3042,6 +3043,7 @@ if file exist(tfile$)=1
     tryfield$="newblossershaders" : if field$=tryfield$ then gnewblossershaders=value1
     tryfield$="postprocessing" : if field$=tryfield$ then gpostprocessing=value1 : newpostprocessing=value1
     tryfield$="showaioutlines" : if field$=tryfield$ then gshowaioutlines=value1
+    tryfield$="airadius" : if field$=tryfield$ then gairadius=value1
     tryfield$="disablepeeking" : if field$=tryfield$ then gdisablepeeking=value1
     tryfield$="antialias" : if field$=tryfield$ then gantialias=value1 : newantialias=value1
     rem V118 - 130810 - knxrb - Invert Mouse
@@ -33460,6 +33462,7 @@ setuparr$(i)="aspectratio="+str$( gaspectratio ) : inc i
 setuparr$(i)="newblossershaders="+str$( gnewblossershaders ) : inc i
 setuparr$(i)="postprocessing="+str$( gpostprocessing ) : inc i
 setuparr$(i)="showaioutlines="+str$( gshowaioutlines ) : inc i
+setuparr$(i)="airadius="+str$( gairadius ) : inc i
 setuparr$(i)="disablepeeking="+str$( gdisablepeeking ) : inc i
 setuparr$(i)="disableparticles="+str$( gparticlesnotused ) : inc i
 `
@@ -40715,7 +40718,7 @@ _obs_generate_pertile:
       maplines(l,x,y,OBS_SS)=0 : maplines(l,x,y,OBS_WW)=0
      endif
      `
-     rem LEE - 281110 - some platforms/corridors are NOT overlays, but base map segments, which have 
+     rem LEE - 281110 - some platforms/corridors are NOT overlays, but base map segments, which have
      rem specific walls and edge-guides which the AI system must take account for..
      if 1
       if segmentswhichchangeobsdata(mapselection)>=5 and segmentswhichchangeobsdata(mapselection)<=9
@@ -40757,8 +40760,8 @@ _obs_generate_pertile:
         maplines(l,x,y,OBS_EE)=1
         maplines(l,x,y,OBS_SS)=1
        endif
-      endif 
-     endif    
+      endif
+     endif
      `
      if maprotate>0
       rem rotate lines data
@@ -49205,6 +49208,7 @@ if file exist(tfile$)=1
     tryfield$="newblossershaders" : if field$=tryfield$ then gnewblossershaders=value1
     tryfield$="postprocessing" : if field$=tryfield$ then gpostprocessing=value1
     tryfield$="showaioutlines" : if field$=tryfield$ then gshowaioutlines=value1
+    tryfield$="airadius" : if field$=tryfield$ then gairadius=value1
     tryfield$="disablepeeking" : if field$=tryfield$ then gdisablepeeking=value1
     `
     rem arena settings
@@ -49597,6 +49601,7 @@ _interface_savebuildgame:
  setuparr$(i)="newblossershaders="+str$( gnewblossershaders ) : inc i
  setuparr$(i)="postprocessing="+str$( gpostprocessing ) : inc i
  setuparr$(i)="showaioutlines="+str$( gshowaioutlines ) : inc i
+ setuparr$(i)="airadius="+str$( gairadius ) : inc i
  setuparr$(i)="disablepeeking="+str$( gdisablepeeking ) : inc i
  setuparr$(i)="" : inc i
  setuparr$(i)="multiplayergame="+str$(gmultiplayergame) : inc i
@@ -50010,6 +50015,7 @@ setuparr$(i)="aspectratio="+str$( gaspectratio ) : inc i
 setuparr$(i)="newblossershaders="+str$( gnewblossershaders ) : inc i
 setuparr$(i)="postprocessing="+str$( gpostprocessing ) : inc i
 setuparr$(i)="showaioutlines="+str$( gshowaioutlines ) : inc i
+setuparr$(i)="airadius="+str$( gairadius ) : inc i
 setuparr$(i)="disablepeeking="+str$( gdisablepeeking ) : inc i
 setuparr$(i)="disableparticles="+str$( gparticlesnotused ) : inc i
 `
@@ -52376,7 +52382,7 @@ _darkai_init:
  `AI Set Radius 20 : AI Set Avoid Mode 5 : rem 5 - avoidance grid system
  `AI SET BLOCKING THRESHOLD 3 : rem number of corpses before grid is marked solid
  rem Hockeykid entity radius and avoidance model
- ai set radius 20 : ai set avoid mode 1
+ ai set radius gairadius : ai set avoid mode 1
  `
  rem Universe containers (required for static entities)
  for layer=0 to 19
