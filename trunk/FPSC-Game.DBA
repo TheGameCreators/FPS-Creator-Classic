@@ -1382,6 +1382,7 @@ type entitytype
  currentclipammo as integer
  currentammo as integer
  fireweapon as float
+ fireweapontimer as integer
  firestrength as integer
  firesoundloop as integer
  firesoundloopremote as integer
@@ -8370,17 +8371,24 @@ if entityelement(e).fireweapon=1
 else
  if entityelement(e).fireweapon>0
   tgunid=entityelement(e).currentweapon
-  entityelement(e).fireweapon=entityelement(e).fireweapon+timeelapsed#
+  Rem to slow
+  `entityelement(e).fireweapon=entityelement(e).fireweapon+timeelapsed#
+ ` entityelement(e).fireweapon=entityelement(e).fireweapon+1
   if firemode(tgunid,0).action.automatic.s>0
    if entityelement(e).currentammo<=0 and entityelement(e).firesoundloop>0
     stop sound entityelement(e).firesoundloop
     entityelement(e).firesoundloop=0
    endif
-   if entityelement(e).fireweapon>6
+   if timer()-entityelement(e).fireweapontimer>100
     entityelement(e).fireweapon=0
+    entityelement(e).fireweapontimer=0
    endif
   else
-   if entityelement(e).fireweapon>30 then entityelement(e).fireweapon=0
+   Rem FPS is no longer 30!
+   `if entityelement(e).fireweapon>30 then entityelement(e).fireweapon=0
+   `if entityelement(e).fireweapon>screen fps() then entityelement(e).fireweapon=0
+   Rem Why not just use a timer
+   if timer()-entityelement(e).fireweapontimer>=500 then entityelement(e).fireweapon=0 : entityelement(e).fireweapontimer=0
   endif
  else
   if entityelement(e).firesoundloop>0
@@ -14773,6 +14781,7 @@ if aiindex>0
          entityelement(e).currentammo=entityelement(e).currentammo-1
         endif
         entityelement(e).fireweapon=1
+        entityelement(e).fireweapontimer=timer()
         rem FPSCV105RC2 - strength of fire (throw grenade when plr close)
         if aiactionseq(seq).value>0
          entityelement(e).firestrength=aiactionseq(seq).value
