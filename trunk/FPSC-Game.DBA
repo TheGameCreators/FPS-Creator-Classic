@@ -26272,13 +26272,34 @@ _lighting_applyentitycolor:
    tamb#=guivisualsettings.ambience/100.0 : set vector4 1,tamb#,tamb#,tamb#,1.0
    set effect constant vector teffectid,"AmbiColor",1
    r=delete vector4(1)
+   `
+   if entityelement(e).attachmentobj>0
+    if object exist(entityelement(e).attachmentobj)
+     set object emissive entityelement(e).attachmentobj,rgb(avlightcolr#/2,avlightcolg#/2,avlightcolb#/2)
+    endif
+   endif
+   `
   else
    rem no shader color for diffuse entities
    if activatedynamiclightsdebug=1 then entitydebug$(e)=str$(int(avlightcolr#))+","+str$(int(avlightcolg#))+","+str$(int(avlightcolb#))
    if entityprofile(entid).isweapon>0 or entityprofile(entid).isammo>0
     set object emissive entityelement(e).obj,rgb(255,255,255)
+    `
+    if entityelement(e).attachmentobj>0
+     if object exist(entityelement(e).attachmentobj)
+      set object emissive entityelement(e).attachmentobj,rgb(255,255,255)
+     endif
+    endif
+    `
    else
     set object emissive entityelement(e).obj,rgb(avlightcolr#/2,avlightcolg#/2,avlightcolb#/2)
+    `
+    if entityelement(e).attachmentobj>0
+     if object exist(entityelement(e).attachmentobj)
+      set object emissive entityelement(e).attachmentobj,rgb(avlightcolr#/2,avlightcolg#/2,avlightcolb#/2)
+     endif
+    endif
+    `
    endif
   endif
   `
