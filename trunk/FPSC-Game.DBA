@@ -1786,6 +1786,8 @@ Rem Hockeykid - 250210 - Dark AI constants
 #constant AIACTAIADDENEMY 1093
 #constant AIACTAIADDNEUTRAL 1094
 #constant AIACTAIAUTOFACTIONOFF 1095
+#constant AIACTAIROTATEY 1097
+#constant AIACTAILOOKAROUND 1098
 Rem end Dark AI constants
 #constant AIACTNEXTLEVEL 1096
 #constant AIACTHUDUSERVAR 1099
@@ -8890,6 +8892,8 @@ if entityelement(e).ai.waypoint.state>0
   tdx#=entityelement(e).mover.dx-entityelement(e).x
   tdz#=entityelement(e).mover.dz-entityelement(e).z
   entityelement(e).mover.da=atanfull(tdx#,tdz#)
+  ai set entity angle y entityelement(e).obj,entityelement(e).mover.da
+  ai entity look at position entityelement(e).obj,tdx#,tdz#
   distx#=waypointcoord(w).x-entityelement(e).x
   distz#=waypointcoord(w).z-entityelement(e).z
   wpdist#=sqrt(abs(distx#*distx#)+abs(distz#*distz#))
@@ -11063,6 +11067,8 @@ actword$(AIACTAISTOP)="aistop"
 actword$(AIACTAIUSEMELEE)="aiusemelee"
 actword$(AIACTAISETMELEEDAMAGE)="aisetmeleedamage"
 actword$(AIACTAIROTATETOTARGET)="airotatetotarget"
+actword$(AIACTAIROTATEY)="airotatey"
+actword$(AIACTAILOOKAROUND)="ailookaround"
 actword$(AIACTAIROTATETOSOUND)="airotatetosound"
 actword$(AIACTAIPLRCALLTEAM)="aiplrcallteam"
 actword$(AIACTAISETSPEED)="aisetspeed"
@@ -15920,19 +15926,19 @@ if aiindex>0
         Rem do damage
         tdamagesource=0 : timpacttype=1 : tdamage=entityelement(e).darkai.meleedamage
         tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y  : tdamagex#=entityelement(e).y
-        stte=e : e=tte
+        stte=e : e=tte : damagede=e
         gosub _entity_deducthealth
         e=stte
         Rem Create Blood
         if blood=1
          decalid=entitydecal(entityelement(e).bankindex,1)
          if decalid>0
-          distx#=tdamagex#-entityelement(e).x
-          disty#=tdamagey#-entityelement(e).y
-          distz#=tdamagez#-entityelement(e).z
+          distx#=tdamagex#-entityelement(damagede).x
+          disty#=tdamagey#-entityelement(damagede).y
+          distz#=tdamagez#-entityelement(damagede).z
           bldist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
           rem direction from player to entity
-          tix#=entityelement(e).x-tdamagex# : tiy#=entityelement(e).y-tdamagey# : tiz#=entityelement(e).z-tdamagez#
+          tix#=entityelement(damagede).x-tdamagex# : tiy#=entityelement(damagede).y-tdamagey# : tiz#=entityelement(damagede).z-tdamagez#
           tdd#=sqrt(abs(tix#*tix#)+abs(tiy#*tiy#)+abs(tiz#*tiz#))
           tix#=tix#/tdd# : tiy#=tiy#/tdd# : tiz#=tiz#/tdd#
           rem find point of impact
@@ -15941,7 +15947,7 @@ if aiindex>0
           tiz#=tiz#*(bldist#-10.0)
           rem create a splat decal
           decalscalemodx=0 : rem FPSCV101 - fix
-          decalorient=0 : decalx=tdamagex#+tix# : decaly=((entityelement(e).y+(object size y(entityelement(e).obj)/2))-rnd(6))+tiy# : decalz=tdamagez#+tiz#
+          decalorient=0 : decalx=tdamagex#+tix# : decaly=((entityelement(damagede).y+(object size y(entityelement(damagede).obj)/2))-rnd(6))+tiy# : decalz=tdamagez#+tiz#
           originatore=-1 : gosub _decalelement_create
          endif
         endif
@@ -15958,11 +15964,22 @@ if aiindex>0
        entityelement(e).darkai.meleedamage=aiactionseq(seq).value
       endif
      endcase
+     case AIACTAIROTATEY:
+      if ai entity exist(entityelement(e).obj)
+       ai set entity angle y entityelement(e).obj,aiactionseq(seq).value
+      endif
+     endcase
+     case AIACTAILOOKAROUND:
+      if ai entity exist(entityelement(e).obj)
+       ai entity look around entityelement(e).obj,aiactionseq(seq).value,aiactionseq(seq).valueb
+      endif
+     endcase
      case AIACTAIROTATETOTARGET:
       if ai entity exist(entityelement(e).obj)
        if entityelement(e).actualtarget>0
         if entityelement(e).actualtarget=1
          ai entity look at position entityelement(e).obj,object position x(physicsplayerborble),object position z(physicsplayerborble)
+         `entityelement(e).mover.da=atanfull(object position x(physicsplayerborble),object position z(physicsplayerborble))
          `
          if entityelement(e).darkai.useaim=1
           ex1#=object position x(physicsplayerborble) : ey1#=object position y(physicsplayerborble) : ez1#=object position z(physicsplayerborble)
@@ -15975,6 +15992,7 @@ if aiindex>0
         else
          tte=entityelement(e).actualtarget-1
          ai entity look at position entityelement(e).obj,object position x(entityelement(tte).obj),object position z(entityelement(tte).obj)
+         `entityelement(e).mover.da=atanfull(object position x(entityelement(tte).obj),object position z(entityelement(tte).obj))
          `
          if entityelement(e).darkai.useaim=1
           ex1#=object position x(entityelement(tte).obj) : ey1#=object position y(entityelement(tte).obj) : ez1#=object position z(entityelement(tte).obj)
@@ -15999,6 +16017,7 @@ if aiindex>0
        sound=AIHeardSound(ttte)
        if sound>0
         ai entity look at position entityelement(e).obj,aisound(sound).x,aisound(sound).z
+        `entityelement(e).ry=atanfull(aisound(sound).x,aisound(sound).z)
        endif
       endif
      endcase
@@ -52564,7 +52583,7 @@ _darkai_control:
   ` ai set entity position obj,tmyx#,tmyy#,tmyz#
   `endif
  `endif
-
+ `
  rem Reset Actions
  ai set entity no look at point obj
  entityelement(e).darkai.running=0
@@ -52861,6 +52880,7 @@ _darkai_control:
  entityelement(e).x=tentx#
  entityelement(e).z=tentz#
  entityelement(e).darkai.aiy=Object Position Y(obj)
+ `entityelement(e).ry=
 
  rem Apply Animation
  entityelement(e).darkai.action=0

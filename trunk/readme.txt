@@ -9,6 +9,9 @@ History
 V1.1.8
 ------
  
+ * Fixed AIUSEMELEE=1 blood spurts
+ * Added new FPI action AIROTATEY=X this will rotate the character to the angle specified by x
+ * Added new FPI action AILOOKAROUND=X,Y this will rotate the character randomly between angle x and angle y
  * Added cool new adaptive bloom shader written by Mark Blosser (the legend)
  * Added new gunspec command BULLETLIMBTOTAL=X X is the amount of bullet limbs the weapon has 
  * Added new gunspec command BULLETHIDERESET=X X is the animation frame at which the bullets will all be scaled back to 100%
