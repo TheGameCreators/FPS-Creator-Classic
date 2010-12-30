@@ -52481,7 +52481,7 @@ _darkai_addai:
   `AI Set Entity Turn Speed obj,entityelement(e).eleprof.speed*2 ` FPGC - 100710 - all chars turn VERY slowly!
   AI Set Entity Turn Speed obj,entityelement(e).eleprof.speed*6
   `
-  ai set entity fire arc obj,20
+  ai set entity fire arc obj,entityelement(e).eleprof.coneangle-(entityelement(e).eleprof.coneangle*0.3)`20
   ai set entity view range obj,600
   ai set entity attack distance obj,200-rnd(50)+rnd(50)
   ai set entity aggressive obj
