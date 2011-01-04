@@ -55186,7 +55186,7 @@ Sh#=gdisplayheight
 
 
    `Make sun plain   
-      load image "Media/Sun.bmp",4
+      load image "effectbank\lightray\sun.bmp",4
       make object plain 99000,1500*2,1500*2
       texture object 99000,4
       set object transparency 99000,1
@@ -55203,7 +55203,7 @@ Sh#=gdisplayheight
       color backdrop RayCam,rgb(0,0,0)
 
    `Setup light scatter plain      
-      load effect "FX/Scatter.fx",3,0
+      load effect "effectbank\lightray\scatter.fx",3,0
       make object plain 99001,2,2,1
       texture object 99001,6
       set object effect 99001,3
