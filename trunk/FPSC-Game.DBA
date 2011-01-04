@@ -1961,7 +1961,15 @@ rem GUI-X9 (knxrb) >>>
 #constant AIACTUSEGUIX9 1344
 rem GUI-X9 (knxrb) <<<
 #constant AIACTHIDESHADOW 1345
-#constant AIACTLAST 1346
+
+// LightRay Addition
+rem LightRayMod
+#constant AIACTLRAYSET 1347
+#constant AIACTLRAYACT 1348
+#constant AIACTLRBLOOMACT 1349
+#constant AIACTLRDEBUGDEACTIVE 1350
+
+#constant AIACTLAST 1351
 
 rem V109 BETA3 - 210408 - AI variables
 global aivariablemode : aivariablemode=0 : rem 0-global, 1-local
@@ -2630,6 +2638,15 @@ Global waterfogfar as float : waterfogfar=2000.0
 Global waterfogred as float : waterfogred=55
 Global waterfoggreen as float : waterfoggreen=65
 Global waterfogblue as float : waterfogblue=75
+
+// LightRay Addition
+rem LRMod globals
+global rotvar#
+global lrsamples
+lrsamples=1
+global lrbloomactive
+lrbloomactive=1
+global lrdebugdeactive
 
 rem World Physics Settings
 global physicson=1
@@ -3591,7 +3608,7 @@ rem FPGC - 231109 - initialise DarkVOICES
 gosub _lipsync_init
 rem GUI-X9 (knxrb)
 gosub _gui_init
-if gcompilestandaloneexe=1 and gimageblockmode=1 then GUI_ATIB()
+rem if gcompilestandaloneexe=1 and gimageblockmode=1 then GUI_ATIB()
 
 `
 rem Run gameflow default screen path
@@ -4150,7 +4167,13 @@ _main_sync:
   `
   Rem When water is off exclude the render of cameras 1 and 2
   if wateron=0 or excludewatercams=1 then sync mask %11111001
-  set current camera 0 : sync
+  
+  // LightRay Addition
+  //LRMODUPDATE
+  SyncAll()
+  if gpostprocessing=0 or gpostprocessing=1 or gpostprocessing=2 then set current camera 0 
+  if gpostprocessing=0 or gpostprocessing=1 or gpostprocessing=2 then sync
+  
  endif
 return
 
@@ -4364,6 +4387,9 @@ if gtestgamemodefromeditor=1
  gosub _main_game_showwindownow
  `
 endif
+
+// LightRay Addition
+CreateLGMod()
 
 rem Sample transition IN
 gametransitionscreen=1 : gametransitionscreencount=600/2
@@ -11168,6 +11194,13 @@ actword$(AIACTWATERFOGBLUE)="waterfogblue"
 actword$(AIACTWATERRED)="waterred"
 actword$(AIACTWATERGREEN)="watergreen"
 actword$(AIACTWATERBLUE)="waterblue"
+
+// LightRay Addition
+rem LRMod
+actword$(AIACTLRAYSET)="lrayset"
+actword$(AIACTLRAYACT)="lrayactive"
+actword$(AIACTLRBLOOMACT)="bloomactive"
+actword$(AIACTLRDEBUGDEACTIVE)="lrdebugdeactive"
 return
 
 _ai_reset_presaveposition:
@@ -17122,6 +17155,22 @@ if aiindex>0
       set effect constant integer waterfx,"RefractColor",rgb(waterred,watergreen,waterblue)
       set effect constant integer waterfx,"ReflectColor",rgb(waterred,watergreen,waterblue)
      endcase
+     
+     // LightRay Addition
+    rem LRMod
+     case AIACTLRAYSET:
+        rotvar#=aiactionseq(seq).value
+     endcase      
+     case AIACTLRAYACT:
+        lrsamples=aiactionseq(seq).value
+     endcase      
+     case AIACTLRBLOOMACT:
+        lrbloomactive=aiactionseq(seq).value
+     endcase      
+     case AIACTLRDEBUGDEACTIVE:
+        lrdebugdeactive=aiactionseq(seq).value
+     endcase        
+           
      `
      `
      `
@@ -33381,7 +33430,7 @@ endif
 if right$(exepath$,1)<>"\" then exepath$=exepath$+"\"
 if path exist(exepath$)=0 then exepath$=rootpath$+"\..\MyGames\"
 
-if gimageblockmode=0 then GUI_CITF(exepath$, exename$) : rem GUI-X9 (knxrb)
+rem if gimageblockmode=0 then GUI_CITF(exepath$, exename$) : rem GUI-X9 (knxrb)
 
 rem Despot file collection
 if file exist("..\buildfiles.ini")=1 then delete file "..\buildfiles.ini"
@@ -33588,8 +33637,8 @@ for fileindex=0 to filesmax
 next fileindex
 `
 rem GUI-X9 - knxrb
-set dir exepath$ : set dir ".."
-CheckBuildScripts(exepath$+exename$,language$)
+rem set dir exepath$ : set dir ".."
+rem CheckBuildScripts(exepath$+exename$,language$)
 `
 rem Restore directory
 set dir rootpath$
@@ -34538,9 +34587,22 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
    if firemode(gunid,firemode).settings.simplezoom <> 0
     set camera fov 75.0-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov#
     set camera fov 1,75-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov# : set camera fov 2,75-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov#
+    
+    
+    // LightRay Addition
+    if RayCam<>0 then if camera exist(RayCam)=1 then set camera fov RayCam,75.0-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov#
+    if bloom_cam<>0 then if camera exist(bloom_cam)=1 then set camera fov bloom_cam,75.0-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov#
+    
+    
    else
     set camera fov 75.0-(plrzoomin#*7)-gunzoommag#+airmod_camfov#
     set camera fov 1,75-(plrzoomin#*7)-gunzoommag#+airmod_camfov# : set camera fov 2,75-(plrzoomin#*7)-gunzoommag#+airmod_camfov#
+    
+    // LightRay Addition
+    if RayCam<>0 then if camera exist(RayCam)=1 then set camera fov RayCam,75.0-(plrzoomin#*7)-gunzoommag#+airmod_camfov#
+    if bloom_cam<>0 then if camera exist(bloom_cam)=1 then set camera fov bloom_cam,75.0-(plrzoomin#*7)-gunzoommag#+airmod_camfov#
+    
+    
    endif
    rem AirMod - Done
    rem AirMod - Modified for Simple Zoom
@@ -34549,6 +34611,13 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
    rem AirMod - Modified for cam fov
    set camera fov 75.0+airmod_camfov#
    set camera fov 1,75.0+airmod_camfov# : set camera fov 2,75.0+airmod_camfov#
+   
+   // LightRay Addition
+   if RayCam<>0 then if camera exist(RayCam)=1 then set camera fov RayCam,75.0+airmod_camfov#
+   if bloom_cam<>0 then if camera exist(bloom_cam)=1 then set camera fov bloom_cam,75.0+airmod_camfov#
+
+
+
    if internalzoomhud>0 then hudid=internalzoomhud : hud(hudid).hide=1
   endif
  endif
@@ -53457,24 +53526,35 @@ _postprocess_init:
   tshaderchoice$=bloomfilescreen$
   if gpostprocessing=1 then tshaderchoice$=bloomfilescreen$ : gpostprocessingnotransparency=0 : gdepthcameraid=0
   if gpostprocessing=2 then tshaderchoice$=depthoffieldfilescreen$ : gpostprocessingnotransparency=0 : gdepthcameraid=4
+  
+  // LightRay Addition
+  if gpostprocessing=3 then global lgmodraysactive : lgmodraysactive=1 : gdepthcameraid=0
+  if gpostprocessing=4 then global lgmodraysactive : lgmodraysactive=2 : gdepthcameraid=0
+  if gpostprocessing=5 then global lgmodraysactive : lgmodraysactive=3 : gdepthcameraid=0
+  if gpostprocessing=6 then global lgmodraysactive : lgmodraysactive=4 : gdepthcameraid=0
+  if gpostprocessing=7 then global lgmodraysactive : lgmodraysactive=5 : gdepthcameraid=0  
   `
+  if gpostprocessing<=2  
   rem FPGC - 200310 - new camera 3 holds post-process screen quad (requires U75+)
   gfinalrendercameraid=3
-  make camera gfinalrendercameraid : load effect tshaderchoice$,65535,0
+  if gpostprocessing<=2 then make camera gfinalrendercameraid : load effect tshaderchoice$,65535,0
   set camera view gfinalrendercameraid,0,0,1,1
   set current camera 0
   `
   rem FPGC - 070410 - make a depth camera and assign it to image X
   if gdepthcameraid>0
-   make camera gdepthcameraid
+   if gpostprocessing<=2 then make camera gdepthcameraid
    set camera view gdepthcameraid,0,0,1,1
    color backdrop gdepthcameraid,rgb(255,128,128)
    set current camera 0
   endif
   `
   rem post process mode on
-  gpostprocessmode=1
+  
+  // LightRay Addition
+  if gpostprocessing=0 or gpostprocessing=1 or gpostprocessing=2 then gpostprocessmode=1
   `
+ endif
  endif
  `
 return
@@ -53879,6 +53959,13 @@ function UpDateWater()
  Rem UpDate Water plain position
  position object waterobj,0,waterheight#,0
  Hide object waterobj
+ 
+ // LightRay Addition
+ if lgmodraysactive=2 then hide object 52
+ if lgmodraysactive=1 then hide object 99000
+ if lgmodraysactive=1 then hide object 99001
+ 
+
  Rem Upade Refract and Reflect cameras
  set effect technique WaterFx,"Refract"
  UpDateRefraction()
@@ -53892,6 +53979,13 @@ function UpDateWater()
  endif
  `
  show object waterobj
+ 
+ // LightRay Addition
+ if lgmodraysactive=2 then show object 52
+ if lgmodraysactive=1 then show object 99000
+ if lgmodraysactive=1 then show object 99001
+ 
+ 
  set current camera 0
 endfunction
 
@@ -53972,7 +54066,6 @@ _gui_types:
     global SaveHudY as float = 0.0
     global initLoadSave as integer = 0
     global GUIDC as integer = 1
-    global ScaleGUI as integer = 1
     global guiIA as integer = 1
     global guiloaderhud as integer = -1
     global guieyehud as integer = -1
@@ -54425,7 +54518,7 @@ _gui_run:
         endif
         if escapekey() then GUILoad = 0 : GUISave = 0 : gosub _saveload_savebox_free : HideAllGUI()
     endif
-    if GUIDC=1
+    if guiIA=1 and GUIDC=1
         if MouseSprite > 0
             if sprite exist(MouseSprite)
                 hide mouse
@@ -54448,6 +54541,7 @@ _gui_run:
                 t1#=guihud(guiloaderhud).Width*guiloadprogress
                 size sprite guihud(guiloaderhud).NormImageNo,t1#,guihud(guiloaderhud).AH
                 paste sprite guihud(guiloaderhud).NormImageNo,guihud(guiloaderhud).AL-(guihud(guiloaderhud).Width/2),guihud(guiloaderhud).AT-(guihud(guiloaderhud).Height/2)
+                center text guihud(guiloaderhud).AL-(guihud(guiloaderhud).Width/2),guihud(guiloaderhud).AT-(guihud(guiloaderhud).Height/2),str$(t1#)+"%"
                 guihud(guiloaderhud).Visible = 0
             endif
         endif
@@ -54470,7 +54564,11 @@ _gui_run:
                 paste sprite guihud(guieyehud).NormImageNo,0,0
                 guieyetimer = guieyetimer - 1
                 if guieyetimer < 0 then guieyetimer = 0
-                guihud(guieyehud).Visible = 0
+                if guieyetimer = 0
+                    guihud(guieyehud).Visible = 0
+                else
+                    guihud(guieyehud).Visible = 1
+                endif
             endif
         endif
     endif
@@ -54943,6 +55041,7 @@ function MakeGUISetupVar(Name as string, Value as string, SetupLine as string)
     endif
 endfunction
 
+remstart - Below code to be removed after GUI-X9 has finished beta, not beforehand in-case it is required for something in the near future.
 function CheckBuildScripts(ePath$, tLanguage$)
    rem Copy scripts manually so the default scripts aren't edited incase the user doesn't use GUI-X9 for their next build.
     if file exist(get dir$()+"\Files\script.gx9")
@@ -54954,6 +55053,8 @@ function CheckBuildScripts(ePath$, tLanguage$)
             read string 1,strGameOver$
             read string 1,strGameWon$
             read string 1,strSky$
+            read string 1,skyFolder1$
+            read string 1,skyFolder2$
         endif
         close file 1
     endif
@@ -54984,10 +55085,11 @@ function CheckBuildScripts(ePath$, tLanguage$)
     if strGameOver$ <> "" and file exist(get dir$()+"\"+strGameOver$) then copy file get dir$()+"\"+strGameOver$,ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\gameover.fpi"
     if strGameWon$ <> "" and file exist(get dir$()+"\"+strGameWon$) then copy file get dir$()+"\"+strGameWon$,ePath$+"\Files\languagebank\"+tLanguage$+"\gamebank\"+guiFPG$+"\gamewon.fpi"
     if path exist(ePath$+"/Files/skybank/")=0 then make directory ePath$+"/Files/skybank/"
-    if path exist(ePath$+"/Files/skybank/GUIX9/")=0 then make directory ePath$+"/Files/skybank/GUIX9/"
-    if file exist(get dir$()+"/Files/skybank/GUIX9/"+strSky$) then load object get dir$()+"/Files/skybank/GUIX9/"+strSky$,55555
+    if path exist(ePath$+"/Files/skybank/"+skyFolder1$+"/")=0 then make directory ePath$+"/Files/skybank/"+skyFolder1$+"/"
+    if path exist(ePath$+"/Files/skybank/"+skyFolder1$+"/"+skyFolder2$+"/")=0 then make directory ePath$+"/Files/skybank/"+skyFolder1$+"/"+skyFolder2$+"/"
+    if file exist(get dir$()+"/Files/skybank/"+skyFolder1$+"/"+skyFolder2$+"/"+strSky$+".x") then load object get dir$()+"/Files/skybank/"+skyFolder1$+"/"+skyFolder2$+"/"+strSky$+".x",55555
     if object exist(55555)
-        save object ePath$+"/Files/skybank/GUIX9/"+left$(strSky$,3)+".dbo",55555
+        save object ePath$+"/Files/skybank/"+skyFolder1$+"/"+skyFolder2$+"/"+left$(strSky$,3)+".dbo",55555
         delete object 55555
     endif
 endfunction
@@ -55003,6 +55105,8 @@ function GUI_ATIB()
             read string 1,unused$
             read string 1,unused$
             read string 1,unused$
+            read string 1,skyFolder1$
+            read string 1,skyFolder2$
             while file end(1)=0
                 read string 1,fArray(tF,0)
                 read string 1,fArray(tF,1)
@@ -55014,9 +55118,9 @@ function GUI_ATIB()
     for cF = 0 to tF-1
         if fArray(cF,0) <> "" and fArray(cF,1) <> ""
             if left$(lower$(fArray(cF,1)),3) = "sky"
-                copy file fArray(cF,0),get dir$()+"\skybank\GUIX9\"+right$(fArray(cF,1),len(fArray(cF,1))-3)
+                copy file fArray(cF,0),get dir$()+"\skybank\"+skyFolder1$+"\"+skyFolder2$+"\"+right$(fArray(cF,1),len(fArray(cF,1))-3)
                 if right$(lower$(fArray(cF,1)),4) = ".dds" or right$(lower$(fArray(cF,1)),4) = ".tga"
-                    if file exist("skybank\GUIX9\"+right$(fArray(cF,1),len(fArray(cF,1))-3)) then load image "skybank\GUIX9\"+right$(fArray(cF,1),len(fArray(cF,1))-3),80000+cF
+                    if file exist("skybank\"+skyFolder1$+"\"+skyFolder2$+"\"+right$(fArray(cF,1),len(fArray(cF,1))-3)) then load image "skybank\"+skyFolder1$+"\"+skyFolder2$+"\"+right$(fArray(cF,1),len(fArray(cF,1))-3),80000+cF
                 endif
             else
                 copy file fArray(cF,0),get dir$()+"\languagebank\"+language$+"\gamecore\backdrops\basic\"+fArray(cF,1)
@@ -55033,6 +55137,8 @@ function GUI_CITF(ePath$, eName$)
     if file exist("script.gx9")
         open to read 1,"script.gx9"
         if file open(1)=1
+            read string 1,unused$
+            read string 1,unused$
             read string 1,unused$
             read string 1,unused$
             read string 1,unused$
@@ -55060,4 +55166,544 @@ function GUI_CITF(ePath$, eName$)
         endif
     next
 endfunction
+remend
 rem GUI-X9 (knxrb) <<<
+
+
+//                   //
+// LightRay addition //
+//                   //
+
+// Lightray Setup Code
+Setup_LightRays:
+
+global RayCam
+RayCam=Find_Free_Camera()
+global Sw#
+global Sh#
+Sw#=gdisplaywidth
+Sh#=gdisplayheight
+
+
+   `Make sun plain   
+      load image "Media/Sun.bmp",4
+      make object plain 99000,1500*2,1500*2
+      texture object 99000,4
+      set object transparency 99000,1
+      set object light 99000,0
+      set object mask 99000,2^RayCam
+
+   `Setup light scatter camera
+      make camera RayCam
+      set camera to image RayCam,6,gdisplaywidth/3,gdisplayheight/3
+      set camera range RayCam,1,realrange#
+      set camera aspect RayCam,(Sw#/Sh#)
+      set camera fov RayCam,75
+      backdrop on RayCam
+      color backdrop RayCam,rgb(0,0,0)
+
+   `Setup light scatter plain      
+      load effect "FX/Scatter.fx",3,0
+      make object plain 99001,2,2,1
+      texture object 99001,6
+      set object effect 99001,3
+      set object mask 99001,(2^0)    
+     // disable object zdepth 99001
+      ghost object on 99001,0
+      set object transparency 99001,1
+      
+return
+
+
+// LightRay Update Code
+Update_LightRays:
+
+if lrdebugdeactive=0
+if keystate(2)=1
+    paste image 6,0,0
+endif
+endif
+
+      y=wrapvalue(object angle y(99000))
+      null=make vector4(10)
+      set vector4 10,CalcLightDirX(y),-0.5,CalcLightDirZ(y),0
+      set effect constant vector 3,"LightDir",10
+      null=delete vector4(10)
+
+    if lrsamples=1
+        set effect constant integer 3,"SampleNum",80
+        set camera to image RayCam,6,gdisplaywidth/3,gdisplayheight/3
+    else
+        set effect constant integer 3,"SampleNum",0
+        set camera to image RayCam,6,1,1
+    endif
+
+   `Update sun plain
+      position object 99000,camera position x(0),camera position y(0),camera position z(0)
+      if lrdebugdeactive=0
+        if keystate(201)=1 then inc rotvar#,0.1
+        if keystate(209)=1 then dec rotvar#,0.1
+      endif
+      rotate object 99000,-32.5,0+rotvar#,0
+      move object 99000,2000
+
+   `Update light Scattering
+      position object 99001,camera position x(0),camera position y(0),camera position z(0)
+      rotate object 99001,camera angle x(0),camera angle y(0),camera angle z(0)
+      position camera RayCam,camera position x(0),camera position y(0),camera position z(0)
+      rotate camera RayCam,camera angle x(0),camera angle y(0),camera angle z(0)
+
+
+return   
+
+// Bloom Setup Code
+Setup_Bloom:
+
+      global fov
+      fov=75
+      global sw# 
+      sw#=screen width()
+      global sh#
+      sh#=screen height()
+      dis#=(sh#/2)/tan(fov/2)
+      global bloom_cam
+      if lgmodraysactive=5 
+        bloom_cam=Find_Free_Camera()
+      else
+        bloom_cam=Find_Free_Camera()
+      endif
+      global bloom_img
+      bloom_img=50
+      global bloom_obj
+      bloom_obj=50
+      global cameranumbervar
+      global lrbloomobjactive
+
+   `Camera
+   //   set camera range 0.5,100000
+   //   set camera fov fov
+     // set camera to image 0,bloom_img,1920,1080
+
+   `Screen grabbing Camera
+      make camera bloom_cam
+      set camera to image bloom_cam,bloom_img,sw#,sh#,2
+      set camera range bloom_cam,3,realrange#
+      set camera fov bloom_cam,fov
+      set camera aspect bloom_cam,(sw#/sh#)
+
+     `Screen object + Blur Y
+      make object plain bloom_obj+2,-1920/400,1080/400//-sw#/(400),sh#/(400)
+      load effect "effectbank\ps_2_0\post-bloom.fx",bloom_obj+2,0
+      texture object bloom_obj+2,0,bloom_img
+      set object effect bloom_obj+2,bloom_obj+2
+      set object transparency bloom_obj+2,1
+     // ghost object on bloom_obj+2
+      
+
+
+
+return
+
+// Bloom Update code
+Update_Bloom:
+
+if lrdebugdeactive=0
+if keystate(3)=1
+    paste image bloom_img,0,0
+endif
+endif
+
+
+if lrbloomactive=1
+    set camera to image bloom_cam,bloom_img,sw#,sh#,2
+    lrbloomobjactive=1
+else
+    set camera to image bloom_cam,bloom_img,1,1,2
+    lrbloomobjactive=0
+endif
+
+   `Update bloom camera
+      position camera bloom_cam,camera position x(),camera position y(),camera position z()
+      rotate camera bloom_cam,camera angle x(),camera angle y(),camera angle z()
+
+   `Update screen object
+      dis#=(sh#/2)/tan(fov/2)
+      position object bloom_obj+2,camera position x(),camera position y(),camera position z()
+      rotate object bloom_obj+2,camera angle x(),camera angle y(),camera angle z()
+      move object bloom_obj+2,dis#/400
+      move object up bloom_obj+2,0.01
+      move object left bloom_obj+2,0.01
+      scale object bloom_obj+2,101,101,0
+
+return
+
+// Function for the new sync, which does not use the original FPSC sync system
+function SyncAll()
+
+    // 
+    // RAYS ONLY
+    //
+    if lgmodraysactive=1 
+        
+    gosub Update_LightRays
+        
+    for blackeffects=effectbankoffset to effectbankoffset+effectbankmax
+        if blackeffects<>0
+            if effect exist(blackeffects)=1 
+                set effect technique blackeffects,"RenderColor"
+            endif
+        endif
+    next blackeffect
+    
+    if object exist(65123)=1 then hide object 65123
+    if object exist(65124)=1 then hide object 65124
+    hide object 99001
+    
+  for o=hudbankoffset to hudbankoffset+31
+   if object exist(o)=1
+    set object mask o,2^0
+   endif
+  next o
+  
+  for f=1 to decalelementmax
+    tobj=decalelementoffset+f
+    if object exist(tobj)=1
+        set object mask tobj,(2^0)
+    endif
+  next f
+    
+    hide object waterobj
+    
+          sync mask 2^RayCam:fastsync
+    
+    show object waterobj  
+        
+    if object exist(65123)=1 then show object 65123
+    if object exist(65124)=1 then show object 65124   
+    show object 99001
+        
+    for blackeffects=effectbankoffset to effectbankoffset+effectbankmax
+        if blackeffects<>0
+            if effect exist(blackeffects)=1 
+                set effect technique blackeffects,"dx9textured"
+            endif
+        endif
+    next blackeffect
+    
+    
+    sync mask 2^1
+    
+    sync mask 2^0
+    set current camera 0 : sync        
+            
+    endif
+    
+   //
+   // RAYS WITH BLOOM ENABLED SYNC
+   //
+    if lgmodraysactive=2
+    
+    gosub Update_LightRays
+    gosub Update_Bloom
+    
+    for blackeffects=effectbankoffset to effectbankoffset+effectbankmax
+        if blackeffects<>0
+            if effect exist(blackeffects)=1 
+                set effect technique blackeffects,"RenderColor"
+            endif
+        endif
+    next blackeffect
+    
+    if object exist(65123)=1 then set object mask 65123,(2^0)+(2^bloom_cam)
+    if object exist(65124)=1 then set object mask 65124,(2^0)+(2^bloom_cam)
+    hide object 52
+    hide object 99001
+
+  for o=hudbankoffset to hudbankoffset+31
+   if object exist(o)=1
+    set object mask o,2^0
+   endif
+  next o
+  
+  for f=1 to decalelementmax
+    tobj=decalelementoffset+f
+    if object exist(tobj)=1
+        set object mask tobj,(2^0)+(2^bloom_cam)
+    endif
+  next f
+    
+    hide object waterobj
+    
+          sync mask 2^RayCam:fastsync
+      
+    show object waterobj      
+
+
+    show object 99001
+        
+    for blackeffects=effectbankoffset to effectbankoffset+effectbankmax
+        if blackeffects<>0
+            if effect exist(blackeffects)=1 
+                set effect technique blackeffects,"dx9textured"
+            endif
+        endif
+    next blackeffect
+    
+    
+    sync mask 2^bloom_cam:fastsync
+    
+    sync mask 2^2
+    
+    sync mask 2^1
+     
+    
+    if lrbloomobjactive=1 then show object 52
+    sync mask 2^0
+    set current camera 0 : sync    
+    
+    endif
+    
+
+
+endfunction
+
+// Function to create PostEffect Objects based on the given postprocessing value in setup.ini
+function CreateLGMod()
+
+    if lgmodraysactive=1 then gosub Setup_LightRays
+    
+    
+    if lgmodraysactive=2
+    
+        gosub Setup_Bloom
+        gosub Setup_LightRays
+    
+    endif
+
+endfunction
+
+
+`====================================================
+` Post Filter Functions
+`====================================================
+` By EVOLVED
+` www.evolved-software.com
+`====================================================
+
+`Post frame target data
+type FrameTargetData
+   Object
+   Effect
+   Teq$
+endtype
+
+`Post render target data
+type RenderTargetData
+   Camera
+   Image
+   Object
+   Effect
+   Teq$
+endtype
+
+`====================================================
+` Frame Render Set Up
+`====================================================
+function PostFilter_SetUp(Width,Height,D3DFormat)
+
+   `Globals
+      Null=make vector4(100)
+      global FrameCamera=0
+      global FilterEnabled=1
+      global FrameTargetCount=1
+      global RenderTargetCount=2
+      global RenderTargetMask=0
+      global dim FrameTarget(1) as FrameTargetData
+      global dim RenderTarget(1) as RenderTargetData
+
+   `Frame Render Camera
+      RenderTarget(1).Camera=Find_Free_Camera()
+      RenderTarget(1).Image=Find_Free_Image()
+      make camera RenderTarget(1).Camera
+      if D3DFormat=0 then set camera to image RenderTarget(1).Camera,RenderTarget(1).Image,Width,Height
+      if D3DFormat>0 then set camera to image RenderTarget(1).Camera,RenderTarget(1).Image,Width,Height,3,D3DFormat
+      RenderTargetMask=2^RenderTarget(1).Camera
+      FrameCamera=RenderTarget(1).Camera
+      backdrop off 0
+      set camera fov 0,75
+      set camera aspect 0,(Sw#/Sh#)
+    //  set camera range 0,1,10
+
+endfunction 1
+
+`====================================================
+` Post Filter Update
+`====================================================
+function PostFilter_Update()
+   if FilterEnabled=1
+      position camera RenderTarget(1).Camera,camera position x(0),camera position y(0),camera position z(0)
+      rotate camera RenderTarget(1).Camera,camera angle x(0),camera angle y(0),camera angle z(0)
+      set camera aspect RenderTarget(1).Camera,(Sw#/Sh#)
+      sync mask RenderTargetMask
+      fastsync
+      for t=1 to array count(FrameTarget())-1
+         position object FrameTarget(t).Object,camera position x(0),camera position y(0),camera position z(0)
+         rotate object FrameTarget(t).Object,camera angle x(0),camera angle y(0),camera angle z(0)
+      next t
+   endif
+endfunction
+
+`====================================================
+` Delete Post Filter
+`====================================================
+function PostFilter_Delete()
+   if FilterEnabled=1
+      for t=1 to array count(FrameTarget())-1
+         if object exist(FrameTarget(t).Object)=1 then delete object FrameTarget(t).Object
+         if effect exist(FrameTarget(t).Effect)=1 then delete effect FrameTarget(t).Effect
+      next t
+      for t=1 to array count(RenderTarget())-1
+         if Camera exist(RenderTarget(t).Camera)=1 then delete camera RenderTarget(t).Camera
+         if image exist(RenderTarget(t).Image)=1 then delete image RenderTarget(t).Image
+         if object exist(RenderTarget(t).Object)=1 then delete object RenderTarget(t).Object
+         if effect exist(RenderTarget(t).Effect)=1 then delete effect RenderTarget(t).Effect
+      next t
+      FilterEnabled=0
+      undim FrameTarget()
+      undim RenderTarget()
+   endif
+endfunction
+
+`====================================================
+` Add Frame Target
+`====================================================
+function PostFilter_FrameTarget_Add(Effect$,Teq$,Transparent)
+   if FilterEnabled=1
+      array insert at bottom FrameTarget()
+      FrameTarget(FrameTargetCount).Object=Find_Free_Object()
+      FrameTarget(FrameTargetCount).Effect=Find_Free_Effect()
+      FrameTarget(FrameTargetCount).Teq$=Teq$
+      make object plain  FrameTarget(FrameTargetCount).Object,2,2,1
+      convert object fvf FrameTarget(FrameTargetCount).Object,0x002
+      set object mask FrameTarget(FrameTargetCount).Object,2^0
+      set object Transparency FrameTarget(FrameTargetCount).Object,Transparent
+      load effect Effect$,FrameTarget(FrameTargetCount).Effect,0,1
+      set vector4 100,0.5/ImgScreenSizeX,0.5/ImgScreenSizeY,0,0
+      set effect constant vector FrameTarget(FrameTargetCount).Effect,"ViewVec",100
+      set effect technique FrameTarget(FrameTargetCount).Effect,Teq$
+      set object effect FrameTarget(FrameTargetCount).Object,FrameTarget(FrameTargetCount).Effect
+      inc FrameTargetCount
+   endif
+   r=FrameTargetCount-1
+endfunction r
+
+`====================================================
+` Texture Frame Target
+`====================================================
+function PostFilter_FrameTarget_Image(Targ,Stage,Img)
+   if FilterEnabled=1 and Targ>0 and Targ<FrameTargetCount
+      texture object FrameTarget(Targ).Object,Stage,Img
+   endif
+endfunction
+
+`====================================================
+` Add Render Target
+`====================================================
+function PostFilter_RenderTarget_Add(Effect$,Teq$,Transparent,Width,Height,D3DFormat)
+   if FilterEnabled=1
+      array insert at bottom RenderTarget()
+      RenderTarget(RenderTargetCount).Camera=Find_Free_Camera()
+      RenderTarget(RenderTargetCount).Image=Find_Free_Image()
+      RenderTarget(RenderTargetCount).Object=Find_Free_Object()
+      RenderTarget(RenderTargetCount).Effect=Find_Free_Effect()
+      RenderTarget(RenderTargetCount).Teq$=Teq$
+      make camera RenderTarget(RenderTargetCount).Camera
+      if D3DFormat=0 then set camera to image RenderTarget(RenderTargetCount).Camera,RenderTarget(RenderTargetCount).Image,Width,Height
+      if D3DFormat>0 then set camera to image RenderTarget(RenderTargetCount).Camera,RenderTarget(RenderTargetCount).Image,Width,Height,3,D3DFormat
+      set camera range RenderTarget(RenderTargetCount).Camera,1,10
+      set camera fov RenderTarget(RenderTargetCount).Camera,75
+      set camera aspect RenderTarget(RenderTargetCount).Camera,(Sw#/Sh#)
+      backdrop off RenderTarget(RenderTargetCount).Camera
+      make object plain RenderTarget(RenderTargetCount).Object,2,2,1
+      convert object fvf RenderTarget(RenderTargetCount).Object,0x002
+      set object Transparency RenderTarget(RenderTargetCount).Object,Transparent
+      load effect Effect$,RenderTarget(RenderTargetCount).Effect,0,1
+      set vector4 100,1.0/Width,1.0/Height,0,0
+      set effect constant vector RenderTarget(RenderTargetCount).Effect,"ViewVec",100
+      set effect technique RenderTarget(RenderTargetCount).Effect,Teq$
+      set object effect RenderTarget(RenderTargetCount).Object,RenderTarget(RenderTargetCount).Effect
+      set object mask RenderTarget(RenderTargetCount).Object,2^RenderTarget(RenderTargetCount).Camera
+      RenderTargetMask=RenderTargetMask+(2^RenderTarget(RenderTargetCount).Camera)
+      inc RenderTargetCount
+   endif
+   r=RenderTargetCount-1
+endfunction r
+
+`====================================================
+` Texture Render Target
+`====================================================
+function PostFilter_RenderTarget_Image(Targ,Stage,Img)
+   if FilterEnabled=1 and Targ>0 and Targ<RenderTargetCount
+      texture object RenderTarget(Targ).Object,Stage,Img
+   endif
+endfunction
+
+`====================================================
+` Find a Free Camera
+`====================================================
+function Find_Free_Camera()
+   for c=1 to 32
+      if camera exist(c)=0 then exitfunction c
+   next c
+endfunction c
+
+`====================================================
+` Find a Free Image
+`====================================================
+function Find_Free_Image()
+   if FreeImageStart=0
+      global FreeImageStart=10000
+      global FreeImageEnd=FreeImageStart
+   endif
+   for i=FreeImageStart to FreeImageEnd+1
+      if Image exist(i)=0 then inc FreeImageEnd:exitfunction i
+   next i
+endfunction i
+
+`====================================================
+` Find a Free Object
+`====================================================
+function Find_Free_Object()
+   if FreeObjectStart=0
+      global FreeObjectStart=10000
+      global FreeObjectEnd=FreeObjectStart
+   endif
+   for o=FreeObjectStart to FreeObjectEnd+1
+      if object exist(o)=0 then inc FreeObjectEnd:exitfunction o
+   next o
+endfunction o
+
+`====================================================
+` Find a Free Effect
+`====================================================
+function Find_Free_Effect()
+   if FreeEffectStart=0
+      global FreeEffectStart=1
+      global FreeEffectEnd=20000
+   endif
+   for e=FreeEffectStart to FreeEffectEnd+1
+      if effect exist(e)=0 then inc FreeEffectEnd:exitfunction e
+   next e
+endfunction e
+
+function CalcLightDirX(objang#)
+
+    ldirang#=-0.75*sin(objang#)
+
+endfunction ldirang#
+
+function CalcLightDirZ(objang#)
+
+    ldirang#=-0.75*cos(objang#)    
+
+endfunction ldirang#
