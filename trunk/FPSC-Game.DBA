@@ -54523,15 +54523,19 @@ _gui_run:
             if sprite exist(MouseSprite)
                 hide mouse
                 paste sprite MouseSprite,inputmousex(),inputmousey()
+           remstart
             else
                 if aihudpointerimagestore > 0
                     if image exist(aihudpointerimagestore)=0 then show mouse
                 endif
+           remend
             endif
+       remstart
         else
             if aihudpointerimagestore > 0
                 if image exist(aihudpointerimagestore)=0 then show mouse
             endif
+       remend
         endif
     endif
     if guiloaderhud > -1
@@ -55169,76 +55173,53 @@ endfunction
 remend
 rem GUI-X9 (knxrb) <<<
 
-
-//                   //
-// LightRay addition //
-//                   //
-
-// Lightray Setup Code
 Setup_LightRays:
-
-global RayCam
-RayCam=Find_Free_Camera()
-global Sw#
-global Sh#
-Sw#=gdisplaywidth
-Sh#=gdisplayheight
-
-
-   `Make sun plain   
+     global RayCam
+     RayCam=Find_Free_Camera()
+     global Sw#
+     global Sh#
+     Sw#=gdisplaywidth
+     Sh#=gdisplayheight
       load image "effectbank\lightray\sun.bmp",4
       make object plain 99000,1500*2,1500*2
       texture object 99000,4
       set object transparency 99000,1
       set object light 99000,0
       set object mask 99000,2^RayCam
-
-   `Setup light scatter camera
       make camera RayCam
       set camera to image RayCam,6,gdisplaywidth/3,gdisplayheight/3
       set camera range RayCam,1,realrange#
       set camera aspect RayCam,(Sw#/Sh#)
       set camera fov RayCam,75
       backdrop on RayCam
-      color backdrop RayCam,rgb(0,0,0)
-
-   `Setup light scatter plain      
+      color backdrop RayCam,rgb(0,0,0)  
       load effect "effectbank\lightray\scatter.fx",3,0
       make object plain 99001,2,2,1
       texture object 99001,6
       set object effect 99001,3
       set object mask 99001,(2^0)    
-     // disable object zdepth 99001
       ghost object on 99001,0
-      set object transparency 99001,1
-      
+      set object transparency 99001,1    
 return
 
-
-// LightRay Update Code
 Update_LightRays:
-
-if lrdebugdeactive=0
-if keystate(2)=1
-    paste image 6,0,0
-endif
-endif
-
+     if lrdebugdeactive=0
+     if keystate(2)=1
+         paste image 6,0,0
+     endif
+     endif
       y=wrapvalue(object angle y(99000))
       null=make vector4(10)
       set vector4 10,CalcLightDirX(y),-0.5,CalcLightDirZ(y),0
       set effect constant vector 3,"LightDir",10
       null=delete vector4(10)
-
-    if lrsamples=1
-        set effect constant integer 3,"SampleNum",80
-        set camera to image RayCam,6,gdisplaywidth/3,gdisplayheight/3
-    else
-        set effect constant integer 3,"SampleNum",0
-        set camera to image RayCam,6,1,1
-    endif
-
-   `Update sun plain
+      if lrsamples=1
+          set effect constant integer 3,"SampleNum",80
+          set camera to image RayCam,6,gdisplaywidth/3,gdisplayheight/3
+      else
+          set effect constant integer 3,"SampleNum",0
+          set camera to image RayCam,6,1,1
+      endif
       position object 99000,camera position x(0),camera position y(0),camera position z(0)
       if lrdebugdeactive=0
         if keystate(201)=1 then inc rotvar#,0.1
@@ -55246,19 +55227,13 @@ endif
       endif
       rotate object 99000,-32.5,0+rotvar#,0
       move object 99000,2000
-
-   `Update light Scattering
       position object 99001,camera position x(0),camera position y(0),camera position z(0)
       rotate object 99001,camera angle x(0),camera angle y(0),camera angle z(0)
       position camera RayCam,camera position x(0),camera position y(0),camera position z(0)
       rotate camera RayCam,camera angle x(0),camera angle y(0),camera angle z(0)
-
-
 return   
 
-// Bloom Setup Code
 Setup_Bloom:
-
       global fov
       fov=75
       global sw# 
@@ -55278,55 +55253,33 @@ Setup_Bloom:
       bloom_obj=50
       global cameranumbervar
       global lrbloomobjactive
-
-   `Camera
-   //   set camera range 0.5,100000
-   //   set camera fov fov
-     // set camera to image 0,bloom_img,1920,1080
-
-   `Screen grabbing Camera
       make camera bloom_cam
       set camera to image bloom_cam,bloom_img,sw#,sh#,2
       set camera range bloom_cam,3,realrange#
       set camera fov bloom_cam,fov
       set camera aspect bloom_cam,(sw#/sh#)
-
-     `Screen object + Blur Y
       make object plain bloom_obj+2,-1920/400,1080/400//-sw#/(400),sh#/(400)
       load effect "effectbank\ps_2_0\post-bloom.fx",bloom_obj+2,0
       texture object bloom_obj+2,0,bloom_img
       set object effect bloom_obj+2,bloom_obj+2
       set object transparency bloom_obj+2,1
-     // ghost object on bloom_obj+2
-      
-
-
-
 return
 
-// Bloom Update code
 Update_Bloom:
-
-if lrdebugdeactive=0
-if keystate(3)=1
-    paste image bloom_img,0,0
-endif
-endif
-
-
-if lrbloomactive=1
-    set camera to image bloom_cam,bloom_img,sw#,sh#,2
-    lrbloomobjactive=1
-else
-    set camera to image bloom_cam,bloom_img,1,1,2
-    lrbloomobjactive=0
-endif
-
-   `Update bloom camera
+      if lrdebugdeactive=0
+      if keystate(3)=1
+          paste image bloom_img,0,0
+      endif
+      endif
+      if lrbloomactive=1
+          set camera to image bloom_cam,bloom_img,sw#,sh#,2
+          lrbloomobjactive=1
+      else
+          set camera to image bloom_cam,bloom_img,1,1,2
+          lrbloomobjactive=0
+      endif
       position camera bloom_cam,camera position x(),camera position y(),camera position z()
       rotate camera bloom_cam,camera angle x(),camera angle y(),camera angle z()
-
-   `Update screen object
       dis#=(sh#/2)/tan(fov/2)
       position object bloom_obj+2,camera position x(),camera position y(),camera position z()
       rotate object bloom_obj+2,camera angle x(),camera angle y(),camera angle z()
@@ -55334,19 +55287,11 @@ endif
       move object up bloom_obj+2,0.01
       move object left bloom_obj+2,0.01
       scale object bloom_obj+2,101,101,0
-
 return
 
-// Function for the new sync, which does not use the original FPSC sync system
 function SyncAll()
-
-    // 
-    // RAYS ONLY
-    //
     if lgmodraysactive=1 
-        
     gosub Update_LightRays
-        
     for blackeffects=effectbankoffset to effectbankoffset+effectbankmax
         if blackeffects<>0
             if effect exist(blackeffects)=1 
@@ -55354,34 +55299,26 @@ function SyncAll()
             endif
         endif
     next blackeffect
-    
     if object exist(65123)=1 then hide object 65123
     if object exist(65124)=1 then hide object 65124
     hide object 99001
-    
-  for o=hudbankoffset to hudbankoffset+31
-   if object exist(o)=1
-    set object mask o,2^0
-   endif
-  next o
-  
-  for f=1 to decalelementmax
-    tobj=decalelementoffset+f
-    if object exist(tobj)=1
-        set object mask tobj,(2^0)
+   for o=hudbankoffset to hudbankoffset+31
+    if object exist(o)=1
+     set object mask o,2^0
     endif
-  next f
-    
-    hide object waterobj
-    
-          sync mask 2^RayCam:fastsync
-    
-    show object waterobj  
-        
+   next o
+   for f=1 to decalelementmax
+     tobj=decalelementoffset+f
+     if object exist(tobj)=1
+         set object mask tobj,(2^0)
+     endif
+   next f
+   hide object waterobj
+   sync mask 2^RayCam:fastsync
+    show object waterobj     
     if object exist(65123)=1 then show object 65123
     if object exist(65124)=1 then show object 65124   
-    show object 99001
-        
+    show object 99001     
     for blackeffects=effectbankoffset to effectbankoffset+effectbankmax
         if blackeffects<>0
             if effect exist(blackeffects)=1 
@@ -55389,115 +55326,69 @@ function SyncAll()
             endif
         endif
     next blackeffect
-    
-    
     sync mask 2^1
-    
     sync mask 2^0
-    set current camera 0 : sync        
-            
+    set current camera 0 : sync              
     endif
-    
-   //
-   // RAYS WITH BLOOM ENABLED SYNC
-   //
-    if lgmodraysactive=2
-    
-    gosub Update_LightRays
-    gosub Update_Bloom
-    
-    for blackeffects=effectbankoffset to effectbankoffset+effectbankmax
-        if blackeffects<>0
-            if effect exist(blackeffects)=1 
-                set effect technique blackeffects,"RenderColor"
+    if lgmodraysactive=2 
+        gosub Update_LightRays
+        gosub Update_Bloom
+        for blackeffects=effectbankoffset to effectbankoffset+effectbankmax
+            if blackeffects<>0
+                if effect exist(blackeffects)=1 
+                    set effect technique blackeffects,"RenderColor"
+                endif
             endif
-        endif
-    next blackeffect
-    
-    if object exist(65123)=1 then set object mask 65123,(2^0)+(2^bloom_cam)
-    if object exist(65124)=1 then set object mask 65124,(2^0)+(2^bloom_cam)
-    hide object 52
-    hide object 99001
-
-  for o=hudbankoffset to hudbankoffset+31
-   if object exist(o)=1
-    set object mask o,2^0
-   endif
-  next o
-  
-  for f=1 to decalelementmax
-    tobj=decalelementoffset+f
-    if object exist(tobj)=1
-        set object mask tobj,(2^0)+(2^bloom_cam)
-    endif
-  next f
-    
-    hide object waterobj
-    
-          sync mask 2^RayCam:fastsync
-      
-    show object waterobj      
-
-
-    show object 99001
-        
-    for blackeffects=effectbankoffset to effectbankoffset+effectbankmax
-        if blackeffects<>0
-            if effect exist(blackeffects)=1 
-                set effect technique blackeffects,"dx9textured"
+        next blackeffect
+        if object exist(65123)=1 then set object mask 65123,(2^0)+(2^bloom_cam)
+        if object exist(65124)=1 then set object mask 65124,(2^0)+(2^bloom_cam)
+        hide object 52
+        hide object 9900
+        for o=hudbankoffset to hudbankoffset+31
+         if object exist(o)=1
+          set object mask o,2^0
+         endif
+        next o
+        for f=1 to decalelementmax
+          tobj=decalelementoffset+f
+          if object exist(tobj)=1
+              set object mask tobj,(2^0)+(2^bloom_cam)
+          endif
+        next f
+        hide object waterobj
+        sync mask 2^RayCam:fastsync
+        show object waterobj      
+        show object 99001
+        for blackeffects=effectbankoffset to effectbankoffset+effectbankmax
+            if blackeffects<>0
+                if effect exist(blackeffects)=1 
+                    set effect technique blackeffects,"dx9textured"
+                endif
             endif
-        endif
-    next blackeffect
-    
-    
-    sync mask 2^bloom_cam:fastsync
-    
-    sync mask 2^2
-    
-    sync mask 2^1
-     
-    
-    if lrbloomobjactive=1 then show object 52
-    sync mask 2^0
-    set current camera 0 : sync    
-    
+        next blackeffect
+        sync mask 2^bloom_cam:fastsync
+        sync mask 2^2
+        sync mask 2^1
+        if lrbloomobjactive=1 then show object 52
+        sync mask 2^0
+        set current camera 0 : sync      
     endif
-    
-
-
 endfunction
 
-// Function to create PostEffect Objects based on the given postprocessing value in setup.ini
 function CreateLGMod()
-
     if lgmodraysactive=1 then gosub Setup_LightRays
-    
-    
     if lgmodraysactive=2
-    
         gosub Setup_Bloom
         gosub Setup_LightRays
-    
     endif
-
 endfunction
 
-
-`====================================================
-` Post Filter Functions
-`====================================================
-` By EVOLVED
-` www.evolved-software.com
-`====================================================
-
-`Post frame target data
 type FrameTargetData
    Object
    Effect
    Teq$
 endtype
 
-`Post render target data
 type RenderTargetData
    Camera
    Image
@@ -55506,12 +55397,7 @@ type RenderTargetData
    Teq$
 endtype
 
-`====================================================
-` Frame Render Set Up
-`====================================================
 function PostFilter_SetUp(Width,Height,D3DFormat)
-
-   `Globals
       Null=make vector4(100)
       global FrameCamera=0
       global FilterEnabled=1
@@ -55520,8 +55406,6 @@ function PostFilter_SetUp(Width,Height,D3DFormat)
       global RenderTargetMask=0
       global dim FrameTarget(1) as FrameTargetData
       global dim RenderTarget(1) as RenderTargetData
-
-   `Frame Render Camera
       RenderTarget(1).Camera=Find_Free_Camera()
       RenderTarget(1).Image=Find_Free_Image()
       make camera RenderTarget(1).Camera
@@ -55532,13 +55416,8 @@ function PostFilter_SetUp(Width,Height,D3DFormat)
       backdrop off 0
       set camera fov 0,75
       set camera aspect 0,(Sw#/Sh#)
-    //  set camera range 0,1,10
-
 endfunction 1
 
-`====================================================
-` Post Filter Update
-`====================================================
 function PostFilter_Update()
    if FilterEnabled=1
       position camera RenderTarget(1).Camera,camera position x(0),camera position y(0),camera position z(0)
@@ -55553,9 +55432,6 @@ function PostFilter_Update()
    endif
 endfunction
 
-`====================================================
-` Delete Post Filter
-`====================================================
 function PostFilter_Delete()
    if FilterEnabled=1
       for t=1 to array count(FrameTarget())-1
@@ -55574,9 +55450,6 @@ function PostFilter_Delete()
    endif
 endfunction
 
-`====================================================
-` Add Frame Target
-`====================================================
 function PostFilter_FrameTarget_Add(Effect$,Teq$,Transparent)
    if FilterEnabled=1
       array insert at bottom FrameTarget()
@@ -55597,18 +55470,12 @@ function PostFilter_FrameTarget_Add(Effect$,Teq$,Transparent)
    r=FrameTargetCount-1
 endfunction r
 
-`====================================================
-` Texture Frame Target
-`====================================================
 function PostFilter_FrameTarget_Image(Targ,Stage,Img)
    if FilterEnabled=1 and Targ>0 and Targ<FrameTargetCount
       texture object FrameTarget(Targ).Object,Stage,Img
    endif
 endfunction
 
-`====================================================
-` Add Render Target
-`====================================================
 function PostFilter_RenderTarget_Add(Effect$,Teq$,Transparent,Width,Height,D3DFormat)
    if FilterEnabled=1
       array insert at bottom RenderTarget()
@@ -55639,27 +55506,18 @@ function PostFilter_RenderTarget_Add(Effect$,Teq$,Transparent,Width,Height,D3DFo
    r=RenderTargetCount-1
 endfunction r
 
-`====================================================
-` Texture Render Target
-`====================================================
 function PostFilter_RenderTarget_Image(Targ,Stage,Img)
    if FilterEnabled=1 and Targ>0 and Targ<RenderTargetCount
       texture object RenderTarget(Targ).Object,Stage,Img
    endif
 endfunction
 
-`====================================================
-` Find a Free Camera
-`====================================================
 function Find_Free_Camera()
    for c=1 to 32
       if camera exist(c)=0 then exitfunction c
    next c
 endfunction c
 
-`====================================================
-` Find a Free Image
-`====================================================
 function Find_Free_Image()
    if FreeImageStart=0
       global FreeImageStart=10000
@@ -55670,9 +55528,6 @@ function Find_Free_Image()
    next i
 endfunction i
 
-`====================================================
-` Find a Free Object
-`====================================================
 function Find_Free_Object()
    if FreeObjectStart=0
       global FreeObjectStart=10000
@@ -55683,9 +55538,6 @@ function Find_Free_Object()
    next o
 endfunction o
 
-`====================================================
-` Find a Free Effect
-`====================================================
 function Find_Free_Effect()
    if FreeEffectStart=0
       global FreeEffectStart=1
@@ -55697,13 +55549,9 @@ function Find_Free_Effect()
 endfunction e
 
 function CalcLightDirX(objang#)
-
     ldirang#=-0.75*sin(objang#)
-
 endfunction ldirang#
 
 function CalcLightDirZ(objang#)
-
     ldirang#=-0.75*cos(objang#)    
-
 endfunction ldirang#
