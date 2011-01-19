@@ -1112,6 +1112,7 @@ type aistatustype
  alphafadeupdate as integer
  headangle as float
  headdestangle as float
+ headdownangle as float
  waypoint as aiwaypointtype
  usinginternalai as integer
  oldstate$ as string rem GUI-X9 (String States)
@@ -1695,6 +1696,8 @@ rem GUI-X9 (knxrb) <<<
 #constant AIACTLOOPSOUND 453
 #constant AIACTSTOPSOUND 454
 #constant AIACTTALK 455
+#constant AIACTTALKORDERED 456
+#constant AIACTTALKRANDOM 457
 #constant AIACTALTTEXTURE 461
 #constant AIACTSETALPHAFADE 471
 #constant AIACTINCALPHAFADE 472
@@ -7718,7 +7721,9 @@ for e=1 to entityelementlist
       if limb exist(obj,entityprofile(entid).headlimb)=1
        `
        rem handle regular head rotation to obey headangle
-       rotate limb obj,entityprofile(entid).headlimb,curveangle(entityelement(e).ai.headangle,limb angle x(obj,entityprofile(entid).headlimb),3.0),limb angle y(obj,entityprofile(entid).headlimb),limb angle z(obj,entityprofile(entid).headlimb)
+       rem FPGC - 110111 - include headdownangle in final head rotation (head down depressed script)
+       `rotate limb obj,entityprofile(entid).headlimb,curveangle(entityelement(e).ai.headangle,limb angle x(obj,entityprofile(entid).headlimb),3.0),limb angle y(obj,entityprofile(entid).headlimb),limb angle z(obj,entityprofile(entid).headlimb)
+       rotate limb obj,entityprofile(entid).headlimb,curveangle(entityelement(e).ai.headangle,limb angle x(obj,entityprofile(entid).headlimb),3.0),curveangle(entityelement(e).ai.headdownangle,limb angle y(obj,entityprofile(entid).headlimb),3.0),limb angle z(obj,entityprofile(entid).headlimb)
        `
        rem FPGC - DARKVOICES - 070910 - quick hack to move mouth and arm of the NEW character type
        if nextgenbranch=1
@@ -8896,7 +8901,7 @@ if entityelement(e).ai.waypoint.state>0
   entityelement(e).mover.dy=waypointcoord(w).y
   entityelement(e).mover.dz=waypointcoord(w).z
   entityelement(e).mover.moved=1
-  entityelement(e).mover.run=0
+  `entityelement(e).mover.run=0 : rem FPGC - 110111 - must not interfere with RUN state (RUNFORE=2)
   entityelement(e).ai.waypoint.state=2
   `
   rem characters animate when waypoint is followed, if alive
@@ -8914,12 +8919,15 @@ if entityelement(e).ai.waypoint.state>0
   entityelement(e).mover.dy=waypointcoord(w).y
   entityelement(e).mover.dz=waypointcoord(w).z
   entityelement(e).mover.moved=1
-  entityelement(e).mover.run=0
+  `entityelement(e).mover.run=0 : rem FPGC - 110111 - must not interfere with RUN state (RUNFORE=2)
   tdx#=entityelement(e).mover.dx-entityelement(e).x
   tdz#=entityelement(e).mover.dz-entityelement(e).z
   entityelement(e).mover.da=atanfull(tdx#,tdz#)
-  ai set entity angle y entityelement(e).obj,entityelement(e).mover.da
-  ai entity look at position entityelement(e).obj,tdx#,tdz#
+  if ai entity exist(entityelement(e).obj)=1
+   rem FPGC - 110111 - ensure any DAI calls are protected with existence check!
+   ai set entity angle y entityelement(e).obj,entityelement(e).mover.da
+   ai entity look at position entityelement(e).obj,tdx#,tdz#
+  endif
   distx#=waypointcoord(w).x-entityelement(e).x
   distz#=waypointcoord(w).z-entityelement(e).z
   wpdist#=sqrt(abs(distx#*distx#)+abs(distz#*distz#))
@@ -10936,6 +10944,8 @@ actword$(AIACT3DSOUND)="sound"
 actword$(AIACTLOOPSOUND)="loopsound"
 actword$(AIACTSTOPSOUND)="stopsound"
 actword$(AIACTTALK)="talk"
+actword$(AIACTTALKORDERED)="talkordered"
+actword$(AIACTTALKRANDOM)="talkrandom"
 actword$(AIACTALTTEXTURE)="alttexture"
 actword$(AIACTSETALPHAFADE)="setalphafade"
 actword$(AIACTINCALPHAFADE)="incalphafade"
@@ -13677,6 +13687,8 @@ if aiindex>0
      `
      case AIACTRESETHEAD:
       entityelement(e).ai.headdestangle=0.0
+      tmp#=aiactionseq(seq).value
+      entityelement(e).ai.headdownangle=tmp#
      endcase
      case AIACTROTATEHEAD:
       tmp#=aiactionseq(seq).value
@@ -13847,79 +13859,16 @@ if aiindex>0
       entityelement(e).soundistalking=0
      endcase
      case AIACTTALK:
-      tmpx#=camera position x()
-      tmpy#=camera position y()
-      tmpz#=camera position z()
-      rem Determine if final string used refers to a SOUND ZONE or not
-      if aiactionseq(seq).value=-1
-       currentsoundfile$=entityelement(e).eleprof.soundset$
-      else
-       if aiactionseq(seq).value=-2
-        currentsoundfile$=entityelement(e).eleprof.soundset1$
-       else
-        currentsoundfile$=aiactionseq(seq).filename
-       endif
-      endif
-      tsoundzoneinstead=0
-      for te=1 to entityelementlist
-       if te<>e and entityelement(te).active=1
-        rem Talker inside zone
-        if left$(lower$(currentsoundfile$),6)="inzone"
-         tentid=entityelement(te).bankindex
-         if entityprofile(tentid).ismarker=3
-          condx1=(entityelement(te).x+(entityelement(te).eleprof.trigger.areax1*100))-50.0
-          condy1=(entityelement(te).y-27+(entityelement(te).eleprof.trigger.areay1*100))
-          condz1=(entityelement(te).z-(entityelement(te).eleprof.trigger.areaz1*100))+50.0
-          condx2=(entityelement(te).x+(entityelement(te).eleprof.trigger.areax2*100))+50.0
-          condy2=(entityelement(te).y-27+(entityelement(te).eleprof.trigger.areay2*100))+100.0
-          condz2=(entityelement(te).z-(entityelement(te).eleprof.trigger.areaz2*100))-50.0
-          tokay=1
-          if entityelement(e).x<condx1 then tokay=0
-          if entityelement(e).y<condy1 then tokay=0
-          if entityelement(e).z>condz1 then tokay=0
-          if entityelement(e).x>condx2 then tokay=0
-          if entityelement(e).y>condy2 then tokay=0
-          if entityelement(e).z<condz2 then tokay=0
-          if tokay=1 and te<>lastsoundzoneusedfortalk
-           rem we ensure that the zone cannot be used TWICE in succession (double waypoint trigger issue)
-           lastsoundzoneusedfortalk=te
-           tsoundzoneinstead=te
-          endif
-         endif
-        else
-         rem A specific zone
-         if lower$(entityelement(te).eleprof.name$)=lower$(currentsoundfile$)
-          tsoundzoneinstead=te : exit
-         endif
-        endif
-       endif
-      next te
-      if tsoundzoneinstead>0
-       rem Use sound and sound file of matching sound zone (soundset $1 NOT $0)
-       tsoundindexfromsoundzone=entityelement(tsoundzoneinstead).soundset1
-       playinternal3dsound(tsoundindexfromsoundzone,tmpx#,tmpy#,tmpz#)
-       entityelement(e).soundlooping=tsoundindexfromsoundzone
-       currentsoundfile$=entityelement(tsoundzoneinstead).eleprof.soundset1$
-      else
-       rem Traditionally use soundset or direct file specified
-       if aiactionseq(seq).value=-1
-        playinternal3dsound(entityelement(e).soundset,tmpx#,tmpy#,tmpz#)
-        entityelement(e).soundlooping=entityelement(e).soundset
-       else
-        if aiactionseq(seq).value=-2
-         playinternal3dsound(entityelement(e).soundset1,tmpx#,tmpy#,tmpz#)
-         entityelement(e).soundlooping=entityelement(e).soundset1
-        else
-         playinternal3dsound(aiactionseq(seq).value,tmpx#,tmpy#,tmpz#)
-         entityelement(e).soundlooping=aiactionseq(seq).value
-        endif
-       endif
-      endif
-      broadcast3dsound(tmpx#,tmpy#,tmpz#,100.0,0)
-      entityelement(e).soundistalking=1
-      soundid=entityelement(e).soundlooping
-      gosub _lipsync_playspeech
-      `armgesture#=0 : rem experimental
+      currentsoundtalkmode=0
+      gosub _ai_action_talk
+     endcase
+     case AIACTTALKORDERED:
+      currentsoundtalkmode=1
+      gosub _ai_action_talk
+     endcase
+     case AIACTTALKRANDOM:
+      currentsoundtalkmode=2
+      gosub _ai_action_talk
      endcase
      `
      case AIACTALTTEXTURE:
@@ -17213,6 +17162,137 @@ endif
 
 return
 
+_ai_action_talk:
+ `
+ rem Coded inside FPI ACTION CASE and takes currentsoundfile$ and currentsoundtalkmode
+ rem Determine if final string used refers to a SOUND ZONE or not
+ if aiactionseq(seq).value=-1
+  currentsoundfile$=entityelement(e).eleprof.soundset$
+ else
+  if aiactionseq(seq).value=-2
+   currentsoundfile$=entityelement(e).eleprof.soundset1$
+  else
+   currentsoundfile$=aiactionseq(seq).filename
+  endif
+ endif
+ rem Determine if straight talk, or ordered, or random
+ if currentsoundtalkmode>0
+  rem ordered/random needs to use filename
+  if aiactionseq(seq).value=-1
+   currentsoundfile$=entityelement(e).eleprof.soundset$
+   aiactionseq(seq).filename=currentsoundfile$
+   aiactionseq(seq).value=0
+  endif
+  rem ordered/random needs to use filename
+  if aiactionseq(seq).value=-2
+   currentsoundfile$=entityelement(e).eleprof.soundset1$
+   aiactionseq(seq).filename=currentsoundfile$
+   aiactionseq(seq).value=0
+  endif  
+  rem logic for ordered or random
+  rem play speech
+  aiactionseq(seq).value=loadinternalsoundcore(aiactionseq(seq).filename,0)
+  if aiactionseq(seq).value=0
+   tfile$="languagebank\"+language$+"\"+aiactionseq(seq).filename
+   aiactionseq(seq).value=loadinternalsoundcore(tfile$,0)
+  endif
+  currentsoundfile$=aiactionseq(seq).filename
+  rem find next
+  if currentsoundtalkmode=1
+   rem find next ordered (blahX.wav) where X is the order number
+   ttn$=left$(right$(aiactionseq(seq).filename,5),1)
+   ttnn=val(ttn$)
+   if ttnn>=1 and ttnn<=9
+    inc ttnn
+    if ttnn>9 then ttnn=2
+    ttn$=left$(aiactionseq(seq).filename,len(aiactionseq(seq).filename)-5)+str$(ttnn)+".wav"
+    if file exist(ttn$)=0 
+     ttnn=2 : ttn$=left$(aiactionseq(seq).filename,len(aiactionseq(seq).filename)-5)+str$(ttnn)+".wav"
+    endif
+    aiactionseq(seq).filename=ttn$
+   endif
+  endif
+  if currentsoundtalkmode=2
+   rem random
+   ttn$=left$(right$(aiactionseq(seq).filename,5),1)
+   ttnn=val(ttn$)
+   count=100
+   repeat
+    ttnn2=2+rnd(7)
+    ttn$=left$(aiactionseq(seq).filename,len(aiactionseq(seq).filename)-5)+str$(ttnn2)+".wav"
+    dec count
+   until (file exist(ttn$)=1 and ttnn2<>ttnn) or count<=0
+   if count>0
+    aiactionseq(seq).filename=ttn$
+   endif
+  endif
+ endif
+ rem Play talk 
+ tmpx#=camera position x()
+ tmpy#=camera position y()
+ tmpz#=camera position z()
+ tsoundzoneinstead=0
+ for te=1 to entityelementlist
+  if te<>e and entityelement(te).active=1
+   rem Talker inside zone
+   if left$(lower$(currentsoundfile$),6)="inzone"
+    tentid=entityelement(te).bankindex
+    if entityprofile(tentid).ismarker=3
+     condx1=(entityelement(te).x+(entityelement(te).eleprof.trigger.areax1*100))-50.0
+     condy1=(entityelement(te).y-27+(entityelement(te).eleprof.trigger.areay1*100))
+     condz1=(entityelement(te).z-(entityelement(te).eleprof.trigger.areaz1*100))+50.0
+     condx2=(entityelement(te).x+(entityelement(te).eleprof.trigger.areax2*100))+50.0
+     condy2=(entityelement(te).y-27+(entityelement(te).eleprof.trigger.areay2*100))+100.0
+     condz2=(entityelement(te).z-(entityelement(te).eleprof.trigger.areaz2*100))-50.0
+     tokay=1
+     if entityelement(e).x<condx1 then tokay=0
+     if entityelement(e).y<condy1 then tokay=0
+     if entityelement(e).z>condz1 then tokay=0
+     if entityelement(e).x>condx2 then tokay=0
+     if entityelement(e).y>condy2 then tokay=0
+     if entityelement(e).z<condz2 then tokay=0
+     if tokay=1 and te<>lastsoundzoneusedfortalk
+      rem we ensure that the zone cannot be used TWICE in succession (double waypoint trigger issue)
+      lastsoundzoneusedfortalk=te
+      tsoundzoneinstead=te
+     endif
+    endif
+   else
+    rem A specific zone
+    if lower$(entityelement(te).eleprof.name$)=lower$(currentsoundfile$)
+     tsoundzoneinstead=te : exit
+    endif
+   endif
+  endif
+ next te
+ if tsoundzoneinstead>0
+  rem Use sound and sound file of matching sound zone (soundset $1 NOT $0)
+  tsoundindexfromsoundzone=entityelement(tsoundzoneinstead).soundset1
+  playinternal3dsound(tsoundindexfromsoundzone,tmpx#,tmpy#,tmpz#)
+  entityelement(e).soundlooping=tsoundindexfromsoundzone
+  currentsoundfile$=entityelement(tsoundzoneinstead).eleprof.soundset1$
+ else
+  rem Traditionally use soundset or direct file specified
+  if aiactionseq(seq).value=-1
+   playinternal3dsound(entityelement(e).soundset,tmpx#,tmpy#,tmpz#)
+   entityelement(e).soundlooping=entityelement(e).soundset
+  else
+   if aiactionseq(seq).value=-2
+    playinternal3dsound(entityelement(e).soundset1,tmpx#,tmpy#,tmpz#)
+    entityelement(e).soundlooping=entityelement(e).soundset1
+   else
+    playinternal3dsound(aiactionseq(seq).value,tmpx#,tmpy#,tmpz#)
+    entityelement(e).soundlooping=aiactionseq(seq).value
+   endif
+  endif
+ endif
+ broadcast3dsound(tmpx#,tmpy#,tmpz#,100.0,0)
+ entityelement(e).soundistalking=1
+ soundid=entityelement(e).soundlooping
+ gosub _lipsync_playspeech
+ `armgesture#=0 : rem experimental
+return
+
 _ai_load:
 
 rem FPSCV10X : Ensure AILIST is large enough
@@ -17268,26 +17348,13 @@ if desc$<>""
      endif
     endcase
     case AIACTTALK:
-     tfile$=aiactionseq(seq).filename
-     if tfile$<>""
-      if tfile$="$0"
-       aiactionseq(seq).value=-1
-      else
-       if tfile$="$1"
-        aiactionseq(seq).value=-2
-       else
-        if file exist(tfile$)=1
-         addfiletocollection(tfile$)
-         aiactionseq(seq).value=loadinternalsoundcore(tfile$,0)
-         if aiactionseq(seq).value=0
-          tfile$="languagebank\"+language$+"\"+tfile$
-          addfiletocollection(tfile$)
-          aiactionseq(seq).value=loadinternalsoundcore(tfile$,0)
-         endif
-        endif
-       endif
-      endif
-     endif
+     gosub _ai_action_talk_processfilename
+    endcase
+    case AIACTTALKORDERED:
+     gosub _ai_action_talk_processfilename
+    endcase
+    case AIACTTALKRANDOM:
+     gosub _ai_action_talk_processfilename
     endcase
     case AIACT3DSOUND:
      tfile$=aiactionseq(seq).filename
@@ -17731,6 +17798,29 @@ endif
 
 return
 
+_ai_action_talk_processfilename:
+ tfile$=aiactionseq(seq).filename
+ if tfile$<>""
+  if tfile$="$0"
+   aiactionseq(seq).value=-1
+  else
+   if tfile$="$1"
+    aiactionseq(seq).value=-2
+   else
+    if file exist(tfile$)=1
+     addfiletocollection(tfile$)
+     aiactionseq(seq).value=loadinternalsoundcore(tfile$,0)
+     if aiactionseq(seq).value=0
+      tfile$="languagebank\"+language$+"\"+tfile$
+      addfiletocollection(tfile$)
+      aiactionseq(seq).value=loadinternalsoundcore(tfile$,0)
+     endif
+    endif
+   endif
+  endif
+ endif
+return
+
 _ai_createentityreferences:
 
 rem go through all AI, and link entitynames to entityelementsubscripts
@@ -17771,6 +17861,16 @@ if aiindex<=array count(ailist())
       endif
      endcase
      case AIACTTALK:
+      if aiactionseq(seq).value>0
+       stop sound aiactionseq(seq).value
+      endif
+     endcase
+     case AIACTTALKORDERED:
+      if aiactionseq(seq).value>0
+       stop sound aiactionseq(seq).value
+      endif
+     endcase
+     case AIACTTALKRANDOM:
       if aiactionseq(seq).value>0
        stop sound aiactionseq(seq).value
       endif
@@ -21481,8 +21581,8 @@ if gunmode=104
    z1#=object position z(currentgunobj)+firemode(gunid,firemode).settings.muzzlez#
   endif
   decalid=firemode(gunid,firemode).particle.id
-  Print firemode(gunid,firemode).particle.id
-  Print x1# : Print y1# : Print z1#
+  `Print firemode(gunid,firemode).particle.id
+  `Print x1# : Print y1# : Print z1#
   decalorient=2
   decalx=x1#
   decaly=y1#
@@ -42473,6 +42573,10 @@ if interfacestatusbarupdate>30
    statusbar$=statusbar$+"  Dynamic Placement Mode"
   endif
  endif
+ if grideditselect=6
+  rem FPGC - 110111 - add waypoint status
+  statusbar$="Waypoint Mode (LMB=Drag Point  SHIFT+LMB=Clone Point  SHIFT+RMB=Remove Point)"
+ endif
  rem only update infrequently
  interfacestatusbarupdate=0
 endif
@@ -42756,7 +42860,7 @@ endif
 
 rem Create a waypoint when instructed to
 if inputsys.kscancode=62 and inputsys.keypress=0
- inputsys.keypress=1 : inputsys.domodewaypoint=1 : grideditselect=6 :
+ inputsys.keypress=1 : inputsys.domodewaypoint=1 : grideditselect=6
  rem FPGC - 280410 - new waypoint created in center of view
  `mx#=inputsys.localx# : mz#=inputsys.localy#
  mx#=cx# : mz#=cy#*-1
