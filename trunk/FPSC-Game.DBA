@@ -1972,7 +1972,11 @@ rem LightRayMod
 #constant AIACTLRBLOOMACT 1349
 #constant AIACTLRDEBUGDEACTIVE 1350
 
-#constant AIACTLAST 1351
+rem GUI-X9 (knxrb) >>>
+#constant AIACTFORCEGUISUB 1351
+rem GUI-X9 (knxrb) <<<
+
+#constant AIACTLAST 1352
 
 rem V109 BETA3 - 210408 - AI variables
 global aivariablemode : aivariablemode=0 : rem 0-global, 1-local
@@ -11211,6 +11215,10 @@ actword$(AIACTLRAYSET)="lrayset"
 actword$(AIACTLRAYACT)="lrayactive"
 actword$(AIACTLRBLOOMACT)="bloomactive"
 actword$(AIACTLRDEBUGDEACTIVE)="lrdebugdeactive"
+
+rem GUI-X9 (knxrb) <>>><
+actword$(AIACTFORCEGUISUB)="updategui"
+rem GUI-X9 (knxrb) <<<
 return
 
 _ai_reset_presaveposition:
@@ -17118,7 +17126,12 @@ if aiindex>0
      endcase      
      case AIACTLRDEBUGDEACTIVE:
         lrdebugdeactive=aiactionseq(seq).value
-     endcase        
+     endcase  
+     
+     rem GUI-X9
+     case AIACTFORCEGUISUB:
+        gosub _gui_run
+     endcase             
            
      `
      `
