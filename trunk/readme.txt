@@ -9,6 +9,8 @@ History
 V1.1.8
 ------
  
+ * [SVN on GOOGLECODE now holds notes on additions, saves duplicating work!]
+
  * Fixed AIUSEMELEE=1 blood spurts
  * Added new FPI action AIROTATEY=X this will rotate the character to the angle specified by x
  * Added new FPI action AILOOKAROUND=X,Y this will rotate the character randomly between angle x and angle y

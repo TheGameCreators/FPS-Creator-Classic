@@ -1393,6 +1393,7 @@ type entitytype
  beenkilled as integer
  shotdamage as integer
  shotdamagesource as integer
+ shotdamagetype as integer
  delaydamagecount as integer
  delaydamagesource as integer
  delaydamage as integer
@@ -1497,6 +1498,7 @@ rem AI constants
 #constant AICONDUNDERWATER 120
 #constant AICONDSHOTDAMAGE 121
 #constant AICONDIFWEAPON 122
+#constant AICONDSHOTDAMAGETYPE 123
 #constant AICONDCANTAKE 131
 #constant AICONDPLRCANBESEEN 151
 #constant AICONDPLRCANNOTBESEEN 152
@@ -8770,6 +8772,7 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
       entityelement(te).eleprof.lives=entityelement(e).eleprof.lives
       entityelement(te).shotdamage=0
       entityelement(te).shotdamagesource=0
+      entityelement(te).shotdamagetype=0
       `
       rem clear out dake player info
       tplrid=entityelement(e).fakeplayerid
@@ -9901,17 +9904,13 @@ _entity_hasbulletrayhit:
    rem within range of gun
    rem AirMod - Line Modified for No Bullet collision
    if entityelement(e).active<>0 and entityelement(e).nobulletcol <> 1
-   `if entityelement(e).active<>0
     `
     rem if character (animated by GPU, work out general hit (faster paced target)
     usethelimbdatafromintersectcommand=0
     dst#=0.0 : entid=entityelement(e).bankindex
-    if entityprofile(entid).ischaracter=1
-     `
+    if entityprofile(entid).ischaracter=1 and entityprofile(entid).limbmax<=1
      rem V111 beta8 - 020708 - character bullet detect based on fixed size of character (30x30 and variable height (stood/ducked)
      if gmultiplayergame=0
-      `tbbase#=-25 : tbheight#=30 : if entityelement(e).crouchprofile=1 then tbheight#=15
-      `tbbase#=-25 : tbheight#=30 : if entityelement(e).crouchprofile=1 then tbheight#=15
       rem Add V111 BETA8 - 020708 - add scaling to this detection
       tbbase#=0
       tbheight#=object size y(entityelement(e).obj)
@@ -9951,10 +9950,9 @@ _entity_hasbulletrayhit:
        tbz#=tbz#+tbiz#
       next st
      endif
-     `
     else
-     rem TIP : an intersect object command that used animation data to CPU animate the limb bound boxes would
-     rem yeild the correct CHECKLIST VALUE B for limb detection without much performance hit..
+     rem FPSC - 210111 - New U77 intersect object command returns bone number in checklist valueb (when force CPU animation, i.e. set object effect obj,effno,forcecpu=1)
+     rem and will be used when LIMBMAX > 1 (i.e. character FPE determines limbs need to be detected)
      dst#=intersect object(entityelement(e).obj,brayx1#,brayy1#,brayz1#,brayx2#,brayy2#,brayz2#)
      usethelimbdatafromintersectcommand=1
     endif
@@ -9991,44 +9989,50 @@ _entity_completerayhit:
   y#=brayy1#+((disty#/fulldst#)*dst#)
   z#=brayz1#+((distz#/fulldst#)*dst#)
   `
-  rem X9 - 070208 - enhance bullet damage if the entity is prone to a headshot
+  rem FPSC - 210111 - V118 - store if a shot hit a limb/bone number
   tentid=entityelement(e).bankindex
+  if tlimbifany>=0 and tlimbifany<=99
+   entityelement(e).shotdamagetype=entitybodypart(tentid,tlimbifany)
+  endif
+  `
+  rem X9 - 070208 - enhance bullet damage if the entity is prone to a headshot
   if entityprofile(tentid).ischaracter=1
-   `
-   rem will need new INTERSECT OBJECT command that works on GPU animations if used for characters
    entityheadshotvalue=entityelement(e).ai.headshot
    if entityheadshotvalue>0 and gheadshotdamage>0
-      `
-      rem X9 - 080308 - headshot value has significance (specify one uses internal default, other value denotes height of head)
-      if entityheadshotvalue=1 then entityheadshotvalue=43
-      `
-      if tlimbifany>=0
-       rem can use head limb to find head (and whether we hit it)
-       if entityelement(e).obj>0
-        if object exist(entityelement(e).obj)=1
-         if entityprofile(tentid).headlimb=tlimbifany
-          if limb exist(entityelement(e).obj,tlimbifany)=1
-           rem perfect geometry based head shot
-           bulletdamage=gheadshotdamage
-          endif
-         endif
-        endif
-       endif
-      else
-       rem have to use maths to find head
-       if entityelement(e).animdo>=31 and entityelement(e).animdo<40
-        rem crouched
-        if y#>(entityelement(e).y+(entityheadshotvalue-12.24))
-         bulletdamage=gheadshotdamage
-        endif
-       else
-        rem stood
-        if y#>(entityelement(e).y+entityheadshotvalue)
-         bulletdamage=gheadshotdamage
-        endif
-       endif
+    rem X9 - 080308 - headshot value has significance (specify one uses internal default, other value denotes height of head)
+    if entityheadshotvalue=1 then entityheadshotvalue=43
+    if tlimbifany>=0 and tlimbifany<=99
+     rem FPSC - 210111 - V118 - new method is to check limb against body part number
+     if entitybodypart(tentid,tlimbifany)=1
+      rem perfect geometry based head shot
+      bulletdamage=gheadshotdamage
+     endif
+     `rem can use head limb to find head (and whether we hit it)
+     `if entityelement(e).obj>0
+     ` if object exist(entityelement(e).obj)=1
+     `  if entityprofile(tentid).headlimb=tlimbifany
+     `   if limb exist(entityelement(e).obj,tlimbifany)=1
+     `    rem perfect geometry based head shot
+     `    bulletdamage=gheadshotdamage
+     `   endif
+     `  endif
+     ` endif
+     `endif
+    else
+     rem have to use maths to find head
+     if entityelement(e).animdo>=31 and entityelement(e).animdo<40
+      rem crouched
+      if y#>(entityelement(e).y+(entityheadshotvalue-12.24))
+       bulletdamage=gheadshotdamage
       endif
-      `
+     else
+      rem stood
+      if y#>(entityelement(e).y+entityheadshotvalue)
+       bulletdamage=gheadshotdamage
+      endif
+     endif
+    endif
+    `
    endif
    `
   endif
@@ -10755,6 +10759,7 @@ conword$(AICONDPLRHASKEY)="plrhaskey"
 conword$(AICONDPLRUSINGACTION)="plrusingaction"
 conword$(AICONDSHOTDAMAGE)="shotdamage"
 conword$(AICONDIFWEAPON)="ifweapon"
+conword$(AICONDSHOTDAMAGETYPE)="shotdamagetype"
 conword$(AICONDCANTAKE)="cantake"
 conword$(AICONDACTIVATED)="activated"
 conword$(AICONDPLRWITHINZONE)="plrwithinzone"
@@ -12106,6 +12111,16 @@ if aiindex>0
       endif
       if conda=0 and tokay=1 then airesult=0
       if conda=1 and tokay=0 then airesult=0
+     else
+      airesult=0
+     endif
+    endcase
+    case AICONDSHOTDAMAGETYPE:
+     conda=aiconditionseq(seq).valuea
+     condb=entityelement(e).shotdamagetype
+     if condb=conda
+      entityelement(e).possibletarget=1+entityelement(e).shotdamagesource
+      entityelement(e).shotdamagetype=0
      else
       airesult=0
      endif
@@ -27034,9 +27049,6 @@ if guseeffectonentitiesstate=1 and segobjusedformapeditor=0 and tcanceltheeffect
  if tfile$<>""
   teffectid=loadinternaleffect(tfile$)
   if teffectid>0
-`  V1040805 - do not apply to entity profile obj (the elements are assigned after the clone)
-`  if entobj>0 and teffectid>0
-`  set object effect entobj,teffectid
    entityprofile(entid).usingeffect=teffectid
   endif
  endif
@@ -27069,7 +27081,12 @@ _entity_updatealttexture:
    if entityelement(e).eleprof.tex1id<>0 then texture object obj,1,entityelement(e).eleprof.tex1id
    if entityelement(e).eleprof.tex2id<>0 then texture object obj,2,entityelement(e).eleprof.tex2id
    if entityelement(e).eleprof.tex3id<>0 then texture object obj,3,entityelement(e).eleprof.tex3id
-   set object effect obj,entityelement(e).eleprof.usingeffect
+   if entityprofile(entid).limbmax>1
+    rem FPSC - 210111 - force CPU animation for entities with specific limb identities
+    set object effect obj,entityelement(e).eleprof.usingeffect,1
+   else
+    set object effect obj,entityelement(e).eleprof.usingeffect,0
+   endif
    objecteffect(obj)=entityelement(e).eleprof.usingeffect
   else
    rem FPGC - 100610 - fix issue which wipes 'material mode' when re-apply texture
@@ -27306,6 +27323,7 @@ if file exist(tprofile$)=0
  entityprofile(entid).decaloffsetdist=0
  entityprofile(entid).decaloffsety=0
  entityprofile(entid).noragdoll=0
+ for q=0 to 100 : entitybodypart(entid,q)=0 : next q
  `
  rem Load entity Data from file
  dim data$(400)
@@ -27513,18 +27531,20 @@ if file exist(tprofile$)=0
     tryfield$="decaly"
     if field$=tryfield$ then entityprofile(entid).decaloffsety=value1/10.0
     `
-    rem entity body part list
+    rem entity body part list (20/01/11 - refeatured for V118)
     tryfield$="limbmax"
     if field$=tryfield$ then entityprofile(entid).limbmax=value1
+    if entityprofile(entid).limbmax>100 then entityprofile(entid).limbmax=100
     if entityprofile(entid).limbmax>0
      for q=0 to entityprofile(entid).limbmax-1
       tryfield$="limb"+str$(q)
-      if field$=tryfield$
+      if lower$(field$)=lower$(tryfield$)
        entitybodypart(entid,q)=value1
-       if value1=1
-        rem record head seperately too
-        entityprofile(entid).headlimb=q
-       endif
+       `use headlimbs and auto-detect now for this
+       `if value1=1
+       ` rem record head seperately too
+       ` entityprofile(entid).headlimb=q
+       `endif
       endif
      next q
     endif
@@ -27727,6 +27747,9 @@ if file exist(tprofile$)=0
  write string 1,entityprofile(entid).effect$
  write string 1,entityprofile(entid).isweapon$
  write string 1,entityprofile(entid).hasweapon$
+ for q = 0 to entityprofile(entid).limbmax-1
+  write file 1,entitybodypart(entid,q)
+ next q
  for q = 0 to entityprofile(entid).animmax-1
   write file 1,entityanim(entid,q).start
   write file 1,entityanim(entid,q).finish
@@ -27769,6 +27792,9 @@ else
  read string 1,tstr$ : entityprofile(entid).effect$=tstr$
  read string 1,tstr$ : entityprofile(entid).isweapon$=tstr$
  read string 1,tstr$ : entityprofile(entid).hasweapon$=tstr$
+ for q = 0 to entityprofile(entid).limbmax-1
+  read file 1,entitybodypart(entid,q)
+ next q
  for q = 0 to entityprofile(entid).animmax-1
   read file 1,entityanim(entid,q).start
   read file 1,entityanim(entid,q).finish
@@ -28458,7 +28484,12 @@ if object exist(obj)=1
  if entityelement(e).eleprof.uniqueelement=1
   teffectid=entityelement(e).eleprof.usingeffect
   if teffectid>0
-   set object effect obj,teffectid
+   if entityprofile(entid).limbmax>1
+    rem FPSC - 210111 - force CPU animation for entities with specific limb identities
+    set object effect obj,teffectid,1
+   else
+    set object effect obj,teffectid,0
+   endif
    objecteffect(obj)=teffectid
    rem FPGC - 250809 - apply element texture to shaded obj (fastbone for chars)
    if entityelement(e).eleprof.texdid>0
