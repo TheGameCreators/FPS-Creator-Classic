@@ -8029,11 +8029,11 @@ _entity_makeasplash:
   originatore=0 : gosub _decalelement_create
   `
   rem play splash sound
-  `tmatindex=17 : tsoundtrigger=material(tmatindex).impactid
-  `tspd#=(material(tmatindex).freq*2)+rnd(material(tmatindex).freq)
-  `tsx#=decalx : tsy#=decaly : tsz#=decalz
-  `tvol#=velocity# : if tvol#>100 then tvol#=100
-  `gosub _ode_triggermaterialsound
+  tmatindex=17 : tsoundtrigger=material(tmatindex).impactid
+  tspd#=(material(tmatindex).freq*2)+rnd(material(tmatindex).freq)
+  tsx#=decalx : tsy#=decaly : tsz#=decalz
+  tvol#=velocity# : if tvol#>100 then tvol#=100
+  gosub _ode_triggermaterialsound
   `
  endif
  `
