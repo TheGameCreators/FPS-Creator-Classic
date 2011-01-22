@@ -4176,13 +4176,13 @@ _main_sync:
   `
   Rem When water is off exclude the render of cameras 1 and 2
   if wateron=0 or excludewatercams=1 then sync mask %11111001
-  
+
   // LightRay Addition
   //LRMODUPDATE
   SyncAll()
-  if gpostprocessing=0 or gpostprocessing=1 or gpostprocessing=2 then set current camera 0 
+  if gpostprocessing=0 or gpostprocessing=1 or gpostprocessing=2 then set current camera 0
   if gpostprocessing=0 or gpostprocessing=1 or gpostprocessing=2 then sync
-  
+
  endif
 return
 
@@ -17127,27 +17127,26 @@ if aiindex>0
       set effect constant integer waterfx,"RefractColor",rgb(waterred,watergreen,waterblue)
       set effect constant integer waterfx,"ReflectColor",rgb(waterred,watergreen,waterblue)
      endcase
-     
+
      // LightRay Addition
     rem LRMod
      case AIACTLRAYSET:
         rotvar#=aiactionseq(seq).value
-     endcase      
+     endcase
      case AIACTLRAYACT:
         lrsamples=aiactionseq(seq).value
-     endcase      
+     endcase
      case AIACTLRBLOOMACT:
         lrbloomactive=aiactionseq(seq).value
-     endcase      
+     endcase
      case AIACTLRDEBUGDEACTIVE:
         lrdebugdeactive=aiactionseq(seq).value
-     endcase  
-     
+     endcase
+
      rem GUI-X9
      case AIACTFORCEGUISUB:
         gosub _gui_run
-     endcase             
-           
+     endcase
      `
      `
      `
@@ -17216,7 +17215,7 @@ _ai_action_talk:
    currentsoundfile$=entityelement(e).eleprof.soundset1$
    aiactionseq(seq).filename=currentsoundfile$
    aiactionseq(seq).value=0
-  endif  
+  endif
   rem logic for ordered or random
   rem play speech
   aiactionseq(seq).value=loadinternalsoundcore(aiactionseq(seq).filename,0)
@@ -17234,7 +17233,7 @@ _ai_action_talk:
     inc ttnn
     if ttnn>9 then ttnn=2
     ttn$=left$(aiactionseq(seq).filename,len(aiactionseq(seq).filename)-5)+str$(ttnn)+".wav"
-    if file exist(ttn$)=0 
+    if file exist(ttn$)=0
      ttnn=2 : ttn$=left$(aiactionseq(seq).filename,len(aiactionseq(seq).filename)-5)+str$(ttnn)+".wav"
     endif
     aiactionseq(seq).filename=ttn$
@@ -17255,7 +17254,7 @@ _ai_action_talk:
    endif
   endif
  endif
- rem Play talk 
+ rem Play talk
  tmpx#=camera position x()
  tmpy#=camera position y()
  tmpz#=camera position z()
@@ -34731,22 +34730,22 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
    if firemode(gunid,firemode).settings.simplezoom <> 0
     set camera fov 75.0-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov#
     set camera fov 1,75-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov# : set camera fov 2,75-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov#
-    
-    
+
+
     // LightRay Addition
     if RayCam<>0 then if camera exist(RayCam)=1 then set camera fov RayCam,75.0-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov#
     if bloom_cam<>0 then if camera exist(bloom_cam)=1 then set camera fov bloom_cam,75.0-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov#
-    
-    
+
+
    else
     set camera fov 75.0-(plrzoomin#*7)-gunzoommag#+airmod_camfov#
     set camera fov 1,75-(plrzoomin#*7)-gunzoommag#+airmod_camfov# : set camera fov 2,75-(plrzoomin#*7)-gunzoommag#+airmod_camfov#
-    
+
     // LightRay Addition
     if RayCam<>0 then if camera exist(RayCam)=1 then set camera fov RayCam,75.0-(plrzoomin#*7)-gunzoommag#+airmod_camfov#
     if bloom_cam<>0 then if camera exist(bloom_cam)=1 then set camera fov bloom_cam,75.0-(plrzoomin#*7)-gunzoommag#+airmod_camfov#
-    
-    
+
+
    endif
    rem AirMod - Done
    rem AirMod - Modified for Simple Zoom
@@ -34755,7 +34754,7 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
    rem AirMod - Modified for cam fov
    set camera fov 75.0+airmod_camfov#
    set camera fov 1,75.0+airmod_camfov# : set camera fov 2,75.0+airmod_camfov#
-   
+
    // LightRay Addition
    if RayCam<>0 then if camera exist(RayCam)=1 then set camera fov RayCam,75.0+airmod_camfov#
    if bloom_cam<>0 then if camera exist(bloom_cam)=1 then set camera fov bloom_cam,75.0+airmod_camfov#
@@ -52923,6 +52922,8 @@ _darkai_control:
     entityelement(e).darkai.actionmode=0
    endif
    `Rem Alert entity if Ambushed
+    Rem This can be done purley through scripting now
+    entityelement(e).darkai.ambushed=0
    if entityelement(e).darkai.ambushed>0
     `print entityelement(e).darkai.ambushed
     ai entity stop obj
@@ -52997,7 +52998,7 @@ _darkai_control:
     entityelement(e).darkai.state=STATE_IDLE
    endif
 
-   if entityelement(e).darkai.ambushed>0
+   if entityelement(e).darkai.ambushed>0 and entityelement(e).darkai.autoattackoff=0
       entityelement(e).darkai.ambushed=0
       ai entity look at position obj,entityelement(e).darkai.ambushx#,entityelement(e).darkai.ambushz#
    endif
@@ -53674,15 +53675,15 @@ _postprocess_init:
   tshaderchoice$=bloomfilescreen$
   if gpostprocessing=1 then tshaderchoice$=bloomfilescreen$ : gpostprocessingnotransparency=0 : gdepthcameraid=0
   if gpostprocessing=2 then tshaderchoice$=depthoffieldfilescreen$ : gpostprocessingnotransparency=0 : gdepthcameraid=4
-  
+
   // LightRay Addition
   if gpostprocessing=3 then global lgmodraysactive : lgmodraysactive=1 : gdepthcameraid=0
   if gpostprocessing=4 then global lgmodraysactive : lgmodraysactive=2 : gdepthcameraid=0
   if gpostprocessing=5 then global lgmodraysactive : lgmodraysactive=3 : gdepthcameraid=0
   if gpostprocessing=6 then global lgmodraysactive : lgmodraysactive=4 : gdepthcameraid=0
-  if gpostprocessing=7 then global lgmodraysactive : lgmodraysactive=5 : gdepthcameraid=0  
+  if gpostprocessing=7 then global lgmodraysactive : lgmodraysactive=5 : gdepthcameraid=0
   `
-  if gpostprocessing<=2  
+  if gpostprocessing<=2
   rem FPGC - 200310 - new camera 3 holds post-process screen quad (requires U75+)
   gfinalrendercameraid=3
   if gpostprocessing<=2 then make camera gfinalrendercameraid : load effect tshaderchoice$,65535,0
@@ -53698,7 +53699,7 @@ _postprocess_init:
   endif
   `
   rem post process mode on
-  
+
   // LightRay Addition
   if gpostprocessing=0 or gpostprocessing=1 or gpostprocessing=2 then gpostprocessmode=1
   `
@@ -54107,12 +54108,12 @@ function UpDateWater()
  Rem UpDate Water plain position
  position object waterobj,0,waterheight#,0
  Hide object waterobj
- 
+
  // LightRay Addition
  if lgmodraysactive=2 then hide object 52
  if lgmodraysactive=1 then hide object 99000
  if lgmodraysactive=1 then hide object 99001
- 
+
 
  Rem Upade Refract and Reflect cameras
  set effect technique WaterFx,"Refract"
@@ -54127,13 +54128,13 @@ function UpDateWater()
  endif
  `
  show object waterobj
- 
+
  // LightRay Addition
  if lgmodraysactive=2 then show object 52
  if lgmodraysactive=1 then show object 99000
  if lgmodraysactive=1 then show object 99001
- 
- 
+
+
  set current camera 0
 endfunction
 
@@ -55340,14 +55341,14 @@ Setup_LightRays:
       set camera aspect RayCam,(Sw#/Sh#)
       set camera fov RayCam,75
       backdrop on RayCam
-      color backdrop RayCam,rgb(0,0,0)  
+      color backdrop RayCam,rgb(0,0,0)
       load effect "effectbank\lightray\scatter.fx",3,0
       make object plain 99001,2,2,1
       texture object 99001,6
       set object effect 99001,3
-      set object mask 99001,(2^0)    
+      set object mask 99001,(2^0)
       ghost object on 99001,0
-      set object transparency 99001,1    
+      set object transparency 99001,1
 return
 
 Update_LightRays:
@@ -55379,18 +55380,18 @@ Update_LightRays:
       rotate object 99001,camera angle x(0),camera angle y(0),camera angle z(0)
       position camera RayCam,camera position x(0),camera position y(0),camera position z(0)
       rotate camera RayCam,camera angle x(0),camera angle y(0),camera angle z(0)
-return   
+return
 
 Setup_Bloom:
       global fov
       fov=75
-      global sw# 
+      global sw#
       sw#=screen width()
       global sh#
       sh#=screen height()
       dis#=(sh#/2)/tan(fov/2)
       global bloom_cam
-      if lgmodraysactive=5 
+      if lgmodraysactive=5
         bloom_cam=Find_Free_Camera()
       else
         bloom_cam=Find_Free_Camera()
@@ -55438,11 +55439,11 @@ Update_Bloom:
 return
 
 function SyncAll()
-    if lgmodraysactive=1 
+    if lgmodraysactive=1
     gosub Update_LightRays
     for blackeffects=effectbankoffset to effectbankoffset+effectbankmax
         if blackeffects<>0
-            if effect exist(blackeffects)=1 
+            if effect exist(blackeffects)=1
                 set effect technique blackeffects,"RenderColor"
             endif
         endif
@@ -55463,27 +55464,27 @@ function SyncAll()
    next f
    hide object waterobj
    sync mask 2^RayCam:fastsync
-    show object waterobj     
+    show object waterobj
     if object exist(65123)=1 then show object 65123
-    if object exist(65124)=1 then show object 65124   
-    show object 99001     
+    if object exist(65124)=1 then show object 65124
+    show object 99001
     for blackeffects=effectbankoffset to effectbankoffset+effectbankmax
         if blackeffects<>0
-            if effect exist(blackeffects)=1 
+            if effect exist(blackeffects)=1
                 set effect technique blackeffects,"dx9textured"
             endif
         endif
     next blackeffect
     sync mask 2^1
     sync mask 2^0
-    set current camera 0 : sync              
+    set current camera 0 : sync
     endif
-    if lgmodraysactive=2 
+    if lgmodraysactive=2
         gosub Update_LightRays
         gosub Update_Bloom
         for blackeffects=effectbankoffset to effectbankoffset+effectbankmax
             if blackeffects<>0
-                if effect exist(blackeffects)=1 
+                if effect exist(blackeffects)=1
                     set effect technique blackeffects,"RenderColor"
                 endif
             endif
@@ -55491,10 +55492,10 @@ function SyncAll()
         if object exist(65123)=1 then set object mask 65123,(2^0)+(2^bloom_cam)
         if object exist(65124)=1 then set object mask 65124,(2^0)+(2^bloom_cam)
         hide object 52
-        hide object 9900
+        hide object 99000
         for o=hudbankoffset to hudbankoffset+31
          if object exist(o)=1
-          set object mask o,2^0
+          set object mask o,%1+(1 << RayCam)
          endif
         next o
         for f=1 to decalelementmax
@@ -55505,11 +55506,11 @@ function SyncAll()
         next f
         hide object waterobj
         sync mask 2^RayCam:fastsync
-        show object waterobj      
+        show object waterobj
         show object 99001
         for blackeffects=effectbankoffset to effectbankoffset+effectbankmax
             if blackeffects<>0
-                if effect exist(blackeffects)=1 
+                if effect exist(blackeffects)=1
                     set effect technique blackeffects,"dx9textured"
                 endif
             endif
@@ -55519,7 +55520,7 @@ function SyncAll()
         sync mask 2^1
         if lrbloomobjactive=1 then show object 52
         sync mask 2^0
-        set current camera 0 : sync      
+        set current camera 0 : sync
     endif
 endfunction
 
@@ -55701,5 +55702,5 @@ function CalcLightDirX(objang#)
 endfunction ldirang#
 
 function CalcLightDirZ(objang#)
-    ldirang#=-0.75*cos(objang#)    
+    ldirang#=-0.75*cos(objang#)
 endfunction ldirang#
