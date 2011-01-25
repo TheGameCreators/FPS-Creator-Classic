@@ -52759,7 +52759,7 @@ _darkai_control:
   if object exist(tobjtarget)=1
    if tobjtarget=physicsplayerborble
     ttargetx#=camera position x()
-    ttargety#=camera position y()
+    ttargety#=camera position y()+10.0 : rem lee - 240111 - V118 - to clear sand bags when stood up
     ttargetz#=camera position z()
    else
     ttargetx#=ai get entity target x(obj)
