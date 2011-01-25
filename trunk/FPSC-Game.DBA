@@ -4122,7 +4122,11 @@ _main_sync:
   rotate camera camangx#,camangy#,0
   `
  else
+  Rem Exclude water from postprocess render
+  if wateron=1 then hide object waterobj
   gosub _postprocess_renderdepthcamera
+  if wateron=1 then show object waterobj
+  `
   if wateron=1
    Rem Hide crosshair from camera renders
    if gunid>0
@@ -9516,7 +9520,8 @@ _entity_controlmovements:
    if gmultiplayergame=0
     if ai entity exist(entityelement(e).obj)
      if ai get entity x(entityelement(e).obj)<>entityelement(e).x or ai get entity z(entityelement(e).obj)<>entityelement(e).z or entityelement(e).darkai.aiy<>entityelement(e).y
-      ai set entity position entityelement(e).obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
+      rem lee - 240111 - place virtual DAI entity position X units before 'floor' to avoid ray cast collision with geometry!
+      ai set entity position entityelement(e).obj,entityelement(e).x,entityelement(e).y+5,entityelement(e).z
       entityelement(e).aimovex=entityelement(e).x : entityelement(e).aimovez=entityelement(e).z : entityelement(e).aimoved=1
      endif
     endif
@@ -15785,10 +15790,10 @@ if aiindex>0
          toppri=ai get entity target id(entityelement(e).obj,1)
          if toppri>0 and toppri<65535
           if object exist(toppri)=1
-           ai entity move to cover obj,object position x(toppri),object position z(toppri)
+           ai entity move to cover entityelement(e).obj,object position x(toppri),object position z(toppri)
            entityelement(e).darkai.movingtocover=1
-           entityelement(e).darkai.coverx=object position x(toppri)
-           entityelement(e).darkai.coverz=object position z(toppri)
+           entityelement(e).darkai.coverx=ai get entity destination x(entityelement(e).obj)
+           entityelement(e).darkai.coverz=ai get entity destination z(entityelement(e).obj)
           endif
          endif
         else
@@ -52707,7 +52712,8 @@ _darkai_addai:
   ai set entity can roam obj,1
   REM DAI SPEED
   ai set entity speed obj,entityelement(e).eleprof.speed/2.0
-  ai set entity position obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
+  rem lee - 240111 - place virtual DAI entity position X units before 'floor' to avoid ray cast collision with geometry!
+  ai set entity position obj,entityelement(e).x,entityelement(e).y+5,entityelement(e).z
   tcontainerid=entityelement(e).y+50
   if tcontainerid<0 then tcontainerid=0
   if tcontainerid>19 then tcontainerid=19
@@ -52790,15 +52796,6 @@ _darkai_control:
  tmyx#=entityelement(e).x`object position x(obj)
  tmyy#=entityelement(e).y`object position y(obj)
  tmyz#=entityelement(e).z`object position z(obj)
- `if entityelement(e).ai.waypoint.state>0 and entityelement(e).ai.waypoint.state<>99 and entityelement(e).ai.waypoint.state<>999
-  rem if the entity is moving via a Dark AI command
-  `if ai get entity is moving(obj)=1
-   Rem if new destination in ai system break away from waypoints
-   `entityelement(e).ai.waypoint.state=99
- `else
-  ` ai set entity position obj,tmyx#,tmyy#,tmyz#
-  `endif
- `endif
  `
  rem Reset Actions
  ai set entity no look at point obj
@@ -52926,7 +52923,7 @@ _darkai_control:
     entityelement(e).darkai.ambushed=0
    if entityelement(e).darkai.ambushed>0
     `print entityelement(e).darkai.ambushed
-    ai entity stop obj
+    `ai entity stop obj
     entityelement(e).darkai.ambushed=0
     entityelement(e).darkai.state=STATE_COVER
     ttargetx#=entityelement(e).darkai.ambushx#
@@ -52990,7 +52987,7 @@ _darkai_control:
       if ttargetvisible=0
        if tmoving=0 then ai entity move close obj,ttargetx#,ttargetz#,200.0
       else
-       if entityelement(e).darkai.delay2>timer() and entityelement(e).darkai.state=STATE_ATTACKING then ai entity stop obj
+       `if entityelement(e).darkai.delay2>timer() and entityelement(e).darkai.state=STATE_ATTACKING then ai entity stop obj
       endif
      endif
    else
@@ -53068,14 +53065,14 @@ _darkai_control:
  Rem check if entity is at cover
  if entityelement(e).darkai.movingtocover=1
   if entityelement(e).darkai.actionmode<>0 then entityelement(e).darkai.movingtocover=0
-  if ai get entity x(obj)>=ai get entity destination x(obj)-3 and ai get entity x(obj)<=ai get entity destination x(obj)+3 and ai get entity x(obj)>=ai get entity destination z(obj)-3 and ai get entity x(obj)<=ai get entity destination z(obj)+3
+  if ai get entity x(obj)>=entityelement(e).darkai.coverx-3 and ai get entity x(obj)<=entityelement(e).darkai.coverx+3 and ai get entity z(obj)>=entityelement(e).darkai.coverz-3 and ai get entity z(obj)<=entityelement(e).darkai.coverz+3
    entityelement(e).darkai.movingtocover=0
    entityelement(e).darkai.state=STATE_COVER
   else
    targetcontainer=(entityelement(e).y+25)/100
    if targetcontainer<0 then targetcontainer=0
    if targetcontainer>19 then targetcontainer=19
-   ai entity go to position obj,ai get entity destination x(obj),ai get entity destination z(obj),targetcontainer
+   ai entity go to position obj,entityelement(e).darkai.coverx,entityelement(e).darkai.coverz,targetcontainer
   endif
  endif
 
@@ -53199,7 +53196,7 @@ _darkai_control:
  endif
  `
  rem FPGC - 060510 - feedback internal AI state to debug string
- entitydebug$(e)="Internal State:"+AI Get Entity State$(obj)+"  STATE:"+str$(entityelement(e).darkai.state)+"  ACTIONMODE:"+str$(entityelement(e).darkai.actionmode)+"  CAN SEE:"+str$(ttargetvisible)+" IS MOVING:"+str$(ai get entity is moving(obj))
+ entitydebug$(e)="Internal State:"+AI Get Entity State$(obj)+"  STATE:"+str$(entityelement(e).darkai.state)+"  ACTIONMODE:"+str$(entityelement(e).darkai.actionmode)+"  CAN SEE:"+str$(ttargetvisible)+"["+str$(ttargetvisibleduck)+"]("+str$(int(ttargetx#))+","+str$(int(ttargety#))+","+str$(int(ttargetz#))+") IS MOVING:"+str$(ai get entity is moving(obj))
  `
 return
 
