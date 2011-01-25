@@ -59,9 +59,6 @@ else
  endif
 endif
 
-if file exist("virtualmemory.txt") then delete file "virtualmemory.txt"
-open to write 21,"virtualmemory.txt"
-
 Global exeroot$ : exeroot$=get dir$()
 
 rem V118 - 110810 - knxrb - Hud Layers
