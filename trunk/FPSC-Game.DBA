@@ -3949,9 +3949,9 @@ _main_game_core:
   `
   Rem Hockeykid - 250210 - set players position to the dark ai
   rem lee - 090310 - adjusted player AI position to include Y coordinate
-  tcamx#=object position x(physicsplayerborble)
-  tcamy#=object position y(physicsplayerborble)
-  tcamz#=object position z(physicsplayerborble)
+  `tcamx#=object position x(physicsplayerborble)
+  `tcamy#=object position y(physicsplayerborble)
+  `tcamz#=object position z(physicsplayerborble)
   rem FPGC - 100710 - when no start marker (no player health) AI failed, so keep this simple
   remstart
   if player(1).health>0
@@ -3966,6 +3966,11 @@ _main_game_core:
     playerdied=1
   endif
   remend
+  `
+  rem V118 - 240111 - must set player height for correct DarkAI running (and use CAMERA not OBJECT)
+  tcamx#=camera position x()
+  tcamy#=camera position y()
+  tcamz#=camera position z()
   AI Set Player Position tcamx#,tcamy#,tcamz#
   `
   Rem Hockeykid - 250210 - Dark AI Tell AI system if player crouching
@@ -34360,6 +34365,7 @@ _ode_playerborble:
  Rem Hockeykid - 250210 - Dark AI add player to ai system
  if darkaiplayer=0
   ai add player physicsplayerborble,0
+  ai set player height 0 : rem V118 - 240111 - player position is camera position (no need for height)
   darkaiplayer=1
  endif
  color object physicsplayerborble,rgb(255,255,0)
@@ -52759,15 +52765,13 @@ _darkai_control:
   if object exist(tobjtarget)=1
    if tobjtarget=physicsplayerborble
     ttargetx#=camera position x()
-    ttargety#=camera position y()+10.0 : rem lee - 240111 - V118 - to clear sand bags when stood up
+    ttargety#=camera position y()
     ttargetz#=camera position z()
    else
     ttargetx#=ai get entity target x(obj)
     ttargety#=object position y(tobjtarget)
     ttargetz#=ai get entity target z(obj)
    endif
-   `ttargetvisible=ai get entity can see(obj,ttargetx#,ttargetz#,1) `280410 - old DarkAI
-   `ttargetvisibleduck=ai get entity can see(obj,ttargetx#,ttargetz#,0) `280410 - old DarkAI
    ttargetvisible=ai get entity can see(obj,ttargetx#,ttargety#,ttargetz#,1)
    ttargetvisibleduck=ai get entity can see(obj,ttargetx#,ttargety#,ttargetz#,0)
   endif
@@ -52918,6 +52922,8 @@ _darkai_control:
    `Rem Alert entity if Ambushed
     Rem This can be done purley through scripting now
     entityelement(e).darkai.ambushed=0
+   remstart
+   rem V118 - 2400111 - this would NEVER get called, so removed it!
    if entityelement(e).darkai.ambushed>0
     `print entityelement(e).darkai.ambushed
     `ai entity stop obj
@@ -52926,8 +52932,6 @@ _darkai_control:
     ttargetx#=entityelement(e).darkai.ambushx#
     ttargetz#=entityelement(e).darkai.ambushz#
     Rem Establish attacker as a target
-    `ttargetvisible=ai get entity can see(obj,ttargetx#,ttargetz#,1) `280410 - old DarkAI
-    `ttargetvisibleduck=ai get entity can see(obj,ttargetx#,ttargetz#,0) `280410 - old DarkAI
     if entityelement(e).darkai.ehit=-1
      tobjtarget=physicsplayerborble
     else
@@ -52945,6 +52949,7 @@ _darkai_control:
     ai entity look at position obj,ttargetx#,ttargetz#
     ai entity move to cover obj,ttargetx#,ttargetz#
    endif
+   remend
    `Sees opponent
    If entityelement(e).darkai.autoattackoff=0
     if ttargetvisible=1 or ttargets>0
@@ -53389,7 +53394,9 @@ Add_Targets:
      endif
     next x
     if tenemytargetflagged=1
-     if ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position y(physicsplayerborble),object position z(physicsplayerborble),1)>0
+     rem V118 - 240111 - do not use borble, use camera position (pefect line of sight)
+     `if ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position y(physicsplayerborble),object position z(physicsplayerborble),1)>0
+     if ai get entity can see(entityelement(e).obj,camera position x(),camera position y(),camera position z(),1)>0
       ai entity add target entityelement(e).obj,physicsplayerborble
      endif
     endif
