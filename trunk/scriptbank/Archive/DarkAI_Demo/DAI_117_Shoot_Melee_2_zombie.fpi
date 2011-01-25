@@ -1,0 +1,78 @@
+;//Requires v1.17+ DarkAI
+desc          = DarkAI infection zombie for DAI demo
+
+:state=0:hudreset,hudx=10,hudy=84,hudtext=-----------------------,hudname=tip6,hudhide=1,hudmake=display
+:state=1:hudshow=tip6
+
+;//Dark AI Animations----------------------------------------------------------------------------------------------------
+
+;//Walking animations
+:ducking=0,strafingleft=1:animate=3
+:ducking=0,strafingright=1:animate=4
+:ducking=0,movingforwards=1:animate=2
+:ducking=0,movingbackwards=1:animate=2
+:ducking=0,idle=1:animate=1
+;//Crouching Animations
+:ducking=1,idle=0:animate=32
+:ducking=1,idle=1:animate=31
+
+;//Common behavior and triggers---------------------------------------------------------------------------------
+;//Sprint when activated
+:activated=0:aisetspeed=50
+:activated=1:aisetspeed=80
+:aihastarget=1,movingforwards=1,aitargetdistfurther=100:activate=1
+:aihastarget=1,movingforwards=1,aitargetdistwithin=90:activate=0
+:movingforwards=0:activate=0
+:aihastarget=0:activate=0
+
+;//Targeting
+:aiaction=1:aiusefullaim=1
+:aiaction=0:aiusefullaim=0
+:state=1,aihastarget=0:aiattackawareness=1,aisettarget,airotatetotarget
+:aihastarget=1,aicanshoot=0:aiattackawareness=0,setaicleartarget,aiattackawareness=1,aisettarget,airotatetotarget
+:state=1:airotatetotarget
+
+;//Respond to any sounds while not in combat
+:state=1,idle=1,aiaction=0,aicanshoot=0,aiheardsound=2500:aicleartarget,state=30,etimerstart
+:state=1,idle=0,aiaction=0,aicanshoot=0,aiheardsound=1000:aicleartarget,state=30,etimerstart
+:state=30,varequal=1,aiheardsound=3000:airotatetosound
+:state=30,varequal=0,aiheardsound=3000:aimovetosound
+:state=30,etimergreater=4000:state=1
+:state=30,aihastarget=0:aisettarget,airotatetotarget
+:state=30,aihastarget=1,aicanshoot=0:aisettarget,airotatetotarget
+:state=30,aicanshoot=1:state=1
+
+;//close with enemy for melee if seen nearby
+:state=1,aicanshoot=1,aitargetdistfurther=70,random=25:etimerstart,state=55
+:state=55:aimovetotarget
+:state=55,movingforwards=1,aitargetdistwithin=200,etimergreater=300:activate=1
+:state=55,movingforwards=0:activate=0
+:state=55,aitargetdistwithin=70:activate=0,state=190
+:state=55,aicanshoot=0:activate=0,state=1
+:state=55,aihastarget=0:activate=0,state=1
+
+;//Enemy at close range
+:state=1,aitargetdistwithin=70:state=2
+:state=2:airotatetotarget,state=190
+:state=2,aitargetdistfurther=70:state=1
+
+;//melee strike
+:state=190:state=191,etimerstart
+:state=191:airotatetotarget
+:state=191,aitargetdistwithin=70,aicanshoot=1:state=192,aistop
+:state=191,aitargetdistfurther=70:state=1
+:state=191,aicanshoot=0:state=1
+:state=192:setaiactive=0,state=193,setframe=8
+:state=193:incframe=8,airotatetotarget
+:state=193,framebeyond=8 40,aitargetdistwithin=70:state=194,aisetmeleedamage=50,aiusemelee=1,sound=audiobank\voices\monster\land.wav
+:state=193,frameatend=8:setframe=1,state=195
+:state=194,frameatend=8:setframe=1,state=195
+:state=194,etimergreater=1500:setframe=1,state=195
+:state=195:setaiactive=1,state=1
+
+;//Give stand-down order when 'Z' is pressed (run main script)
+:keypressed=44 1:aiattackawareness=0,aicleartarget,setaiactive=1,runfpidefault=1,sound=audiobank\switches\click.wav,state=999
+
+;//Start Script------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+:state=0:setaiactive=1,alwaysactive=1,reloadweapon,activate=0,aiattackawareness=1,etimerstart,state=1
+;//End

@@ -1,0 +1,11 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Activate ragdoll and leave as corpse
+
+;Triggers
+
+:state=0:state=1,suspend,coloff,ragdoll
+
+;End of Script
