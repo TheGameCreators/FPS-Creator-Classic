@@ -7974,12 +7974,29 @@ _entity_monitorforsplash:
      velocity#=abs(ODE GET BODY LINEAR VELOCITY Y(ttobj))
     endif
     if entityelement(e).eleprof.physics=2
-     velocity#=velocity#*5.0
+     velocity#=velocity#*10.0
     endif
-    if velocity#>25.0
+    if velocity#>15.0
+     rem regular underwater handling
+     oldvelx#=ODE GET BODY LINEAR VELOCITY X(entityelement(e).obj)*0.97
+     oldvely#=ODE GET BODY LINEAR VELOCITY Y(entityelement(e).obj)*0.97
+     oldvelz#=ODE GET BODY LINEAR VELOCITY Z(entityelement(e).obj)*0.97
+     ode set linear velocity entityelement(e).obj,oldvelx#,oldvely#,oldvelz#
      rem set so only do one splash per entry into water
      if waterdecalripple<>0
       rem and only if water does ripple
+      rem ripple
+      decalid=waterdecalripple
+      decalorient=0
+      decalx=object position x(entityelement(e).obj)
+      decaly=waterheight#+1.0
+      decalz=object position z(entityelement(e).obj)
+      decalorient=2
+      decalscalemodx=20+(abs(entityelement(e).eleprof.phyweight)/50.0) : decalscalemody=decalscalemodx
+      decalalpha=15
+      originatore=0 : gosub _decalelement_create
+      `
+      rem splash
       entityelement(e).decalloop=1
       decalx=object position x(entityelement(e).obj)
       decalz=object position z(entityelement(e).obj)
