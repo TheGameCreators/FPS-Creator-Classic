@@ -239,7 +239,12 @@ global playername$ : playername$=""
 `
 rem V109 BETA3 - added to control change to player jump height
 global playerdefaultjumpheight : playerdefaultjumpheight=50
-
+`
+rem V118 - store range, aspect and fov globally!
+global realrange# : realrange#=9000.0
+global realaspect# : realaspect#=1.0
+global realfov# : realfov#=75.0
+`
 ` FPSCV10X SAVE LOAD Data Structures
 type saveloadtype
  saveloaddir$
@@ -3147,13 +3152,12 @@ if file exist(tfile$)=1
   endif
  next l
  undim data$()
-
+ `
  rem V118 - 160810 - knxrb - Auto Resolution
  if gautores=1
   gdisplaywidth = desktop width()
   gdisplayheight = desktop height()
  endif
-
  `
 else
  `
@@ -3289,8 +3293,7 @@ rem And finally switch the resolution if different from default
 if runengineinframe=1
  rem FPGC - 260210 - display size from SETUP.INI, else 640x480
  vsyncflag=1 : thevrmodeflag=0 : if gvrmode<>0 then thevrmodeflag=1
-
-  if check display mode(gdisplaywidth,gdisplayheight,gdisplaydepth)=1
+ if check display mode(gdisplaywidth,gdisplayheight,gdisplaydepth)=1
   set display mode gdisplaywidth,gdisplayheight,gdisplaydepth,vsyncflag,0,0,0,0,thevrmodeflag
  else
   set display mode 640,480,gdisplaydepth,vsyncflag
@@ -3329,7 +3332,7 @@ else
   rem FPGC - 131009 - option use use correct aspect ratio?
   if gaspectratio=1
    aspect#=desktop width() : aspect#=aspect#/desktop height()
-   set camera aspect aspect#
+   realaspect#=aspect# : set camera aspect realaspect#
   endif
   `
  endif
@@ -3716,7 +3719,6 @@ _main_game_loadgamedata:
  debugviewprogressmax(330)
  `
  rem Place camera faw away (effectively hide all 3D)
- realrange#=9000.0
  set camera range 2.0,realrange#
  position camera -50000,50000,50000
  point camera -50000,50010,50000
@@ -19651,7 +19653,7 @@ _player_setup:
  `
  rem start camera for player
  plrzoominchange=0 : plrzoomin#=0.0
- set camera fov 75.0
+ realfov#=75.0 : set camera fov realfov#
  `
  rem Find player start location
  gosub _player_startpos
@@ -34736,39 +34738,31 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
   if plrzoomin#>1.0
    rem AirMod - Modified for Simple Zoom
    if firemode(gunid,firemode).settings.simplezoom <> 0
-    set camera fov 75.0-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov#
-    set camera fov 1,75-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov# : set camera fov 2,75-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov#
-
-
-    // LightRay Addition
-    if RayCam<>0 then if camera exist(RayCam)=1 then set camera fov RayCam,75.0-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov#
-    if bloom_cam<>0 then if camera exist(bloom_cam)=1 then set camera fov bloom_cam,75.0-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov#
-
-
+    realfov#=75.0-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov#
+    set camera fov realfov#
+    set camera fov 1,realfov# : set camera fov 2,realfov#
+    rem LightRay Addition
+    if RayCam<>0 then if camera exist(RayCam)=1 then set camera fov RayCam,realfov#
+    if bloom_cam<>0 then if camera exist(bloom_cam)=1 then set camera fov bloom_cam,realfov#
    else
-    set camera fov 75.0-(plrzoomin#*7)-gunzoommag#+airmod_camfov#
-    set camera fov 1,75-(plrzoomin#*7)-gunzoommag#+airmod_camfov# : set camera fov 2,75-(plrzoomin#*7)-gunzoommag#+airmod_camfov#
-
-    // LightRay Addition
-    if RayCam<>0 then if camera exist(RayCam)=1 then set camera fov RayCam,75.0-(plrzoomin#*7)-gunzoommag#+airmod_camfov#
-    if bloom_cam<>0 then if camera exist(bloom_cam)=1 then set camera fov bloom_cam,75.0-(plrzoomin#*7)-gunzoommag#+airmod_camfov#
-
-
+    realfov#=75.0-(plrzoomin#*7)-gunzoommag#+airmod_camfov#
+    set camera fov realfov#
+    set camera fov 1,realfov# : set camera fov 2,realfov#
+    rem LightRay Addition
+    if RayCam<>0 then if camera exist(RayCam)=1 then set camera fov RayCam,realfov#
+    if bloom_cam<>0 then if camera exist(bloom_cam)=1 then set camera fov bloom_cam,realfov#
    endif
    rem AirMod - Done
    rem AirMod - Modified for Simple Zoom
    if internalzoomhud>0 and (firemode(gunid,firemode).settings.simplezoom = 0 or firemode(gunid,firemode).zoomscope<>0) then hudid=internalzoomhud : hud(hudid).hide=0 : set sprite alpha hudid,(255.0/10.0)*plrzoomin#
   else
    rem AirMod - Modified for cam fov
-   set camera fov 75.0+airmod_camfov#
-   set camera fov 1,75.0+airmod_camfov# : set camera fov 2,75.0+airmod_camfov#
-
-   // LightRay Addition
-   if RayCam<>0 then if camera exist(RayCam)=1 then set camera fov RayCam,75.0+airmod_camfov#
-   if bloom_cam<>0 then if camera exist(bloom_cam)=1 then set camera fov bloom_cam,75.0+airmod_camfov#
-
-
-
+   realfov#=75.0+airmod_camfov#
+   set camera fov realfov#
+   set camera fov 1,realfov# : set camera fov 2,realfov#
+   rem LightRay Addition
+   if RayCam<>0 then if camera exist(RayCam)=1 then set camera fov RayCam,realfov#
+   if bloom_cam<>0 then if camera exist(bloom_cam)=1 then set camera fov bloom_cam,realfov#
    if internalzoomhud>0 then hudid=internalzoomhud : hud(hudid).hide=1
   endif
  endif
@@ -43134,7 +43128,7 @@ color backdrop rgb(32,32,32)
 set camera range 10,10000
 set light range 0,10000
 set ambient light 75 : rem FPGC - 270809 - 30
-set camera fov 90
+realfov#=75.0 : set camera fov realfov#
 autocam off
 
 rem Position camera
@@ -54076,16 +54070,14 @@ function MakeWater()
  Img=19876
  Rem Cameras
  Sw#=screen width():Sh#=screen height()
- aspect#=desktop width() : aspect#=aspect#/desktop height()
- realrange#=9000.0
  for c=1 to 2
   if camera exist(c)=0 then make camera c : rem (Sean: I added the camera exist check as it crashed if you re-entered game.)
   set camera range c,2.0,realrange#
-  set camera aspect c,aspect#
+  set camera aspect c,realaspect#
   backdrop off c`n c : color backdrop c,rgb(0,255,0)
   if c=1 then set camera to image c,Img,Sw#,Sh#
   if c=2 then set camera to image c,Img+1,Sw#,Sh#
-  set camera fov c,75
+  set camera fov c,realfov#
  next c
 
  Rem Make Water plain
@@ -54104,18 +54096,18 @@ function MakeWater()
  hide object waterobj
 endfunction
 
-function UpDateWater()
- set current camera 0
+function UpdateWater()
+ `
  Rem UpDate Water plain position
+ set current camera 0
  position object waterobj,0,waterheight#,0
- Hide object waterobj
-
- // LightRay Addition
+ hide object waterobj
+ `
+ rem LightRay Addition
  if lgmodraysactive=2 then hide object 52
  if lgmodraysactive=1 then hide object 99000
  if lgmodraysactive=1 then hide object 99001
-
-
+ `
  Rem Upade Refract and Reflect cameras
  set effect technique WaterFx,"Refract"
  UpDateRefraction()
@@ -54127,37 +54119,47 @@ function UpDateWater()
  else
   waterfogon=1
  endif
- `
  show object waterobj
-
- // LightRay Addition
+ `
+ rem LightRay Addition
  if lgmodraysactive=2 then show object 52
  if lgmodraysactive=1 then show object 99000
  if lgmodraysactive=1 then show object 99001
-
-
  set current camera 0
+ `
 endfunction
 
 function UpDateRefraction()
+ Img=19876
+ `debug - see reflection and refraction cameras 
+ `set cursor 0,100
+ `print scancode()
+ `if scancode()=2 then paste image img+0,0,0
+ `if scancode()=3 then paste image img+1,0,0
+ set camera fov 0,realfov#
+ set camera aspect 0,realaspect#
+ set camera range 0,2.0,realrange#
+ set camera fov 1,realfov#
+ set camera aspect 1,realaspect#
+ set camera range 1,2.0,realrange#
  position camera 1,camera position x(0),camera position y(0),camera position z(0)
  rotate camera 1,camera angle x(0),camera angle y(0),camera angle z(0)
+ backdrop off 1 : rem backdrop on 1 : color backdrop 1,0
  if camera position y(0)>waterheight#
-  Rem TEMPORARY solution - if full effects are on, turn off camera clipping
-  if guseeffectstate=0
-   set camera clip 1,1,0,waterheight#+30,0,0,-1,0
-  else
-   set camera clip 1,0,0,0,0,0,0,0
-  endif
+`  if guseeffectstate=0
+   set camera clip 1,1,0,waterheight#+1,0,0,-1,0
+`  else
+`   set camera clip 1,0,0,0,0,0,0,0
+`  endif
   waterfogon=2
  endif
  if camera position y(0)<waterheight#
   Rem TEMPORARY solution - if full effects are on, turn off camera clipping
-  if guseeffectstate=0
-   set camera clip 1,1,0,waterheight#-30,0,0,1,0
-  else
-   set camera clip 1,0,0,0,0,0,0,0
-  endif
+`  if guseeffectstate=0
+   set camera clip 1,1,0,waterheight#-1,0,0,1,0
+`  else
+`   set camera clip 1,0,0,0,0,0,0,0
+`  endif
   waterfogon=1
  endif
  set camera clip 2,0,0,0,0,0,0,0
@@ -54167,14 +54169,20 @@ function UpDateRefraction()
 endfunction
 
 function UpDateReflection()
+ set camera fov 2,realfov#
+ set camera aspect 2,realaspect#
+ set camera range 2,2.0,realrange#
  position camera 2,camera position x(0),waterheight#-(camera position y(0)-waterheight#),camera position z(0)
  rotate camera 2,-camera angle x(0),camera angle y(0),camera angle z(0)
+` position camera 2,camera position x(0),camera position y(0),camera position z(0)
+` rotate camera 2,camera angle x(0),camera angle y(0),camera angle z(0)
+ backdrop off 2 : rem backdrop on 2 : color backdrop 2,0
  set camera clip 1,0,0,0,0,0,0,0
  Rem TEMPORARY solution - if full effects are on, turn off camera clipping
  `if guseeffectstate=0
-  set camera clip 2,1,0,waterheight#-15,0,0,1,0
+  set camera clip 2,1,0,waterheight#-1,0,0,1,0
  `else
-  `set camera clip 2,0,0,0,0,0,0,0
+ ` set camera clip 2,0,0,0,0,0,0,0
  `endif
  sync mask (1 << 2)
  fastsync
@@ -55339,7 +55347,7 @@ Setup_LightRays:
       make camera RayCam
       set camera to image RayCam,6,gdisplaywidth/3,gdisplayheight/3
       set camera range RayCam,1,realrange#
-      set camera aspect RayCam,(Sw#/Sh#)
+      set camera aspect RayCam,realaspect# : rem (Sw#/Sh#)
       set camera fov RayCam,75
       backdrop on RayCam
       color backdrop RayCam,rgb(0,0,0)
@@ -55407,7 +55415,7 @@ Setup_Bloom:
       set camera to image bloom_cam,bloom_img,sw#,sh#,2
       set camera range bloom_cam,3,realrange#
       set camera fov bloom_cam,fov
-      set camera aspect bloom_cam,(sw#/sh#)
+      set camera aspect bloom_cam,realaspect# : rem (sw#/sh#)
       make object plain bloom_obj+2,-1920/400,1080/400//-sw#/(400),sh#/(400)
       load effect "effectbank\ps_2_0\post-bloom.fx",bloom_obj+2,0
       texture object bloom_obj+2,0,bloom_img
@@ -55565,14 +55573,14 @@ function PostFilter_SetUp(Width,Height,D3DFormat)
       FrameCamera=RenderTarget(1).Camera
       backdrop off 0
       set camera fov 0,75
-      set camera aspect 0,(Sw#/Sh#)
+      set camera aspect 0,realaspect# : rem (Sw#/Sh#)
 endfunction 1
 
 function PostFilter_Update()
    if FilterEnabled=1
       position camera RenderTarget(1).Camera,camera position x(0),camera position y(0),camera position z(0)
       rotate camera RenderTarget(1).Camera,camera angle x(0),camera angle y(0),camera angle z(0)
-      set camera aspect RenderTarget(1).Camera,(Sw#/Sh#)
+      set camera aspect RenderTarget(1).Camera,realaspect# : rem (Sw#/Sh#)
       sync mask RenderTargetMask
       fastsync
       for t=1 to array count(FrameTarget())-1
@@ -55639,7 +55647,7 @@ function PostFilter_RenderTarget_Add(Effect$,Teq$,Transparent,Width,Height,D3DFo
       if D3DFormat>0 then set camera to image RenderTarget(RenderTargetCount).Camera,RenderTarget(RenderTargetCount).Image,Width,Height,3,D3DFormat
       set camera range RenderTarget(RenderTargetCount).Camera,1,10
       set camera fov RenderTarget(RenderTargetCount).Camera,75
-      set camera aspect RenderTarget(RenderTargetCount).Camera,(Sw#/Sh#)
+      set camera aspect RenderTarget(RenderTargetCount).Camera,realaspect# : rem (Sw#/Sh#)
       backdrop off RenderTarget(RenderTargetCount).Camera
       make object plain RenderTarget(RenderTargetCount).Object,2,2,1
       convert object fvf RenderTarget(RenderTargetCount).Object,0x002
