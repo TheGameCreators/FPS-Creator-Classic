@@ -54148,11 +54148,13 @@ endfunction
 
 function UpDateRefraction()
  Img=19876
- `debug - see reflection and refraction cameras 
- `set cursor 0,100
- `print scancode()
- `if scancode()=2 then paste image img+0,0,0
- `if scancode()=3 then paste image img+1,0,0
+ `debug - see reflection and refraction cameras
+ if 1
+  set cursor 0,100
+  print scancode()
+  if scancode()=2 then paste image img+0,0,0
+  if scancode()=3 then paste image img+1,0,0
+ endif
  set camera fov 0,realfov#
  set camera aspect 0,realaspect#
  set camera range 0,2.0,realrange#
@@ -54191,8 +54193,6 @@ function UpDateReflection()
  set camera range 2,2.0,realrange#
  position camera 2,camera position x(0),waterheight#-(camera position y(0)-waterheight#),camera position z(0)
  rotate camera 2,-camera angle x(0),camera angle y(0),camera angle z(0)
-` position camera 2,camera position x(0),camera position y(0),camera position z(0)
-` rotate camera 2,camera angle x(0),camera angle y(0),camera angle z(0)
  backdrop off 2 : rem backdrop on 2 : color backdrop 2,0
  set camera clip 1,0,0,0,0,0,0,0
  Rem TEMPORARY solution - if full effects are on, turn off camera clipping
