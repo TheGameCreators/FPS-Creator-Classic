@@ -41,9 +41,6 @@ float4x4 WorldView  : WorldView;
 float4x4 View       : VIEW;
 float4x4 Projection : PROJECTION;
 
-// declare to stop FF clip pipeline (PS1.0)
-float4 clipPlane : ClipPlane;
-
 struct VS_OUTPUT
 {
     float4 Pos  : POSITION;

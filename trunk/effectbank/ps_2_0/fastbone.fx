@@ -10,9 +10,6 @@ float4x4 World : World;
 float4x4 View : View;
 float4x4 ViewInv : ViewInverse;
 
-// declare to stop FF clip pipeline (PS1.0)
-float4 clipPlane : ClipPlane;
-
 /*********** DBPRO UNTWEAKABLES **********/
 float4x4 boneMatrix[60] : BoneMatrixPalette;
 
