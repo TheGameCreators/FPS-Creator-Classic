@@ -43156,8 +43156,8 @@ rem Setup camera
 color backdrop rgb(32,32,32)
 set camera range 10,10000
 set light range 0,10000
-set ambient light 75 : rem FPGC - 270809 - 30
-realfov#=75.0 : set camera fov realfov#
+set ambient light 75
+set camera fov 90
 autocam off
 
 rem Position camera
@@ -53708,26 +53708,26 @@ _postprocess_init:
   if gpostprocessing=7 then global lgmodraysactive : lgmodraysactive=5 : gdepthcameraid=0
   `
   if gpostprocessing<=2
-  rem FPGC - 200310 - new camera 3 holds post-process screen quad (requires U75+)
-  gfinalrendercameraid=3
-  if gpostprocessing<=2 then make camera gfinalrendercameraid : load effect tshaderchoice$,65535,0
-  set camera view gfinalrendercameraid,0,0,1,1
-  set current camera 0
-  `
-  rem FPGC - 070410 - make a depth camera and assign it to image X
-  if gdepthcameraid>0
-   if gpostprocessing<=2 then make camera gdepthcameraid
-   set camera view gdepthcameraid,0,0,1,1
-   color backdrop gdepthcameraid,rgb(255,128,128)
+   `
+   rem FPGC - 200310 - new camera 3 holds post-process screen quad (requires U75+)
+   gfinalrendercameraid=3
+   if gpostprocessing<=2 then make camera gfinalrendercameraid : load effect tshaderchoice$,65535,0
+   set camera view gfinalrendercameraid,0,0,1,1
    set current camera 0
+   `
+   rem FPGC - 070410 - make a depth camera and assign it to image X
+   if gdepthcameraid>0
+    if gpostprocessing<=2 then make camera gdepthcameraid
+    set camera view gdepthcameraid,0,0,1,1
+    color backdrop gdepthcameraid,rgb(255,128,128)
+    set current camera 0
+   endif
+   `
+   rem post process mode on
+   if gpostprocessing=0 or gpostprocessing=1 or gpostprocessing=2 then gpostprocessmode=1
+   `
   endif
   `
-  rem post process mode on
-
-  // LightRay Addition
-  if gpostprocessing=0 or gpostprocessing=1 or gpostprocessing=2 then gpostprocessmode=1
-  `
- endif
  endif
  `
 return
@@ -53758,12 +53758,12 @@ _postprocess_apply:
       rem FPGC - 080410 - displacement technology. set this to move an object to the depth camera
       rem NOTE: entities using fastbone need to go here as the shader animates the geometry (to align with real game render)
       rem NOTE: new fields for DECAL and ENTITYPROFILE, and provide both texture and shaders to depth camera render objects!
-      set object mask o,%1+(1<<gdepthcameraid),0,0,1
+      set object mask o,%111+(1<<gdepthcameraid),0,0,1
      else
-      set object mask o,%1+(1<<gdepthcameraid),0,0,0
+      set object mask o,%111+(1<<gdepthcameraid),0,0,0
      endif
     else
-     set object mask o,%1,0,0,0
+     set object mask o,%111,0,0,0
     endif
    endif
   next o
@@ -53771,7 +53771,7 @@ _postprocess_apply:
   rem FPGC - 070710 - some objects must be excluded from depth render
   for o=hudbankoffset to hudbankoffset+31
    if object exist(o)=1
-    set object mask o,%1,0,0,0
+    set object mask o,%111,0,0,0
    endif
   next o
   `
@@ -54161,10 +54161,10 @@ endfunction
 function UpDateRefraction()
  Img=19876
  `debug - see reflection and refraction cameras
- `if 1
- ` if scancode()=2 then paste image img+0,0,0
- ` if scancode()=3 then paste image img+1,0,0
- `endif
+ if 1
+  if scancode()=2 then paste image img+0,0,0
+  if scancode()=3 then paste image img+1,0,0
+ endif
  set camera fov 0,realfov#
  set camera aspect 0,realaspect#
  set camera range 0,2.0,realrange#
