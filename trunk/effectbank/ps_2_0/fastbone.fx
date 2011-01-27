@@ -9,6 +9,8 @@ float4x4 WorldViewProj : WorldViewProjection;
 float4x4 World : World;
 float4x4 View : View;
 float4x4 ViewInv : ViewInverse;
+
+// declare to cancel FF clip in pipeline (but don't clip as PS1.0 not supported)
 float4 clipPlane : ClipPlane;
 
 /*********** DBPRO UNTWEAKABLES **********/
@@ -79,7 +81,6 @@ struct vertexOutput {
     float4 TexCoord	: TEXCOORD0;
     float4 Col		: COLOR;
     float3 Fog		: TEXCOORD1;
-    float clip : TEXCOORD2;
 };
 
 /*********** vertex shader ******/
@@ -116,10 +117,6 @@ vertexOutput mainVS(appdata IN)
     float fogstrength = cameraPos.z * FogColor.w;
     OUT.Fog = FogColor.xyz * fogstrength;
 
-    // all shaders should send the clip value to the pixel shader (for refr/refl)                                                                     
-    // OUT.clip = dot(worldSpacePos, clipPlane); // too expensive for VS2.0
-    OUT.clip = (worldSpacePos.y * clipPlane.y) + clipPlane.a; // good for water plane
-
     return OUT;
 }
 
@@ -128,9 +125,6 @@ float4 PS(
     float2 Tex  : TEXCOORD0,
     float3 Fog  : TEXCOORD1 ) : COLOR
 {
-    // all shaders should receive the clip value                                                                
-    clip(IN.clip);
-
     return (tex2D(colorSampler, Tex) * Diff) + FillerColor + float4(Fog,1.0);
 }
 
