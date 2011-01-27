@@ -34917,7 +34917,7 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
  `
  if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
   rem reduce influence of movement when underwater
-  tunderwaterspeed#=timeelapsed#*0.1
+  tunderwaterspeed#=timeelapsed#*0.3
   camvelx#=tmotionx#+((newxvalue(0,phyangle#,cameraspeed))*tunderwaterspeed#)
   if (plrkeyS)=1
    camvely#=tmotiony#+((sin(camera angle x())*cameraspeed*1)*tunderwaterspeed#*2)
@@ -35094,7 +35094,7 @@ if deactivatecollision=0 and skipcol=0
   ctx#=ctox#+adjx#
   cty#=ctoy#+adjy#
   ctz#=ctoz#+adjz#
-  rem gravity defeated?  
+  rem gravity defeated?
   if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
    rem no gravity to defeat when in water
    if adjy#<0.0 and ctoy#<cty#
@@ -35522,7 +35522,11 @@ else
  arenaadjustd#=0
 endif
 if movement<>0
- camerawobble#=wrapvalue(camerawobble#+(40.0*timeelapsed#))
+ if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
+  camerawobble#=wrapvalue(camerawobble#+(10.0*timeelapsed#))
+ else
+  camerawobble#=wrapvalue(camerawobble#+(40.0*timeelapsed#))
+ endif
  if (plrkeySHIFT)=1 or (plrkeySHIFT2)=1
   arenaadjust#=arenaadjustd#+(cos(camerawobble#)*0.60)
  else
