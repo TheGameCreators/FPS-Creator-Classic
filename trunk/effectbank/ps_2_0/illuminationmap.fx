@@ -12,14 +12,6 @@ float4 AmbiColor : Ambient
     string UIName =  "Ambient Light Color";
 > = {0.1f, 0.1f, 0.1f, 1.0f};
 
-float depthScale
-<
-	string UIWidget = "slider";
-	float UIMax = 0.1;
-	float UIMin = 0.001;
-	float UIStep = 0.001;
-> = 0.015;
-
 // light intensity
 float4 I_a = { 0.1f, 0.1f, 0.1f, 1.0f };    // ambient
 float4 I_d = { 1.0f, 1.0f, 1.0f, 1.0f };    // diffuse
@@ -37,22 +29,22 @@ texture Tex2 < string name = "illumination.tga"; >;
 
 // transformations
 float4x4 World      : WORLD;
-float4x4 WorldView  : WorldView;
 float4x4 View       : VIEW;
 float4x4 Projection : PROJECTION;
+float4 clipPlane : ClipPlane;
 
 struct VS_OUTPUT
 {
     float4 Pos  : POSITION;
     float4 Diff : COLOR0;
     float2 Tex  : TEXCOORD0;
-    float2 Tex2 : TEXCOORD1;
-    float2 Tex3 : TEXCOORD2;
-    float4 ppos : TEXCOORD3;
+    float2 Tex2  : TEXCOORD1;
+    float2 Tex3  : TEXCOORD2;
+    float clip : TEXCOORD3;
 };
 
 VS_OUTPUT VS(
-    float4 Pos  : POSITION, 
+    float3 Pos  : POSITION, 
     float3 Norm : NORMAL, 
     float2 Tex  : TEXCOORD0, 
     float2 Tex2 : TEXCOORD1)
@@ -60,14 +52,17 @@ VS_OUTPUT VS(
     VS_OUTPUT Out = (VS_OUTPUT)0;
 
     float4x4 WorldView = mul(World, View);
-    float3 P = mul(Pos, (float4x3)WorldView);  // position (view space)
+    float3 P = mul(float4(Pos, 1), (float4x3)WorldView);  // position (view space)
     Out.Pos  = mul(float4(P, 1), Projection);             // position (projected)
     Out.Diff = AmbiColor; 		  // ambient
     Out.Diff.w = 1.0f;
     Out.Tex  = Tex;                                       
     Out.Tex2  = Tex;                                       
-    Out.Tex3  = Tex2;                                       
-    Out.ppos = mul( Pos, WorldView );
+    Out.Tex3  = Tex2;
+
+    // all shaders should send the clip value to the pixel shader (for refr/refl)
+    float4 worldSpacePos = mul(float4(Pos,1), World);                                                     
+    Out.clip = dot(worldSpacePos, clipPlane);
 
     return Out;
 }
@@ -96,25 +91,26 @@ sampler Sampler3 = sampler_state
     MagFilter = LINEAR;
 };
 
-float4 PS(
-    float4 Diff : COLOR0,
-    float2 Tex  : TEXCOORD0,
-    float2 Tex2 : TEXCOORD1,
-    float2 Tex3 : TEXCOORD2,
-    float4 ppos : TEXCOORD3) : COLOR
+float4 PS(VS_OUTPUT IN) : COLOR
 {
-    return (tex2D(Sampler, Tex3)+Diff+tex2D(Sampler3, Tex2)) * tex2D(Sampler2, Tex);
+    clip(IN.clip);
+    return (tex2D(Sampler, IN.Tex3)+IN.Diff+tex2D(Sampler3, IN.Tex2)) * tex2D(Sampler2, IN.Tex);
 }
 
-technique alpha
+technique TVertexShaderOnly
 {
     pass P0
     {
+        // lighting
         Lighting       = FALSE;
         FogEnable      = FALSE;
+
+        // samplers
         Sampler[0] = (Sampler);
         Sampler[1] = (Sampler2);
         Sampler[2] = (Sampler3);
+
+        // shaders
         VertexShader = compile vs_1_0 VS();
         PixelShader  = compile ps_2_0 PS();
     }

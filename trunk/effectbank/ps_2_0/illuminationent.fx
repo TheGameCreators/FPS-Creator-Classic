@@ -32,6 +32,7 @@ float4x4 World      : WORLD;
 float4x4 WorldView  : WorldView;
 float4x4 View       : VIEW;
 float4x4 Projection : PROJECTION;
+float4 clipPlane : ClipPlane;
 
 struct VS_OUTPUT
 {
@@ -40,6 +41,7 @@ struct VS_OUTPUT
     float2 Tex1 : TEXCOORD0;
     float2 Tex2 : TEXCOORD1;
     float4 ppos : TEXCOORD2;
+    float clip : TEXCOORD3;
 };
 
 VS_OUTPUT VS(
@@ -57,6 +59,10 @@ VS_OUTPUT VS(
     Out.Tex1 = Tex1;                                       
     Out.Tex2 = Tex1;   
     Out.ppos = mul( Pos, WorldView );
+
+    // all shaders should send the clip value to the pixel shader (for refr/refl)
+    float4 worldSpacePos = mul(Pos, World);                                                     
+    Out.clip = dot(worldSpacePos, clipPlane);
 
     return Out;
 }
@@ -81,8 +87,10 @@ float4 PS(
     float4 Diff  : COLOR0,
     float2 Tex   : TEXCOORD0,
     float2 TexI  : TEXCOORD1,
-    float4 ppos  : TEXCOORD2) : COLOR
+    float4 ppos  : TEXCOORD2,
+    float clipvalue : TEXCOORD3) : COLOR
 {
+    clip(clipvalue);
     return (Diff+tex2D(Sampler2, TexI)) * tex2D(Sampler1, Tex);
 }
 

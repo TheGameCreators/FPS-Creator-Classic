@@ -4679,8 +4679,9 @@ else
  tperformuniverseconstruction=1
  gosub _universe_construct_skip : rem sets universeconstructskip flag
  if universeconstructskip=1 then tperformuniverseconstruction=0
- rem FPGC - 051109 - quick universe rebuild not designed with shaded static geometry in mind!
- if guseeffectonscenesstate=1 then tperformuniverseconstruction=1
+ `270111 - never worked, need to store full effects flag and re-build when toggled..
+ `rem FPGC - 051109 - quick universe rebuild not designed with shaded static geometry in mind!
+ `if guseeffectonscenesstate=1 then tperformuniverseconstruction=1
 endif
 
 rem If universe.dbo not present, construct it
@@ -30889,7 +30890,14 @@ _universe_construct_skip:
     endif
    endif
   endif
+  if versionnumber>=118
+   rem V118 - 270111 - new build when toggle from no effects to full effects
+   read file 1,ttguseeffectstate
+  endif
  close file 1
+ `
+ rem V118 - 270111 - if toggled between none anf full effects, rebuild all (no skip)
+ if ttguseeffectstate<>guseeffectstate then universeconstructskip=0
  `
  rem V109 BETA9 - 070508 - if overlay list changed, full rebuild
  if oldolaylistmax<>olaylistmax then universeconstructskip=0
@@ -30957,7 +30965,7 @@ _universe_saveforskipcheck:
  tfile$="levelbank\testlevel\old.dat" : if file exist(tfile$)=1 then delete file tfile$
  open to write 1,tfile$
   rem V109 - BETA11 - 130508 - version control (for bankindex to be inserted)
-  versionnumber=109
+  versionnumber=118
   write file 1,-1
   write file 1,versionnumber
   write file 1,olaylistmax
@@ -30983,6 +30991,10 @@ _universe_saveforskipcheck:
     write file 1,0
    endif
   next e
+  if versionnumber>=118
+   rem V118 - 270111 - new build when toggle from no effects to full effects
+   write file 1,guseeffectstate
+  endif
  close file 1
  tfile$="levelbank\testlevel\oldmap.dat" : if file exist(tfile$)=1 then delete file tfile$
  save array tfile$,map()
