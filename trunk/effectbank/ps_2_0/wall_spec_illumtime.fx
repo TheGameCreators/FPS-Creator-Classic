@@ -1,4 +1,5 @@
 
+
 //Description:  Shader for lightmapped segment walls.  Uses constant forward "hero" specular highlights
 //Textures: 
 //"texture_D.dds"      diffuse texture
@@ -13,6 +14,7 @@ float4x4 WorldViewProj : WorldViewProjection;
 float4x4 WorldIT : WorldInverseTranspose;
 float4x4 ViewInv : ViewInverse;
 float4 eyePos : CameraPosition;
+float time : Time;
 float4 clipPlane : ClipPlane;
 
 
@@ -150,8 +152,8 @@ vertexOutput mainVS(appdata IN)
     OUT.Position = mul(IN.Position, WorldViewProj);
     OUT.TexCoord  = IN.UV0; 
     OUT.TexCoordLM  = IN.UV1; 
-    OUT.WPos =   worldSpacePos;
-
+    OUT.WPos =   worldSpacePos;                                                                        
+                                           
     // all shaders should send the clip value to the pixel shader (for refr/refl)                                                                     
     OUT.clip = dot(worldSpacePos, clipPlane);
 
@@ -186,6 +188,10 @@ float4 mainPS(vertexOutput IN) : COLOR
     float atten = (1/(dis*(dis*.01)))* 2000 ;  //last value is multiplier, inverse square faloff
 	atten = clamp(atten,0,1.5);  //second value controls how bright to let the highlights become
 	
+	//calculate the sin(time) and scale result, don't allow lower limit to reach 0
+    float fadetime = 0.5 * (sin(3 * time) +1.1);
+
+    
     
    //specular highlights 
     float herospec = pow(max(dot(Nn,Hn),0),48);
@@ -199,7 +205,7 @@ float4 mainPS(vertexOutput IN) : COLOR
     float4 LMfinal = (LM + AmbiColor)*diffuse  ;
     
         
-    float4 result =   LMfinal  + specular + (effectmap.w * diffuse)  ;
+    float4 result =   LMfinal  + specular + (effectmap.w * fadetime * diffuse)  ;
     
     return result;
 }

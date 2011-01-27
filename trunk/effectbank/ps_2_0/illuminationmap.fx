@@ -50,7 +50,7 @@ struct VS_OUTPUT
     float2 Tex2 : TEXCOORD1;
     float2 Tex3 : TEXCOORD2;
     float4 ppos : TEXCOORD3;
-    float clip : TEXCOORD4;
+    float clipvalue : TEXCOORD4;
 };
 
 VS_OUTPUT VS(
@@ -73,7 +73,7 @@ VS_OUTPUT VS(
 
     // all shaders should send the clip value to the pixel shader (for refr/refl)                                                                     
     float4 worldSpacePos = mul(Pos, World);
-    Out.clip = dot(worldSpacePos, clipPlane);
+    Out.clipvalue = dot(worldSpacePos, clipPlane);
 
     return Out;
 }
@@ -112,6 +112,7 @@ float4 PS(
 {
     // all shaders should receive the clip value                                                                
     clip(clipvalue);
+
     return (tex2D(Sampler, Tex3)+Diff+tex2D(Sampler3, Tex2)) * tex2D(Sampler2, Tex);
 }
 

@@ -1,33 +1,27 @@
-
-//Description:  Shader for lightmapped segment walls.  Uses constant forward "hero" specular highlights
-//Textures: 
-//"texture_D.dds"      diffuse texture
-//"texture_I.dds"       specular texture, alpha for illumination
-
+// Fake Bump (uses a normal map to extract a specular map) (entity bump)
 
 /************* UNTWEAKABLES **************/
 
 float4x4 World      : WORLD;
 
 float4x4 WorldViewProj : WorldViewProjection;
+float4x4 WorldView : WorldView;
 float4x4 WorldIT : WorldInverseTranspose;
 float4x4 ViewInv : ViewInverse;
 float4 eyePos : CameraPosition;
+float time : Time;
 float4 clipPlane : ClipPlane;
-
 
 
 /******TWEAKABLES***************************/
 
-float SpecExpon : Power
+float depthScale
 <
-    string UIWidget = "slider";
-    float UIMin = 1.0;
-    float UIMax = 128.0;
-    float UIStep = 1.0;
-    string UIName =  "specular power";
-> = 64.0;
-
+	string UIWidget = "slider";
+	float UIMax = 0.1;
+	float UIMin = 0.001;
+	float UIStep = 0.001;
+> = 0.015;
 
 /******VALUES PULLED FROM FPSC - NON TWEAKABLE**********/
 
@@ -52,39 +46,19 @@ float4 LightSource
 
 /****************** TEXTURES AND SAMPLERS*********************/
 
-texture LightMap : DiffuseMap
-<
-    string Name = "LM.tga";
-    string type = "2D";
->;
-
 texture DiffuseMap : DiffuseMap
 <
     string Name = "D.tga";
     string type = "2D";
 >;
 
-//could be anything here - ill,spec,normal,cube
 texture EffectMap : DiffuseMap
 <
     string Name = "I.tga";
     string type = "2D";
 >;
 
-
-
-
-
-//Lightmap texture
-sampler2D LightmapSampler = sampler_state
-{
-    Texture   = <LightMap>;
-    MipFilter = LINEAR;
-    MinFilter = LINEAR;
-    MagFilter = LINEAR;
-};
-
-//Diffuse Texture _D
+//Diffuse Texture
 sampler2D DiffuseSampler = sampler_state
 {
     Texture   = <DiffuseMap>;
@@ -93,7 +67,7 @@ sampler2D DiffuseSampler = sampler_state
     MagFilter = LINEAR;
 };
 
-//Effect Texture _I (specular texture)
+//Effect Texture
 sampler2D EffectSampler = sampler_state
 {
     Texture   = <EffectMap>;
@@ -101,13 +75,6 @@ sampler2D EffectSampler = sampler_state
     MinFilter = LINEAR;
     MagFilter = LINEAR;
 };
-
-
-;
-
-
-
-
 
 /************* DATA STRUCTS **************/
 
@@ -120,8 +87,6 @@ struct appdata {
     float4 Binormal	: BINORMAL0;
 };
 
-
-
 /*data passed to pixel shader*/
 struct vertexOutput
 {
@@ -131,7 +96,8 @@ struct vertexOutput
     float3 LightVec	    : TEXCOORD2;
     float3 WorldNormal	: TEXCOORD3;
     float4 WPos : TEXCOORD4;
-    float clip : TEXCOORD5;
+    float4 ppos : TEXCOORD5;
+    float clip : TEXCOORD6;
 };
 
 
@@ -139,25 +105,19 @@ struct vertexOutput
 
 vertexOutput mainVS(appdata IN)   
 {
-    
-	vertexOutput OUT;
-    
-   
+    vertexOutput OUT;   
     float4 worldSpacePos = mul(IN.Position, World);
-    
     OUT.WorldNormal = normalize(mul(IN.Normal, WorldIT).xyz);
     OUT.LightVec = normalize (eyePos+25 - worldSpacePos );  //adding in a slight offset to eyePos for some variation to spec position
     OUT.Position = mul(IN.Position, WorldViewProj);
     OUT.TexCoord  = IN.UV0; 
     OUT.TexCoordLM  = IN.UV1; 
-    OUT.WPos =   worldSpacePos;
-
+    OUT.WPos =   worldSpacePos;                                                                                
+    OUT.ppos = mul( IN.Position, WorldView );                           
     // all shaders should send the clip value to the pixel shader (for refr/refl)                                                                     
     OUT.clip = dot(worldSpacePos, clipPlane);
-
     return OUT;
 }
-
 
 /****************Framgent Shader*****************/
 
@@ -166,62 +126,29 @@ float4 mainPS(vertexOutput IN) : COLOR
     // all shaders should receive the clip value                                                                
     clip(IN.clip);
 
-    float4 LM = tex2D(LightmapSampler,IN.TexCoordLM);  //sample lightmap texture
     float4 diffuse = tex2D(DiffuseSampler,IN.TexCoord.xy);    //sample diffuse texture    
-    float4 effectmap = tex2D(EffectSampler,IN.TexCoord.xy);    //sample specular map texture 
-    
+    float4 effectmap = tex2D(EffectSampler,IN.TexCoord.xy);   //sample specular map texture 
     float3 Ln = (IN.LightVec);
     float3 Nn = normalize(IN.WorldNormal);
-   
-     
-    
-    //create normalized view vector for constant forward "hero" spec
-    float3 V  = normalize(eyePos - IN.WPos);
-	
-        
-    //half vector
-    float3 Hn = normalize(V+Ln);
+    float3 V  = normalize(eyePos - IN.WPos);                  //create normalized view vector for constant forward "hero" spec
+    float3 Hn = normalize(V+Ln);                              //half vector
     float dis = distance(IN.WPos,eyePos);
-
-    float atten = (1/(dis*(dis*.01)))* 2000 ;  //last value is multiplier, inverse square faloff
-	atten = clamp(atten,0,1.5);  //second value controls how bright to let the highlights become
-	
-    
-   //specular highlights 
-    float herospec = pow(max(dot(Nn,Hn),0),48);
-    
-    
-    //multiply spec texture, lightmap, and diffuse texture
-    float4 specular = (herospec)*(effectmap+0.1)*5*(LM+0.1)*diffuse * atten;
-    
-        
-    
-    float4 LMfinal = (LM + AmbiColor)*diffuse  ;
-    
-        
-    float4 result =   LMfinal  + specular + (effectmap.w * diffuse)  ;
-    
+    float atten = (1/(dis*(dis*.01)))* 2000 ;                 //last value is multiplier, inverse square faloff
+    atten = clamp(atten,0,1.5);                               //second value controls how bright to let the highlights become
+    float herospec = pow(max(dot(Nn,Hn),0),10);               //specular highlights 
+    float4 fakespecmap = float4((effectmap.z-((abs(effectmap.x-0.5)+abs(effectmap.y-0.5))*3)).xxx,1);
+    float4 specular = (AmbiColor+SurfColor)*(herospec)*(fakespecmap*1)*diffuse*atten; //multiply spec texture, lightmap, and diffuse texture
+    float4 LMfinal = (AmbiColor+SurfColor)*diffuse;
+    float4 result =   LMfinal + specular;
     return result;
 }
 
-
-/****** technique ********************************/
-
-technique dx9textured
+technique alpha
 {
     pass P0
     {
-        // lighting
         Lighting       = FALSE;
         FogEnable      = FALSE;
-
-        // samplers
-        //Sampler[0] = (LightmapSampler);
-        //Sampler[1] = (DiffuseSampler);
-        //Sampler[2] = (IllSpecSampler);
-		//Sampler[3] = (NormalSampler);
-
-        // shaders
         VertexShader = compile vs_2_0 mainVS();
         PixelShader  = compile ps_2_0 mainPS();
     }
