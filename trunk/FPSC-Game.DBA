@@ -34854,14 +34854,7 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
    if (plrkeyW)=1 or (plrkeyS)=1 or (plrkeyA)=1 or (plrkeyD)=1
     movement=1 : if crouchmode<>0 then movement=2
     tcameraspeed#=speed#*playerspeedratio#*(0.5+(cameradampen#/2.0))
-` 100805 - removed as it creates jerkiness - perhaps research smoother way postV1
-`    rem time slicer to even out chasing speed (multiplayer)
-`    if gmultiplayergame=1
-`     timeslice#=(1.0/30.0)*(timer()-cameratimeslice)
-`     tcameraspeed#=tcameraspeed#*timeslice#
-`     cameratimeslice=timer()
-`    endif
-    if cameraspeed<tcameraspeed# then inc cameraspeed,5
+    if cameraspeed<tcameraspeed# then inc cameraspeed,10.0*timeelapsed#
     if cameraspeed>tcameraspeed# then cameraspeed=tcameraspeed#
    endif
   endif
@@ -34893,7 +34886,7 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
  tmotionz#=ode get body linear velocity z(physicsplayerborble)
  `
  if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
-
+  rem underwater
  else
   rem Only suspend gravity if total movement small
   tmotion#=abs(tmotionx#)+abs(tmotiony#)+abs(tmotionz#)
@@ -34920,7 +34913,7 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
    ode set gravity physicsplayerborble,1
   endif
  endif
- if physicsdebug=1 then print "GRAVITY VALUE=";grav#
+ `if physicsdebug=1 then print "GRAVITY VALUE=";grav#
  `
  if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
   rem reduce influence of movement when underwater
@@ -34930,6 +34923,10 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
    camvely#=tmotiony#+((sin(camera angle x())*cameraspeed*1)*tunderwaterspeed#*2)
   else
    camvely#=tmotiony#+((sin(camera angle x())*cameraspeed*-1)*tunderwaterspeed#*2)
+  endif
+  rem V118 - 270111 - allow no upward movement if volume collision (causing downward adjustment) in effect
+  if camvolumecollisioncausingdownwardadjust=1
+   if camvely#>-0.1 then camvely#=-0.1
   endif
   camvelz#=tmotionz#+((newzvalue(0,phyangle#,cameraspeed))*tunderwaterspeed#)
   camvelx#=camvelx#*cos(camera angle x())
@@ -35080,6 +35077,7 @@ if deactivatecollision=0 and skipcol=0
  if phyeyeheight#=phystood# then ellipsecentery#=35 else ellipsecentery#=23
  `
  rem ellipse test for final player mode (stood or crouch)
+ camvolumecollisioncausingdownwardadjust=0
  if static volume(ctox#,ctoy#-ellipsecentery#,ctoz#,ctx#,cty#-ellipsecentery#,ctz#,ellipsevolumesize#)=1
   if physicsdebug=1 then print "volumecollision"
   adjx#=get static collision x()
@@ -35096,7 +35094,17 @@ if deactivatecollision=0 and skipcol=0
   ctx#=ctox#+adjx#
   cty#=ctoy#+adjy#
   ctz#=ctoz#+adjz#
-  if tstaticfloor=1 and grav#<0 then tgravitydefeated=1
+  rem gravity defeated?  
+  if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
+   rem no gravity to defeat when in water
+   if adjy#<0.0 and ctoy#<cty#
+    rem V118 - 270111 - downward adjust means hit ceiling, flag this for underwater movement next time
+    camvolumecollisioncausingdownwardadjust=1
+    cameraspeed=0
+   endif
+  else
+   if tstaticfloor=1 and grav#<0 then tgravitydefeated=1
+  endif
   if jumpaction<>0 and camvely#>5.0 and cty#-scty#<0.0 then camvely#=camvely#*-1 : jumpaction=0
   if abs(ctx#-sctx#)+abs(ctz#-sctz#)>8
    rem event when collision hits something solid (not floor)
@@ -35104,15 +35112,21 @@ if deactivatecollision=0 and skipcol=0
    camvely#=cty#-camerapositiony
    camvelz#=ctz#-camerapositionz
    jumpmotionx#=0 : jumpmotionz#=0 : jumpaction=0
-   if cameraspeed>5 then cameraspeed=5
-   if camvely#>0 then camvely#=0
+   if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
+    rem underwater ascent okay
+   else
+    if camvely#>0 then camvely#=0
+   endif
    rem wipe out flyforce too as hit something to stop hero
    camflyforcex#=0 : camflyforcey#=0 : camflyforcez#=0
+  endif
+  if camvolumecollisioncausingdownwardadjust=1
+   camvely#=-1.0 : camflyforcey#=-1.0
   endif
  endif
  `
  if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
-
+  rem In water or on surface (but in water really)
  else
   rem If gravity defeated by player
   if tgravitydefeatedbyphy<>0
@@ -35374,9 +35388,16 @@ if plrzoomin#<>0.0
  camangx#=camangx#+cos(plrzoomaccuracyangle#*2.0)*plrzoomaccuracy#*plrzoomin#*0.008*(sin(plrzoomaccuracyangle#)*1.2)
  camangy#=camangy#+sin(plrzoomaccuracyangle#*4.0)*plrzoomaccuracy#*plrzoomin#*0.005
 endif
-camangxweight#=85*cameradampen#
-if wrapvalue(camangx#)>85 and wrapvalue(camangx#)<180 then camangx#=85.0
-if wrapvalue(camangx#)>180 and wrapvalue(camangx#)<360-camangxweight# then camangx#=camangxweight#*-1
+if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
+ rem V118 - 270111 - mouselook view angles restricted when swimming, cannot swim directly UP or DOWN (collision issue)
+ camangxweight#=55*cameradampen#
+ if wrapvalue(camangx#)>55 and wrapvalue(camangx#)<180 then camangx#=55.0
+ if wrapvalue(camangx#)>180 and wrapvalue(camangx#)<360-camangxweight# then camangx#=camangxweight#*-1
+else
+ camangxweight#=85*cameradampen#
+ if wrapvalue(camangx#)>85 and wrapvalue(camangx#)<180 then camangx#=85.0
+ if wrapvalue(camangx#)>180 and wrapvalue(camangx#)<360-camangxweight# then camangx#=camangxweight#*-1
+endif
 
 rem used to swoosh to an angle (picking up object off-center)
 if camturntofacemode>0
@@ -35424,48 +35445,46 @@ if physicsplayerborble>0
   print
  endif
  if object exist(physicsplayerborble)=1
-  if physicsdebug=1
-   print "borble"
-   print "x=";object position x(physicsplayerborble)
-   print "y=";object position y(physicsplayerborble)
-   print "z=";object position z(physicsplayerborble)
-   print
-   print "volume"
-   print "x=";ctx#
-   print "y=";cty#
-   print "z=";ctz#
-   print
-  endif
+  `if physicsdebug=1
+  ` print "borble"
+  ` print "x=";object position x(physicsplayerborble)
+  ` print "y=";object position y(physicsplayerborble)
+  ` print "z=";object position z(physicsplayerborble)
+  ` print
+  ` print "volume"
+  ` print "x=";ctx#
+  ` print "y=";cty#
+  ` print "z=";ctz#
+  ` print
+  `endif
   tborbdistx#=abs(object position x(physicsplayerborble)-camerapositionx)
   tborbdisty#=abs(object position y(physicsplayerborble)-camerapositiony)
   tborbdistz#=abs(object position z(physicsplayerborble)-camerapositionz)
   tborbdist1#=sqrt((tborbdistx#*tborbdistx#)+(tborbdisty#*tborbdisty#)+(tborbdistz#*tborbdistz#))
-  if physicsdebug=1
-   print "borble distance=";tborbdist1#
-  endif
+  `if physicsdebug=1
+  ` print "borble distance=";tborbdist1#
+  `endif
   tborbdistx#=abs(ctx#-camerapositionx)
   tborbdisty#=abs(cty#-camerapositiony)
   tborbdistz#=abs(ctz#-camerapositionz)
   tborbdist2#=sqrt((tborbdistx#*tborbdistx#)+(tborbdisty#*tborbdisty#)+(tborbdistz#*tborbdistz#))
-  if physicsdebug=1
-   print "volume distance=";tborbdist2#
-  endif
+  `if physicsdebug=1
+  ` print "volume distance=";tborbdist2#
+  `endif
   if tborbdist1#>100 or tborbdist2#>100
-   if physicsdebug=1
-    print "Camera seperated from collision system"
-   endif
+   `if physicsdebug=1
+   ` print "Camera seperated from collision system"
+   `endif
   endif
  endif
 endif
 
 rem apply new velocities for future movement
 if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
+ rem V109 BETA3 - remove fall velocity cap to create realistic gravity fall
  rem cap these velocities to prevent borble fling away
  if camvelx#<-60 then camvelx#=-60
  if camvelx#>60 then camvelx#=60
- rem V109 BETA3 - remove fall velocity cap to create realistic gravity fall
- `if camvely#<-60 then camvely#=-60
- `if camvely#>60 then camvely#=60
  if camvelz#<-60 then camvelz#=-60
  if camvelz#>60 then camvelz#=60
  ode set linear velocity physicsplayerborble,camvelx#,camvely#,camvelz#
@@ -35503,11 +35522,11 @@ else
  arenaadjustd#=0
 endif
 if movement<>0
- camerawobble#=wrapvalue(camerawobble#+24.0)
+ camerawobble#=wrapvalue(camerawobble#+(40.0*timeelapsed#))
  if (plrkeySHIFT)=1 or (plrkeySHIFT2)=1
-  arenaadjust#=arenaadjustd#+(cos(camerawobble#)*0.50)
+  arenaadjust#=arenaadjustd#+(cos(camerawobble#)*0.60)
  else
-  arenaadjust#=arenaadjustd#+(cos(camerawobble#)*0.25)
+  arenaadjust#=arenaadjustd#+(cos(camerawobble#)*0.35)
  endif
 else
  arenaadjust#=curvevalue(arenaadjustd#,arenaadjust#,5.0)
@@ -36390,7 +36409,7 @@ _ode_update:
  ode update
  `
  rem for next run - debug readouts
- if physicsdebug=1 then set cursor 0,0
+ if physicsdebug=1 then set cursor 0,80
  `
 return
 
