@@ -10,7 +10,7 @@ float4x4 World : World;
 float4x4 View : View;
 float4x4 ViewInv : ViewInverse;
 
-// declare to cancel FF clip in pipeline (but don't clip as PS1.0 not supported)
+// declare to stop FF clip pipeline (PS1.0)
 float4 clipPlane : ClipPlane;
 
 /*********** DBPRO UNTWEAKABLES **********/

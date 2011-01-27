@@ -40,6 +40,8 @@ float4x4 World      : WORLD;
 float4x4 WorldView  : WorldView;
 float4x4 View       : VIEW;
 float4x4 Projection : PROJECTION;
+
+// declare to stop FF clip pipeline (PS1.0)
 float4 clipPlane : ClipPlane;
 
 struct VS_OUTPUT
@@ -50,7 +52,6 @@ struct VS_OUTPUT
     float2 Tex2 : TEXCOORD1;
     float2 Tex3 : TEXCOORD2;
     float4 ppos : TEXCOORD3;
-    float clipvalue : TEXCOORD4;
 };
 
 VS_OUTPUT VS(
@@ -70,10 +71,6 @@ VS_OUTPUT VS(
     Out.Tex2  = Tex;                                       
     Out.Tex3  = Tex2;                                       
     Out.ppos = mul( Pos, WorldView );
-
-    // all shaders should send the clip value to the pixel shader (for refr/refl)                                                                     
-    float4 worldSpacePos = mul(Pos, World);
-    Out.clipvalue = dot(worldSpacePos, clipPlane);
 
     return Out;
 }
@@ -107,12 +104,8 @@ float4 PS(
     float2 Tex  : TEXCOORD0,
     float2 Tex2 : TEXCOORD1,
     float2 Tex3 : TEXCOORD2,
-    float4 ppos : TEXCOORD3,
-    float clipvalue  : TEXCOORD4) : COLOR
+    float4 ppos : TEXCOORD3) : COLOR
 {
-    // all shaders should receive the clip value                                                                
-    clip(clipvalue);
-
     return (tex2D(Sampler, Tex3)+Diff+tex2D(Sampler3, Tex2)) * tex2D(Sampler2, Tex);
 }
 
