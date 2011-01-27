@@ -54165,20 +54165,19 @@ function UpDateRefraction()
  rotate camera 1,camera angle x(0),camera angle y(0),camera angle z(0)
  backdrop off 1 : rem backdrop on 1 : color backdrop 1,0
  if camera position y(0)>waterheight#
-`  if guseeffectstate=0
+  if guseeffectstate=0
    set camera clip 1,1,0,waterheight#+1,0,0,-1,0
-`  else
-`   set camera clip 1,0,0,0,0,0,0,0
-`  endif
+  else
+   set camera clip 1,3,0,waterheight#+1,0,0,-1,0
+  endif
   waterfogon=2
  endif
  if camera position y(0)<waterheight#
-  Rem TEMPORARY solution - if full effects are on, turn off camera clipping
-`  if guseeffectstate=0
+  if guseeffectstate=0
    set camera clip 1,1,0,waterheight#-1,0,0,1,0
-`  else
-`   set camera clip 1,0,0,0,0,0,0,0
-`  endif
+  else
+   set camera clip 1,3,0,waterheight#-1,0,0,1,0
+  endif
   waterfogon=1
  endif
  set camera clip 2,0,0,0,0,0,0,0
@@ -54195,12 +54194,11 @@ function UpDateReflection()
  rotate camera 2,-camera angle x(0),camera angle y(0),camera angle z(0)
  backdrop off 2 : rem backdrop on 2 : color backdrop 2,0
  set camera clip 1,0,0,0,0,0,0,0
- Rem TEMPORARY solution - if full effects are on, turn off camera clipping
- `if guseeffectstate=0
+ if guseeffectstate=0
   set camera clip 2,1,0,waterheight#-1,0,0,1,0
- `else
- ` set camera clip 2,0,0,0,0,0,0,0
- `endif
+ else
+  set camera clip 2,3,0,waterheight#-1,0,0,1,0
+ endif
  sync mask (1 << 2)
  fastsync
  sync mask %11111111 - (1 << 1) - (1 << 2)
