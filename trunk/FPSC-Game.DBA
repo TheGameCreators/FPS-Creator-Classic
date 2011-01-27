@@ -34917,7 +34917,7 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
  `
  if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
   rem reduce influence of movement when underwater
-  tunderwaterspeed#=timeelapsed#*0.3
+  tunderwaterspeed#=timeelapsed#*0.1
   camvelx#=tmotionx#+((newxvalue(0,phyangle#,cameraspeed))*tunderwaterspeed#)
   if (plrkeyS)=1
    camvely#=tmotiony#+((sin(camera angle x())*cameraspeed*1)*tunderwaterspeed#*2)
