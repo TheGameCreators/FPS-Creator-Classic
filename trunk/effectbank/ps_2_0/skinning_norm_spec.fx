@@ -1,25 +1,15 @@
 /*********************************************************************
-CHARACTER SHADER FOR SKINNED MESHES - Diffuse + Normal + Specular + GI + Animated Glow
+CHARACTER SHADER FOR SKINNED MESHES - Diffuse + Normal + Specular
 
-Pixel shader by Mark Blosser 
-mark@hyrumark.com
-http://www.hyrumark.com
 
-Vertex shader by The Game Creators www.thegamecreators.com
-
-This shader is for skinned character meshes. It uses diffuse, normal, and specular textures.
-It includes a 2 fixed point lights, and mixes a sky and ground color with the global ambient
-light, using the per-pixel normal to determine the blend.  This has the effect of 
-simulating global illumination, even with 100% ambient lighting.  Any area of the model pointing
-toward the ground will be in shadow, and this includes detail from the normal map.
-
-It also has support for self-illumination, which is controlled by the alpha channel of the 
-specular texture.
+Shader for skinned, bone-weighted models (characters).  Uses diffuse/normal/specular textures.
+Pulls lighting info from nearest local light source.  Includes a second low-level hero light used
+as a "fill" light.
 
 It uses 3 textures:
 texturename_D :diffuse texture, alpha channel controls transparency
 texturename_N :normal map texture
-texturename_S :specular level and color, alpha channel self-illumination
+texturename_S :specular level and color
 
 ****************************************************************************/
 
@@ -31,8 +21,10 @@ float4x4 World : World;
 float4x4 ViewInv : ViewInverse;
 float4 clipPlane : ClipPlane;
 
+
 /*********** DBPRO UNTWEAKABLES **********/
 float4x4 boneMatrix[60] : BoneMatrixPalette;
+
 
 /******SKY COLORS AND AMBIENT LIGHTING*******************/
 
@@ -50,6 +42,10 @@ float4 SurfColor : Diffuse
     string UIType = "Color";
 > = { 1.000000, 1.000000, 1.000000, 1.000000 };
 
+
+
+
+
 /************* LIGHTS **************/
 
 float4 LightPos : Position
@@ -65,7 +61,11 @@ float4 LightSource
     string UIType = "Fixed Light Source";
 > = { 400.000000, 300.000000, 600.000000, 1.000000 };
 
+
+
 /*******SURFACE**************************/
+
+
 
 float Bumpiness 
 <
@@ -84,6 +84,8 @@ float Glossiness : Power
     float UIStep = 1.0;
     string UIName =  "specular power";
 > = 32.000000;
+
+
 
 float Alphavalue : AlphaOverride
 <
@@ -156,7 +158,7 @@ struct vertexOutput {
     float3 WorldTangent	: TEXCOORD4;
     float3 WorldBinorm	: TEXCOORD5;
     float3 Wpos : TEXCOORD6;
-    float clip : TEXCOORD7;    
+    float clip : TEXCOORD7;
 };
 
 /*********** vertex shader ******/
@@ -203,54 +205,54 @@ float4 mainPS(vertexOutput IN) : COLOR
     // all shaders should receive the clip value                                                                
     clip(IN.clip);
 
+    //sample textures
     float4 diffusemap = tex2D(colorSampler,IN.TexCoord.xy);
     float4 specmap = tex2D(reflectSampler,IN.TexCoord.xy);
     float3 normalmap = tex2D(normalSampler,IN.TexCoord.xy) * 2 - 1;
-
+    
     float3 Ln = normalize(IN.LightVec);
     float3 Nn = (IN.WorldNormal);
     float3 Tn = (IN.WorldTangent);
     float3 Bn = (IN.WorldBinorm);
-    float3 Nb = (normalmap.z * Nn) + (1.0 * (normalmap.x * Tn + normalmap.y * Bn));
+    float3 Nb = (normalmap.z * Nn) + (1.2 * (normalmap.x * Tn + normalmap.y * Bn));
     Nb = normalize(Nb);
     float3 Vn = normalize(IN.WorldEyeVec);
     float3 Hn = normalize(Vn + Ln);
     
-    //calculate scene lighting Half Lamert scale and bias 
-    float4 lighting = lit(pow(0.5*(dot(Ln,Nb))+0.5,2),dot(Hn,Nb),32);
+            
+    //calculate scene lighting Half Lambert scale and bias 
+    float4 lighting = lit(pow(0.5*(dot(Ln,Nb))+0.5,2),dot(Hn,Nb),24);
+   //float4 lighting = lit((dot(Ln,Nb)),dot(Hn,Nb),24);
     
     //hero lighting
-    float3 offset = (1000,500,0);
+    float3 offset = (0,500,0);
     float3 herolight = normalize( IN.WorldEyeVec+offset);
     float3 Hn2 = normalize(Vn + herolight);
-    float4 herolighting = lit((dot(herolight,Nb)),dot(Hn2,Nb),32);
+    float4 herolighting = lit((dot(herolight,Nb)),dot(Hn2,Nb),24);
     
-    SurfColor = clamp(SurfColor,0.1,1.0);
-    AmbiColor = clamp(AmbiColor,0.15,0.8);
+
+    
+    //SurfColor = clamp(SurfColor,0.1,0.9);    
+    //AmbiColor = clamp(AmbiColor,0,0.8);
+    
     
     float4 diffContrib = SurfColor * diffusemap * (lighting.y) ;
     float4 specContrib = SurfColor *  specmap * lighting.z;
      
     float4 herodiffContrib =  diffusemap * (herolighting.y) ;
     float4 herospecContrib =   specmap  *  (herolighting.z);
-    float4 herolightfinal = (herodiffContrib +0.5*herospecContrib );
+    float4 herolightfinal = (herodiffContrib +herospecContrib );
     
-    //calculate distance attenuation value based on eye position
-    float dis = distance(IN.Wpos,ViewInv[3].xyz);
-    float atten = (1/(dis)*20);
+    float4 ambContrib =  ((0.5*AmbiColor *  diffusemap)) + (0.5*AmbiColor*herolightfinal);	
+ 
     
-    float4 ambContrib =   (AmbiColor*herolightfinal);	
-
-    // older stock characters did not store illum in spec alpha
-    // float4 selfIll = specmap.w * diffusemap;
-    // float4 result = float4(diffusemap.x,diffusemap.y,diffusemap.z,1);
-    // float4 result = float4(normalmap.x,normalmap.y,normalmap.z,1);
-    // float4 result = float4(specmap.x,specmap.y,specmap.z,1);
-    float4 result = 1.0*diffContrib +1.0*specContrib + ambContrib;// + selfIll;
+    float4 result = 0.9*diffContrib +2.0*specContrib  + ambContrib +0.1*herolightfinal ;
+    
     result.a=diffusemap.a * Alphavalue;
 
     return result;
 }
+
 
 /****** technique *******/
 

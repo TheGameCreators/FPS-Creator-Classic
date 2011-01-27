@@ -54150,8 +54150,6 @@ function UpDateRefraction()
  Img=19876
  `debug - see reflection and refraction cameras
  `if 1
- ` set cursor 0,100
- ` print scancode()
  ` if scancode()=2 then paste image img+0,0,0
  ` if scancode()=3 then paste image img+1,0,0
  `endif

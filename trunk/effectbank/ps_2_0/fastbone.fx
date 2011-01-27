@@ -117,7 +117,8 @@ vertexOutput mainVS(appdata IN)
     OUT.Fog = FogColor.xyz * fogstrength;
 
     // all shaders should send the clip value to the pixel shader (for refr/refl)                                                                     
-    OUT.clip = dot(worldSpacePos, clipPlane);
+    // OUT.clip = dot(worldSpacePos, clipPlane); // too expensive for VS2.0
+    OUT.clip = (worldSpacePos.y * clipPlane.y) + clipPlane.a; // good for water plane
 
     return OUT;
 }
