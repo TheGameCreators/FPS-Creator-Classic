@@ -239,12 +239,7 @@ global playername$ : playername$=""
 `
 rem V109 BETA3 - added to control change to player jump height
 global playerdefaultjumpheight : playerdefaultjumpheight=50
-`
-rem V118 - store range, aspect and fov globally!
-global realrange# : realrange#=9000.0
-global realaspect# : realaspect#=1.0
-global realfov# : realfov#=75.0
-`
+
 ` FPSCV10X SAVE LOAD Data Structures
 type saveloadtype
  saveloaddir$
@@ -3152,12 +3147,13 @@ if file exist(tfile$)=1
   endif
  next l
  undim data$()
- `
+
  rem V118 - 160810 - knxrb - Auto Resolution
  if gautores=1
   gdisplaywidth = desktop width()
   gdisplayheight = desktop height()
  endif
+
  `
 else
  `
@@ -3293,7 +3289,8 @@ rem And finally switch the resolution if different from default
 if runengineinframe=1
  rem FPGC - 260210 - display size from SETUP.INI, else 640x480
  vsyncflag=1 : thevrmodeflag=0 : if gvrmode<>0 then thevrmodeflag=1
- if check display mode(gdisplaywidth,gdisplayheight,gdisplaydepth)=1
+
+  if check display mode(gdisplaywidth,gdisplayheight,gdisplaydepth)=1
   set display mode gdisplaywidth,gdisplayheight,gdisplaydepth,vsyncflag,0,0,0,0,thevrmodeflag
  else
   set display mode 640,480,gdisplaydepth,vsyncflag
@@ -3332,7 +3329,7 @@ else
   rem FPGC - 131009 - option use use correct aspect ratio?
   if gaspectratio=1
    aspect#=desktop width() : aspect#=aspect#/desktop height()
-   realaspect#=aspect# : set camera aspect realaspect#
+   set camera aspect aspect#
   endif
   `
  endif
@@ -3719,6 +3716,7 @@ _main_game_loadgamedata:
  debugviewprogressmax(330)
  `
  rem Place camera faw away (effectively hide all 3D)
+ realrange#=9000.0
  set camera range 2.0,realrange#
  position camera -50000,50000,50000
  point camera -50000,50010,50000
@@ -3951,9 +3949,9 @@ _main_game_core:
   `
   Rem Hockeykid - 250210 - set players position to the dark ai
   rem lee - 090310 - adjusted player AI position to include Y coordinate
-  `tcamx#=object position x(physicsplayerborble)
-  `tcamy#=object position y(physicsplayerborble)
-  `tcamz#=object position z(physicsplayerborble)
+  tcamx#=object position x(physicsplayerborble)
+  tcamy#=object position y(physicsplayerborble)
+  tcamz#=object position z(physicsplayerborble)
   rem FPGC - 100710 - when no start marker (no player health) AI failed, so keep this simple
   remstart
   if player(1).health>0
@@ -3968,11 +3966,6 @@ _main_game_core:
     playerdied=1
   endif
   remend
-  `
-  rem V118 - 240111 - must set player height for correct DarkAI running (and use CAMERA not OBJECT)
-  tcamx#=camera position x()
-  tcamy#=camera position y()
-  tcamz#=camera position z()
   AI Set Player Position tcamx#,tcamy#,tcamz#
   `
   Rem Hockeykid - 250210 - Dark AI Tell AI system if player crouching
@@ -19671,7 +19664,7 @@ _player_setup:
  `
  rem start camera for player
  plrzoominchange=0 : plrzoomin#=0.0
- realfov#=75.0 : set camera fov realfov#
+ set camera fov 75.0
  `
  rem Find player start location
  gosub _player_startpos
@@ -23098,6 +23091,7 @@ if gun(gunid).settings.brasslimb<>-1
   if object exist(obj)=1 then delete object obj
   objecteffect(obj)=0
   instance object obj,firemode(gunid,firemode).settings.brassobjmaster
+  usingbrass=firemode(gunid,firemode).settings.brass
   set object collision off obj
   disable object zdepth obj
   set object fov obj,45
@@ -25516,7 +25510,7 @@ for f=1 to decalelementmax
     rem animation UVs
     rem V118 - 060810 - knxrb - Decal animation setting (Added animation choice setting).
     `if decalelement(f).orient=7
-    if decalelement(f).orient=7 and decalelement(f).particle.animated<>1
+    if decalelement(f).orient=7 and decalelement(f).particle.animated<>1 and decalelement(f).decalid<>waterdecalripple
      rem FPGC - 300310 - decal based particle only uses first animation frame
      tframe=0
     else
@@ -34396,7 +34390,6 @@ _ode_playerborble:
  Rem Hockeykid - 250210 - Dark AI add player to ai system
  if darkaiplayer=0
   ai add player physicsplayerborble,0
-  ai set player height 0 : rem V118 - 240111 - player position is camera position (no need for height)
   darkaiplayer=1
  endif
  color object physicsplayerborble,rgb(255,255,0)
@@ -34767,31 +34760,39 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
   if plrzoomin#>1.0
    rem AirMod - Modified for Simple Zoom
    if firemode(gunid,firemode).settings.simplezoom <> 0
-    realfov#=75.0-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov#
-    set camera fov realfov#
-    set camera fov 1,realfov# : set camera fov 2,realfov#
-    rem LightRay Addition
-    if RayCam<>0 then if camera exist(RayCam)=1 then set camera fov RayCam,realfov#
-    if bloom_cam<>0 then if camera exist(bloom_cam)=1 then set camera fov bloom_cam,realfov#
+    set camera fov 75.0-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov#
+    set camera fov 1,75-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov# : set camera fov 2,75-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov#
+
+
+    // LightRay Addition
+    if RayCam<>0 then if camera exist(RayCam)=1 then set camera fov RayCam,75.0-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov#
+    if bloom_cam<>0 then if camera exist(bloom_cam)=1 then set camera fov bloom_cam,75.0-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov#
+
+
    else
-    realfov#=75.0-(plrzoomin#*7)-gunzoommag#+airmod_camfov#
-    set camera fov realfov#
-    set camera fov 1,realfov# : set camera fov 2,realfov#
-    rem LightRay Addition
-    if RayCam<>0 then if camera exist(RayCam)=1 then set camera fov RayCam,realfov#
-    if bloom_cam<>0 then if camera exist(bloom_cam)=1 then set camera fov bloom_cam,realfov#
+    set camera fov 75.0-(plrzoomin#*7)-gunzoommag#+airmod_camfov#
+    set camera fov 1,75-(plrzoomin#*7)-gunzoommag#+airmod_camfov# : set camera fov 2,75-(plrzoomin#*7)-gunzoommag#+airmod_camfov#
+
+    // LightRay Addition
+    if RayCam<>0 then if camera exist(RayCam)=1 then set camera fov RayCam,75.0-(plrzoomin#*7)-gunzoommag#+airmod_camfov#
+    if bloom_cam<>0 then if camera exist(bloom_cam)=1 then set camera fov bloom_cam,75.0-(plrzoomin#*7)-gunzoommag#+airmod_camfov#
+
+
    endif
    rem AirMod - Done
    rem AirMod - Modified for Simple Zoom
    if internalzoomhud>0 and (firemode(gunid,firemode).settings.simplezoom = 0 or firemode(gunid,firemode).zoomscope<>0) then hudid=internalzoomhud : hud(hudid).hide=0 : set sprite alpha hudid,(255.0/10.0)*plrzoomin#
   else
    rem AirMod - Modified for cam fov
-   realfov#=75.0+airmod_camfov#
-   set camera fov realfov#
-   set camera fov 1,realfov# : set camera fov 2,realfov#
-   rem LightRay Addition
-   if RayCam<>0 then if camera exist(RayCam)=1 then set camera fov RayCam,realfov#
-   if bloom_cam<>0 then if camera exist(bloom_cam)=1 then set camera fov bloom_cam,realfov#
+   set camera fov 75.0+airmod_camfov#
+   set camera fov 1,75.0+airmod_camfov# : set camera fov 2,75.0+airmod_camfov#
+
+   // LightRay Addition
+   if RayCam<>0 then if camera exist(RayCam)=1 then set camera fov RayCam,75.0+airmod_camfov#
+   if bloom_cam<>0 then if camera exist(bloom_cam)=1 then set camera fov bloom_cam,75.0+airmod_camfov#
+
+
+
    if internalzoomhud>0 then hudid=internalzoomhud : hud(hudid).hide=1
   endif
  endif
@@ -52818,6 +52819,8 @@ _darkai_control:
     ttargety#=object position y(tobjtarget)
     ttargetz#=ai get entity target z(obj)
    endif
+   `ttargetvisible=ai get entity can see(obj,ttargetx#,ttargetz#,1) `280410 - old DarkAI
+   `ttargetvisibleduck=ai get entity can see(obj,ttargetx#,ttargetz#,0) `280410 - old DarkAI
    ttargetvisible=ai get entity can see(obj,ttargetx#,ttargety#,ttargetz#,1)
    ttargetvisibleduck=ai get entity can see(obj,ttargetx#,ttargety#,ttargetz#,0)
   endif
@@ -52968,8 +52971,6 @@ _darkai_control:
    `Rem Alert entity if Ambushed
     Rem This can be done purley through scripting now
     entityelement(e).darkai.ambushed=0
-   remstart
-   rem V118 - 2400111 - this would NEVER get called, so removed it!
    if entityelement(e).darkai.ambushed>0
     `print entityelement(e).darkai.ambushed
     `ai entity stop obj
@@ -52978,6 +52979,8 @@ _darkai_control:
     ttargetx#=entityelement(e).darkai.ambushx#
     ttargetz#=entityelement(e).darkai.ambushz#
     Rem Establish attacker as a target
+    `ttargetvisible=ai get entity can see(obj,ttargetx#,ttargetz#,1) `280410 - old DarkAI
+    `ttargetvisibleduck=ai get entity can see(obj,ttargetx#,ttargetz#,0) `280410 - old DarkAI
     if entityelement(e).darkai.ehit=-1
      tobjtarget=physicsplayerborble
     else
@@ -52995,7 +52998,6 @@ _darkai_control:
     ai entity look at position obj,ttargetx#,ttargetz#
     ai entity move to cover obj,ttargetx#,ttargetz#
    endif
-   remend
    `Sees opponent
    If entityelement(e).darkai.autoattackoff=0
     if ttargetvisible=1 or ttargets>0
@@ -53035,7 +53037,7 @@ _darkai_control:
       if ttargetvisible=0
        if tmoving=0 then ai entity move close obj,ttargetx#,ttargetz#,200.0
       else
-       `if entityelement(e).darkai.delay2>timer() and entityelement(e).darkai.state=STATE_ATTACKING then ai entity stop obj
+       if entityelement(e).darkai.delay2>timer() and entityelement(e).darkai.state=STATE_ATTACKING then ai entity stop obj
       endif
      endif
    else
@@ -53440,9 +53442,7 @@ Add_Targets:
      endif
     next x
     if tenemytargetflagged=1
-     rem V118 - 240111 - do not use borble, use camera position (pefect line of sight)
-     `if ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position y(physicsplayerborble),object position z(physicsplayerborble),1)>0
-     if ai get entity can see(entityelement(e).obj,camera position x(),camera position y(),camera position z(),1)>0
+     if ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position y(physicsplayerborble),object position z(physicsplayerborble),1)>0
       ai entity add target entityelement(e).obj,physicsplayerborble
      endif
     endif
@@ -54122,14 +54122,16 @@ function MakeWater()
  Img=19876
  Rem Cameras
  Sw#=screen width():Sh#=screen height()
+ aspect#=desktop width() : aspect#=aspect#/desktop height()
+ realrange#=9000.0
  for c=1 to 2
   if camera exist(c)=0 then make camera c : rem (Sean: I added the camera exist check as it crashed if you re-entered game.)
   set camera range c,2.0,realrange#
-  set camera aspect c,realaspect#
+  set camera aspect c,aspect#
   backdrop off c`n c : color backdrop c,rgb(0,255,0)
   if c=1 then set camera to image c,Img,Sw#,Sh#
   if c=2 then set camera to image c,Img+1,Sw#,Sh#
-  set camera fov c,realfov#
+  set camera fov c,75
  next c
 
  Rem Make Water plain
@@ -54148,9 +54150,9 @@ function MakeWater()
  hide object waterobj
 endfunction
 
-function UpdateWater()
+function UpDateWater()
  `
- Rem UpDate Water plain position
+ rem UpDate Water plain position
  set current camera 0
  position object waterobj,0,waterheight#,0
  hide object waterobj
@@ -54160,7 +54162,7 @@ function UpdateWater()
  if lgmodraysactive=1 then hide object 99000
  if lgmodraysactive=1 then hide object 99001
  `
- Rem Upade Refract and Reflect cameras
+ rem Upade Refract and Reflect cameras
  set effect technique WaterFx,"Refract"
  UpDateRefraction()
  if camera position y(0)>waterheight#
@@ -54212,9 +54214,6 @@ function UpDateRefraction()
 endfunction
 
 function UpDateReflection()
- set camera fov 2,realfov#
- set camera aspect 2,realaspect#
- set camera range 2,2.0,realrange#
  position camera 2,camera position x(0),waterheight#-(camera position y(0)-waterheight#),camera position z(0)
  rotate camera 2,-camera angle x(0),camera angle y(0),camera angle z(0)
  backdrop off 2 : rem backdrop on 2 : color backdrop 2,rgb(100,255,0)
@@ -55383,7 +55382,7 @@ Setup_LightRays:
       make camera RayCam
       set camera to image RayCam,6,gdisplaywidth/3,gdisplayheight/3
       set camera range RayCam,1,realrange#
-      set camera aspect RayCam,realaspect# : rem (Sw#/Sh#)
+      set camera aspect RayCam,(Sw#/Sh#)
       set camera fov RayCam,75
       backdrop on RayCam
       color backdrop RayCam,rgb(0,0,0)
@@ -55451,7 +55450,7 @@ Setup_Bloom:
       set camera to image bloom_cam,bloom_img,sw#,sh#,2
       set camera range bloom_cam,3,realrange#
       set camera fov bloom_cam,fov
-      set camera aspect bloom_cam,realaspect# : rem (sw#/sh#)
+      set camera aspect bloom_cam,(sw#/sh#)
       make object plain bloom_obj+2,-1920/400,1080/400//-sw#/(400),sh#/(400)
       load effect "effectbank\ps_2_0\post-bloom.fx",bloom_obj+2,0
       texture object bloom_obj+2,0,bloom_img
@@ -55609,14 +55608,14 @@ function PostFilter_SetUp(Width,Height,D3DFormat)
       FrameCamera=RenderTarget(1).Camera
       backdrop off 0
       set camera fov 0,75
-      set camera aspect 0,realaspect# : rem (Sw#/Sh#)
+      set camera aspect 0,(Sw#/Sh#)
 endfunction 1
 
 function PostFilter_Update()
    if FilterEnabled=1
       position camera RenderTarget(1).Camera,camera position x(0),camera position y(0),camera position z(0)
       rotate camera RenderTarget(1).Camera,camera angle x(0),camera angle y(0),camera angle z(0)
-      set camera aspect RenderTarget(1).Camera,realaspect# : rem (Sw#/Sh#)
+      set camera aspect RenderTarget(1).Camera,(Sw#/Sh#)
       sync mask RenderTargetMask
       fastsync
       for t=1 to array count(FrameTarget())-1
@@ -55683,7 +55682,7 @@ function PostFilter_RenderTarget_Add(Effect$,Teq$,Transparent,Width,Height,D3DFo
       if D3DFormat>0 then set camera to image RenderTarget(RenderTargetCount).Camera,RenderTarget(RenderTargetCount).Image,Width,Height,3,D3DFormat
       set camera range RenderTarget(RenderTargetCount).Camera,1,10
       set camera fov RenderTarget(RenderTargetCount).Camera,75
-      set camera aspect RenderTarget(RenderTargetCount).Camera,realaspect# : rem (Sw#/Sh#)
+      set camera aspect RenderTarget(RenderTargetCount).Camera,(Sw#/Sh#)
       backdrop off RenderTarget(RenderTargetCount).Camera
       make object plain RenderTarget(RenderTargetCount).Object,2,2,1
       convert object fvf RenderTarget(RenderTargetCount).Object,0x002
