@@ -239,7 +239,12 @@ global playername$ : playername$=""
 `
 rem V109 BETA3 - added to control change to player jump height
 global playerdefaultjumpheight : playerdefaultjumpheight=50
-
+`
+rem V118 - store range, aspect and fov globally!
+global realrange# : realrange#=9000.0
+global realaspect# : realaspect#=1.0
+global realfov# : realfov#=75.0
+`
 ` FPSCV10X SAVE LOAD Data Structures
 type saveloadtype
  saveloaddir$
@@ -3147,13 +3152,12 @@ if file exist(tfile$)=1
   endif
  next l
  undim data$()
-
+ `
  rem V118 - 160810 - knxrb - Auto Resolution
  if gautores=1
   gdisplaywidth = desktop width()
   gdisplayheight = desktop height()
  endif
-
  `
 else
  `
@@ -3289,8 +3293,7 @@ rem And finally switch the resolution if different from default
 if runengineinframe=1
  rem FPGC - 260210 - display size from SETUP.INI, else 640x480
  vsyncflag=1 : thevrmodeflag=0 : if gvrmode<>0 then thevrmodeflag=1
-
-  if check display mode(gdisplaywidth,gdisplayheight,gdisplaydepth)=1
+ if check display mode(gdisplaywidth,gdisplayheight,gdisplaydepth)=1
   set display mode gdisplaywidth,gdisplayheight,gdisplaydepth,vsyncflag,0,0,0,0,thevrmodeflag
  else
   set display mode 640,480,gdisplaydepth,vsyncflag
@@ -3329,7 +3332,7 @@ else
   rem FPGC - 131009 - option use use correct aspect ratio?
   if gaspectratio=1
    aspect#=desktop width() : aspect#=aspect#/desktop height()
-   set camera aspect aspect#
+   realaspect#=aspect# : set camera aspect realaspect#
   endif
   `
  endif
@@ -3716,7 +3719,6 @@ _main_game_loadgamedata:
  debugviewprogressmax(330)
  `
  rem Place camera faw away (effectively hide all 3D)
- realrange#=9000.0
  set camera range 2.0,realrange#
  position camera -50000,50000,50000
  point camera -50000,50010,50000
@@ -3947,25 +3949,10 @@ _main_game_core:
  rem FPGC - 300710 - DarkAI only in single player
  if gmultiplayergame=0
   `
-  Rem Hockeykid - 250210 - set players position to the dark ai
-  rem lee - 090310 - adjusted player AI position to include Y coordinate
-  tcamx#=object position x(physicsplayerborble)
-  tcamy#=object position y(physicsplayerborble)
-  tcamz#=object position z(physicsplayerborble)
-  rem FPGC - 100710 - when no start marker (no player health) AI failed, so keep this simple
-  remstart
-  if player(1).health>0
-   rem player in world - enemies bate!
-   `if playerdied=1 then ai add player physicsplayerborble,0 : playerdied=0
-   AI Set Player Position tcamx#,tcamy#,tcamz#
-   `AI Set Player Position tcamx#,tcamz# `280410 - old DarkAI
-  else
-   rem player is heaven - out of reach of enemies
-   AI Set Player Position 0,150000,0 `(lee-100310-later DarkAI command)
-    `ai kill player
-    playerdied=1
-  endif
-  remend
+  rem V118 - 240111 - must set player height for correct DarkAI running (and use CAMERA not OBJECT)
+  tcamx#=camera position x()
+  tcamy#=camera position y()
+  tcamz#=camera position z()
   AI Set Player Position tcamx#,tcamy#,tcamz#
   `
   Rem Hockeykid - 250210 - Dark AI Tell AI system if player crouching
@@ -19663,7 +19650,7 @@ _player_setup:
  `
  rem start camera for player
  plrzoominchange=0 : plrzoomin#=0.0
- set camera fov 75.0
+ realfov#=75.0 : set camera fov realfov#
  `
  rem Find player start location
  gosub _player_startpos
@@ -25508,7 +25495,6 @@ for f=1 to decalelementmax
     endif
     rem animation UVs
     rem V118 - 060810 - knxrb - Decal animation setting (Added animation choice setting).
-    `if decalelement(f).orient=7
     if decalelement(f).orient=7 and decalelement(f).particle.animated<>1 and decalelement(f).decalid<>waterdecalripple
      rem FPGC - 300310 - decal based particle only uses first animation frame
      tframe=0
@@ -34389,6 +34375,7 @@ _ode_playerborble:
  Rem Hockeykid - 250210 - Dark AI add player to ai system
  if darkaiplayer=0
   ai add player physicsplayerborble,0
+  ai set player height 0 : rem V118 - 240111 - player position is camera position (no need for height)
   darkaiplayer=1
  endif
  color object physicsplayerborble,rgb(255,255,0)
@@ -34754,44 +34741,36 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
  airmod_camfov# = curvevalue(airmod_camfov_d#,airmod_camfov#,10.0)
  if old_airmod_fov# <> airmod_camfov# then plrzoominchange=1
  rem AirMod - DONE<<<
-  rem Handle optical effect of zoom
+ rem Handle optical effect of zoom
  if plrzoominchange=1
   if plrzoomin#>1.0
    rem AirMod - Modified for Simple Zoom
    if firemode(gunid,firemode).settings.simplezoom <> 0
-    set camera fov 75.0-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov#
-    set camera fov 1,75-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov# : set camera fov 2,75-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov#
-
-
+    realfov#=75.0-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov#
+    set camera fov realfov#
+    set camera fov 1,realfov# : set camera fov 2,realfov#
     rem LightRay Addition
-    if RayCam<>0 then if camera exist(RayCam)=1 then set camera fov RayCam,75.0-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov#
-    if bloom_cam<>0 then if camera exist(bloom_cam)=1 then set camera fov bloom_cam,75.0-(plrzoomin#*firemode(gunid,firemode).settings.simplezoom)+airmod_camfov#
-
-
+    if RayCam<>0 then if camera exist(RayCam)=1 then set camera fov RayCam,realfov#
+    if bloom_cam<>0 then if camera exist(bloom_cam)=1 then set camera fov bloom_cam,realfov#
    else
-    set camera fov 75.0-(plrzoomin#*7)-gunzoommag#+airmod_camfov#
-    set camera fov 1,75-(plrzoomin#*7)-gunzoommag#+airmod_camfov# : set camera fov 2,75-(plrzoomin#*7)-gunzoommag#+airmod_camfov#
-
+    realfov#=75.0-(plrzoomin#*7)-gunzoommag#+airmod_camfov#
+    set camera fov realfov#
+    set camera fov 1,realfov# : set camera fov 2,realfov#
     rem LightRay Addition
-    if RayCam<>0 then if camera exist(RayCam)=1 then set camera fov RayCam,75.0-(plrzoomin#*7)-gunzoommag#+airmod_camfov#
-    if bloom_cam<>0 then if camera exist(bloom_cam)=1 then set camera fov bloom_cam,75.0-(plrzoomin#*7)-gunzoommag#+airmod_camfov#
-
-
+    if RayCam<>0 then if camera exist(RayCam)=1 then set camera fov RayCam,realfov#
+    if bloom_cam<>0 then if camera exist(bloom_cam)=1 then set camera fov bloom_cam,realfov#
    endif
    rem AirMod - Done
    rem AirMod - Modified for Simple Zoom
    if internalzoomhud>0 and (firemode(gunid,firemode).settings.simplezoom = 0 or firemode(gunid,firemode).zoomscope<>0) then hudid=internalzoomhud : hud(hudid).hide=0 : set sprite alpha hudid,(255.0/10.0)*plrzoomin#
   else
    rem AirMod - Modified for cam fov
-   set camera fov 75.0+airmod_camfov#
-   set camera fov 1,75.0+airmod_camfov# : set camera fov 2,75.0+airmod_camfov#
-
+   realfov#=75.0+airmod_camfov#
+   set camera fov realfov#
+   set camera fov 1,realfov# : set camera fov 2,realfov#
    rem LightRay Addition
-   if RayCam<>0 then if camera exist(RayCam)=1 then set camera fov RayCam,75.0+airmod_camfov#
-   if bloom_cam<>0 then if camera exist(bloom_cam)=1 then set camera fov bloom_cam,75.0+airmod_camfov#
-
-
-
+   if RayCam<>0 then if camera exist(RayCam)=1 then set camera fov RayCam,realfov#
+   if bloom_cam<>0 then if camera exist(bloom_cam)=1 then set camera fov bloom_cam,realfov#
    if internalzoomhud>0 then hudid=internalzoomhud : hud(hudid).hide=1
   endif
  endif
@@ -52818,8 +52797,6 @@ _darkai_control:
     ttargety#=object position y(tobjtarget)
     ttargetz#=ai get entity target z(obj)
    endif
-   `ttargetvisible=ai get entity can see(obj,ttargetx#,ttargetz#,1) `280410 - old DarkAI
-   `ttargetvisibleduck=ai get entity can see(obj,ttargetx#,ttargetz#,0) `280410 - old DarkAI
    ttargetvisible=ai get entity can see(obj,ttargetx#,ttargety#,ttargetz#,1)
    ttargetvisibleduck=ai get entity can see(obj,ttargetx#,ttargety#,ttargetz#,0)
   endif
@@ -52967,36 +52944,39 @@ _darkai_control:
     ai entity go to position obj,entityelement(e).x,entityelement(e).z,targetcontainer
     entityelement(e).darkai.actionmode=0
    endif
+   `
    `Rem Alert entity if Ambushed
     Rem This can be done purley through scripting now
     entityelement(e).darkai.ambushed=0
-   if entityelement(e).darkai.ambushed>0
-    `print entityelement(e).darkai.ambushed
-    `ai entity stop obj
-    entityelement(e).darkai.ambushed=0
-    entityelement(e).darkai.state=STATE_COVER
-    ttargetx#=entityelement(e).darkai.ambushx#
-    ttargetz#=entityelement(e).darkai.ambushz#
-    Rem Establish attacker as a target
-    `ttargetvisible=ai get entity can see(obj,ttargetx#,ttargetz#,1) `280410 - old DarkAI
-    `ttargetvisibleduck=ai get entity can see(obj,ttargetx#,ttargetz#,0) `280410 - old DarkAI
-    if entityelement(e).darkai.ehit=-1
-     tobjtarget=physicsplayerborble
-    else
-     tobjtarget=entityelement(entityelement(e).darkai.ehit).obj
-    endif
-    ttargety#=entityelement(e).y+50
-    if tobjtarget>0 and tobjtarget<65535
-     if object exist(tobjtarget)=1
-      ttargety#=object position y(tobjtarget)
+    remstart
+    if entityelement(e).darkai.ambushed>0
+     `print entityelement(e).darkai.ambushed
+     `ai entity stop obj
+     entityelement(e).darkai.ambushed=0
+     entityelement(e).darkai.state=STATE_COVER
+     ttargetx#=entityelement(e).darkai.ambushx#
+     ttargetz#=entityelement(e).darkai.ambushz#
+     Rem Establish attacker as a target
+     `ttargetvisible=ai get entity can see(obj,ttargetx#,ttargetz#,1) `280410 - old DarkAI
+     `ttargetvisibleduck=ai get entity can see(obj,ttargetx#,ttargetz#,0) `280410 - old DarkAI
+     if entityelement(e).darkai.ehit=-1
+      tobjtarget=physicsplayerborble
+     else
+      tobjtarget=entityelement(entityelement(e).darkai.ehit).obj
      endif
+     ttargety#=entityelement(e).y+50
+     if tobjtarget>0 and tobjtarget<65535
+      if object exist(tobjtarget)=1
+       ttargety#=object position y(tobjtarget)
+      endif
+     endif
+     ttargetvisible=ai get entity can see(obj,ttargetx#,ttargety#,ttargetz#,1)
+     ttargetvisibleduck=ai get entity can see(obj,ttargetx#,ttargety#,ttargetz#,0)
+     ttargets=ai get entity count targets(obj)
+     ai entity look at position obj,ttargetx#,ttargetz#
+     ai entity move to cover obj,ttargetx#,ttargetz#
     endif
-    ttargetvisible=ai get entity can see(obj,ttargetx#,ttargety#,ttargetz#,1)
-    ttargetvisibleduck=ai get entity can see(obj,ttargetx#,ttargety#,ttargetz#,0)
-    ttargets=ai get entity count targets(obj)
-    ai entity look at position obj,ttargetx#,ttargetz#
-    ai entity move to cover obj,ttargetx#,ttargetz#
-   endif
+    remend
    `Sees opponent
    If entityelement(e).darkai.autoattackoff=0
     if ttargetvisible=1 or ttargets>0
@@ -53036,6 +53016,7 @@ _darkai_control:
       if ttargetvisible=0
        if tmoving=0 then ai entity move close obj,ttargetx#,ttargetz#,200.0
       else
+       rem V118 this seems to have been commented back in by Sean on 28-01-11 - no reason why
        if entityelement(e).darkai.delay2>timer() and entityelement(e).darkai.state=STATE_ATTACKING then ai entity stop obj
       endif
      endif
@@ -53441,7 +53422,9 @@ Add_Targets:
      endif
     next x
     if tenemytargetflagged=1
-     if ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position y(physicsplayerborble),object position z(physicsplayerborble),1)>0
+     rem V118 - 240111 - do not use borble, use camera position (pefect line of sight)
+     `if ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position y(physicsplayerborble),object position z(physicsplayerborble),1)>0
+     if ai get entity can see(entityelement(e).obj,camera position x(),camera position y(),camera position z(),1)>0
       ai entity add target entityelement(e).obj,physicsplayerborble
      endif
     endif
