@@ -55436,8 +55436,8 @@ Setup_LightRays:
  make camera RayCam
  set camera to image RayCam,6,gdisplaywidth/3,gdisplayheight/3
  set camera range RayCam,1,realrange#
- set camera aspect RayCam,(Sw#/Sh#)
- set camera fov RayCam,75
+ set camera aspect RayCam,realaspect# : rem (Sw#/Sh#)
+ set camera fov RayCam,realfov# : rem 75
  backdrop on RayCam
  color backdrop RayCam,rgb(0,0,0)
  `
@@ -55511,8 +55511,8 @@ Setup_Bloom:
  make camera bloom_cam
  set camera to image bloom_cam,bloom_img,sw#,sh#,2
  set camera range bloom_cam,3,realrange#
- set camera fov bloom_cam,fov
- set camera aspect bloom_cam,(sw#/sh#)
+ set camera fov bloom_cam,realfov# : rem fov
+ set camera aspect bloom_cam,realaspect# : rem (sw#/sh#)
  `
  rem make and setup bloom object
  `make object plain bloom_obj+2,-1920/400,1080/400//-sw#/(400),sh#/(400)
