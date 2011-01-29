@@ -2011,6 +2011,7 @@ rem AI actions
 type aiactiontype
  type as integer
  value as float
+ valueisvar as integer
  rem Variable System - For User Vars we'll need two variables instead of one
  valueb as float
  filename as string
@@ -13031,7 +13032,10 @@ if aiindex>0
    next lvar
    `
    rem if we didn't find the value, give it a 0
-   if tfound=0 then aiactionseq(seq).value=0
+   if tfound=0 then aiactionseq(seq).value=0 : aiactionseq(seq).valueisvar=0
+   if tfound>0 then aiactionseq(seq).valueisvar=1
+  else
+   aiactionseq(seq).valueisvar=0
   endif
   if left$(aiactionseq(seq).string2,1)="%"
    rem Find the variable being called for and replace valuea with it's value
@@ -16257,7 +16261,8 @@ if aiindex>0
      endcase
      case AIACTFPGCRAWTEXTFONT:
       tindex=aiactionseq(seq).value
-      grawtextfont$=actstring$(tindex)
+      rem avoid crash when using new variable system in conjunction with this command
+      if aiactionseq(seq).valueisvar=0 then grawtextfont$=actstring$(tindex)
      endcase
      case AIACTFPGCRAWTEXTOFF:
       grawtext$=""
@@ -16269,8 +16274,13 @@ if aiindex>0
        if aiactionseq(seq).value=-2
         grawtext$=entityelement(e).eleprof.soundset1$
        else
-        tindex=aiactionseq(seq).value
-        grawtext$=actstring$(tindex)
+        if aiactionseq(seq).valueisvar=0
+         tindex=aiactionseq(seq).value
+         grawtext$=actstring$(tindex)
+        else
+         rem if using new variable system with this command, allow print out of the variable
+         grawtext$=str$(aiactionseq(seq).value)
+        endif
        endif
       endif
       grawtextcount=25
