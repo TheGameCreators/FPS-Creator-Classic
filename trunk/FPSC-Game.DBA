@@ -34770,7 +34770,7 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
  airmod_camfov# = curvevalue(airmod_camfov_d#,airmod_camfov#,10.0)
  if old_airmod_fov# <> airmod_camfov# then plrzoominchange=1
  rem AirMod - DONE<<<
- rem Handle optical effect of zoom
+  rem Handle optical effect of zoom
  if plrzoominchange=1
   if plrzoomin#>1.0
    rem AirMod - Modified for Simple Zoom
@@ -34925,20 +34925,22 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
  `
  if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
   rem reduce influence of movement when underwater
-  tunderwaterspeed#=timeelapsed#*0.1
+  tunderwaterspeed#=timeelapsed#*0.3 : rem V118 - sped up from 0.1 to improve gameplay
   camvelx#=tmotionx#+((newxvalue(0,phyangle#,cameraspeed))*tunderwaterspeed#)
-  if (plrkeyS)=1
-   camvely#=tmotiony#+((sin(camera angle x())*cameraspeed*1)*tunderwaterspeed#*2)
+  if (plrkeyA)=1 or (plrkeyD)=1
+   rem strafing means no ascent/decent
   else
-   camvely#=tmotiony#+((sin(camera angle x())*cameraspeed*-1)*tunderwaterspeed#*2)
-  endif
-  rem V118 - 270111 - allow no upward movement if volume collision (causing downward adjustment) in effect
-  if camvolumecollisioncausingdownwardadjust=1
-   if camvely#>-0.1 then camvely#=-0.1
+   if (plrkeyS)=1
+    camvely#=tmotiony#+((sin(camera angle x())*cameraspeed*1)*tunderwaterspeed#*2)
+   else
+    camvely#=tmotiony#+((sin(camera angle x())*cameraspeed*-1)*tunderwaterspeed#*2)
+   endif
+   rem V118 - 270111 - allow no upward movement if volume collision (causing downward adjustment) in effect
+   if camvolumecollisioncausingdownwardadjust=1
+    if camvely#>-0.1 then camvely#=-0.1
+   endif
   endif
   camvelz#=tmotionz#+((newzvalue(0,phyangle#,cameraspeed))*tunderwaterspeed#)
-  camvelx#=camvelx#*cos(camera angle x())
-  camvelz#=camvelz#*cos(camera angle x())
  else
   camvelx#=newxvalue(0,phyangle#,cameraspeed)
   camvely#=grav#
@@ -35105,11 +35107,49 @@ if deactivatecollision=0 and skipcol=0
   rem gravity defeated?
   if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
    rem no gravity to defeat when in water
-   if adjy#<0.0 and ctoy#<cty#
-    rem V118 - 270111 - downward adjust means hit ceiling, flag this for underwater movement next time
-    camvolumecollisioncausingdownwardadjust=1
-    cameraspeed=0
+  else
+   if tstaticfloor=1 and grav#<0 then tgravitydefeated=1
+  endif
+  rem handle if collide while jumping
+  if jumpaction<>0 and camvely#>5.0 and cty#-scty#<0.0 then camvely#=camvely#*-1 : jumpaction=0
+ endif
+ rem if underwater, perform upward ray cast, and prevent upward movement if hit geometry
+ if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
+  tdst#=static raycast(ctx#,cty#-5.0,ctz#,ctx#,cty#+15.0,ctz#)
+  if tdst#<>0.0
+   camvolumecollisioncausingdownwardadjust=1
+   if tdst#<10.0
+    camvely#=camvely#-5.0
    endif
+  endif
+ endif
+ remstart
+ V118 - 280111 - simplified static volume collisison handling
+ if static volume(ctox#,ctoy#-ellipsecentery#,ctoz#,ctx#,cty#-ellipsecentery#,ctz#,ellipsevolumesize#)=1
+  if physicsdebug=1 then print "volumecollision"
+  adjx#=get static collision x()
+  adjy#=get static collision y()
+  adjz#=get static collision z()
+  tstaticfloor=get static collision floor()
+  if tstaticfloor=1
+   rem FPGC - 150610 - added floor check for player floor material value (stops using wall material for footfalls)
+   colmaterialtype=get static collision value()-1
+  endif
+  sctx#=ctx#
+  scty#=cty#
+  sctz#=ctz#
+  ctx#=ctox#+adjx#
+  cty#=ctoy#+adjy#
+  ctz#=ctoz#+adjz#
+  rem gravity defeated?
+  if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
+   `rem no gravity to defeat when in water
+   `280111 - slows down regular movement in water
+   `if adjy#<0.0 : rem and ctoy#<cty#
+   ` rem V118 - 270111 - downward adjust means hit ceiling, flag this for underwater movement next time
+   ` camvolumecollisioncausingdownwardadjust=1
+   ` cameraspeed=0
+   `endif
   else
    if tstaticfloor=1 and grav#<0 then tgravitydefeated=1
   endif
@@ -35132,6 +35172,7 @@ if deactivatecollision=0 and skipcol=0
    camvely#=-1.0 : camflyforcey#=-1.0
   endif
  endif
+ remend
  `
  if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
   rem In water or on surface (but in water really)
@@ -54133,16 +54174,14 @@ function MakeWater()
  Img=19876
  Rem Cameras
  Sw#=screen width():Sh#=screen height()
- aspect#=desktop width() : aspect#=aspect#/desktop height()
- realrange#=9000.0
  for c=1 to 2
   if camera exist(c)=0 then make camera c : rem (Sean: I added the camera exist check as it crashed if you re-entered game.)
   set camera range c,2.0,realrange#
-  set camera aspect c,aspect#
+  set camera aspect c,realaspect#
   backdrop off c`n c : color backdrop c,rgb(0,255,0)
   if c=1 then set camera to image c,Img,Sw#,Sh#
   if c=2 then set camera to image c,Img+1,Sw#,Sh#
-  set camera fov c,75
+  set camera fov c,realfov#
  next c
 
  Rem Make Water plain
@@ -54197,10 +54236,10 @@ endfunction
 function UpDateRefraction()
  Img=19876
  `debug - see reflection and refraction cameras
- if 1
-  if scancode()=2 then paste image img+0,0,0
-  if scancode()=3 then paste image img+1,0,0
- endif
+ `if 1
+ ` if scancode()=2 then paste image img+0,0,0
+ ` if scancode()=3 then paste image img+1,0,0
+ `endif
  set camera fov 0,realfov#
  set camera aspect 0,realaspect#
  set camera range 0,2.0,realrange#
@@ -54225,6 +54264,9 @@ function UpDateRefraction()
 endfunction
 
 function UpDateReflection()
+ set camera fov 2,realfov#
+ set camera aspect 2,realaspect#
+ set camera range 2,2.0,realrange#
  position camera 2,camera position x(0),waterheight#-(camera position y(0)-waterheight#),camera position z(0)
  rotate camera 2,-camera angle x(0),camera angle y(0),camera angle z(0)
  backdrop off 2 : rem backdrop on 2 : color backdrop 2,rgb(100,255,0)
@@ -55407,6 +55449,32 @@ Setup_LightRays:
  set object mask 99001,(2^0)
  ghost object on 99001,0
  set object transparency 99001,1
+     global RayCam
+     RayCam=Find_Free_Camera()
+     global Sw#
+     global Sh#
+     Sw#=gdisplaywidth
+     Sh#=gdisplayheight
+      load image "effectbank\lightray\sun.bmp",4 : addfiletocollection("effectbank\lightray\sun.bmp")
+      make object plain 99000,1500*2,1500*2
+      texture object 99000,4
+      set object transparency 99000,1
+      set object light 99000,0
+      set object mask 99000,2^RayCam
+      make camera RayCam
+      set camera to image RayCam,6,gdisplaywidth/3,gdisplayheight/3
+      set camera range RayCam,1,realrange#
+      set camera aspect RayCam,realaspect# : rem (Sw#/Sh#)
+      set camera fov RayCam,realfov# : rem 75
+      backdrop on RayCam
+      color backdrop RayCam,rgb(0,0,0)
+      load effect "effectbank\lightray\scatter.fx",3,0 : addfiletocollection("effectbank\lightray\scatter.fx")
+      make object plain 99001,2,2,1
+      texture object 99001,6
+      set object effect 99001,3
+      set object mask 99001,(2^0)
+      ghost object on 99001,0
+      set object transparency 99001,1
 return
 
 Update_LightRays:
@@ -55479,6 +55547,40 @@ Setup_Bloom:
  texture object bloom_obj+2,0,bloom_img
  set object effect bloom_obj+2,bloom_obj+2
  set object transparency bloom_obj+2,1
+
+
+
+
+
+      global fov
+      fov=75
+      global sw#
+      sw#=screen width()
+      global sh#
+      sh#=screen height()
+      dis#=(sh#/2)/tan(fov/2)
+      global bloom_cam
+      if lgmodraysactive=5
+        bloom_cam=Find_Free_Camera()
+      else
+        bloom_cam=Find_Free_Camera()
+      endif
+      global bloom_img
+      bloom_img=50
+      global bloom_obj
+      bloom_obj=50
+      global cameranumbervar
+      global lrbloomobjactive
+      make camera bloom_cam
+      set camera to image bloom_cam,bloom_img,sw#,sh#,2
+      set camera range bloom_cam,3,realrange#
+      set camera fov bloom_cam,realfov# : rem fov
+      set camera aspect bloom_cam,realaspect# : rem (sw#/sh#)
+      make object plain bloom_obj+2,-1920/400,1080/400//-sw#/(400),sh#/(400)
+      load effect "effectbank\ps_2_0\post-bloom.fx",bloom_obj+2,0
+      texture object bloom_obj+2,0,bloom_img
+      set object effect bloom_obj+2,bloom_obj+2
+      set object transparency bloom_obj+2,1
 return
 
 Update_Bloom:
@@ -55588,6 +55690,62 @@ function SyncAll()
     if effect exist(blackeffects)=1
      set effect technique blackeffects,"RenderColor"
     endif
+endfunction
+
+function CreateLGMod()
+    if lgmodraysactive=1 then gosub Setup_LightRays
+    if lgmodraysactive=2
+        gosub Setup_Bloom
+        gosub Setup_LightRays
+    endif
+endfunction
+
+type FrameTargetData
+   Object
+   Effect
+   Teq$
+endtype
+
+type RenderTargetData
+   Camera
+   Image
+   Object
+   Effect
+   Teq$
+endtype
+
+function PostFilter_SetUp(Width,Height,D3DFormat)
+      Null=make vector4(100)
+      global FrameCamera=0
+      global FilterEnabled=1
+      global FrameTargetCount=1
+      global RenderTargetCount=2
+      global RenderTargetMask=0
+      global dim FrameTarget(1) as FrameTargetData
+      global dim RenderTarget(1) as RenderTargetData
+      RenderTarget(1).Camera=Find_Free_Camera()
+      RenderTarget(1).Image=Find_Free_Image()
+      make camera RenderTarget(1).Camera
+      if D3DFormat=0 then set camera to image RenderTarget(1).Camera,RenderTarget(1).Image,Width,Height
+      if D3DFormat>0 then set camera to image RenderTarget(1).Camera,RenderTarget(1).Image,Width,Height,3,D3DFormat
+      RenderTargetMask=2^RenderTarget(1).Camera
+      FrameCamera=RenderTarget(1).Camera
+      backdrop off 0
+      set camera fov 0,realfov# : rem 75
+      set camera aspect 0,realaspect# : rem (Sw#/Sh#)
+endfunction 1
+
+function PostFilter_Update()
+   if FilterEnabled=1
+      position camera RenderTarget(1).Camera,camera position x(0),camera position y(0),camera position z(0)
+      rotate camera RenderTarget(1).Camera,camera angle x(0),camera angle y(0),camera angle z(0)
+      set camera aspect RenderTarget(1).Camera,realaspect# : rem (Sw#/Sh#)
+      sync mask RenderTargetMask
+      fastsync
+      for t=1 to array count(FrameTarget())-1
+         position object FrameTarget(t).Object,camera position x(0),camera position y(0),camera position z(0)
+         rotate object FrameTarget(t).Object,camera angle x(0),camera angle y(0),camera angle z(0)
+      next t
    endif
   next blackeffect
   `
@@ -55646,6 +55804,40 @@ function CreateLGMod()
   gosub Setup_Bloom
   gosub Setup_LightRays
  endif
+function PostFilter_RenderTarget_Add(Effect$,Teq$,Transparent,Width,Height,D3DFormat)
+   if FilterEnabled=1
+      array insert at bottom RenderTarget()
+      RenderTarget(RenderTargetCount).Camera=Find_Free_Camera()
+      RenderTarget(RenderTargetCount).Image=Find_Free_Image()
+      RenderTarget(RenderTargetCount).Object=Find_Free_Object()
+      RenderTarget(RenderTargetCount).Effect=Find_Free_Effect()
+      RenderTarget(RenderTargetCount).Teq$=Teq$
+      make camera RenderTarget(RenderTargetCount).Camera
+      if D3DFormat=0 then set camera to image RenderTarget(RenderTargetCount).Camera,RenderTarget(RenderTargetCount).Image,Width,Height
+      if D3DFormat>0 then set camera to image RenderTarget(RenderTargetCount).Camera,RenderTarget(RenderTargetCount).Image,Width,Height,3,D3DFormat
+      set camera range RenderTarget(RenderTargetCount).Camera,1,10
+      set camera fov RenderTarget(RenderTargetCount).Camera,realfov# : rem 75
+      set camera aspect RenderTarget(RenderTargetCount).Camera,realaspect# : rem (Sw#/Sh#)
+      backdrop off RenderTarget(RenderTargetCount).Camera
+      make object plain RenderTarget(RenderTargetCount).Object,2,2,1
+      convert object fvf RenderTarget(RenderTargetCount).Object,0x002
+      set object Transparency RenderTarget(RenderTargetCount).Object,Transparent
+      load effect Effect$,RenderTarget(RenderTargetCount).Effect,0,1
+      set vector4 100,1.0/Width,1.0/Height,0,0
+      set effect constant vector RenderTarget(RenderTargetCount).Effect,"ViewVec",100
+      set effect technique RenderTarget(RenderTargetCount).Effect,Teq$
+      set object effect RenderTarget(RenderTargetCount).Object,RenderTarget(RenderTargetCount).Effect
+      set object mask RenderTarget(RenderTargetCount).Object,2^RenderTarget(RenderTargetCount).Camera
+      RenderTargetMask=RenderTargetMask+(2^RenderTarget(RenderTargetCount).Camera)
+      inc RenderTargetCount
+   endif
+   r=RenderTargetCount-1
+endfunction r
+
+function PostFilter_RenderTarget_Image(Targ,Stage,Img)
+   if FilterEnabled=1 and Targ>0 and Targ<RenderTargetCount
+      texture object RenderTarget(Targ).Object,Stage,Img
+   endif
 endfunction
 
 function Find_Free_Camera()
@@ -55660,4 +55852,5 @@ endfunction ldirang#
 
 function CalcLightDirZ(objang#)
  ldirang#=-0.75*cos(objang#)
+endfunction ldirang#
 endfunction ldirang#
