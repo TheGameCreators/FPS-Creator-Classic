@@ -1962,25 +1962,23 @@ Rem Water commands
 #constant AIACTWATERRED 1339
 #constant AIACTWATERGREEN 1340
 #constant AIACTWATERBLUE 1341
+#constant AIACTWATERHEIGHTOFZONE 1342
 rem GUI-X9 (knxrb) >>>
-#constant AIACTEYEHURTTIME 1342
-#constant AIACTFADERSPEED 1343
-#constant AIACTUSEGUIX9 1344
+#constant AIACTEYEHURTTIME 1442
+#constant AIACTFADERSPEED 1443
+#constant AIACTUSEGUIX9 1444
 rem GUI-X9 (knxrb) <<<
-#constant AIACTHIDESHADOW 1345
-
+#constant AIACTHIDESHADOW 1445
 rem LightRay Addition
 rem LightRayMod
-#constant AIACTLRAYSET 1347
-#constant AIACTLRAYACT 1348
-#constant AIACTLRBLOOMACT 1349
-#constant AIACTLRDEBUGDEACTIVE 1350
-
+#constant AIACTLRAYSET 1447
+#constant AIACTLRAYACT 1448
+#constant AIACTLRBLOOMACT 1449
+#constant AIACTLRDEBUGDEACTIVE 1450
 rem GUI-X9 (knxrb) >>>
-#constant AIACTFORCEGUISUB 1351
+#constant AIACTFORCEGUISUB 1451
 rem GUI-X9 (knxrb) <<<
-
-#constant AIACTLAST 1352
+#constant AIACTLAST 1452
 
 rem V109 BETA3 - 210408 - AI variables
 global aivariablemode : aivariablemode=0 : rem 0-global, 1-local
@@ -11237,7 +11235,7 @@ actword$(AIACTWATERFOGBLUE)="waterfogblue"
 actword$(AIACTWATERRED)="waterred"
 actword$(AIACTWATERGREEN)="watergreen"
 actword$(AIACTWATERBLUE)="waterblue"
-
+actword$(AIACTWATERHEIGHTOFZONE)="waterheightofzone"
 rem LightRay Addition
 rem LRMod
 actword$(AIACTLRAYSET)="lrayset"
@@ -17159,6 +17157,11 @@ if aiindex>0
       waterblue=aiactionseq(seq).value
       set effect constant integer waterfx,"RefractColor",rgb(waterred,watergreen,waterblue)
       set effect constant integer waterfx,"ReflectColor",rgb(waterred,watergreen,waterblue)
+     endcase
+     case AIACTWATERHEIGHTOFZONE:
+      oldwaterheight#=waterheight#
+      waterheight#=entityelement(e).y+aiactionseq(seq).value
+      position object waterobj,0,waterheight#,0
      endcase
      `
      rem LightRay Addition
@@ -54211,6 +54214,14 @@ function UpDateWater()
  if lgmodraysactive=2 then hide object 52
  if lgmodraysactive=1 then hide object 99000
  if lgmodraysactive=1 then hide object 99001
+ `
+ rem V118 - 300111 - pass fog color to water plane shader
+ if WaterFx>0
+  r=make vector4(1)
+  set vector4 1,(waterfogred/255.0),(waterfoggreen/255.0),(waterfogblue/255.0),1.0/waterfogfar
+  set effect constant vector WaterFx,"FogColor",1
+  r=delete vector4(1)
+ endif
  `
  rem Upade Refract and Reflect cameras
  set effect technique WaterFx,"Refract"
