@@ -20,7 +20,7 @@
 //--------------
    float2 WaterScale={10.0f,10.0f};
    float WaterBump=0.02f;
-   float FresPow=2.5f;
+   float FresPow=0.5f;
    float2 Speed1={-0.04,0.04};
    float2 Speed2={0.05,-0.05};
    float3 RefractColor={1.0f,1.0f,1.0f};
@@ -118,11 +118,11 @@ float4 FogColor : Diffuse
         OUT.VP=VP;
 	OUT.RefrProj=float4(OUT.OPos.x*0.5+0.5*OUT.OPos.w,0.5*OUT.OPos.w-OUT.OPos.y*0.5,OUT.OPos.w,OUT.OPos.w);
   	OUT.ReflProj=float4(OUT.OPos.x*0.5+0.5*OUT.OPos.w,0.5*OUT.OPos.w+OUT.OPos.y*0.5,OUT.OPos.w,OUT.OPos.w);
-	// hi-jack OUT.VP to carry FOG color to pixel shader
+	// hi-jack OUT.VP to carry FOG to pixel shader
 	float4 worldSpacePos = mul(IN.Pos, World);
 	float4 cameraPos = mul( worldSpacePos, View );
 	float fogstrength = cameraPos.z * FogColor.w;
-	OUT.VP = FogColor.xyz * fogstrength;
+	OUT.VP.x = fogstrength;
 	return OUT;
     }
 
@@ -141,7 +141,7 @@ float4 FogColor : Diffuse
         Reflection=Reflection*0.4;
         float3 ViewT = normalize(IN.VP);
         float3 ViewB = normalize(ViewT);
-        float Fresnel = pow( abs(ViewB.y), FresPow/6.0 );
+        float Fresnel = pow( abs(ViewB.y), FresPow );
     	float3 Water=lerp(Reflection,Refraction,Fresnel);
 	return float4(Water,1);
     } 
@@ -151,7 +151,8 @@ float4 FogColor : Diffuse
         Distort=Distort+tex2D(Waterbump,IN.Tex2)-1;
   	Distort=Distort*(IN.RefrProj.z*WaterBump);
     	float3 Refraction=tex2Dproj(WaterRefract,IN.RefrProj+Distort)*RefractColor;
-	return float4(Refraction,1) + float4(IN.VP,1.0);
+	float4 result = float4(Refraction,1);
+        return float4((result.xyz*(1-IN.VP.x))+(FogColor.xyz*IN.VP.x),1);
     } 
 
 //--------------
@@ -160,7 +161,9 @@ float4 FogColor : Diffuse
   technique ReflectRefract
    {
     pass p1
-     {		
+     {
+      Lighting       = FALSE;
+      FogEnable      = FALSE;
       VertexShader = compile vs_2_0 VS(); 
       PixelShader  = compile ps_2_0 ReflRefr(); 		
      }
@@ -169,6 +172,8 @@ float4 FogColor : Diffuse
    {
     pass p1
      {		
+      Lighting       = FALSE;
+      FogEnable      = FALSE;
       VertexShader = compile vs_2_0 VS_FOG(); 
       PixelShader  = compile ps_2_0 Refr(); 		
      }

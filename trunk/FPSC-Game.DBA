@@ -5129,6 +5129,15 @@ for p=0 to segmeshpartmax
   `
   rem Effect or No
   tfile$=segmentprofile(segid,p).effect$
+  `
+  rem V118 - 300111 - rather than correct old segment files, if full effects on
+  rem but no effect specified (FF), then assume BUMP.FX (handled later by 'better' shader system)
+  if guseeffectonscenesstate=1
+   if segmentprofile(segid,p).effect$=""
+    segmentprofile(segid,p).effect$="effectbank\bump\bump.fx"
+   endif
+  endif
+  `
   teffectuseslightmapstage=1 : gosub _common_makeeffecttextureset
   if tfile$<>"" and guseeffectonscenesstate=1
    `
@@ -54223,13 +54232,41 @@ function UpDateWater()
   r=delete vector4(1)
  endif
  `
+ rem V118 - 300111 - Prepare effects to switch fog ON
+ r=make vector4(1)
+ for teffectid=effectbankoffset to effectbankoffset+effectbankmax
+  if teffectid<>0
+   if effect exist(teffectid)=1
+    set vector4 1,(waterfogred/255.0),(waterfoggreen/255.0),(waterfogblue/255.0),1.0/waterfogfar
+    set effect constant vector teffectid,"FogColor",1
+   endif
+  endif
+ next teffectid 
+ r=delete vector4(1)
+ `
  rem Upade Refract and Reflect cameras
  set effect technique WaterFx,"Refract"
  UpDateRefraction()
  if camera position y(0)>waterheight#
   set effect technique WaterFx,"ReflectRefract"
+  if hudfogon=0
+   rem SHADER fog off - Restore effects to switch fog OFF
+   r=make vector4(1)
+   for teffectid=effectbankoffset to effectbankoffset+effectbankmax
+    if teffectid<>0
+     if effect exist(teffectid)=1
+      set vector4 1,0,0,0,0.00000001
+      set effect constant vector teffectid,"FogColor",1
+     endif
+    endif
+   next teffectid 
+   r=delete vector4(1)
+  endif
   UpDateReflection()
-  if hudfogon=0 then fog off
+  if hudfogon=0 
+   rem FF fog off - maybe this should be before UpDateReflection?
+   fog off
+  endif
   waterfogon=0
  else
   waterfogon=1
