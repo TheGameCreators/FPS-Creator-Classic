@@ -3589,6 +3589,29 @@ if gcompilestandaloneexe=1
  addfiletocollection("languagebank\"+language$+"\gamecore\huds\saveload\areyousure.tga")
 endif
 
+rem V118 - 300111 - mandatory files if game uses water
+if gcompilestandaloneexe=1
+ addfiletocollection("effectbank\common\water_N.dds")
+ addfiletocollection("audiobank\water\Drown.wav")
+ addfiletocollection("audiobank\water\GaspForAir.wav")
+ addfiletocollection("audiobank\water\WaterIn.wav")
+ addfiletocollection("audiobank\water\WaterOut.wav")
+ addfiletocollection("audiobank\materials\17WadingA1.wav")
+ addfiletocollection("audiobank\materials\17WadingA2.wav")
+ addfiletocollection("audiobank\materials\17WadingA3.wav")
+ addfiletocollection("audiobank\materials\17WadingA4.wav")
+ addfiletocollection("audiobank\materials\17WadingD.wav")
+ addfiletocollection("audiobank\materials\17WadingI.wav")
+ addfiletocollection("audiobank\materials\17WadingS.wav")
+ addfiletocollection("audiobank\materials\18UnderwaterA1.wav")
+ addfiletocollection("audiobank\materials\18UnderwaterA2.wav")
+ addfiletocollection("audiobank\materials\18UnderwaterA3.wav")
+ addfiletocollection("audiobank\materials\18UnderwaterA4.wav")
+ addfiletocollection("audiobank\materials\18UnderwaterD.wav")
+ addfiletocollection("audiobank\materials\18UnderwaterI.wav")
+ addfiletocollection("audiobank\materials\18UnderwaterS.wav")
+endif
+
 rem Forced 'Shader Compatibility Warning' PROMPT
 if gcompilestandaloneexe=1 or grealgameviewstate=1
  filename$="languagebank\"+language$+"\gamecore\huds\noshader.tga"
@@ -33673,14 +33696,17 @@ if gimageblockmode=1
  for fileindex=0 to filesmax
   srcstring$=lower$(filecollection$(fileindex))
   if len(srcstring$)>0
-   rem scan imageblock
-   for c=1 to checklist quantity()
-    imageblockfile$=lower$(checklist string$(c))
-    if imageblockfile$=srcstring$
-     filecollection$(fileindex)=""
-     c=checklist quantity()+1
-    endif
-   next c
+   rem and only if NOT in effectbank (some shaders NEED external image files)
+   if left$(srcstring$,11)<>"effectbank\"
+    rem scan imageblock
+    for c=1 to checklist quantity()
+     imageblockfile$=lower$(checklist string$(c))
+     if imageblockfile$=srcstring$
+      filecollection$(fileindex)=""
+      c=checklist quantity()+1
+     endif
+    next c
+   endif
   endif
  next fileindex
  addfiletocollection("imageblock.bin")
@@ -35124,6 +35150,21 @@ if deactivatecollision=0 and skipcol=0
   endif
   rem handle if collide while jumping
   if jumpaction<>0 and camvely#>5.0 and cty#-scty#<0.0 then camvely#=camvely#*-1 : jumpaction=0
+  rem V118 - 310111 - re-introduce to solve stair collision issue
+  if abs(ctx#-sctx#)+abs(ctz#-sctz#)>8
+   rem prevent player penetrating half-height geometry (metal stairs)
+   camvelx#=ctx#-camerapositionx
+   camvely#=cty#-camerapositiony
+   camvelz#=ctz#-camerapositionz
+   jumpmotionx#=0 : jumpmotionz#=0 : jumpaction=0
+   if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
+    rem underwater ascent okay
+   else
+    if camvely#>0 then camvely#=0
+   endif
+   rem wipe out flyforce too as hit something to stop hero
+   camflyforcex#=0 : camflyforcey#=0 : camflyforcez#=0
+  endif  
  endif
  rem if underwater, perform upward ray cast, and prevent upward movement if hit geometry
  if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
