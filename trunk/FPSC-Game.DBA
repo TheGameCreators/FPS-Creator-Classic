@@ -16053,16 +16053,18 @@ if aiindex>0
          `
         else
          tte=entityelement(e).actualtarget-1
-         ai entity look at position entityelement(e).obj,object position x(entityelement(tte).obj),object position z(entityelement(tte).obj)
-         `entityelement(e).mover.da=atanfull(object position x(entityelement(tte).obj),object position z(entityelement(tte).obj))
-         `
-         if entityelement(e).darkai.useaim=1
-          ex1#=object position x(entityelement(tte).obj) : ey1#=object position y(entityelement(tte).obj) : ez1#=object position z(entityelement(tte).obj)
-          ex2#=entityelement(e).x : ey2#=entityelement(e).y : ez2#=entityelement(e).z
-          If entityelement(tte).eyeoffset=0 then entityelement(tte).eyeoffset=80
-          ey1eyeoffset=(entityelement(tte).eyeoffset/2)
-          Gosub _ai_find_angle
-          entityelement(e).spiner=entityangle#
+         if entityelement(tte).obj>0
+          ai entity look at position entityelement(e).obj,object position x(entityelement(tte).obj),object position z(entityelement(tte).obj)
+          `entityelement(e).mover.da=atanfull(object position x(entityelement(tte).obj),object position z(entityelement(tte).obj))
+          `
+          if entityelement(e).darkai.useaim=1
+           ex1#=object position x(entityelement(tte).obj) : ey1#=object position y(entityelement(tte).obj) : ez1#=object position z(entityelement(tte).obj)
+           ex2#=entityelement(e).x : ey2#=entityelement(e).y : ez2#=entityelement(e).z
+           If entityelement(tte).eyeoffset=0 then entityelement(tte).eyeoffset=80
+           ey1eyeoffset=(entityelement(tte).eyeoffset/2)
+           Gosub _ai_find_angle
+           entityelement(e).spiner=entityangle#
+          endif
          endif
          `
         endif
@@ -35164,7 +35166,7 @@ if deactivatecollision=0 and skipcol=0
    endif
    rem wipe out flyforce too as hit something to stop hero
    camflyforcex#=0 : camflyforcey#=0 : camflyforcez#=0
-  endif  
+  endif
  endif
  rem if underwater, perform upward ray cast, and prevent upward movement if hit geometry
  if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
@@ -54282,7 +54284,7 @@ function UpDateWater()
     set effect constant vector teffectid,"FogColor",1
    endif
   endif
- next teffectid 
+ next teffectid
  r=delete vector4(1)
  `
  rem Upade Refract and Reflect cameras
@@ -54300,11 +54302,11 @@ function UpDateWater()
       set effect constant vector teffectid,"FogColor",1
      endif
     endif
-   next teffectid 
+   next teffectid
    r=delete vector4(1)
   endif
   UpDateReflection()
-  if hudfogon=0 
+  if hudfogon=0
    rem FF fog off - maybe this should be before UpDateReflection?
    fog off
   endif
