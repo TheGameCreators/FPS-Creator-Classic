@@ -50969,8 +50969,11 @@ _interface_openpropertywindow:
     rem FPGC - 280809 - filtered fpgcgenre=1 is shooter genre
     if fpgcgenre=1
      if tflagsound=1 then setpropertyfile2(group,grideleprof.soundset$,strarr$(467),strarr$(253),"audiobank\") : inc controlindex
-     if tflagsound=1 and tflagnosecond=0 then setpropertyfile2(group,grideleprof.soundset1$,strarr$(468),strarr$(254),"audiobank\") : inc controlindex
      if tflagsoundset=1 then setpropertyfile2(group,grideleprof.soundset$,strarr$(469),strarr$(255),"audiobank\voices\") : inc controlindex
+     if tflagnosecond=0
+      rem V118 - 040210 - allow secondary $1 even for soundset users (characters) - so can use the $1 for TALK
+      if tflagsound=1 or tflagsoundset=1 then setpropertyfile2(group,grideleprof.soundset1$,strarr$(468),strarr$(254),"audiobank\") : inc controlindex
+     endif
     else
      rem Allow full access to both SCRIPT $0 and $1 when not specifically a shooter genre
      if tflagsoundset=1
