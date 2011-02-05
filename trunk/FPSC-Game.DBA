@@ -54319,11 +54319,11 @@ function UpDateRefraction()
  rotate camera 1,camera angle x(0),camera angle y(0),camera angle z(0)
  `backdrop off 1 : rem backdrop on 1 : color backdrop 1,rgb(255,100,0)
  if camera position y(0)>waterheight#
-  set camera clip 1,1,0,waterheight#+1,0,0,-1,0
+  set camera clip 1,1,0,waterheight#+5,0,0,-1,0
   waterfogon=2
  endif
  if camera position y(0)<waterheight#
-  set camera clip 1,1,0,waterheight#-1,0,0,1,0
+  set camera clip 1,1,0,waterheight#-5,0,0,1,0
   waterfogon=1
  endif
  set camera clip 2,0,0,0,0,0,0,0
@@ -54340,7 +54340,7 @@ function UpDateReflection()
  rotate camera 2,-camera angle x(0),camera angle y(0),camera angle z(0)
  backdrop off 2 : rem backdrop on 2 : color backdrop 2,rgb(100,255,0)
  set camera clip 1,0,0,0,0,0,0,0
- set camera clip 2,1,0,waterheight#-1,0,0,1,0
+ set camera clip 2,1,0,waterheight#-5,0,0,1,0
  sync mask (1 << 2)
  fastsync
  sync mask %11111111 - (1 << 1) - (1 << 2)
