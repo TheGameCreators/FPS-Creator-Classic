@@ -50742,6 +50742,7 @@ _interface_openpropertywindow:
    setpropertystring2(group,grideleprof.name$,strarr$(413),"Choose a unique name for this character") : inc controlindex
    setpropertylist2(group,controlindex,grideleprof.aimain$,"Behaviour","Select a behaviour for this character",11) : inc controlindex
    setpropertyfile2(group,grideleprof.soundset1$,"Voiceover","Select a WAV or OGG file this character will use during their behaviour","audiobank\") : inc controlindex
+   setpropertystring2(group,grideleprof.ifused$,"If Used","Sometimes used to specify the name of an entity to be activated") : inc controlindex
    `
   else
    `
