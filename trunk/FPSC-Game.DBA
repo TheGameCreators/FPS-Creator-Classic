@@ -18775,6 +18775,7 @@ if gnewblossershaders=1
  ifits$="illuminationent.fx" : if right$(tfile$,len(ifits$))=ifits$ then tfile$="effectbank\ps_2_0\illuminationent.fx"
  ifits$="illuminationmap.fx" : if right$(tfile$,len(ifits$))=ifits$ then tfile$="effectbank\ps_2_0\illuminationmap.fx"
  ifits$="bumpbone.fx" : if right$(tfile$,len(ifits$))=ifits$ then tfile$="effectbank\ps_2_0\bumpbone.fx"
+ ifits$="bumpbonerev.fx" : if right$(tfile$,len(ifits$))=ifits$ then tfile$="effectbank\ps_2_0\bumpbonerev.fx"
 endif
 
 rem Default return
@@ -28507,7 +28508,8 @@ if object exist(obj)=1
       rem and MUST have animation to bone animate
       if object exist(obj)=1
        if get maximum vertex shader version()>=2.0
-        if gnewblossershaders=1
+        rem V118 - 050211 - upgraded fast bone to allow clipping (better reflection)
+        if gnewblossershaders=1 and get maximum pixel shader version()>=2.0
          teffectid=loadinternaleffectunique("effectbank\ps_2_0\fastbone.fx",1)
         else
          teffectid=loadinternaleffectunique("effectbank\fastbone\fastbone.fx",1)
