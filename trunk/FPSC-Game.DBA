@@ -31827,6 +31827,24 @@ for e=1 to entityelementlist
  endif
 next e
 
+rem V118 - if level has NO static lights, must create at least one (small black one)
+rem to allow the light mapping to be created so full effects can predict LM existence
+if staticlightcount=0
+ lgx#=-500 : lgy#=-500 : lgz#=500
+ lgrange#=50 : size# = lgrange# : falloff# = size#/2
+ radius# = size#+falloff# : zerorange# = ( radius# * glightzerorange ) / 100.0
+ atten# = glightatten / (radius#*radius#) : outer# = 1.0 + falloff#
+ brighter# = radius# / outer#
+ lgr#=0 : lgg#=0 : lgb#=0
+ if activatelightmapping=1
+  if usedarklightmapper=1
+   LM Add Custom Point Light lgx#, lgy#, lgz#, radius#, zerorange#, atten#,lgr#/255.0, lgg#/255.0, lgb#/255.0
+  endif
+  lgtype=0 : gosub _lighting_adddynamiclight
+  inc staticlightcount
+ endif
+endif
+
 rem New portals section of game runner
 debugviewtext(240,strarr$(164))
 build static portals
