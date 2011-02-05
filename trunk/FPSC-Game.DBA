@@ -242,7 +242,7 @@ global playerdefaultjumpheight : playerdefaultjumpheight=50
 `
 rem V118 - store range, aspect and fov globally!
 global realrange# : realrange#=9000.0
-global realaspect# : realaspect#=1.0
+global realaspect# : realaspect#=4.0/3.0
 global realfov# : realfov#=75.0
 `
 ` FPSCV10X SAVE LOAD Data Structures
@@ -3337,7 +3337,7 @@ else
   rem FPGC - 131009 - option use use correct aspect ratio?
   if gaspectratio=1
    aspect#=desktop width() : aspect#=aspect#/desktop height()
-   realaspect#=aspect# : set camera aspect realaspect#
+   realaspect#=aspect#
   endif
   `
  endif
@@ -3345,6 +3345,7 @@ endif
 newwidth=gdisplaywidth : newheight=gdisplayheight : newdepth=gdisplaydepth
 global gratiox# : gratiox#=gdisplaywidth : gratiox#=gratiox#/1024.0
 global gratioy# : gratioy#=gdisplayheight : gratioy#=gratioy#/768.0
+set camera aspect realaspect#
 
 rem FPGC - 150310 - special case, VRMODE=5 detects VR920 (switches OFF if not found)
 if gvrmode=5
