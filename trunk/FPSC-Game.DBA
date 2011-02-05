@@ -7526,14 +7526,16 @@ for e=1 to entityelementlist
     `
     rem FPGC - 100710 - on occasion, character can be killed off screen (no anim performed)
     rem so need to adjust position of any carried weapon to floor (other it floats)
-    tvweapobj=entityelement(e).attachmentobj
-    if object exist(obj)=1
-     if object in screen(obj)=0
-      if tvweapobj>0
-       if object exist(tvweapobj)=1
-        unglue object tvweapobj
-        if object position y(tvweapobj)>entityelement(e).y+5
-         position object tvweapobj,object position x(tvweapobj),entityelement(e).y,object position z(tvweapobj)
+    if obj>0
+     tvweapobj=entityelement(e).attachmentobj
+     if object exist(obj)=1
+      if object in screen(obj)=0
+       if tvweapobj>0
+        if object exist(tvweapobj)=1
+         unglue object tvweapobj
+         if object position y(tvweapobj)>entityelement(e).y+5
+          position object tvweapobj,object position x(tvweapobj),entityelement(e).y,object position z(tvweapobj)
+         endif
         endif
        endif
       endif
