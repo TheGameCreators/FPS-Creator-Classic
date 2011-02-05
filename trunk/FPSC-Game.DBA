@@ -61,7 +61,7 @@ endif
 
 Global exeroot$ : exeroot$=get dir$()
 
-rem V118 - 110810 - knxrb - Hud Layers
+rem V118 - 110810 - knxrb - Hud Layers 
 global hudHName$ as string = ""
 
 rem - Global array for string variables
