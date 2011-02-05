@@ -35006,28 +35006,34 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
  endif
  `if physicsdebug=1 then print "GRAVITY VALUE=";grav#
  `
- if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
-  rem reduce influence of movement when underwater
-  tunderwaterspeed#=timeelapsed#*0.3 : rem V118 - sped up from 0.1 to improve gameplay
-  camvelx#=tmotionx#+((newxvalue(0,phyangle#,cameraspeed))*tunderwaterspeed#)
-  if (plrkeyA)=1 or (plrkeyD)=1
-   rem strafing means no ascent/decent
-  else
-   if (plrkeyS)=1
-    camvely#=tmotiony#+((sin(camera angle x())*cameraspeed*1)*tunderwaterspeed#*2)
+ if jumpaction=0
+  if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
+   rem reduce influence of movement when underwater
+   tunderwaterspeed#=timeelapsed#*0.3 : rem V118 - sped up from 0.1 to improve gameplay
+   camvelx#=tmotionx#+((newxvalue(0,phyangle#,cameraspeed))*tunderwaterspeed#)
+   if (plrkeyA)=1 or (plrkeyD)=1
+    rem strafing means no ascent/decent
    else
-    camvely#=tmotiony#+((sin(camera angle x())*cameraspeed*-1)*tunderwaterspeed#*2)
+    if (plrkeyS)=1
+     camvely#=tmotiony#+((sin(camera angle x())*cameraspeed*1)*tunderwaterspeed#*2)
+    else
+     camvely#=tmotiony#+((sin(camera angle x())*cameraspeed*-1)*tunderwaterspeed#*2)
+    endif
+    rem V118 - 270111 - allow no upward movement if volume collision (causing downward adjustment) in effect
+    if camvolumecollisioncausingdownwardadjust=1
+     if camvely#>-0.1 then camvely#=-0.1
+    endif
    endif
-   rem V118 - 270111 - allow no upward movement if volume collision (causing downward adjustment) in effect
-   if camvolumecollisioncausingdownwardadjust=1
-    if camvely#>-0.1 then camvely#=-0.1
-   endif
+   camvelz#=tmotionz#+((newzvalue(0,phyangle#,cameraspeed))*tunderwaterspeed#)
+  else
+   camvelx#=newxvalue(0,phyangle#,cameraspeed)
+   camvely#=grav#
+   camvelz#=newzvalue(0,phyangle#,cameraspeed)
   endif
-  camvelz#=tmotionz#+((newzvalue(0,phyangle#,cameraspeed))*tunderwaterspeed#)
  else
-  camvelx#=newxvalue(0,phyangle#,cameraspeed)
-  camvely#=grav#
-  camvelz#=newzvalue(0,phyangle#,cameraspeed)
+  camvelx#=tmotionx#
+  camvely#=tmotiony#
+  camvelz#=tmotionz#
  endif
  `
  rem Jump Control
@@ -35038,8 +35044,11 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
     camvely#=0
     camforcey#=playerdefaultjumpheight
     camforcey#=camforcey#*(0.5+(cameradampen#/2.0))
-    jumpmotionx#=tmotionx#
-    jumpmotionz#=tmotionz#
+    rem V118 - 050211 - jump direction can be irratic coming from motion values
+    `jumpmotionx#=tmotionx#
+    `jumpmotionz#=tmotionz#
+    jumpmotionx#=newxvalue(0,phyangle#,cameraspeed)
+    jumpmotionz#=newzvalue(0,phyangle#,cameraspeed)
     if playersound(plrid,10)>0
      broadcast3dsound(camerapositionx,camerapositiony,camerapositionz,5.0,-1)
      play sound playersound(plrid,10)
@@ -35171,7 +35180,7 @@ if deactivatecollision=0 and skipcol=0
  `
  rem ellipse test for final player mode (stood or crouch)
  camvolumecollisioncausingdownwardadjust=0
- if static volume(ctox#,ctoy#-ellipsecentery#,ctoz#,ctx#,cty#-ellipsecentery#,ctz#,ellipsevolumesize#)=1
+ if static volume(ctox#,ctoy#-ellipsecentery#,ctoz#,ctx#,cty#-ellipsecentery#,ctz#,ellipsevolumesize#)=1 and jumpactionnorepeat=0
   if physicsdebug=1 then print "volumecollision"
   adjx#=get static collision x()
   adjy#=get static collision y()
@@ -35201,7 +35210,9 @@ if deactivatecollision=0 and skipcol=0
    camvelx#=ctx#-camerapositionx
    camvely#=cty#-camerapositiony
    camvelz#=ctz#-camerapositionz
-   jumpmotionx#=0 : jumpmotionz#=0 : jumpaction=0
+   if jumpactionnorepeat=0
+    jumpmotionx#=0 : jumpmotionz#=0 : jumpaction=0
+   endif
    if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
     rem underwater ascent okay
    else
@@ -35221,56 +35232,6 @@ if deactivatecollision=0 and skipcol=0
    endif
   endif
  endif
- remstart
- V118 - 280111 - simplified static volume collisison handling
- if static volume(ctox#,ctoy#-ellipsecentery#,ctoz#,ctx#,cty#-ellipsecentery#,ctz#,ellipsevolumesize#)=1
-  if physicsdebug=1 then print "volumecollision"
-  adjx#=get static collision x()
-  adjy#=get static collision y()
-  adjz#=get static collision z()
-  tstaticfloor=get static collision floor()
-  if tstaticfloor=1
-   rem FPGC - 150610 - added floor check for player floor material value (stops using wall material for footfalls)
-   colmaterialtype=get static collision value()-1
-  endif
-  sctx#=ctx#
-  scty#=cty#
-  sctz#=ctz#
-  ctx#=ctox#+adjx#
-  cty#=ctoy#+adjy#
-  ctz#=ctoz#+adjz#
-  rem gravity defeated?
-  if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
-   `rem no gravity to defeat when in water
-   `280111 - slows down regular movement in water
-   `if adjy#<0.0 : rem and ctoy#<cty#
-   ` rem V118 - 270111 - downward adjust means hit ceiling, flag this for underwater movement next time
-   ` camvolumecollisioncausingdownwardadjust=1
-   ` cameraspeed=0
-   `endif
-  else
-   if tstaticfloor=1 and grav#<0 then tgravitydefeated=1
-  endif
-  if jumpaction<>0 and camvely#>5.0 and cty#-scty#<0.0 then camvely#=camvely#*-1 : jumpaction=0
-  if abs(ctx#-sctx#)+abs(ctz#-sctz#)>8
-   rem event when collision hits something solid (not floor)
-   camvelx#=ctx#-camerapositionx
-   camvely#=cty#-camerapositiony
-   camvelz#=ctz#-camerapositionz
-   jumpmotionx#=0 : jumpmotionz#=0 : jumpaction=0
-   if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
-    rem underwater ascent okay
-   else
-    if camvely#>0 then camvely#=0
-   endif
-   rem wipe out flyforce too as hit something to stop hero
-   camflyforcex#=0 : camflyforcey#=0 : camflyforcez#=0
-  endif
-  if camvolumecollisioncausingdownwardadjust=1
-   camvely#=-1.0 : camflyforcey#=-1.0
-  endif
- endif
- remend
  `
  if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
   rem In water or on surface (but in water really)
@@ -35362,7 +35323,7 @@ if deactivatecollision=0 and skipcol=0
  endif
  `
  rem Jump ends when camera starts decending
- if camvely#<0.0 then jumpaction=0
+ if jumpactionnorepeat=0 and camvely#<0.0 then jumpaction=0
  `
  rem debug object
  if physicsdebug=1
@@ -35377,21 +35338,6 @@ if deactivatecollision=0 and skipcol=0
   endif
  endif
  `
-endif
-
-rem ladder control
-if onladder=1
-` rem climb ladder mode
-` cx#=onladderx# : cz#=onladderz#
-` if movement<>0
-`  grav#=camera angle x()/10.0
-`  if grav#<-3.0 then grav#=-3.0
-`  if grav#>3.0 then grav#=3.0
-` else
-`  grav#=0.0
-` endif
-` rem ladder grasp will kill jump action
-` jumpaction=0
 endif
 
 rem new barrier code using physics force
@@ -48883,27 +48829,8 @@ for ly=lystart to lyend
             position object obj,objx#,50+((gridlayer+ly)*100.0),objy#
             rem set alpha for real object
             if shroudstatic=1
-               rem FPGC - 090610 - alpha changes if viewing through a wall
                remstart
-               tthisalpha=100
-               if gridentity>0
-                tthisdx#=objx#-camera position x()
-                tthisdz#=objy#-camera position z()
-                tthisdd#=sqrt(abs(tthisdx#*tthisdx#)+abs(tthisdz#*tthisdz#))
-                tthisdx#=gridentityposx#-camera position x()
-                tthisdz#=gridentityposz#-camera position z()
-                tthisdd2#=sqrt(abs(tthisdx#*tthisdx#)+abs(tthisdz#*tthisdz#))
-                if tthisdd#<200 and tthisdd#<tthisdd2#
-                 tthisalpha=tthisdd#-100
-                 if tthisalpha>100 then tthisalpha=100
-                 if tthisalpha<10 then tthisalpha=10
-                endif
-                disable object zdepth obj
-               else
-                enable object zdepth obj
-               endif
-               show object obj : set alpha mapping on obj,tthisalpha
-               remend
+               rem V118 - 050211 - many users complain this is more of a nuisance, so removed it
                if gridentity>0
                 for ttto=0 to 99
                  if limb exist(obj,ttto)=1
@@ -48926,6 +48853,7 @@ for ly=lystart to lyend
                  endif
                 next ttto
                endif
+               remend
                show object obj : set alpha mapping on obj,100
             else
                if perc#<=0.0
