@@ -35006,7 +35006,7 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
  endif
  `if physicsdebug=1 then print "GRAVITY VALUE=";grav#
  `
- if jumpaction=0
+ if jumpaction=0 and jumpactionnorepeat=0
   if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
    rem reduce influence of movement when underwater
    tunderwaterspeed#=timeelapsed#*0.3 : rem V118 - sped up from 0.1 to improve gameplay
@@ -35041,7 +35041,7 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
   if player(plrid).health>0 or playerstartstrength=0
    if (plrkeySPACE)=1 and jumpaction=0 and meridinglift=0 and crouchmode=0 and jumpactionnorepeat=0 and grav#>-1
     jumpspeed#=speed# : jumpangle#=camera angle y() : leapedlanded=1
-    camvely#=0
+    camvely#=0.0
     camforcey#=playerdefaultjumpheight
     camforcey#=camforcey#*(0.5+(cameradampen#/2.0))
     rem V118 - 050211 - jump direction can be irratic coming from motion values
@@ -35180,7 +35180,7 @@ if deactivatecollision=0 and skipcol=0
  `
  rem ellipse test for final player mode (stood or crouch)
  camvolumecollisioncausingdownwardadjust=0
- if static volume(ctox#,ctoy#-ellipsecentery#,ctoz#,ctx#,cty#-ellipsecentery#,ctz#,ellipsevolumesize#)=1 and jumpactionnorepeat=0
+ if static volume(ctox#,ctoy#-ellipsecentery#,ctoz#,ctx#,cty#-ellipsecentery#,ctz#,ellipsevolumesize#)=1
   if physicsdebug=1 then print "volumecollision"
   adjx#=get static collision x()
   adjy#=get static collision y()
@@ -35197,29 +35197,31 @@ if deactivatecollision=0 and skipcol=0
   cty#=ctoy#+adjy#
   ctz#=ctoz#+adjz#
   rem gravity defeated?
-  if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
-   rem no gravity to defeat when in water
-  else
-   if tstaticfloor=1 and grav#<0 then tgravitydefeated=1
-  endif
-  rem handle if collide while jumping
-  if jumpaction<>0 and camvely#>5.0 and cty#-scty#<0.0 then camvely#=camvely#*-1 : jumpaction=0
-  rem V118 - 310111 - re-introduce to solve stair collision issue
-  if abs(ctx#-sctx#)+abs(ctz#-sctz#)>8
-   rem prevent player penetrating half-height geometry (metal stairs)
-   camvelx#=ctx#-camerapositionx
-   camvely#=cty#-camerapositiony
-   camvelz#=ctz#-camerapositionz
-   if jumpactionnorepeat=0
-    jumpmotionx#=0 : jumpmotionz#=0 : jumpaction=0
-   endif
+  if jumpactionnorepeat=0
    if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
-    rem underwater ascent okay
+    rem no gravity to defeat when in water
    else
-    if camvely#>0 then camvely#=0
+    if tstaticfloor=1 and grav#<0 then tgravitydefeated=1
    endif
-   rem wipe out flyforce too as hit something to stop hero
-   camflyforcex#=0 : camflyforcey#=0 : camflyforcez#=0
+   rem handle if collide while jumping
+   if jumpaction<>0 and camvely#>5.0 and cty#-scty#<0.0 then camvely#=camvely#*-1 : jumpaction=0
+   rem V118 - 310111 - re-introduce to solve stair collision issue
+   if abs(ctx#-sctx#)+abs(ctz#-sctz#)>8
+    rem prevent player penetrating half-height geometry (metal stairs)
+    camvelx#=ctx#-camerapositionx
+    camvely#=cty#-camerapositiony
+    camvelz#=ctz#-camerapositionz
+    if jumpactionnorepeat=0
+     jumpmotionx#=0 : jumpmotionz#=0 : jumpaction=0
+    endif
+    if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
+     rem underwater ascent okay
+    else
+     if camvely#>0 then camvely#=0
+    endif
+    rem wipe out flyforce too as hit something to stop hero
+    camflyforcex#=0 : camflyforcey#=0 : camflyforcez#=0
+   endif
   endif
  endif
  rem if underwater, perform upward ray cast, and prevent upward movement if hit geometry
