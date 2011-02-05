@@ -7993,7 +7993,7 @@ _entity_monitorforsplash:
     if entityelement(e).eleprof.physics=2
      velocity#=velocity#*10.0
     endif
-    if velocity#>15.0
+    if velocity#>10.0
      rem regular underwater handling
      oldvelx#=ODE GET BODY LINEAR VELOCITY X(entityelement(e).obj)*0.97
      oldvely#=ODE GET BODY LINEAR VELOCITY Y(entityelement(e).obj)*0.97
@@ -8012,7 +8012,6 @@ _entity_monitorforsplash:
       decalscalemodx=20+(abs(entityelement(e).eleprof.phyweight)/50.0) : decalscalemody=decalscalemodx
       decalalpha=15
       originatore=0 : gosub _decalelement_create
-      `
       rem splash
       entityelement(e).decalloop=1
       decalx=object position x(entityelement(e).obj)
@@ -8029,7 +8028,7 @@ _entity_monitorforsplash:
    else
     rem entity in IN water
     rem if entity disturbing surface, fire off random rippe now and then
-    if rnd(150)=0 and waterdecalripple<>0
+    if rnd(150)=0 and waterdecalripple<>0 and entityelement(e).active=1
      rem and only if water does ripple
      if abs(object position y(entityelement(e).obj)-waterheight#)<25.0
       decalid=waterdecalripple
