@@ -2529,17 +2529,6 @@ type shadowlighttype
 endtype
 dim shadowlight(0) as shadowlighttype
 
-rem Light Table used to accelerate lighting of entities
-type lighttabletype
- r as float
- g as float
- b as float
- x as float
- y as float
- z as float
-endtype
-dim lighttable(viscolx,viscoly,viscolz) as lighttabletype
-
 rem Data structure for Bit-Fragments
 type bitdetailstype
  max as integer
@@ -3863,7 +3852,6 @@ _main_game_freeleveldata:
   undim segmentprofile()
   undim map()
   undim viscolmap()
-  undim lighttable()
   undim refmap()
   undim mapolay()
   undim olaylist()
@@ -10494,6 +10482,7 @@ _entity_deducthealth:
         recx#=entityelement(e).x
         recy#=entityelement(e).y
         recz#=entityelement(e).z
+        recentityindex=e
         gosub _lighting_managegloballightingreciever
         gosub _part_createfragment
         rem Forces object invisible (replaced by fragments)
@@ -15226,6 +15215,8 @@ if aiindex>0
         infinilight(entityelement(e).eleprof.light.index).islit=1
        endif
       endif
+      rem V118 - entities need to be jogged so they re-capture the new lighting profile
+      for tttte=1 to entityelementlist : entityelement(tttte).colr=-1 : next tttte
      endcase
      case AIACTLIGHTOFF:
       entityelement(e).eleprof.light.islit=0
@@ -15234,6 +15225,8 @@ if aiindex>0
         infinilight(entityelement(e).eleprof.light.index).islit=0
        endif
       endif
+      rem V118 - entities need to be jogged so they re-capture the new lighting profile
+      for tttte=1 to entityelementlist : entityelement(tttte).colr=-1 : next tttte
      endcase
      case AIACTLIGHTRED:
       dw=entityelement(e).eleprof.light.color
@@ -15241,6 +15234,8 @@ if aiindex>0
       if gdynamiclightingstate=1
        infinilight(entityelement(e).eleprof.light.index).colrgb.r=aiactionseq(seq).value
       endif
+      rem V118 - entities need to be jogged so they re-capture the new lighting profile
+      for tttte=1 to entityelementlist : entityelement(tttte).colr=-1 : next tttte
      endcase
      case AIACTLIGHTGREEN:
       dw=entityelement(e).eleprof.light.color
@@ -15248,6 +15243,8 @@ if aiindex>0
       if gdynamiclightingstate=1
        infinilight(entityelement(e).eleprof.light.index).colrgb.g=aiactionseq(seq).value
       endif
+      rem V118 - entities need to be jogged so they re-capture the new lighting profile
+      for tttte=1 to entityelementlist : entityelement(tttte).colr=-1 : next tttte
      endcase
      case AIACTLIGHTBLUE:
       dw=entityelement(e).eleprof.light.color
@@ -15255,12 +15252,16 @@ if aiindex>0
       if gdynamiclightingstate=1
        infinilight(entityelement(e).eleprof.light.index).colrgb.b=aiactionseq(seq).value
       endif
+      rem V118 - entities need to be jogged so they re-capture the new lighting profile
+      for tttte=1 to entityelementlist : entityelement(tttte).colr=-1 : next tttte
      endcase
      case AIACTLIGHTRANGE:
       entityelement(e).eleprof.light.range=aiactionseq(seq).value
       if gdynamiclightingstate=1
        infinilight(entityelement(e).eleprof.light.index).range=aiactionseq(seq).value
       endif
+      rem V118 - entities need to be jogged so they re-capture the new lighting profile
+      for tttte=1 to entityelementlist : entityelement(tttte).colr=-1 : next tttte
      endcase
      case AIACTLIGHTINTENSITY:
       intensity#=aiactionseq(seq).value
@@ -15271,6 +15272,8 @@ if aiindex>0
        infinilight(entityelement(e).eleprof.light.index).colrgb.g=rgbg(dw)*intensity#
        infinilight(entityelement(e).eleprof.light.index).colrgb.b=rgbb(dw)*intensity#
       endif
+      rem V118 - entities need to be jogged so they re-capture the new lighting profile
+      for tttte=1 to entityelementlist : entityelement(tttte).colr=-1 : next tttte
      endcase
      `
      case AIACTHUDRESET:
@@ -26313,29 +26316,17 @@ endif
 return
 
 _lighting_managegloballightingreciever:
-
-rem Optimisation Table for quick-re-reference of a particular grid location
-recx=recx#/25
-recy=recy#/100
-recz=recz#/-25
-if recx<0 then recx=0
-if recy<0 then recy=0
-if recz<0 then recz=0
-if recx>viscolx then recx=viscolx
-if recy>viscoly then recy=viscoly
-if recz>viscolz then recz=viscolz
-`if lighttable(recx,recy,recz).x>0
-if lighttable(recx,recy,recz).x>0 and 0
  `
- rem Return quick info from pre-calculated table
- avlightposx#=lighttable(recx,recy,recz).x
- avlightposy#=lighttable(recx,recy,recz).y
- avlightposz#=lighttable(recx,recy,recz).z
- avlightcolr#=lighttable(recx,recy,recz).r
- avlightcolg#=lighttable(recx,recy,recz).g
- avlightcolb#=lighttable(recx,recy,recz).b
- `
-else
+ rem Optimisation Table for quick-re-reference of a particular grid location
+ recx=recx#/25
+ recy=recy#/100
+ recz=recz#/-25
+ if recx<0 then recx=0
+ if recy<0 then recy=0
+ if recz<0 then recz=0
+ if recx>viscolx then recx=viscolx
+ if recy>viscoly then recy=viscoly
+ if recz>viscolz then recz=viscolz
  `
  rem Reset ready to store strongest point
  avlightposx#=mex# : avlightposy#=mey# : avlightposz#=mez#
@@ -26349,49 +26340,55 @@ else
  array index to top infinilight()
  while array index valid(infinilight())
   `
-  rem Collect position of light
-  ldistx#=infinilight().x-recx#
-  ldisty#=infinilight().y-recy#
-  ldistz#=infinilight().z-recz#
-  ldist#=sqrt(abs(ldistx#*ldistx#)+abs(ldisty#*ldisty#)+abs(ldistz#*ldistz#))
-  `
-  rem Relatve to overall distance (influence)
-  if ldist#<=infinilight().range
-   tlightpower#=cos((ldist#/infinilight().range)*90)
-  else
-   tlightpower#=0
-  endif
-  `
-  rem for all lights within range
-  rem FPGC - 050710 - above did not work well because a light leaving the range would
-  rem instantly cause the average light to JUMP, making shaded characters look very odd
-  rem instead use strength of proximity to player to weight light influences within range
-  `if ldist#<infinilight().range and infinilight().islit=1
-  tplayercareabout#=1000.0
-  tdiffx#=mex#-infinilight().x
-  tdiffy#=mey#-infinilight().y
-  tdiffz#=mez#-infinilight().z
-  tdiff#=sqrt(abs(tdiffx#*tdiffx#)+abs(tdiffy#*tdiffy#)+abs(tdiffz#*tdiffz#))
-  tlightrawstrength#=1.0-(tdiff#/tplayercareabout#) : rem player can apprecirate/care about direction of light within this range
-  tlightrawstrength#=tlightrawstrength#*tlightpower#
-  if tlightrawstrength#<0.0 then tlightrawstrength#=0.0
-  if tlightrawstrength#>1.0 then tlightrawstrength#=1.0
-  if infinilight().islit=1 and tdiff#<tplayercareabout#
+  rem V118 - instantly skip a light if it is dynamic and the entity (if specified) has no effect (FF provides lighting)
+  okaytolight=1
+  rem V118 - 050210 - do we WANT to change the underlying behaviour - no
+  `if recentityindex>0 and infinilight().type=1
+  ` if entityelement(recentityindex).eleprof.usingeffect=0 then okaytolight=0
+  `endif
+  if okaytolight=1
    `
-   rem Count visible illuminations
-   avlightposx#=avlightposx#+(infinilight().x*tlightrawstrength#)
-   avlightposy#=avlightposy#+(infinilight().y*tlightrawstrength#)
-   avlightposz#=avlightposz#+(infinilight().z*tlightrawstrength#)
-   tqtyav#=tqtyav#+tlightrawstrength#
-   avlightcolr#=avlightcolr#+(infinilight().colrgb.r*tlightpower#)
-   avlightcolg#=avlightcolg#+(infinilight().colrgb.g*tlightpower#)
-   avlightcolb#=avlightcolb#+(infinilight().colrgb.b*tlightpower#)
-   avlightrange#=avlightrange#+(ldist#*tlightpower#)
-   inc tqty
+   rem Collect position of light
+   ldistx#=infinilight().x-recx#
+   ldisty#=infinilight().y-recy#
+   ldistz#=infinilight().z-recz#
+   ldist#=sqrt(abs(ldistx#*ldistx#)+abs(ldisty#*ldisty#)+abs(ldistz#*ldistz#))
    `
-   rem check for dynamic type
-   if infinilight().type=1
-    tlightinfluencedbydynamiclight=1
+   rem Relatve to overall distance (influence)
+   if ldist#<=infinilight().range
+    tlightpower#=cos((ldist#/infinilight().range)*90)
+   else
+    tlightpower#=0
+   endif
+   `
+   rem for all lights within range
+   tplayercareabout#=1000.0
+   tdiffx#=mex#-infinilight().x
+   tdiffy#=mey#-infinilight().y
+   tdiffz#=mez#-infinilight().z
+   tdiff#=sqrt(abs(tdiffx#*tdiffx#)+abs(tdiffy#*tdiffy#)+abs(tdiffz#*tdiffz#))
+   tlightrawstrength#=1.0-(tdiff#/tplayercareabout#) : rem player can apprecirate/care about direction of light within this range
+   tlightrawstrength#=tlightrawstrength#*tlightpower#
+   if tlightrawstrength#<0.0 then tlightrawstrength#=0.0
+   if tlightrawstrength#>1.0 then tlightrawstrength#=1.0
+   if infinilight().islit=1 and tdiff#<tplayercareabout#
+    `
+    rem Count visible illuminations
+    avlightposx#=avlightposx#+(infinilight().x*tlightrawstrength#)
+    avlightposy#=avlightposy#+(infinilight().y*tlightrawstrength#)
+    avlightposz#=avlightposz#+(infinilight().z*tlightrawstrength#)
+    tqtyav#=tqtyav#+tlightrawstrength#
+    avlightcolr#=avlightcolr#+(infinilight().colrgb.r*tlightpower#)
+    avlightcolg#=avlightcolg#+(infinilight().colrgb.g*tlightpower#)
+    avlightcolb#=avlightcolb#+(infinilight().colrgb.b*tlightpower#)
+    avlightrange#=avlightrange#+(ldist#*tlightpower#)
+    inc tqty
+    `
+    rem check for dynamic type
+    if infinilight().type=1
+     tlightinfluencedbydynamiclight=1
+    endif
+    `
    endif
    `
   endif
@@ -26419,26 +26416,12 @@ else
  if avlightcolg#>255 then avlightcolg#=255
  if avlightcolb#>255 then avlightcolb#=255
  `
- rem Record info in light table
- lighttable(recx,recy,recz).x=avlightposx#
- lighttable(recx,recy,recz).y=avlightposy#
- lighttable(recx,recy,recz).z=avlightposz#
- lighttable(recx,recy,recz).r=avlightcolr#
- lighttable(recx,recy,recz).g=avlightcolg#
- lighttable(recx,recy,recz).b=avlightcolb#
- `
- rem if ANY of the light is dynamically generated, cannot keep quick-ref as it might change
- if tlightinfluencedbydynamiclight=1
-  lighttable(recx,recy,recz).x=0
- endif
- `
-endif
-
 return
 
 _lighting_managegloballighting:
  `
  recx#=mex# : recy#=mey# : recz#=mez#
+ recentityindex=0
  gosub _lighting_managegloballightingreciever
  `
 return
@@ -26523,11 +26506,13 @@ _lighting_applyentitycolor:
   entityelement(e).colr=tcurrentcolx : entityelement(e).colg=tcurrentcoly : entityelement(e).colb=tcurrentcolz
   `
   rem calculate light from base position
+  recentityindex=e
   gosub _lighting_managegloballightingreciever
   `
   rem Apply average colour
   teffectid=entityelement(e).eleprof.usingeffect
   if teffectid>0
+   `
    rem apply shader values
    r=make vector4(1)
    set vector4 1,avlightposx#,avlightposy#,avlightposz#,1.0
@@ -26551,22 +26536,18 @@ _lighting_applyentitycolor:
    if activatedynamiclightsdebug=1 then entitydebug$(e)=str$(int(avlightcolr#))+","+str$(int(avlightcolg#))+","+str$(int(avlightcolb#))
    if entityprofile(entid).isweapon>0 or entityprofile(entid).isammo>0
     set object emissive entityelement(e).obj,rgb(255,255,255)
-    `
     if entityelement(e).attachmentobj>0
      if object exist(entityelement(e).attachmentobj)
       set object emissive entityelement(e).attachmentobj,rgb(255,255,255)
      endif
     endif
-    `
    else
     set object emissive entityelement(e).obj,rgb(avlightcolr#/2,avlightcolg#/2,avlightcolb#/2)
-    `
     if entityelement(e).attachmentobj>0
      if object exist(entityelement(e).attachmentobj)
       set object emissive entityelement(e).attachmentobj,rgb(avlightcolr#/2,avlightcolg#/2,avlightcolb#/2)
      endif
     endif
-    `
    endif
   endif
   `
