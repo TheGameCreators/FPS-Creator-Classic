@@ -9236,6 +9236,11 @@ if tindex<>0
      decalx=limb position x(tobj,tobjlimb)
      decaly=limb position y(tobj,tobjlimb)
      decalz=limb position z(tobj,tobjlimb)
+     rem V118 - 050210 - decal fire spot 'inside' gun, needs to be at end
+     tslidex#=newxvalue(0.0,entityelement(e).ry,25.0)     
+     tslidez#=newzvalue(0.0,entityelement(e).ry,25.0)  
+     decalx=decalx+tslidex#
+     decalz=decalz+tslidez#
     endif
    endif
    decalorient=3
