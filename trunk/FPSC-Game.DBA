@@ -26593,6 +26593,45 @@ for tef=1 to effectbankmax
  set effect constant vector teffectid,"LightColor",1
  set vector4 1,tamb#,tamb#,tamb#,1.0
  set effect constant vector teffectid,"AmbiColor",1
+ `
+ rem V118 - 050211 - also send DYNAMIC lighting info to shaders (in case they support dynamic lighting)
+ lightindex=2
+ array index to top infinilightshortlist()
+ while array index valid(infinilightshortlist())
+  tindex=infinilightshortlist() : tobj=infinilight(tindex).id
+  if infinilight(tindex).type=1
+   set vector4 1,infinilight(tindex).x,infinilight(tindex).y,infinilight(tindex).z,1
+   if lightindex=2 then set effect constant vector teffectid,"g_lights_pos0",1 
+   if lightindex=3 then set effect constant vector teffectid,"g_lights_pos1",1 
+   if lightindex=4 then set effect constant vector teffectid,"g_lights_pos2",1 
+   if lightindex=5 then set effect constant vector teffectid,"g_lights_pos3",1 
+   att#=infinilight(tindex).range : att#=att#/3.0 : att#=1.0/(att#*att#)
+   set vector4 1,1.0,0,att#,0.0
+   if lightindex=2 then set effect constant vector teffectid,"g_lights_atten0",1 
+   if lightindex=3 then set effect constant vector teffectid,"g_lights_atten1",1 
+   if lightindex=4 then set effect constant vector teffectid,"g_lights_atten2",1 
+   if lightindex=5 then set effect constant vector teffectid,"g_lights_atten3",1 
+   colrgbr#=infinilight(tindex).colrgb.r : colrgbr#=colrgbr#/255.0
+   colrgbg#=infinilight(tindex).colrgb.g : colrgbg#=colrgbg#/255.0
+   colrgbb#=infinilight(tindex).colrgb.b : colrgbb#=colrgbb#/255.0
+   set vector4 1,colrgbr#,colrgbg#,colrgbb#,1
+   if lightindex=2 then set effect constant vector teffectid,"g_lights_diffuse0",1 
+   if lightindex=3 then set effect constant vector teffectid,"g_lights_diffuse1",1 
+   if lightindex=4 then set effect constant vector teffectid,"g_lights_diffuse2",1 
+   if lightindex=5 then set effect constant vector teffectid,"g_lights_diffuse3",1 
+   inc lightindex
+  endif
+  next array index infinilightshortlist()
+ endwhile
+ set vector4 1,0,0,0,0
+ while lightindex<7
+  if lightindex=2 then set effect constant vector teffectid,"g_lights_diffuse0",1 
+  if lightindex=3 then set effect constant vector teffectid,"g_lights_diffuse1",1 
+  if lightindex=4 then set effect constant vector teffectid,"g_lights_diffuse2",1 
+  if lightindex=5 then set effect constant vector teffectid,"g_lights_diffuse3",1 
+  inc lightindex
+ endwhile
+ `
 next tef
 r=delete vector4(1)
 
