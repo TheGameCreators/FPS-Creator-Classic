@@ -236,6 +236,7 @@ global hudhaveplayername as integer : hudhaveplayername=0
 global localipaddress$ : localipaddress$=""
 global serveripaddress$ : serveripaddress$=""
 global playername$ : playername$=""
+global soundfrequencymodifier : soundfrequencymodifier=0
 `
 rem V109 BETA3 - added to control change to player jump height
 global playerdefaultjumpheight : playerdefaultjumpheight=50
@@ -7998,7 +7999,8 @@ _entity_monitorforsplash:
  rem entity can have a splash if they enter the water at force
  if (entityelement(e).eleprof.physics=1 or entityelement(e).eleprof.physics=2) and splashdecalid>0
   rem if regular physics obj or character obj
-  waterlevelforsplash#=waterheight#
+  rem ensure this does not happen if entity drops 'near' water line (deduct a margin)
+  waterlevelforsplash#=waterheight#-10.0
   if entityelement(e).eleprof.physics=2
    rem character/ragdoll center
    tactualbaseofobject#=object position y(entityelement(e).obj)
@@ -8009,14 +8011,14 @@ _entity_monitorforsplash:
    if entityelement(e).decalloop=0
     rem measure velocity on impact with water
     velocity#=0.0
-    if entityelement(e).obj>0 and entityelement(e).obj<array count(phyobjele())
+    if entityelement(e).obj>0 and entityelement(e).obj<=array count(phyobjele())
      ttobj=entityelement(e).obj
      velocity#=abs(ODE GET BODY LINEAR VELOCITY Y(ttobj))
     endif
     if entityelement(e).eleprof.physics=2
      velocity#=velocity#*10.0
     endif
-    if velocity#>10.0
+    if velocity#>7.0
      rem regular underwater handling
      oldvelx#=ODE GET BODY LINEAR VELOCITY X(entityelement(e).obj)*0.97
      oldvely#=ODE GET BODY LINEAR VELOCITY Y(entityelement(e).obj)*0.97
@@ -8039,15 +8041,16 @@ _entity_monitorforsplash:
       entityelement(e).decalloop=1
       decalx=object position x(entityelement(e).obj)
       decalz=object position z(entityelement(e).obj)
-      if camera position y()<waterheight#
-       decaly=waterheight#
-      else
-       decaly=(waterheight#-50)+(velocity#/2.0)
-      endif
-      if decaly>waterheight# then decaly=waterheight#
+      rem V118 - 060211 - splash needs to be on surface at all times (submerged splash decal looks odd)
+      decaly=waterheight#
+      rem V118 - 060211 - modify scale based on velocity and size of object
+      tscaleofobject#=object size(entityelement(e).obj)/80.0
+      decalscalemodx=(decalscalemodx/20.0)*(velocity#-5.0)*tscaleofobject# : decalscalemody=decalscalemodx
       gosub _entity_makeasplash
      endif
     endif
+    rem ensure we don't splash when exit water
+    entityelement(e).decalloop=1
    else
     rem entity in IN water
     rem if entity disturbing surface, fire off random rippe now and then
@@ -8087,8 +8090,8 @@ _entity_makeasplash:
   rem show splash
   decalid=splashdecalid
   decalorient=0
-  decalscalemodx=100
-  decalscalemody=decalscalemodx
+  `decalscalemodx=100 `specified by calling code (adjusted for velocity and object size)
+  `decalscalemody=decalscalemodx
   decalalpha=velocity# : if decalalpha>50 then decalalpha=50
   originatore=0 : gosub _decalelement_create
   `
@@ -34212,7 +34215,7 @@ for m=0 to gmaterialmax
   if file exist(snd$)=1
    load 3dsound snd$,tbase
    addfiletocollection(snd$)
-   set sound speed tbase,material(m).freq
+   set sound speed tbase,material(m).freq+soundfrequencymodifier
    material(m).noise=tbase
    inc tbase
   else
@@ -34223,7 +34226,7 @@ for m=0 to gmaterialmax
   if file exist(snd$)=1
    load 3dsound snd$,tbase
    addfiletocollection(snd$)
-   set sound speed tbase,material(m).freq
+   set sound speed tbase,material(m).freq+soundfrequencymodifier
    material(m).scrapeid=tbase
    for tclones=1 to 4
     tbaseclone=tbase+tclones
@@ -34238,7 +34241,7 @@ for m=0 to gmaterialmax
   if file exist(snd$)=1
    load 3dsound snd$,tbase
    addfiletocollection(snd$)
-   set sound speed tbase,material(m).freq
+   set sound speed tbase,material(m).freq+soundfrequencymodifier
    material(m).impactid=tbase
    for tclones=1 to 4
     tbaseclone=tbase+tclones
@@ -34253,7 +34256,7 @@ for m=0 to gmaterialmax
   if file exist(snd$)=1
    load 3dsound snd$,tbase
    addfiletocollection(snd$)
-   set sound speed tbase,material(m).freq
+   set sound speed tbase,material(m).freq+soundfrequencymodifier
    material(m).destroyid=tbase
    for tclones=1 to 4
     tbaseclone=tbase+tclones
@@ -34300,7 +34303,7 @@ _ode_triggermaterialsound:
     if sound playing(ts)=0
      playinternalBC3dsound(ts,tsx#,tsy#,tsz#,25.0)
      set sound volume ts,80.0+(tvol#*0.2)
-     if tspd#>2000 then set sound speed ts,tspd#
+     if tspd#>2000 then set sound speed ts,tspd#+soundfrequencymodifier
      exit
     endif
    endif
@@ -36190,7 +36193,7 @@ _ode_sounds:
          playinternalBC3dsound(s,object position x(bangobj),object position y(bangobj),object position z(bangobj),25.0)
          phyobjsounding(bangobj)=5
          set sound volume s,80.0+(tvol#*0.2)
-         if tspd#>2000 then set sound speed s,tspd#
+         if tspd#>2000 then set sound speed s,tspd#+soundfrequencymodifier
          exit
         endif
        endif
@@ -54048,9 +54051,6 @@ _water_control:
  Rem Check is swimming along surface
  tnearsurfaceofwater=abs(camera position y()-waterheight#)
  if camera position y()>waterheight#
-  `if playerunderwater=1 and tnearsurfaceofwater>=15
-  ` ode set gravity physicsplayerborble,1
-  `endif
   if playerunderwater=1
    Rem Leave water sound
    if playersound(1,17)>0
@@ -54058,6 +54058,18 @@ _water_control:
    endif
    if waterunderwatersoundid>0 then stop sound waterunderwatersoundid
    triggersplash=2
+   `
+   rem V118 - 060211 - change ALL sounds back when return from underwater
+   if soundfredrop=1
+    for s=1 to 60000
+     if sound exist(s)=1
+      set sound speed s,sound speed(s)+10000
+     endif
+    next s
+    soundfredrop=0
+    soundfrequencymodifier=0
+   endif
+   `
   endif
   playerunderwater=0
  else
@@ -54068,6 +54080,18 @@ _water_control:
    endif
    if waterunderwatersoundid>0 then loop sound waterunderwatersoundid
    triggersplash=1
+   `
+   rem V118 - 060211 - change ALL sounds when underwater
+   if soundfredrop=0
+    for s=1 to 60000
+     if sound exist(s)=1
+      set sound speed s,sound speed(s)-10000
+     endif
+    next s
+    soundfredrop=1
+    soundfrequencymodifier=-10000
+   endif
+   `
   endif
   playerunderwater=1
  endif
