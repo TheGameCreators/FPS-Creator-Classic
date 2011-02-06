@@ -2931,8 +2931,18 @@ rem Default, unless overridden by BUILD -B
 global setupfilename$
 setupfilename$="setup.ini"
 
+rem V118 - 060211 - defeat 'cumilative virtual memory limit of 1.8GB' by terminating
+rem FPSC-Game.exe each complete level, and re-launching to start new heap each time
+global startbuildinglevelfromdir$ : startbuildinglevelfromdir$=get dir$()
+global startbuildingleveloverride : startbuildingleveloverride=1
+tcommandline$=cl$()
+if lower$(left$(tcommandline$,3))="-bl"
+ startbuildingleveloverride=val(right$(tcommandline$,len(tcommandline$)-3))
+ tcommandline$="-b"
+endif
+
 rem COMMANDLINE Info
-if lower$(cl$())="-b"
+if lower$(tcommandline$)="-b"
  `
  rem BUILD settings
  gcompilestandaloneexe=1
@@ -3653,15 +3663,6 @@ rem if gcompilestandaloneexe=1 and gimageblockmode=1 then GUI_ATIB()
 rem Run gameflow default screen path
 timestampactivity(0,"Game Flow Started..")
 gosub _gameflow_default
-
-`rem Forced FREEWARE PROMPT (EA ONLY PROMPT)
-`if gcompilestandaloneexe=1 or grealgameviewstate=1
-` filename$="languagebank\"+language$+"\gamecore\huds\freeware.jpg"
-` img=loadinternalimagecompressquality(filename$,5,1)
-`endif
-`if grealgameviewstate=1
-` screenprompt(img,strarr$(124))
-`endif
 `
 rem V109BETA5 - 250408 - save materials that have been used in this game
 if gcompilestandaloneexe=1
@@ -3676,34 +3677,30 @@ if gcompilestandaloneexe=1
  guniquegamecode$=genuniqueservercode(gbuildname$)
  rem Build Executable Game Mode
  gosub _main_game_buildexe
- rem close dialog (cannot reload data into it when RELOAD MAPEDITOR)
- open file map 1, "FPSBUILDGAME"
- set file map dword 1, 24, 1
- wait for file map event 1
- close file map 1
- rem call map editor back
- open file map 1, "FPSEXCHANGE"
- set file map string$ 1, 1000, "FPSC-MapEditor.exe"
- set file map string$ 1, 1256, "-r"
- set file map dword 1, 994, 0
- set file map dword 1, 924, 1
- wait for file map event 1
- close file map 1
- rem FPSXV10X - time for CPU(FPSCreator.exe) to conduct filemap scan
- `if gexitpromptreportmodestate<>0
- ` backdrop off
- ` show window
- ` position camera 0,50000,0
- ` while shiftkey()=0
- `  cls 0
- `  ink rgb(rnd(255),rnd(255),rnd(255)),0
- `  center text screen width()/2,(screen height()/2)-20,"USE 'FPSCREATORDUMPMEM.EXE' NOW!"
- `  center text screen width()/2,(screen height()/2)+00,"USE PROCESS VIEW TO SEE IF FPSC-MAPEDITOR.EXE APPEARS (give it one minute)"
- `  center text screen width()/2,(screen height()/2)+20,"PRESS SHIFT WHEN TESTS COMPLETE"
- `  sleep 1
- `  sync
- ` endwhile
- `endif
+ rem V118 - 060211 - new system terminates build exe after one level, and re-launches if more levels
+ inc level
+ if level<=glevelmax
+  rem NEXT level needs to be build
+  timestampactivity(0,"Terminate build executable to start building level "+str$(level))
+  set dir startbuildinglevelfromdir$
+  execute file "FPSC-Game.exe","-bl"+str$(level),"",0
+  end
+ else
+  rem NOW can return to map editor
+  rem close dialog (cannot reload data into it when RELOAD MAPEDITOR)
+  open file map 1, "FPSBUILDGAME"
+  set file map dword 1, 24, 1
+  wait for file map event 1
+  close file map 1
+  rem call map editor back
+  open file map 1, "FPSEXCHANGE"
+  set file map string$ 1, 1000, "FPSC-MapEditor.exe"
+  set file map string$ 1, 1256, "-r"
+  set file map dword 1, 994, 0
+  set file map dword 1, 924, 1
+  wait for file map event 1
+  close file map 1
+ endif
 endif
 `
 rem V109 BETA3 - 220408 - close read imageblock (write imageblock closed inside buildexe)
@@ -8042,10 +8039,13 @@ _entity_monitorforsplash:
       decalx=object position x(entityelement(e).obj)
       decalz=object position z(entityelement(e).obj)
       rem V118 - 060211 - splash needs to be on surface at all times (submerged splash decal looks odd)
-      decaly=waterheight#
       rem V118 - 060211 - modify scale based on velocity and size of object
       tscaleofobject#=object size(entityelement(e).obj)/80.0
-      decalscalemodx=(decalscalemodx/20.0)*(velocity#-5.0)*tscaleofobject# : decalscalemody=decalscalemodx
+      decalscalemodx=(decalscalemodx/20.0)*(velocity#-5.0)*tscaleofobject#
+      if decalscalemodx<0 then decalscalemodx=0
+      if decalscalemodx>100 then decalscalemodx=100
+      decalscalemody=decalscalemodx
+      decaly=waterheight#-((100-decalscalemodx)/2)
       gosub _entity_makeasplash
      endif
     endif
@@ -19399,6 +19399,10 @@ return
 
 _player_savematerialsused:
  `
+ rem V118 - 060211 - with the introduction of water, some materials are ALWAYS used
+ material(17).usedinlevel=1
+ material(18).usedinlevel=1
+ `
  rem V109 BETA5 - 250408 - uses that material
  tmaterialfile$="audiobank\materials\materialsused.bin"
  if file exist(tmaterialfile$)=1 then delete file tmaterialfile$
@@ -30496,7 +30500,13 @@ _gameflow_default:
    rem Set first level
    controlSPACE=1
    controlESCAPE=0
-   level=1
+   `
+   rem V118 - 060211 - when in build mode, the level can 'start' based on 'startbuildingleveloverride'
+   if gcompilestandaloneexe=1
+    level=startbuildingleveloverride
+   else
+    level=1
+   endif
    `
    rem Start level loop
    looplevel=1
@@ -30538,7 +30548,9 @@ _gameflow_default:
      gosub _screen_gameover_init
      `
      rem Will load all levels to gather all files required for standalone
-     inc level : if level>glevelmax then looplevel=0
+     rem V118 - 060211 - new functionality terminates build, and re-launches with next level index set
+     `inc level : if level>glevelmax then looplevel=0
+     looplevel=0
      `
     else
      `
