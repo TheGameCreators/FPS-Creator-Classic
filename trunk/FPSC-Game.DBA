@@ -3635,7 +3635,10 @@ endif
 `
 rem V109 BETA3 - 220408 - build image block OPEN
 if gcompilestandaloneexe=1 and gimageblockmode=1
- if file exist("imageblock.bin")=1 then delete file "imageblock.bin"
+ rem V118 - 060211 - only delete if LEVEL=1 (as we now re-launch build exe and need to retain imageblock from last build)
+ if startbuildingleveloverride=1
+  if file exist("imageblock.bin")=1 then delete file "imageblock.bin"
+ endif
  open imageblock "imageblock.bin",0
  exclude from imageblock "levelbank"
 endif
@@ -5142,9 +5145,12 @@ for p=0 to segmeshpartmax
   `
   rem V118 - 300111 - rather than correct old segment files, if full effects on
   rem but no effect specified (FF), then assume BUMP.FX (handled later by 'better' shader system)
+  quix=0
   if guseeffectonscenesstate=1
    if segmentprofile(segid,p).effect$=""
     segmentprofile(segid,p).effect$="effectbank\bump\bump.fx"
+    tfile$=segmentprofile(segid,p).effect$
+    quix=1
    endif
   endif
   `
@@ -5163,8 +5169,13 @@ for p=0 to segmeshpartmax
     if texuseid=0
      rem some effects need a blank texture if no file available
      if tlayer<=ensureclearlayermax
-      rem black texture if no texture
-      texuseid=loadinternalimagecompressquality("texturebank\common\black.tga",1,0)
+      if lower$(mid$(right$(texfiletouse$,5),1))="n"
+       rem normal texture if intended
+       texuseid=loadinternalimagecompressquality("texturebank\common\normal.dds",1,0)
+      else
+       rem black texture if no texture
+       texuseid=loadinternalimagecompressquality("texturebank\common\black.dds",1,0)
+      endif
      endif
     endif
     if texuseid>0
