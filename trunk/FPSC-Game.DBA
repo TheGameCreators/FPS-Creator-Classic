@@ -7708,6 +7708,27 @@ for e=1 to entityelementlist
     `
     rem update entity object position (keep position for univese vis-culling)
     if entityelement(e).eleprof.physics=1
+     rem V118 - when underwater, can apply extra force to underwater entity
+     if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
+      tdx#=object position x(obj)-camera position x()
+      tdy#=object position y(obj)-camera position y()
+      tdz#=object position z(obj)-camera position z()
+      tdplrdist#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+      tminradius#=object size(obj)*1.5
+      if tdplrdist#<tminradius#
+       rem push force to move entity away from player
+       tpushforce#=(tminradius#-tdplrdist#)*0.5
+       tpushangle#=atanfull(tdx#,tdz#)
+       tdx#=newxvalue(0.0,tpushangle#,tpushforce#)
+       if tdy#>0.0 then tdy#=tpushforce#
+       if tdy#<0.0 then tdy#=tpushforce#*-1.0
+       tdz#=newzvalue(0.0,tpushangle#,tpushforce#)
+       oldvelx#=ODE GET BODY LINEAR VELOCITY X(obj)+tdx#
+       oldvely#=ODE GET BODY LINEAR VELOCITY Y(obj)+tdy#
+       oldvelz#=ODE GET BODY LINEAR VELOCITY Z(obj)+tdz#
+       ode set linear velocity obj,oldvelx#,oldvely#,oldvelz#
+      endif
+     endif
      rem regular physics driven
      entityelement(e).x=object position x(obj)
      entityelement(e).y=object position y(obj)
