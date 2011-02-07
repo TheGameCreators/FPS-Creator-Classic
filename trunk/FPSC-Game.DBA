@@ -6961,6 +6961,9 @@ rem
 
 _entity_startentitiesoff:
  `
+ rem V118 - 070211 - reset level globals (to avoid accessing an entity index that may not exist)
+ lastlogicpriorityfurtheste=0
+ `
  rem Prepare entities for logical usage
  for e=1 to entityelementlist
   if entityelement(e).active=1 and entityelement(e).spawn.leader=0
