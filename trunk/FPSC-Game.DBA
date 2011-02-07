@@ -9273,11 +9273,14 @@ if tindex<>0
      decalx=limb position x(tobj,tobjlimb)
      decaly=limb position y(tobj,tobjlimb)
      decalz=limb position z(tobj,tobjlimb)
-     rem V118 - 050210 - decal fire spot 'inside' gun, needs to be at end
-     tslidex#=newxvalue(0.0,entityelement(e).ry,25.0)     
-     tslidez#=newzvalue(0.0,entityelement(e).ry,25.0)  
-     decalx=decalx+tslidex#
-     decalz=decalz+tslidez#
+     if tobjlimb=0
+      rem V118 - 070211 - only use 25 unit offset IF VWEAP does not have firespot limb set-up
+      rem V118 - 050210 - decal fire spot 'inside' gun, needs to be at end
+      tslidex#=newxvalue(0.0,entityelement(e).ry,25.0)     
+      tslidez#=newzvalue(0.0,entityelement(e).ry,25.0)  
+      decalx=decalx+tslidex#
+      decalz=decalz+tslidez#
+     endif
     endif
    endif
    decalorient=3
@@ -35282,6 +35285,19 @@ if deactivatecollision=0 and skipcol=0
    camvolumecollisioncausingdownwardadjust=1
    if tdst#<10.0
     camvely#=camvely#-5.0
+   endif
+  endif
+ endif
+ rem V118 - 070211 - if jumping, ray cast up to ensure we never penetrate the ceiling
+ if jumpaction=1
+  tdst#=static raycast(ctx#,cty#-5.0,ctz#,ctx#,cty#+15.0,ctz#)
+  if tdst#<>0.0
+   if tdst#<10.0
+    if camvely#>0.0 
+     camvely#=(camvely#*0.5)*-1
+     jumpactionnorepeat=0
+     jumpaction=0
+    endif
    endif
   endif
  endif
