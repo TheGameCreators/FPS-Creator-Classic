@@ -52852,7 +52852,10 @@ _darkai_init:
  `AI Set Radius 20 : AI Set Avoid Mode 5 : rem 5 - avoidance grid system
  `AI SET BLOCKING THRESHOLD 3 : rem number of corpses before grid is marked solid
  rem Hockeykid entity radius and avoidance model
- ai set radius gairadius : ai set avoid mode 1
+ ai set radius gairadius : rem ai set avoid mode 1
+ `
+ rem V118 - 080211 - switch to grid based avoidance system (less likely to push fellows into walls)
+ ai set avoid mode 5 : AI SET BLOCKING THRESHOLD 3
  `
  rem Universe containers (required for static entities)
  for layer=0 to 19
