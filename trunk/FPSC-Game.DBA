@@ -1432,6 +1432,7 @@ type entitytype
  isaltammo as integer
  Rem Airmod - Done <<<
  hideshadow as integer
+ floorpositiony as float
 endtype
 rem Entity Breadcrumbs Data
 type entitybreadcrumbstype
@@ -7895,26 +7896,30 @@ for e=1 to entityelementlist
       endif
      endif
      `
-     rem blob shadow control (all other non local plrs) (might be performance issue here)
+     rem blob shadow control (all other non local plrs)
+     if (gmultiplayergame=0 and entityelement(e).health>0) or (gmultiplayergame=1 and entityelement(e).collisionactive<>0)
+      dst#=static raycast(entityelement(e).x,entityelement(e).y+5,entityelement(e).z,entityelement(e).x,entityelement(e).y-50,entityelement(e).z)
+     else
+      dst#=0.0
+     endif
+     if dst#>0
+      dst#=dst#-5.0
+      tmvszy#=object size y(obj)/2
+      tmvszyforobj#=tmvszy#-(tmvszy#*(entityprofile(entid).scale/100.0))
+      if gmultiplayergame=1
+       rem FPGC - 020810 - arena game does not use ODE characters, so place shadow at obj y base
+       tmvy#=0
+      else
+       tmvy#=0-tmvszy#
+      endif
+      entityelement(e).floorpositiony=(tmvy#-dst#-entityprofile(entid).raisefactor)+0.5
+     else
+      entityelement(e).floorpositiony=50000.0
+     endif
      if entityelement(e).attachmentblobobj>0
       if object exist(entityelement(e).attachmentblobobj)=1
-       if (gmultiplayergame=0 and entityelement(e).health>0) or (gmultiplayergame=1 and entityelement(e).collisionactive<>0)
-        dst#=static raycast(entityelement(e).x,entityelement(e).y+5,entityelement(e).z,entityelement(e).x,entityelement(e).y-50,entityelement(e).z)
-       else
-        dst#=0.0
-       endif
-       if dst#>0
-        dst#=dst#-5.0
-        tmvszy#=(object size y(obj)/2)*(entityprofile(entid).scale/100.0)
-        if gmultiplayergame=1
-         rem FPGC - 020810 - arena game does not use ODE characters, so place shadow at obj y base
-         tmvy#=object position y(obj)
-        else
-         tmvy#=object position y(obj)-tmvszy#
-        endif
-        rem X9 V109 - 14030 - Account for RAISEFACTOR when setting shadow position
-        `position object entityelement(e).attachmentblobobj,object position x(obj),(tmvy#-dst#)+0.5,object position z(obj)
-        position object entityelement(e).attachmentblobobj,object position x(obj),(tmvy#-dst#-entityprofile(entid).raisefactor)+0.5,object position z(obj)
+       if entityelement(e).floorpositiony<50000.0
+        position object entityelement(e).attachmentblobobj,object position x(obj),object position y(obj)+tmvszyforobj#+entityelement(e).floorpositiony,object position z(obj)
         show object entityelement(e).attachmentblobobj
         tsc#=(100.0-dst#) : scale object entityelement(e).attachmentblobobj,tsc#,tsc#,tsc#
        else
@@ -26576,6 +26581,14 @@ _lighting_applyentitycolor:
    set effect constant vector teffectid,"SurfColor",1
    tamb#=guivisualsettings.ambience/100.0 : set vector4 1,tamb#,tamb#,tamb#,1.0
    set effect constant vector teffectid,"AmbiColor",1
+   `
+   rem V118 - 110211 - send floorpositionY to shader if shader uses shadow style functionality
+   tmp1#=entityelement(e).floorpositiony : rem Floor Position Y
+   tmp2#=0 : rem Reserved
+   tmp3#=0 : rem Reserved
+   tmp4#=0 : rem Reserved
+   set vector4 1,tmp1#,tmp2#,tmp3#,tmp4#
+   set effect constant vector teffectid,"FloorPositionY",1
    r=delete vector4(1)
    `
    if entityelement(e).attachmentobj>0
