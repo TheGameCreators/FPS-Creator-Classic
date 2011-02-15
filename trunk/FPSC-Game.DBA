@@ -17332,54 +17332,77 @@ _ai_action_talk:
   endif
  endif
  rem Determine if straight talk, or ordered, or random
- if currentsoundtalkmode>0
+ if currentsoundtalkmode=0
+  playsoundvalue=aiactionseq(seq).value
+ else
   rem ordered/random needs to use filename
-  if aiactionseq(seq).value=-1
-   currentsoundfile$=entityelement(e).eleprof.soundset$
-   aiactionseq(seq).filename=currentsoundfile$
-   aiactionseq(seq).value=0
-  endif
-  rem ordered/random needs to use filename
-  if aiactionseq(seq).value=-2
-   currentsoundfile$=entityelement(e).eleprof.soundset1$
-   aiactionseq(seq).filename=currentsoundfile$
-   aiactionseq(seq).value=0
-  endif
+  `if aiactionseq(seq).value=-1
+   `currentsoundfile$=entityelement(e).eleprof.soundset$
+   `aiactionseq(seq).filename=currentsoundfile$
+   `aiactionseq(seq).value=0
+  `endif
+  `rem ordered/random needs to use filename
+  `if aiactionseq(seq).value=-2
+   `currentsoundfile$=entityelement(e).eleprof.soundset1$
+   `aiactionseq(seq).filename=currentsoundfile$
+   `aiactionseq(seq).value=0
+  `endif
   rem logic for ordered or random
   rem play speech
-  aiactionseq(seq).value=loadinternalsoundcore(aiactionseq(seq).filename,0)
-  if aiactionseq(seq).value=0
-   tfile$="languagebank\"+language$+"\"+aiactionseq(seq).filename
-   aiactionseq(seq).value=loadinternalsoundcore(tfile$,0)
+  `aiactionseq(seq).value=loadinternalsoundcore(aiactionseq(seq).filename,0)
+  playsoundvalue=loadinternalsoundcore(currentsoundfile$,0)
+  `if aiactionseq(seq).value=0
+  if playsoundvalue=0
+   `tfile$="languagebank\"+language$+"\"+aiactionseq(seq).filename
+   `aiactionseq(seq).value=loadinternalsoundcore(tfile$,0)
+   tfile$="languagebank\"+language$+"\"+currentsoundfile$
+   playsoundvalue=loadinternalsoundcore(tfile$,0)
   endif
-  currentsoundfile$=aiactionseq(seq).filename
+  `currentsoundfile$=aiactionseq(seq).filename
   rem find next
   if currentsoundtalkmode=1
    rem find next ordered (blahX.wav) where X is the order number
-   ttn$=left$(right$(aiactionseq(seq).filename,5),1)
+   `ttn$=left$(right$(aiactionseq(seq).filename,5),1)
+   ttn$=left$(right$(currentsoundfile$,5),1)
    ttnn=val(ttn$)
    if ttnn>=1 and ttnn<=9
     inc ttnn
     if ttnn>9 then ttnn=2
-    ttn$=left$(aiactionseq(seq).filename,len(aiactionseq(seq).filename)-5)+str$(ttnn)+".wav"
+    `ttn$=left$(aiactionseq(seq).filename,len(aiactionseq(seq).filename)-5)+str$(ttnn)+".wav"
+    ttn$=left$(currentsoundfile$,len(currentsoundfile$)-5)+str$(ttnn)+".wav"
     if file exist(ttn$)=0
-     ttnn=2 : ttn$=left$(aiactionseq(seq).filename,len(aiactionseq(seq).filename)-5)+str$(ttnn)+".wav"
+     `ttnn=2 : ttn$=left$(aiactionseq(seq).filename,len(aiactionseq(seq).filename)-5)+str$(ttnn)+".wav"
+     ttnn=2 : ttn$=left$(currentsoundfile$,len(currentsoundfile$)-5)+str$(ttnn)+".wav"
     endif
-    aiactionseq(seq).filename=ttn$
+    `aiactionseq(seq).filename=ttn$
+    currentsoundfile$=ttn$
    endif
   endif
   if currentsoundtalkmode=2
    rem random
-   ttn$=left$(right$(aiactionseq(seq).filename,5),1)
+   `ttn$=left$(right$(aiactionseq(seq).filename,5),1)
+   ttn$=left$(right$(currentsoundfile$,5),1)
    ttnn=val(ttn$)
    count=100
    repeat
     ttnn2=2+rnd(7)
-    ttn$=left$(aiactionseq(seq).filename,len(aiactionseq(seq).filename)-5)+str$(ttnn2)+".wav"
+    `ttn$=left$(aiactionseq(seq).filename,len(aiactionseq(seq).filename)-5)+str$(ttnn2)+".wav"
+    ttn$=left$(currentsoundfile$,len(currentsoundfile$)-5)+str$(ttnn2)+".wav"
     dec count
    until (file exist(ttn$)=1 and ttnn2<>ttnn) or count<=0
    if count>0
-    aiactionseq(seq).filename=ttn$
+    `aiactionseq(seq).filename=ttn$
+    currentsoundfile$=ttn$
+   endif
+  endif
+  rem store next filename in entity for next time
+  if aiactionseq(seq).value=-1
+   entityelement(e).eleprof.soundset$=currentsoundfile$
+   entityelement(e).soundset=playsoundvalue
+  else
+   if aiactionseq(seq).value=-2
+    entityelement(e).eleprof.soundset1$=currentsoundfile$
+    entityelement(e).soundset1=playsoundvalue
    endif
   endif
  endif
@@ -17437,8 +17460,10 @@ _ai_action_talk:
     playinternal3dsound(entityelement(e).soundset1,tmpx#,tmpy#,tmpz#)
     entityelement(e).soundlooping=entityelement(e).soundset1
    else
-    playinternal3dsound(aiactionseq(seq).value,tmpx#,tmpy#,tmpz#)
-    entityelement(e).soundlooping=aiactionseq(seq).value
+    `playinternal3dsound(aiactionseq(seq).value,tmpx#,tmpy#,tmpz#)
+    `entityelement(e).soundlooping=aiactionseq(seq).value
+    playinternal3dsound(playsoundvalue,tmpx#,tmpy#,tmpz#)
+    entityelement(e).soundlooping=playsoundvalue
    endif
   endif
  endif
