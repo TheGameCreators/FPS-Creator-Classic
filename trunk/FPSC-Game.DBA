@@ -5250,6 +5250,7 @@ if segpartmax<>-1
   tsegobjfile$=left$(segdir$+seg$,len(segdir$+seg$)-4)+".dbo"
   if file exist(tsegobjfile$)=1 and segobjusedformapeditor=0
    load object tsegobjfile$,segobj
+   set object filter segobj,2
    tsegobjpreloaded=1
   endif
  endif
@@ -27303,6 +27304,7 @@ if desc$<>""
   `
   rem Load entity (compile does not need the dynamic objects)
   load object tfile$,entobj
+  set object filter entobj,2
   set object collision off entobj
   addfiletocollection(tfile$)
   if object exist(entobj)=1
@@ -27314,6 +27316,7 @@ if desc$<>""
     if file exist(tdbofile$)=1
      delete object entobj
      load object tdbofile$,entobj
+     set object filter entobj,2
      set object collision off entobj
     endif
    endif
@@ -27627,6 +27630,8 @@ if file exist(tprofile$)=0
     if field$=tryfield$ then entityprofile(entid).isimmobile=value1
     tryfield$="isobjective"
     if field$=tryfield$ then entityprofile(entid).isobjective=value1
+    tryfield$="alwaysactive"
+    if field$=tryfield$ then entityprofile(entid).phyalways=value1
     `
     tryfield$="ischaracter"
     if field$=tryfield$ then entityprofile(entid).ischaracter=value1
@@ -28762,6 +28767,7 @@ if entityelement(e).profileobj>0
       if file exist(tfile$)=0 then tfile$=entityprofile(entid).model$
       if file exist(tfile$)=1
        load object tfile$,obj
+       set object filter obj,2
       else
        clone object obj,entityelement(e).profileobj,1
       endif
@@ -29114,11 +29120,13 @@ _entity_createattachment:
           tdbofile$=""
          endif
          load object tfile$,ttobj
+         set object filter ttobj,2
          if len(tdbofile$)>1
           save object tdbofile$,ttobj
           if file exist(tdbofile$)=1
            delete object ttobj
            load object tdbofile$,ttobj
+           set object filter ttobj,2
            tfile$=tdbofile$
           endif
          endif
@@ -31987,6 +31995,7 @@ if grealgameviewstate=0 and segobjusedformapeditor=0 and goptimizemode=1
   phyunimesh$="levelbank\testlevel\universephy.dbo" : if file exist(phyunimesh$)=1 then delete file phyunimesh$
   universeobj=universebuildobjstartoffset-1
   load object "levelbank\testlevel\universe.dbo",universeobj
+  set object filter universeobj,2
   make mesh from object universeobj,universeobj,1
   convert mesh to vertexdata universeobj
   delete object universeobj
@@ -32004,6 +32013,7 @@ if grealgameviewstate=0 and segobjusedformapeditor=0 and goptimizemode=1
   universeobj=universebuildobjstartoffset-1
   if object exist(universeobj)=1 then delete object universeobj
   load object universefile$,universeobj
+  set object filter universeobj,2
   if glightshadowsstate=0
    rem Quick Lightmapping
    LM Add Collision Object universeobj
@@ -36726,11 +36736,13 @@ for debrisshapeindex=1 to 8
     tdbofile$=""
    endif
    load object o$,fragmento
+   set object filter fragmento,2
    if len(tdbofile$)>1
     save object tdbofile$,fragmento
     if file exist(tdbofile$)=1
      delete object fragmento
      load object tdbofile$,fragmento
+     set object filter fragmento,2
      o$=tdbofile$
     endif
    endif
@@ -36768,11 +36780,13 @@ for debrisshapeindex=1 to 8
      tdbofile$=""
     endif
     load object o$,fragmento
+    set object filter fragmento,2
     if len(tdbofile$)>1
      save object tdbofile$,fragmento
      if file exist(tdbofile$)=1
       delete object fragmento
       load object tdbofile$,fragmento
+      set object filter fragmento,2
       o$=tdbofile$
      endif
     endif
