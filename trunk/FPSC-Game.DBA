@@ -29693,6 +29693,8 @@ _entity_createelements_loadsoundlast:
    endif
    if entityelement(e).eleprof.soundset1$<>"" and tokay<>0
     rem load as 3D sound ready for playing or looping in game (generator) ($1 speech of character)
+    rem V118 - 150211 - character slots usually voice over, so don't use 3D
+    if entityprofile(entid).ischaracter=1 then t3d=0
     tfile$=entityelement(e).eleprof.soundset1$
     if file exist(tfile$)=1
      addfiletocollection(tfile$)
