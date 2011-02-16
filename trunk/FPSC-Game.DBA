@@ -1630,6 +1630,7 @@ rem GUI-X9 (knxrb) <<<
 #constant AIACTDIMLOCALVAR 43
 #constant AIACTRUNFPIDEFAULT 51
 #constant AIACTRUNFPI 52
+#constant AIACTWIN 61
 #constant AIACTSELECTSHADERVARIABLE 71
 #constant AIACTSETSHADERVARIABLE 72
 #constant AIACTINCSHADERVARIABLE 73
@@ -10978,6 +10979,7 @@ actword$(AIACTMODVAR)="modvar"
 actword$(AIACTWRAPVAR)="wrapvar"
 actword$(AIACTRUNFPIDEFAULT)="runfpidefault"
 actword$(AIACTRUNFPI)="runfpi"
+actword$(AIACTWIN)="win"
 actword$(AIACTSELECTSHADERVARIABLE)="selectshadervariable"
 actword$(AIACTSETSHADERVARIABLE)="setshadervariable"
 actword$(AIACTINCSHADERVARIABLE)="incshadervariable"
@@ -13678,6 +13680,11 @@ if aiindex>0
       conindex=ailist(aiindex).conditionlast
       seq=aiaction(actindex).last
       exit
+     endcase
+     `
+     case AIACTWIN:
+      rem V118 - 150211 - force all as complete
+      for mi=1 to 99 : playerobjective(mi)=1 : next mi
      endcase
      `
      case AIACTSELECTSHADERVARIABLE:
