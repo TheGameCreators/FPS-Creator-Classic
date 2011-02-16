@@ -26440,47 +26440,53 @@ _lighting_managegloballightingreciever:
   `endif
   if okaytolight=1
    `
-   rem Collect position of light
-   ldistx#=infinilight().x-recx#
-   ldisty#=infinilight().y-recy#
-   ldistz#=infinilight().z-recz#
-   ldist#=sqrt(abs(ldistx#*ldistx#)+abs(ldisty#*ldisty#)+abs(ldistz#*ldistz#))
-   `
-   rem Relatve to overall distance (influence)
-   if ldist#<=infinilight().range
-    tlightpower#=cos((ldist#/infinilight().range)*90)
-   else
-    tlightpower#=0
-   endif
-   `
-   rem for all lights within range
-   tplayercareabout#=1000.0
-   tdiffx#=mex#-infinilight().x
-   tdiffy#=mey#-infinilight().y
-   tdiffz#=mez#-infinilight().z
-   tdiff#=sqrt(abs(tdiffx#*tdiffx#)+abs(tdiffy#*tdiffy#)+abs(tdiffz#*tdiffz#))
-   tlightrawstrength#=1.0-(tdiff#/tplayercareabout#) : rem player can apprecirate/care about direction of light within this range
-   tlightrawstrength#=tlightrawstrength#*tlightpower#
-   if tlightrawstrength#<0.0 then tlightrawstrength#=0.0
-   if tlightrawstrength#>1.0 then tlightrawstrength#=1.0
-   if infinilight().islit=1 and tdiff#<tplayercareabout#
+   rem for all lights
+   if infinilight().islit=1
     `
-    rem Count visible illuminations
-    avlightposx#=avlightposx#+(infinilight().x*tlightrawstrength#)
-    avlightposy#=avlightposy#+(infinilight().y*tlightrawstrength#)
-    avlightposz#=avlightposz#+(infinilight().z*tlightrawstrength#)
-    tqtyav#=tqtyav#+tlightrawstrength#
+    rem Collect position of light
+    ldistx#=infinilight().x-recx#
+    ldisty#=infinilight().y-recy#
+    ldistz#=infinilight().z-recz#
+    ldist#=sqrt(abs(ldistx#*ldistx#)+abs(ldisty#*ldisty#)+abs(ldistz#*ldistz#))
+    `
+    rem Relatve to overall distance (influence)
+    if ldist#<=infinilight().range
+     tlightpower#=cos((ldist#/infinilight().range)*90)
+    else
+     tlightpower#=0
+    endif
+    `
+    rem with range of player
+    tplayercareabout#=1000.0
+    tdiffx#=mex#-infinilight().x
+    tdiffy#=mey#-infinilight().y
+    tdiffz#=mez#-infinilight().z
+    tdiff#=sqrt(abs(tdiffx#*tdiffx#)+abs(tdiffy#*tdiffy#)+abs(tdiffz#*tdiffz#))
+    tlightrawstrength#=1.0-(tdiff#/tplayercareabout#) : rem player can apprecirate/care about direction of light within this range
+    tlightrawstrength#=tlightrawstrength#*tlightpower#
+    if tlightrawstrength#<0.0 then tlightrawstrength#=0.0
+    if tlightrawstrength#>1.0 then tlightrawstrength#=1.0
+    if tdiff#<tplayercareabout#
+     `
+     rem Work out average light position based on player position
+     avlightposx#=avlightposx#+(infinilight().x*tlightrawstrength#)
+     avlightposy#=avlightposy#+(infinilight().y*tlightrawstrength#)
+     avlightposz#=avlightposz#+(infinilight().z*tlightrawstrength#)
+     tqtyav#=tqtyav#+tlightrawstrength#
+     inc tqty
+     `
+     rem check for dynamic type
+     if infinilight().type=1
+      tlightinfluencedbydynamiclight=1
+     endif
+     `
+    endif
+    `
+    rem True entity colour
     avlightcolr#=avlightcolr#+(infinilight().colrgb.r*tlightpower#)
     avlightcolg#=avlightcolg#+(infinilight().colrgb.g*tlightpower#)
     avlightcolb#=avlightcolb#+(infinilight().colrgb.b*tlightpower#)
     avlightrange#=avlightrange#+(ldist#*tlightpower#)
-    totaltlightpower#=totaltlightpower#+tlightpower#
-    inc tqty
-    `
-    rem check for dynamic type
-    if infinilight().type=1
-     tlightinfluencedbydynamiclight=1
-    endif
     `
    endif
    `
@@ -26514,7 +26520,7 @@ _lighting_managegloballightingreciever:
  rem debug lighting system for entities
  if activatedynamiclightsdebug=1 
   entitydebug$(recentityindex)="LIGHTING RGB="+str$(int(avlightcolr#))+","+str$(int(avlightcolg#))+","+str$(int(avlightcolb#))
-  entitydebug$(recentityindex)=entitydebug$(recentityindex)+" QTY="+str$(tqty)+" TPOWER="+str$(totaltlightpower#)
+  entitydebug$(recentityindex)=entitydebug$(recentityindex)+" QTY="+str$(tqty)
  endif
  `
 return
@@ -26642,7 +26648,6 @@ _lighting_applyentitycolor:
    `
   else
    rem no shader color for diffuse entities
-   if activatedynamiclightsdebug=1 then entitydebug$(e)=str$(int(avlightcolr#))+","+str$(int(avlightcolg#))+","+str$(int(avlightcolb#))
    if entityprofile(entid).isweapon>0 or entityprofile(entid).isammo>0
     set object emissive entityelement(e).obj,rgb(255,255,255)
     if entityelement(e).attachmentobj>0
