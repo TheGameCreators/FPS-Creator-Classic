@@ -26420,6 +26420,7 @@ _lighting_managegloballightingreciever:
  if recz>viscolz then recz=viscolz
  `
  rem Reset ready to store strongest point
+ totaltlightpower#=0
  avlightposx#=mex# : avlightposy#=mey# : avlightposz#=mez#
  avlightcolr#=0 : avlightcolg#=0 : avlightcolb#=0
  tlightinfluencedbydynamiclight=0
@@ -26473,6 +26474,7 @@ _lighting_managegloballightingreciever:
     avlightcolg#=avlightcolg#+(infinilight().colrgb.g*tlightpower#)
     avlightcolb#=avlightcolb#+(infinilight().colrgb.b*tlightpower#)
     avlightrange#=avlightrange#+(ldist#*tlightpower#)
+    totaltlightpower#=totaltlightpower#+tlightpower#
     inc tqty
     `
     rem check for dynamic type
@@ -26497,15 +26499,23 @@ _lighting_managegloballightingreciever:
  `
  rem get correct average light color
  if tqty>0
-  avlightcolr#=avlightcolr#/tqty
-  avlightcolg#=avlightcolg#/tqty
-  avlightcolb#=avlightcolb#/tqty
+  rem V118 - 160211 - one light near enemy, 17 far away, then final color is almost black!!
+  rem instead we use cumilative total of all influencing colours with range built in (fade)
+  `avlightcolr#=avlightcolr#/tqty
+  `avlightcolg#=avlightcolg#/tqty
+  `avlightcolb#=avlightcolb#/tqty
  endif
  `
  rem FPSCV104RC8 - ensure colours not maxed
  if avlightcolr#>255 then avlightcolr#=255
  if avlightcolg#>255 then avlightcolg#=255
  if avlightcolb#>255 then avlightcolb#=255
+ `
+ rem debug lighting system for entities
+ if activatedynamiclightsdebug=1 
+  entitydebug$(recentityindex)="LIGHTING RGB="+str$(int(avlightcolr#))+","+str$(int(avlightcolg#))+","+str$(int(avlightcolb#))
+  entitydebug$(recentityindex)=entitydebug$(recentityindex)+" QTY="+str$(tqty)+" TPOWER="+str$(totaltlightpower#)
+ endif
  `
 return
 
@@ -26600,7 +26610,7 @@ _lighting_applyentitycolor:
   recentityindex=e
   gosub _lighting_managegloballightingreciever
   `
-  rem Apply average colour
+  rem Apply average colour (now updated later on)
   teffectid=entityelement(e).eleprof.usingeffect
   if teffectid>0
    `
