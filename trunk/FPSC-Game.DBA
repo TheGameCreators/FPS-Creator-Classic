@@ -26449,7 +26449,7 @@ _lighting_managegloballightingreciever:
     ldistz#=infinilight().z-recz#
     ldist#=sqrt(abs(ldistx#*ldistx#)+abs(ldisty#*ldisty#)+abs(ldistz#*ldistz#))
     `
-    rem Relatve to overall distance (influence)
+    rem Relative to overall distance (influence)
     if ldist#<=infinilight().range
      tlightpower#=cos((ldist#/infinilight().range)*90)
     else
@@ -26473,7 +26473,6 @@ _lighting_managegloballightingreciever:
      avlightposy#=avlightposy#+(infinilight().y*tlightrawstrength#)
      avlightposz#=avlightposz#+(infinilight().z*tlightrawstrength#)
      tqtyav#=tqtyav#+tlightrawstrength#
-     inc tqty
      `
      rem check for dynamic type
      if infinilight().type=1
@@ -26487,6 +26486,7 @@ _lighting_managegloballightingreciever:
     avlightcolg#=avlightcolg#+(infinilight().colrgb.g*tlightpower#)
     avlightcolb#=avlightcolb#+(infinilight().colrgb.b*tlightpower#)
     avlightrange#=avlightrange#+(ldist#*tlightpower#)
+    `inc tqty
     `
    endif
    `
