@@ -20453,7 +20453,8 @@ if k$<>"" and gunzoommode=0 or altswapkeycalled=1
       weaponindex=weaponslot(weaponkeyselection).got
       if weaponindex>0 then player(plrid).command.newweapon=weaponindex
      endif
-     if wepsel=-1
+     rem V118 - 180211 - ensure can only put weapon away when in idle mode
+     if wepsel=-1 and gunmode<=10
       if gunid<>0
        gunmode=31 : gunselectionafterhide=0
       endif
@@ -21014,7 +21015,8 @@ endif
 texture object hudbankoffset+5,firemode(gunid,firemode).settings.flashimg
 `
 rem Gun Selection
-if gunselectionlockdown=0
+rem V118 - 180211 - ensure you can only command a weapon change when not putting weapon away or no gun (i.e. don't interupt the weapon put-away anim with weapon change)
+if gunselectionlockdown=0 and (gunmode<=10 or gunid=0)
  if player(1).command.newweapon>0
   sel=player(1).command.newweapon
   player(1).command.newweapon=0
