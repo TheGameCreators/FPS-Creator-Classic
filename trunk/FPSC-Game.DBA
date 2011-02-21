@@ -29729,6 +29729,9 @@ _entity_createelements_loadsoundlast:
    rem V109BETA4 - 240408 - use 2D mode if MUSIC ZONE is the name
    if lower$(left$(entityelement(e).eleprof.name$,10))="music zone" then t3d=0 else t3d=1
    `
+   rem V118 - 210211 - if AI script is PLRSOUNDINZONE then switch OFF 3D sound!
+   if lower$(left$(entityelement(e).eleprof.aimain$,18))="plrsoundinzone.fpi" then t3d=0
+   `
    rem Load sound sets
    if entityelement(e).eleprof.soundset$<>"" and tokay=1
     rem load as 3D sound ready for playing or looping in game (generator)
