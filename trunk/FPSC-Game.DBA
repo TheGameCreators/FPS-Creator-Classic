@@ -8221,9 +8221,14 @@ if entityelement(e).fireweapon=1
   `
   rem start of shot pos
   if entityprofile(entid).firespotlimb>-1
-   x1#=limb position x(obj,entityprofile(entid).firespotlimb)
+   rem V118 - 210211 - end of gun for purpose of casting a shot ray does not work round CCW corners
+   rem so use the centre of the character instead, only using the Y coordinate from the weapon limb
+   `x1#=limb position x(obj,entityprofile(entid).firespotlimb)
+   `y1#=limb position y(obj,entityprofile(entid).firespotlimb)
+   `z1#=limb position z(obj,entityprofile(entid).firespotlimb)
+   x1#=entityelement(e).x
    y1#=limb position y(obj,entityprofile(entid).firespotlimb)
-   z1#=limb position z(obj,entityprofile(entid).firespotlimb)
+   z1#=entityelement(e).z
   else
    x1#=entityelement(e).x
    y1#=entityelement(e).y+45.0
