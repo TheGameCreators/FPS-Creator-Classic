@@ -712,6 +712,7 @@ dim brassbank$(100)
 global brassbankmax=0
 dim smokebank$(100)
 global smokebankmax=0
+dim smokely#(30) as float
 `
 rem Image order important for texture order
 global imagebankmax=0
@@ -22273,9 +22274,9 @@ for o=21 to 30
   ttsmokelimb=gun(gunid).settings.smokelimb
   if ttsmokelimb<=0 then ttsmokelimb=gun(gunid).settings.brasslimb
   lx#=limb position x(currentgunobj,ttsmokelimb)+1.0-(rnd(20)/10.0)
-  ly#=limb position y(currentgunobj,ttsmokelimb)+1.0-(rnd(20)/10.0)
+  smokely#(o)=limb position y(currentgunobj,ttsmokelimb)+1.0-(rnd(20)/10.0)+10.0 : rem V118 - 210211 - compensate for kick-back
   lz#=limb position z(currentgunobj,ttsmokelimb)+1.0-(rnd(20)/10.0)
-  position object obj,lx#,ly#,lz#
+  position object obj,lx#,smokely#(o),lz#
   show object obj
   gunsmoke=0 : smokeframe=0
  endif
@@ -22283,9 +22284,9 @@ for o=21 to 30
   ttsmokelimb=gun(gunid).settings.smokelimb2
   if ttsmokelimb<=0 then ttsmokelimb=gun(gunid).settings.brasslimb
   lx#=limb position x(currentgunobj,ttsmokelimb)+1.0-(rnd(20)/10.0)
-  ly#=limb position y(currentgunobj,ttsmokelimb)+1.0-(rnd(20)/10.0)
+  smokely#(o)=limb position y(currentgunobj,ttsmokelimb)+1.0-(rnd(20)/10.0)
   lz#=limb position z(currentgunobj,ttsmokelimb)+1.0-(rnd(20)/10.0)
-  position object obj,lx#,ly#,lz#
+  position object obj,lx#,smokely#(o),lz#
   show object obj
   gunsmoke2=0 : smokeframe=0
  endif
@@ -22293,7 +22294,7 @@ for o=21 to 30
   point object obj,camera position x(),camera position y(),camera position z()
   smokerisespeed#=firemode(gunid,firemode).settings.smokespeed/100.0
   position object obj,object position x(obj),object position y(obj)+smokerisespeed#,object position z(obj)
-  smokeframe=(object position y(obj)-ly#)/0.75
+  smokeframe=(object position y(obj)-smokely#(o))/0.75
   if object in screen(obj)=1 and smokeframe<=15
    ty=smokeframe/4
    tx=smokeframe-(ty*4)
@@ -22718,7 +22719,8 @@ next o
 rem Smoke
 for o=21 to 30
  obj=hudbankoffset+o
- make object plain obj,20,20
+ `make object plain obj,20,20 : rem V118 - 210211 - make smoke larger
+ make object plain obj,50,50
  set object collision off obj
  disable object zdepth obj
  disable object zwrite obj
