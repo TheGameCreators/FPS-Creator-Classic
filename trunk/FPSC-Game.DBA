@@ -440,7 +440,6 @@ global guntimercount as float
 rem Init FPSC then leap to SETUP.INI loader
 leavegamedataalone=0
 gosub _FPSC_Full_Data_Init
-gosub _main_initcalceyes
 goto _FPSC_Setup
 
 rem Subroutine to completely construct FPSCData
@@ -3371,6 +3370,9 @@ if gvrmode=5
  endif
 endif
 
+rem FPGC - 230211 - must be done AFTER a resolution change, as 3d math gets wiped out (matrix4=15)
+gosub _main_initcalceyes
+
 rem FPGC - 121009 - moved to after resolution change to get correct save load dialog position
 gosub _saveload_savebox_init
 
@@ -4075,6 +4077,7 @@ _main_sync:
  rem FPGC - 280610 - moved entire SYNC sequence to subroutine so PAUSE mode can call it too
  if gvrmode<>0
   rem VR920
+  set current camera 0
   set camera rotation xyz
   if gvrmode=4
    rem VRMODE 4 - player has no mouselook control of looking up/down (use tracker)
@@ -7881,9 +7884,6 @@ for e=1 to entityelementlist
       endif
      endif
      `
-     rem handle any entity attachments (coneofsight)
-     gosub _entity_controlattachments
-     `
      rem control lighting of entities (and free at start also - get start lighting)
      if gdynamiclightingstate=1 or forceambientlightsetting>0
       if object in screen(obj)=1
@@ -7900,8 +7900,12 @@ for e=1 to entityelementlist
      endif
      `
      rem blob shadow control (all other non local plrs)
-     if (gmultiplayergame=0 and entityelement(e).health>0) or (gmultiplayergame=1 and entityelement(e).collisionactive<>0)
-      dst#=static raycast(entityelement(e).x,entityelement(e).y+5,entityelement(e).z,entityelement(e).x,entityelement(e).y-50,entityelement(e).z)
+     if entityprofile(entid).ischaracter=1
+      if (gmultiplayergame=0 and entityelement(e).health>0) or (gmultiplayergame=1 and entityelement(e).collisionactive<>0)
+       dst#=static raycast(entityelement(e).x,entityelement(e).y+5,entityelement(e).z,entityelement(e).x,entityelement(e).y-50,entityelement(e).z)
+      else
+       dst#=0.0
+      endif
      else
       dst#=0.0
      endif
@@ -9855,29 +9859,6 @@ _entity_controlmovements:
   entityelement(e).ai.headangle=curvevalue(entityelement(e).ai.headdestangle-5.0+(rnd(100)/10.0),entityelement(e).ai.headangle,3.0)
  endif
  `
-return
-
-_entity_controlattachments:
-
-rem handle entity attachment if cone of sight debug triangle
-if gshowentitygameinfostate=1
- remstart FPGC - 070909 - do not use cone of sight at all
- tobj=entityelement(e).attachmentobj
- if tobj>0
-  if object exist(tobj)=1
-   position object tobj,object position x(obj),object position y(obj),object position z(obj)
-   rotate object tobj,object angle x(obj),object angle y(obj)+entityelement(e).ai.headangle,object angle z(obj)
-   set alpha mapping on tobj,entityelement(e).mover.viewconeused
-   if entityelement(e).mover.viewconeused>0
-    entityelement(e).mover.viewconeused=entityelement(e).mover.viewconeused-(1.0*timeelapsed#)
-    if entityelement(e).mover.viewconeused<0 then entityelement(e).mover.viewconeused=0
-   endif
-   show object tobj
-  endif
- endif
- remend
-endif
-
 return
 
 _entity_controllighting:
@@ -15276,71 +15257,166 @@ if aiindex>0
      endcase
      `
      case AIACTLIGHTON:
+      tokay=0
       entityelement(e).eleprof.light.islit=1
       if gdynamiclightingstate=1
        if entityelement(e).eleprof.light.index<=array count(infinilight())
-        infinilight(entityelement(e).eleprof.light.index).islit=1
+        if infinilight(entityelement(e).eleprof.light.index).islit=0
+         infinilight(entityelement(e).eleprof.light.index).islit=1 : tokay=1
+        endif
        endif
       endif
       rem V118 - entities need to be jogged so they re-capture the new lighting profile
-      for tttte=1 to entityelementlist : entityelement(tttte).colr=-1 : next tttte
+      if tokay=1 
+       for tttte=1 to entityelementlist 
+        ldistx#=infinilight(entityelement(e).eleprof.light.index).x-entityelement(tttte).x
+        ldisty#=infinilight(entityelement(e).eleprof.light.index).y-entityelement(tttte).y
+        ldistz#=infinilight(entityelement(e).eleprof.light.index).z-entityelement(tttte).z
+        ldist#=sqrt(abs(ldistx#*ldistx#)+abs(ldisty#*ldisty#)+abs(ldistz#*ldistz#))
+        if ldist#<=infinilight(entityelement(e).eleprof.light.index).range
+         entityelement(tttte).colr=-1
+        endif
+       next tttte
+      endif
      endcase
      case AIACTLIGHTOFF:
+      tokay=0
       entityelement(e).eleprof.light.islit=0
       if gdynamiclightingstate=1
        if entityelement(e).eleprof.light.index<=array count(infinilight())
-        infinilight(entityelement(e).eleprof.light.index).islit=0
+        if infinilight(entityelement(e).eleprof.light.index).islit=1
+         infinilight(entityelement(e).eleprof.light.index).islit=0 : tokay=1
+        endif
        endif
       endif
       rem V118 - entities need to be jogged so they re-capture the new lighting profile
-      for tttte=1 to entityelementlist : entityelement(tttte).colr=-1 : next tttte
+      if tokay=1 
+       for tttte=1 to entityelementlist 
+        ldistx#=infinilight(entityelement(e).eleprof.light.index).x-entityelement(tttte).x
+        ldisty#=infinilight(entityelement(e).eleprof.light.index).y-entityelement(tttte).y
+        ldistz#=infinilight(entityelement(e).eleprof.light.index).z-entityelement(tttte).z
+        ldist#=sqrt(abs(ldistx#*ldistx#)+abs(ldisty#*ldisty#)+abs(ldistz#*ldistz#))
+        if ldist#<=infinilight(entityelement(e).eleprof.light.index).range
+         entityelement(tttte).colr=-1
+        endif
+       next tttte
+      endif
      endcase
      case AIACTLIGHTRED:
+      tokay=0
       dw=entityelement(e).eleprof.light.color
       entityelement(e).eleprof.light.color=rgb(aiactionseq(seq).value,rgbg(dw),rgbb(dw))
       if gdynamiclightingstate=1
-       infinilight(entityelement(e).eleprof.light.index).colrgb.r=aiactionseq(seq).value
+       if infinilight(entityelement(e).eleprof.light.index).colrgb.r<>aiactionseq(seq).value
+        infinilight(entityelement(e).eleprof.light.index).colrgb.r=aiactionseq(seq).value : tokay=1
+       endif
       endif
       rem V118 - entities need to be jogged so they re-capture the new lighting profile
-      for tttte=1 to entityelementlist : entityelement(tttte).colr=-1 : next tttte
+      if tokay=1 
+       for tttte=1 to entityelementlist 
+        ldistx#=infinilight(entityelement(e).eleprof.light.index).x-entityelement(tttte).x
+        ldisty#=infinilight(entityelement(e).eleprof.light.index).y-entityelement(tttte).y
+        ldistz#=infinilight(entityelement(e).eleprof.light.index).z-entityelement(tttte).z
+        ldist#=sqrt(abs(ldistx#*ldistx#)+abs(ldisty#*ldisty#)+abs(ldistz#*ldistz#))
+        if ldist#<=infinilight(entityelement(e).eleprof.light.index).range
+         entityelement(tttte).colr=-1
+        endif
+       next tttte
+      endif
      endcase
      case AIACTLIGHTGREEN:
+      tokay=0
       dw=entityelement(e).eleprof.light.color
       entityelement(e).eleprof.light.color=rgb(rgbr(dw),aiactionseq(seq).value,rgbb(dw))
       if gdynamiclightingstate=1
-       infinilight(entityelement(e).eleprof.light.index).colrgb.g=aiactionseq(seq).value
+       if infinilight(entityelement(e).eleprof.light.index).colrgb.g<>aiactionseq(seq).value
+        infinilight(entityelement(e).eleprof.light.index).colrgb.g=aiactionseq(seq).value : tokay=1
+       endif
       endif
       rem V118 - entities need to be jogged so they re-capture the new lighting profile
-      for tttte=1 to entityelementlist : entityelement(tttte).colr=-1 : next tttte
+      if tokay=1 
+       for tttte=1 to entityelementlist 
+        ldistx#=infinilight(entityelement(e).eleprof.light.index).x-entityelement(tttte).x
+        ldisty#=infinilight(entityelement(e).eleprof.light.index).y-entityelement(tttte).y
+        ldistz#=infinilight(entityelement(e).eleprof.light.index).z-entityelement(tttte).z
+        ldist#=sqrt(abs(ldistx#*ldistx#)+abs(ldisty#*ldisty#)+abs(ldistz#*ldistz#))
+        if ldist#<=infinilight(entityelement(e).eleprof.light.index).range
+         entityelement(tttte).colr=-1
+        endif
+       next tttte
+      endif
      endcase
      case AIACTLIGHTBLUE:
+      tokay=0
       dw=entityelement(e).eleprof.light.color
       entityelement(e).eleprof.light.color=rgb(rgbr(dw),rgbg(dw),aiactionseq(seq).value)
       if gdynamiclightingstate=1
-       infinilight(entityelement(e).eleprof.light.index).colrgb.b=aiactionseq(seq).value
+       if infinilight(entityelement(e).eleprof.light.index).colrgb.b<>aiactionseq(seq).value
+        infinilight(entityelement(e).eleprof.light.index).colrgb.b=aiactionseq(seq).value : tokay=1
+       endif
       endif
       rem V118 - entities need to be jogged so they re-capture the new lighting profile
-      for tttte=1 to entityelementlist : entityelement(tttte).colr=-1 : next tttte
+      if tokay=1 
+       for tttte=1 to entityelementlist 
+        ldistx#=infinilight(entityelement(e).eleprof.light.index).x-entityelement(tttte).x
+        ldisty#=infinilight(entityelement(e).eleprof.light.index).y-entityelement(tttte).y
+        ldistz#=infinilight(entityelement(e).eleprof.light.index).z-entityelement(tttte).z
+        ldist#=sqrt(abs(ldistx#*ldistx#)+abs(ldisty#*ldisty#)+abs(ldistz#*ldistz#))
+        if ldist#<=infinilight(entityelement(e).eleprof.light.index).range
+         entityelement(tttte).colr=-1
+        endif
+       next tttte
+      endif
      endcase
      case AIACTLIGHTRANGE:
+      tokay=0
       entityelement(e).eleprof.light.range=aiactionseq(seq).value
       if gdynamiclightingstate=1
-       infinilight(entityelement(e).eleprof.light.index).range=aiactionseq(seq).value
+       if infinilight(entityelement(e).eleprof.light.index).range<>aiactionseq(seq).value
+        infinilight(entityelement(e).eleprof.light.index).range=aiactionseq(seq).value : tokay=1
+       endif
       endif
       rem V118 - entities need to be jogged so they re-capture the new lighting profile
-      for tttte=1 to entityelementlist : entityelement(tttte).colr=-1 : next tttte
+      if tokay=1 
+       for tttte=1 to entityelementlist 
+        ldistx#=infinilight(entityelement(e).eleprof.light.index).x-entityelement(tttte).x
+        ldisty#=infinilight(entityelement(e).eleprof.light.index).y-entityelement(tttte).y
+        ldistz#=infinilight(entityelement(e).eleprof.light.index).z-entityelement(tttte).z
+        ldist#=sqrt(abs(ldistx#*ldistx#)+abs(ldisty#*ldisty#)+abs(ldistz#*ldistz#))
+        if ldist#<=infinilight(entityelement(e).eleprof.light.index).range
+         entityelement(tttte).colr=-1
+        endif
+       next tttte
+      endif
      endcase
      case AIACTLIGHTINTENSITY:
+      tokay=0
       intensity#=aiactionseq(seq).value
       intensity#=intensity#/100.0
       dw=entityelement(e).eleprof.light.color
       if gdynamiclightingstate=1
-       infinilight(entityelement(e).eleprof.light.index).colrgb.r=rgbr(dw)*intensity#
-       infinilight(entityelement(e).eleprof.light.index).colrgb.g=rgbg(dw)*intensity#
-       infinilight(entityelement(e).eleprof.light.index).colrgb.b=rgbb(dw)*intensity#
+       if infinilight(entityelement(e).eleprof.light.index).colrgb.r<>rgbr(dw)*intensity#
+        infinilight(entityelement(e).eleprof.light.index).colrgb.r=rgbr(dw)*intensity# : tokay=1
+       endif
+       if infinilight(entityelement(e).eleprof.light.index).colrgb.g<>rgbg(dw)*intensity#
+        infinilight(entityelement(e).eleprof.light.index).colrgb.g=rgbg(dw)*intensity# : tokay=1
+       endif
+       if infinilight(entityelement(e).eleprof.light.index).colrgb.b<>rgbb(dw)*intensity#
+        infinilight(entityelement(e).eleprof.light.index).colrgb.b=rgbb(dw)*intensity# : tokay=1
+       endif
       endif
       rem V118 - entities need to be jogged so they re-capture the new lighting profile
-      for tttte=1 to entityelementlist : entityelement(tttte).colr=-1 : next tttte
+      if tokay=1 
+       for tttte=1 to entityelementlist 
+        ldistx#=infinilight(entityelement(e).eleprof.light.index).x-entityelement(tttte).x
+        ldisty#=infinilight(entityelement(e).eleprof.light.index).y-entityelement(tttte).y
+        ldistz#=infinilight(entityelement(e).eleprof.light.index).z-entityelement(tttte).z
+        ldist#=sqrt(abs(ldistx#*ldistx#)+abs(ldisty#*ldisty#)+abs(ldistz#*ldistz#))
+        if ldist#<=infinilight(entityelement(e).eleprof.light.index).range
+         entityelement(tttte).colr=-1
+        endif
+       next tttte
+      endif
      endcase
      `
      case AIACTHUDRESET:
@@ -26648,7 +26724,6 @@ _lighting_applyentitycolor:
    set vector4 1,tmp1#,tmp2#,tmp3#,tmp4#
    set effect constant vector teffectid,"FloorPositionY",1
    r=delete vector4(1)
-   `
    if entityelement(e).attachmentobj>0
     if object exist(entityelement(e).attachmentobj)
      set object emissive entityelement(e).attachmentobj,rgb(avlightcolr#/2,avlightcolg#/2,avlightcolb#/2)
