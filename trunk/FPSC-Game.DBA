@@ -6888,25 +6888,27 @@ rem Portal Control
 if k$="[" then g_iPortal = 1 : set static portals on : set static objects wireframe on
 if k$="]" then g_iPortal = 0 : set static portals off : set static objects wireframe off
 
+rem V118 - BETA10 - commented out all debug keys (confuses users)
+
 rem Restoration key (now the cap, X key means normal)
-if k$="t" then sync rate 38 : entitysystemdisabled=0 : lightingsystemdisabled=0
+`if k$="t" then sync rate 38 : entitysystemdisabled=0 : lightingsystemdisabled=0
 
 rem Disable parts of engin
-if k$="-" then entitysystemdisabled=1
-if k$="=" then lightingsystemdisabled=1
+`if k$="-" then entitysystemdisabled=1
+`if k$="=" then lightingsystemdisabled=1
 
 rem Sync control
-if k$="x" then sync rate 0
-if k$="u" then sync rate 5
+`if k$="x" then sync rate 0
+`if k$="u" then sync rate 5
 
 rem Collision control
-if k$="m" then deactivatecollision=0
-if k$="n" then deactivatecollision=1
+`if k$="m" then deactivatecollision=0
+`if k$="n" then deactivatecollision=1
 
 rem glide for floating
-if player(1).health>0 or playerstartstrength=0
- if k$="z" then grav#=-2.0 : jumpaction=0
-endif
+`if player(1).health>0 or playerstartstrength=0
+` if k$="z" then grav#=-2.0 : jumpaction=0
+`endif
 
 rem Mouse control/pointer (press TAB to toggle menu view)
 if (scancode()<>15) and debugviewtog=1 then debugviewtog=0
