@@ -8300,7 +8300,10 @@ if entityelement(e).fireweapon=1
     tca#=rnd(360000.0)/1000.0
     tcx#=cos(tca#) : tcy#=sin(tca#)
     tcm#=rnd(trayaccuracy#*1000.0)/1000.0 : tcx#=tcx#*tcm# : tcy#=tcy#*tcm#
-    rotate object hudbankoffset+3,tcy#,entityelement(e).mover.da+tcx#,0
+    rem V118 - BETA11 - this only projects forward ray (does not account for offset height between shooter and target!)
+    `rotate object hudbankoffset+3,tcy#,entityelement(e).mover.da+tcx#,0
+    point object hudbankoffset+3,x2#,y2#,z2#
+    rotate object hudbankoffset+3,object angle x(hudbankoffset+3)+tcy#,object angle y(hudbankoffset+3)+tcx#,object angle z(hudbankoffset+3)
     move object hudbankoffset+3,range`gun(tgunid).settings.range
     disable object zdepth hudbankoffset+3
     x2#=object position x(hudbankoffset+3)`+trayaccuracy-rnd(trayaccuracy*2)
