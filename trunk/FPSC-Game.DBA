@@ -19542,6 +19542,11 @@ return
 _player_savematerialsused:
  `
  rem V118 - 060211 - with the introduction of water, some materials are ALWAYS used
+ if gmaterialmax<18
+  rem V118 - BETA11 - fixes crash if OLD materialindex file used!
+  gmaterialmax=18
+  dim material(gmaterialmax) as materialsettingstype
+ endif
  material(17).usedinlevel=1
  material(18).usedinlevel=1
  `
@@ -34358,7 +34363,12 @@ if file exist(tfile$)=1
     if len(value2$)>0 then value2=val(value2$) else value2=-1
     `
     rem load max materials
-    tryfield$="materialmax" : if field$=tryfield$ then gmaterialmax=value1 : dim material(gmaterialmax) as materialsettingstype
+    tryfield$="materialmax"
+    if field$=tryfield$ 
+     gmaterialmax=value1
+     if gmaterialmax<18 then gmaterialmax=18 : rem V118 - BETA11 - water uses this in code!
+     dim material(gmaterialmax) as materialsettingstype
+    endif
     `
     rem load material data
     for m=0 to gmaterialmax
