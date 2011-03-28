@@ -54286,7 +54286,10 @@ _water_control:
    if soundfredrop=1
     for s=1 to 60000
      if sound exist(s)=1
-      set sound speed s,sound speed(s)+10000
+      rem 280311- TerryFix
+      if sound speed(s)>10000
+       set sound speed s,sound speed(s)+10000
+      endif
      endif
     next s
     soundfredrop=0
@@ -54308,7 +54311,10 @@ _water_control:
    if soundfredrop=0
     for s=1 to 60000
      if sound exist(s)=1
-      set sound speed s,sound speed(s)-10000
+      rem 280311- TerryFix
+      if sound speed(s)>10000
+       set sound speed s,sound speed(s)-10000
+      endif
      endif
     next s
     soundfredrop=1
