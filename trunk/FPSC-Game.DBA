@@ -64,6 +64,7 @@ Global exeroot$ : exeroot$=get dir$()
 rem V118 - 110810 - knxrb - Hud Layers 
 global hudHName$ as string = ""
 
+
 rem - Global array for string variables
 type uservar
  used as boolean
@@ -14992,6 +14993,10 @@ if aiindex>0
       forceambientlightsetting=10 : guivisualsettings.updateflag=1
       guivisualsettings.ambiencescripted=1
       gosub _lighting_postdefaults
+      rem 310311- TerryFix - call function to place ambience in variable
+      rem had been having trouble with getting value into variable
+      rem This allows a fraction of a second for other processess to finish
+      assign_saveload_ambience(aiactionseq(seq).value)
      endcase
      case AIACTAMBIENCERED:
       hudambiencered=aiactionseq(seq).value
@@ -26152,13 +26157,18 @@ while array index valid(infinilight())
  next array index infinilight()
  inc currentindex
 endwhile
-if tokay=0 and guivisualsettings.ambiencescripted=0
- rem no lights, use full ambience (zero means no FPI aetting, go for defaults)
- if guseeffectonscenesstate=1
-  guivisualsettings.ambience=25
- else
-  guivisualsettings.ambience=75
- endif
+rem 310311- TerryFix - make sure saved ambience is used
+if saveloadambience > 0
+    guivisualsettings.ambience=saveloadambience
+else
+    if tokay=0 and guivisualsettings.ambiencescripted=0
+     rem no lights, use full ambience (zero means no FPI aetting, go for defaults)
+     if guseeffectonscenesstate=1
+      guivisualsettings.ambience=25
+     else
+      guivisualsettings.ambience=75
+     endif
+    endif
 endif
 forceambientlightsetting=10
 
@@ -30628,6 +30638,10 @@ _gameflow_default:
   next rmi
  endif
  `
+ rem v118 - special saveload variable
+ rem 310311- TerryFix - define var to make sure saved ambience is used
+ global saveloadambience as integer
+ ` 
  rem App Loop
  loopapp=1
  while loopapp=1
@@ -40388,6 +40402,8 @@ _saveload_savegame:
  endif
  if version>=118
     `
+  rem 310311- TerryFix - save ambience that is currently used
+  a#=saveloadambience : write float 1,a#
   rem Local values from FPI scripting
   for lsi=0 to entityelementmax
    for lsii=0 to 99
@@ -40612,6 +40628,9 @@ _saveload_loadgame:
   `
  endif
  if version>=118
+ `
+  rem 310311- TerryFix - load ambience that was previously saved
+  read float 1,a# : saveloadambience=a#
   rem Local values from FPI scripting
   dim aiuserlocals(entityelementmax,99) as uservar
   for lsi=0 to entityelementmax
@@ -56049,3 +56068,8 @@ endfunction ldirang#
 function CalcLightDirZ(objang#)
  ldirang#=-0.75*cos(objang#)
 endfunction ldirang#
+`
+rem 310311- TerryFix - function to place scripted ambience into var that will later be saved
+function assign_saveload_ambience(slambience as integer)
+    if slambience > 0 then saveloadambience = slambience
+endfunction
