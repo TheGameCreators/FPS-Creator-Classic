@@ -40669,7 +40669,7 @@ _saveload_storesavedata:
  saveloadgameposition.playerlives=player(1).lives
  saveloadgameposition.playerinventorymax=player(1).inventorymax
  saveloadgameposition.missiongoaltotal=missiongoaltotal
- saveloadgameposition.playerholdinggun=autoloadgun
+ saveloadgameposition.playerholdinggun=0 : rem Terry fix - no effect and solves WP artefact (autoloadgun)
  saveloadgameposition.meridinglift=meridinglift
  `
  rem Inventory
