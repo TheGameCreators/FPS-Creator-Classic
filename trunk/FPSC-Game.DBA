@@ -34063,8 +34063,14 @@ setuparr$(i)="useeffectsonscene="+str$( guseeffectonscenesstate ) : inc i
 setuparr$(i)="useeffectsonentities="+str$( guseeffectonentitiesstate ) : inc i
 setuparr$(i)="dividetexturesize="+str$( gdividetexturesize ) : inc i
 setuparr$(i)="controllerhint="+str$( gcontrollerhint ) : inc i
-setuparr$(i)="vrmode="+str$( gvrmode ) : inc i
-setuparr$(i)="vrmodemag="+str$( gvrmodemag ) : inc i
+rem FPGC - 070411 - we can force the standalone games to use VRMODE when using VRQUEST
+if fpgcgenre=0
+ setuparr$(i)="vrmode=5" : inc i
+ setuparr$(i)="vrmodemag=100" : inc i
+else
+ setuparr$(i)="vrmode="+str$( gvrmode ) : inc i
+ setuparr$(i)="vrmodemag="+str$( gvrmodemag ) : inc i
+endif
 setuparr$(i)="mousesensitivity="+str$( gmousesensitivity ) : inc i
 setuparr$(i)="producelogfiles="+str$( gproducelogfiles ) : inc i
 setuparr$(i)="hsrmode="+str$( ghsrmode ) : inc i
@@ -35172,6 +35178,7 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
   if (plrkeyW)=0 and (plrkeyA)=0 and (plrkeyD)=0 and (plrkeyS)=0
    cameraspeed=0
   endif
+  remstart (old code 080411)
   if peeklean#=0.0
    if (plrkeyW)=1
     if (plrkeyA)=1 then dec moveroty#,35
@@ -35197,6 +35204,50 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
   if camerareachatrun#<cameraspeed/3.0 then camerareachatrun#=cameraspeed/3.0
   if camerareachatrun#<0 then camerareachatrun#=0
  else
+ remend
+  rem Terry - New A/D mutual exclusivity code
+  if (plrkeyA)=1 and (plrkeyD)=1 then cameraspeed=0 : rem (not sure if this is needed)
+  if peeklean#=0.0
+   if (plrkeyW)=1
+    if (plrkeyA)=1 and (plrkeyD)=1
+     `do nothing
+    else
+     if (plrkeyA)=1 then dec moveroty#,35
+     if (plrkeyD)=1 then inc moveroty#,35
+    endif
+   else
+    if (plrkeyS)=1
+     if (plrkeyA)=0 and (plrkeyD)=0 then inc moveroty#,180
+     if (plrkeyA)=1 and (plrkeyD)=1
+      `do nothing
+     else
+      if (plrkeyA)=1 then dec moveroty#,145
+      if (plrkeyD)=1 then inc moveroty#,145
+     endif
+    else
+     if (plrkeyA)=1 and (plrkeyD)=1
+      `do nothing
+     else
+      if (plrkeyA)=1 then dec moveroty#,90
+      if (plrkeyD)=1 then inc moveroty#,90
+     endif
+    endif
+   endif
+   phyangle#=moveroty#
+   if (plrkeyW)=1 or (plrkeyS)=1 or (plrkeyA)=1 or (plrkeyD)=1
+    movement=1 : if crouchmode<>0 then movement=2
+    tcameraspeed#=speed#*playerspeedratio#*(0.5+(cameradampen#/2.0))
+    if (plrkeyA)=1 and (plrkeyD)=1
+     `do nothing
+    else        
+     if cameraspeed<tcameraspeed# then inc cameraspeed,10.0*timeelapsed#
+     if cameraspeed>tcameraspeed# then cameraspeed=tcameraspeed#
+    endif
+   endif
+  endif
+  if camerareachatrun#<cameraspeed/3.0 then camerareachatrun#=cameraspeed/3.0
+  if camerareachatrun#<0 then camerareachatrun#=0
+ else 
 `ladder?
 `  phyangle#=moveroty#
 `  if (plrkeyW)=1
