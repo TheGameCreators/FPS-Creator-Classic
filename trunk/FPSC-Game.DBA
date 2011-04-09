@@ -279,6 +279,7 @@ type saveloadgamepositiontype
  missiongoaltotal
  playerholdinggun
  meridinglift
+ ambience
 endtype
 type saveloadgamepositionentitytype
  daistate as integer
@@ -3905,7 +3906,6 @@ _main_game_freeleveldata:
   internalloaderhud=0
   gcontrollerhinthudid=0
   gcontrollerhintbase=0
-  `
   guivisualsettings.ambiencescripted=0
   `
   rem Special exception as only arrays that need carrying to new levels
@@ -14993,10 +14993,6 @@ if aiindex>0
       forceambientlightsetting=10 : guivisualsettings.updateflag=1
       guivisualsettings.ambiencescripted=1
       gosub _lighting_postdefaults
-      rem 310311- TerryFix - call function to place ambience in variable
-      rem had been having trouble with getting value into variable
-      rem This allows a fraction of a second for other processess to finish
-      assign_saveload_ambience(aiactionseq(seq).value)
      endcase
      case AIACTAMBIENCERED:
       hudambiencered=aiactionseq(seq).value
@@ -26157,18 +26153,19 @@ while array index valid(infinilight())
  next array index infinilight()
  inc currentindex
 endwhile
-rem 310311- TerryFix - make sure saved ambience is used
-if saveloadambience > 0
-    guivisualsettings.ambience=saveloadambience
+rem 310311 - TerryFix - make sure saved ambience is used (only once after load game during standalone)
+if saveloadambience<>-1 and grealgameviewstate=1
+ guivisualsettings.ambience=saveloadambience
+ saveloadambience=-1
 else
-    if tokay=0 and guivisualsettings.ambiencescripted=0
-     rem no lights, use full ambience (zero means no FPI aetting, go for defaults)
-     if guseeffectonscenesstate=1
-      guivisualsettings.ambience=25
-     else
-      guivisualsettings.ambience=75
-     endif
-    endif
+ if tokay=0 and guivisualsettings.ambiencescripted=0
+  rem no lights, use full ambience (zero means no FPI aetting, go for defaults)
+  if guseeffectonscenesstate=1
+   guivisualsettings.ambience=25
+  else
+   guivisualsettings.ambience=75
+  endif
+ endif
 endif
 forceambientlightsetting=10
 
@@ -30640,7 +30637,7 @@ _gameflow_default:
  `
  rem v118 - special saveload variable
  rem 310311- TerryFix - define var to make sure saved ambience is used
- global saveloadambience as integer
+ global saveloadambience as integer : saveloadambience=-1
  ` 
  rem App Loop
  loopapp=1
@@ -40452,9 +40449,10 @@ _saveload_savegame:
   `
  endif
  if version>=118
-    `
+  `
   rem 310311- TerryFix - save ambience that is currently used
-  a#=saveloadambience : write float 1,a#
+  a#=guivisualsettings.ambience : write float 1,a#
+  `
   rem Local values from FPI scripting
   for lsi=0 to entityelementmax
    for lsii=0 to 99
@@ -40679,9 +40677,10 @@ _saveload_loadgame:
   `
  endif
  if version>=118
- `
+  `
   rem 310311- TerryFix - load ambience that was previously saved
-  read float 1,a# : saveloadambience=a#
+  read float 1,a# : saveloadgameposition.ambience=a#
+  `
   rem Local values from FPI scripting
   dim aiuserlocals(entityelementmax,99) as uservar
   for lsi=0 to entityelementmax
@@ -40869,6 +40868,11 @@ _saveload_storesavedata:
 return
 
 _saveload_retrievesavedata:
+ `
+ rem FPGC - 090411 - apply ambience from save position
+ saveloadambience=saveloadgameposition.ambience
+ guivisualsettings.ambience=saveloadambience
+ guivisualsettings.ambiencescripted=1
  `
  rem Create savedata arrays and copy game data to them
  `level=saveloadgameposition.level (already done when loaded savedata)
@@ -41176,6 +41180,11 @@ _saveload_retrievesavedata:
      rem V109 - 090209 - after physics applied, ensure entitydriven and pseudo-static than uses RY for rotation
 `     entityelement(e).rx=saveloadgamepositionentity(e).rx
 `     entityelement(e).ry=saveloadgamepositionentity(e).ry
+     if entityprofile(entid).ischaracter=1
+      rem FPGC - 080411 - need to retain the angle the character is standing!!
+      entityelement(e).ry=saveloadgamepositionentity(e).ry
+      entityelement(e).mover.da=entityelement(e).ry
+     endif
 `     entityelement(e).rz=saveloadgamepositionentity(e).rz
      `entityelement(e).mover.da=saveloadgamepositionentity(e).ry
      rem ensure entitydriven and pseudo-static than uses RY for rotation
@@ -56119,8 +56128,3 @@ endfunction ldirang#
 function CalcLightDirZ(objang#)
  ldirang#=-0.75*cos(objang#)
 endfunction ldirang#
-`
-rem 310311- TerryFix - function to place scripted ambience into var that will later be saved
-function assign_saveload_ambience(slambience as integer)
-    if slambience > 0 then saveloadambience = slambience
-endfunction
