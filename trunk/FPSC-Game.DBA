@@ -18995,6 +18995,7 @@ rem FPGC - 080410 - store effect ID for FASTBONE (so we can filter entities usin
 ifits$="fastbone.fx"
 if lower$(right$(tfile$,len(ifits$)))=ifits$
  inc gfastboneeffectshaderidmax
+ dim gfastboneeffectshaderid(gfastboneeffectshaderidmax) as integer
  gfastboneeffectshaderid(gfastboneeffectshaderidmax)=effectid
 endif
 
