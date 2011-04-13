@@ -688,7 +688,8 @@ global effectbankmax=0
 global effectbankoffset=1000
 dim effectbank$(100)
 dim objecteffect(65535) : rem FPGC - 250310 - used to track which objects are using effects (for post processing)
-global gfastboneeffectshaderid : gfastboneeffectshaderid=0
+global gfastboneeffectshaderidmax : gfastboneeffectshaderidmax=0
+dim gfastboneeffectshaderid(1) as integer
 dim soundbank$(10)
 global soundbankmax=0
 global soundbankoffset=1
@@ -3835,6 +3836,9 @@ _main_game_freeleveldata:
    ai reset : darkaiplayer=0
   endif
   `
+  rem FPGC - 090411 - reset fast bone effectid list
+  gfastboneeffectshaderidmax=0
+  `
   rem FREE ANY DATA
   Rem AI Undim
   undim ischaracter()
@@ -4181,6 +4185,16 @@ _main_sync:
    if fogison=0 then fog on : fogison=1
    fog distance hudfognear,hudfogfar
    fog color hudfogred,hudfoggreen,hudfogblue
+   `
+   rem FPGC - 090411 - also set fog colour in fast bone shaders (if any)
+   r=make vector4(1)
+   set vector4 1,(hudfogred/255.0),(hudfoggreen/255.0),(hudfogblue/255.0),1.0/hudfogfar
+   for fbei=1 to gfastboneeffectshaderidmax
+    tfsbeffectid=gfastboneeffectshaderid(fbei)
+    set effect constant vector tfsbeffectid,"FogColor",1
+   next fbei
+   r=delete vector4(1)
+   `
   else
    if hudfogon=0 and waterfogon=0
     if fogison=1 then fog off : fogison=0
@@ -4196,6 +4210,16 @@ _main_sync:
    else
     fog distance waterfogfar
    endif
+   `
+   rem FPGC - 090411 - also set fog colour in fast bone shaders (if any)
+   r=make vector4(1)
+   set vector4 1,(waterfogred/255.0),(waterfoggreen/255.0),(waterfogblue/255.0),1.0/waterfogfar
+   for fbei=1 to gfastboneeffectshaderidmax
+    tfsbeffectid=gfastboneeffectshaderid(fbei)
+    set effect constant vector tfsbeffectid,"FogColor",1
+   next fbei
+   r=delete vector4(1)
+   `
   endif
   `
   Rem When water is off exclude the render of cameras 1 and 2
@@ -18981,8 +19005,9 @@ endif
 
 rem FPGC - 080410 - store effect ID for FASTBONE (so we can filter entities using it in depth camera)
 ifits$="fastbone.fx"
-if right$(tfile$,len(ifits$))=ifits$
- gfastboneeffectshaderid=effectid
+if lower$(right$(tfile$,len(ifits$)))=ifits$
+ inc gfastboneeffectshaderidmax
+ gfastboneeffectshaderid(gfastboneeffectshaderidmax)=effectid
 endif
 
 endfunction effectid
@@ -26790,7 +26815,7 @@ rem for the ODE tests, a fixed light zero for the shadows
 rem ultimate problem solver for shadow distance is a Sun-Style Light
 `ODE physics controls shadow light now
 `set point light 0,-1500,3000,1500
-
+`
 rem Scene can have effects in play (which require general parameters passed in)
 tamb#=guivisualsettings.ambience/100.0
 r=make vector4(1)
@@ -54191,7 +54216,13 @@ _postprocess_apply:
   for o=1 to 65535
    if object exist(o)=1
     if gdepthcameraid>0
-     if objecteffect(o)=gfastboneeffectshaderid
+     tokay=0
+     for fbei=1 to gfastboneeffectshaderidmax
+      if gfastboneeffectshaderid(fbei)=objecteffect(o)
+       tokay=1
+      endif
+     next fbei
+     if tokay=1
       rem FPGC - 080410 - displacement technology. set this to move an object to the depth camera
       rem NOTE: entities using fastbone need to go here as the shader animates the geometry (to align with real game render)
       rem NOTE: new fields for DECAL and ENTITYPROFILE, and provide both texture and shaders to depth camera render objects!
@@ -54251,18 +54282,19 @@ _postprocess_renderdepthcamera:
   fog distance 0,500
   `
   rem entities that use fastbone need some constants overriding (for FOG)
-  if gfastboneeffectshaderid>0
+  for fbei=1 to gfastboneeffectshaderidmax
+   tfsbeffectid=gfastboneeffectshaderid(fbei)
    r=make vector4(1)
    set vector4 1,0,0,0,0
-   set effect constant vector gfastboneeffectshaderid,"AmbiColor",1
+   set effect constant vector tfsbeffectid,"AmbiColor",1
    set vector4 1,0,0,0,0
-   set effect constant vector gfastboneeffectshaderid,"SurfColor",1
+   set effect constant vector tfsbeffectid,"SurfColor",1
    set vector4 1,1,0.0,0.0,1.0/500.0
-   set effect constant vector gfastboneeffectshaderid,"FogColor",1
+   set effect constant vector tfsbeffectid,"FogColor",1
    set vector4 1,0.0,0.5,0.5,1.0
-   set effect constant vector gfastboneeffectshaderid,"FillerColor",1
+   set effect constant vector tfsbeffectid,"FillerColor",1
    r=delete vector4(1)
-  endif
+  next fbei
   `
   rem render the depth scene
   sync mask (1 << gdepthcameraid)
@@ -54273,16 +54305,17 @@ _postprocess_renderdepthcamera:
   endif
   `
   rem entities that use fastbone need some constants overriding (for FOG)
-  if gfastboneeffectshaderid>0
+  for fbei=1 to gfastboneeffectshaderidmax
+   tfsbeffectid=gfastboneeffectshaderid(fbei)
    r=make vector4(1)
    set vector4 1,1,1,1,1
-   set effect constant vector gfastboneeffectshaderid,"SurfColor",1
+   set effect constant vector tfsbeffectid,"SurfColor",1
    set vector4 1,0,0,0,0.000001
-   set effect constant vector gfastboneeffectshaderid,"FogColor",1
+   set effect constant vector tfsbeffectid,"FogColor",1
    set vector4 1,0,0,0,0
-   set effect constant vector gfastboneeffectshaderid,"FillerColor",1
+   set effect constant vector tfsbeffectid,"FillerColor",1
    r=delete vector4(1)
-  endif
+  next fbei
   `
   rem restore general lighting
   color backdrop gdepthcameraid,rgb(0,64,0),0
