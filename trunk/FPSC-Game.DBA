@@ -61,7 +61,7 @@ endif
 
 Global exeroot$ : exeroot$=get dir$()
 
-rem V118 - 110810 - knxrb - Hud Layers 
+rem V118 - 110810 - knxrb - Hud Layers
 global hudHName$ as string = ""
 
 
@@ -9328,8 +9328,8 @@ if tindex<>0
      if tobjlimb=0
       rem V118 - 070211 - only use 25 unit offset IF VWEAP does not have firespot limb set-up
       rem V118 - 050210 - decal fire spot 'inside' gun, needs to be at end
-      tslidex#=newxvalue(0.0,entityelement(e).ry,25.0)     
-      tslidez#=newzvalue(0.0,entityelement(e).ry,25.0)  
+      tslidex#=newxvalue(0.0,entityelement(e).ry,25.0)
+      tslidez#=newzvalue(0.0,entityelement(e).ry,25.0)
       decalx=decalx+tslidex#
       decalz=decalz+tslidez#
      endif
@@ -15299,8 +15299,8 @@ if aiindex>0
        endif
       endif
       rem V118 - entities need to be jogged so they re-capture the new lighting profile
-      if tokay=1 
-       for tttte=1 to entityelementlist 
+      if tokay=1
+       for tttte=1 to entityelementlist
         ldistx#=infinilight(entityelement(e).eleprof.light.index).x-entityelement(tttte).x
         ldisty#=infinilight(entityelement(e).eleprof.light.index).y-entityelement(tttte).y
         ldistz#=infinilight(entityelement(e).eleprof.light.index).z-entityelement(tttte).z
@@ -15322,8 +15322,8 @@ if aiindex>0
        endif
       endif
       rem V118 - entities need to be jogged so they re-capture the new lighting profile
-      if tokay=1 
-       for tttte=1 to entityelementlist 
+      if tokay=1
+       for tttte=1 to entityelementlist
         ldistx#=infinilight(entityelement(e).eleprof.light.index).x-entityelement(tttte).x
         ldisty#=infinilight(entityelement(e).eleprof.light.index).y-entityelement(tttte).y
         ldistz#=infinilight(entityelement(e).eleprof.light.index).z-entityelement(tttte).z
@@ -15344,8 +15344,8 @@ if aiindex>0
        endif
       endif
       rem V118 - entities need to be jogged so they re-capture the new lighting profile
-      if tokay=1 
-       for tttte=1 to entityelementlist 
+      if tokay=1
+       for tttte=1 to entityelementlist
         ldistx#=infinilight(entityelement(e).eleprof.light.index).x-entityelement(tttte).x
         ldisty#=infinilight(entityelement(e).eleprof.light.index).y-entityelement(tttte).y
         ldistz#=infinilight(entityelement(e).eleprof.light.index).z-entityelement(tttte).z
@@ -15366,8 +15366,8 @@ if aiindex>0
        endif
       endif
       rem V118 - entities need to be jogged so they re-capture the new lighting profile
-      if tokay=1 
-       for tttte=1 to entityelementlist 
+      if tokay=1
+       for tttte=1 to entityelementlist
         ldistx#=infinilight(entityelement(e).eleprof.light.index).x-entityelement(tttte).x
         ldisty#=infinilight(entityelement(e).eleprof.light.index).y-entityelement(tttte).y
         ldistz#=infinilight(entityelement(e).eleprof.light.index).z-entityelement(tttte).z
@@ -15388,8 +15388,8 @@ if aiindex>0
        endif
       endif
       rem V118 - entities need to be jogged so they re-capture the new lighting profile
-      if tokay=1 
-       for tttte=1 to entityelementlist 
+      if tokay=1
+       for tttte=1 to entityelementlist
         ldistx#=infinilight(entityelement(e).eleprof.light.index).x-entityelement(tttte).x
         ldisty#=infinilight(entityelement(e).eleprof.light.index).y-entityelement(tttte).y
         ldistz#=infinilight(entityelement(e).eleprof.light.index).z-entityelement(tttte).z
@@ -15409,8 +15409,8 @@ if aiindex>0
        endif
       endif
       rem V118 - entities need to be jogged so they re-capture the new lighting profile
-      if tokay=1 
-       for tttte=1 to entityelementlist 
+      if tokay=1
+       for tttte=1 to entityelementlist
         ldistx#=infinilight(entityelement(e).eleprof.light.index).x-entityelement(tttte).x
         ldisty#=infinilight(entityelement(e).eleprof.light.index).y-entityelement(tttte).y
         ldistz#=infinilight(entityelement(e).eleprof.light.index).z-entityelement(tttte).z
@@ -15438,8 +15438,8 @@ if aiindex>0
        endif
       endif
       rem V118 - entities need to be jogged so they re-capture the new lighting profile
-      if tokay=1 
-       for tttte=1 to entityelementlist 
+      if tokay=1
+       for tttte=1 to entityelementlist
         ldistx#=infinilight(entityelement(e).eleprof.light.index).x-entityelement(tttte).x
         ldisty#=infinilight(entityelement(e).eleprof.light.index).y-entityelement(tttte).y
         ldistz#=infinilight(entityelement(e).eleprof.light.index).z-entityelement(tttte).z
@@ -16030,9 +16030,7 @@ if aiindex>0
          Gosub _darkai_find_safezone
          if tbesti>0
           i=tbesti
-          targetcontainer=(aisafezone(i).y+25)/100
-          if targetcontainer<0 then targetcontainer=0
-          if targetcontainer>19 then targetcontainer=19
+          targetcontainer=AIFindContainer(aisafezone(i).y+25)
           ai entity go to position entityelement(e).obj,aisafezone(i).x,aisafezone(i).z,targetcontainer
           aisafezone(i).occupied=1
           entityelement(e).darkai.movingtocover=1
@@ -16048,9 +16046,7 @@ if aiindex>0
         Gosub _darkai_find_safezone
         if tbesti>0
          i=tbesti
-         targetcontainer=(aisafezone(i).y+25)/100
-         if targetcontainer<0 then targetcontainer=0
-         if targetcontainer>19 then targetcontainer=19
+         targetcontainer=AIFindContainer(aisafezone(i).y+25)
          ai entity go to position entityelement(e).obj,aisafezone(i).x,aisafezone(i).z,targetcontainer
          aisafezone(i).occupied=1
          entityelement(e).darkai.movingtocover=1
@@ -16066,15 +16062,11 @@ if aiindex>0
       if ai entity exist(entityelement(e).obj) and entityelement(e).actualtarget>0
        tte=entityelement(e).actualtarget-1
        if entityelement(e).actualtarget=1 `then tobj=physicsplayerborble else tobj=entityelement(tte).obj
-        targetcontainer=object position y(physicsplayerborble)/100
-        if targetcontainer<0 then targetcontainer=0
-        if targetcontainer>19 then targetcontainer=19
+        targetcontainer=AIFindContainer(object position y(physicsplayerborble))
         ai entity go to position entityelement(e).obj,object position x(physicsplayerborble),object position z(physicsplayerborble),targetcontainer
         `entityelement(e).darkai.state=987 `test to block other interfering activities to test 'pure' move to target
        else
-        targetcontainer=(entityelement(tte).y+25)/100
-        if targetcontainer<0 then targetcontainer=0
-        if targetcontainer>19 then targetcontainer=19
+        targetcontainer=AIFindContainer(entityelement(tte).y+25)
         ai entity go to position entityelement(e).obj,entityelement(tte).x,entityelement(tte).z,targetcontainer
        endif
       endif
@@ -16087,9 +16079,7 @@ if aiindex>0
         x#=Object Position X(entityelement(e).darkai.called)
         z#=Object Position Z(entityelement(e).darkai.called)
         y#=Object Position Y(entityelement(e).darkai.called)
-        targetcontainer=(y#+25)/100
-        if targetcontainer<0 then targetcontainer=0
-        if targetcontainer>19 then targetcontainer=19
+        targetcontainer=AIFindContainer(y#+25)
         ai entity go to position entityelement(e).obj,x#,z#,targetcontainer
         entityelement(e).darkai.called=-1
         entityelement(e).darkai.calldelay2=timer()
@@ -16110,9 +16100,7 @@ if aiindex>0
         x#=Object Position X(i)
         z#=Object Position Z(i)
         y#=Object Position Y(i)
-        targetcontainer=(y#+25)/100
-        if targetcontainer<0 then targetcontainer=0
-        if targetcontainer>19 then targetcontainer=19
+        targetcontainer=AIFindContainer(y#+25)
         ai entity go to position entityelement(e).obj,x#,z#,targetcontainer
         entityelement(e).darkai.called=-1
         entityelement(e).darkai.calldelay2=timer()
@@ -16152,9 +16140,7 @@ if aiindex>0
      case AIACTAISTOP:
       if ai entity exist(entityelement(e).obj)
        if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control entityelement(e).obj,0
-       targetcontainer=(entityelement(e).y+25)/100
-       if targetcontainer<0 then targetcontainer=0
-       if targetcontainer>19 then targetcontainer=19
+       targetcontainer=AIFindContainer(entityelement(e).y+25)
        ai entity go to position entityelement(e).obj,entityelement(e).x,entityelement(e).z,targetcontainer
       endif
      endcase
@@ -26647,7 +26633,7 @@ _lighting_managegloballightingreciever:
  if avlightcolb#>255 then avlightcolb#=255
  `
  rem debug lighting system for entities
- if activatedynamiclightsdebug=1 
+ if activatedynamiclightsdebug=1
   entitydebug$(recentityindex)="LIGHTING RGB="+str$(int(avlightcolr#))+","+str$(int(avlightcolg#))+","+str$(int(avlightcolb#))
   entitydebug$(recentityindex)=entitydebug$(recentityindex)+" QTY="+str$(tqty)
  endif
@@ -26838,34 +26824,34 @@ for tef=1 to effectbankmax
   tindex=infinilightshortlist() : tobj=infinilight(tindex).id
   if infinilight(tindex).type=1
    set vector4 1,infinilight(tindex).x,infinilight(tindex).y,infinilight(tindex).z,1
-   if lightindex=2 then set effect constant vector teffectid,"g_lights_pos0",1 
-   if lightindex=3 then set effect constant vector teffectid,"g_lights_pos1",1 
-   if lightindex=4 then set effect constant vector teffectid,"g_lights_pos2",1 
-   if lightindex=5 then set effect constant vector teffectid,"g_lights_pos3",1 
+   if lightindex=2 then set effect constant vector teffectid,"g_lights_pos0",1
+   if lightindex=3 then set effect constant vector teffectid,"g_lights_pos1",1
+   if lightindex=4 then set effect constant vector teffectid,"g_lights_pos2",1
+   if lightindex=5 then set effect constant vector teffectid,"g_lights_pos3",1
    att#=infinilight(tindex).range : att#=att#/3.0 : att#=1.0/(att#*att#)
    set vector4 1,1.0,0,att#,0.0
-   if lightindex=2 then set effect constant vector teffectid,"g_lights_atten0",1 
-   if lightindex=3 then set effect constant vector teffectid,"g_lights_atten1",1 
-   if lightindex=4 then set effect constant vector teffectid,"g_lights_atten2",1 
-   if lightindex=5 then set effect constant vector teffectid,"g_lights_atten3",1 
+   if lightindex=2 then set effect constant vector teffectid,"g_lights_atten0",1
+   if lightindex=3 then set effect constant vector teffectid,"g_lights_atten1",1
+   if lightindex=4 then set effect constant vector teffectid,"g_lights_atten2",1
+   if lightindex=5 then set effect constant vector teffectid,"g_lights_atten3",1
    colrgbr#=infinilight(tindex).colrgb.r : colrgbr#=colrgbr#/255.0
    colrgbg#=infinilight(tindex).colrgb.g : colrgbg#=colrgbg#/255.0
    colrgbb#=infinilight(tindex).colrgb.b : colrgbb#=colrgbb#/255.0
    set vector4 1,colrgbr#,colrgbg#,colrgbb#,1
-   if lightindex=2 then set effect constant vector teffectid,"g_lights_diffuse0",1 
-   if lightindex=3 then set effect constant vector teffectid,"g_lights_diffuse1",1 
-   if lightindex=4 then set effect constant vector teffectid,"g_lights_diffuse2",1 
-   if lightindex=5 then set effect constant vector teffectid,"g_lights_diffuse3",1 
+   if lightindex=2 then set effect constant vector teffectid,"g_lights_diffuse0",1
+   if lightindex=3 then set effect constant vector teffectid,"g_lights_diffuse1",1
+   if lightindex=4 then set effect constant vector teffectid,"g_lights_diffuse2",1
+   if lightindex=5 then set effect constant vector teffectid,"g_lights_diffuse3",1
    inc lightindex
   endif
   next array index infinilightshortlist()
  endwhile
  set vector4 1,0,0,0,0
  while lightindex<7
-  if lightindex=2 then set effect constant vector teffectid,"g_lights_diffuse0",1 
-  if lightindex=3 then set effect constant vector teffectid,"g_lights_diffuse1",1 
-  if lightindex=4 then set effect constant vector teffectid,"g_lights_diffuse2",1 
-  if lightindex=5 then set effect constant vector teffectid,"g_lights_diffuse3",1 
+  if lightindex=2 then set effect constant vector teffectid,"g_lights_diffuse0",1
+  if lightindex=3 then set effect constant vector teffectid,"g_lights_diffuse1",1
+  if lightindex=4 then set effect constant vector teffectid,"g_lights_diffuse2",1
+  if lightindex=5 then set effect constant vector teffectid,"g_lights_diffuse3",1
   inc lightindex
  endwhile
  `
@@ -30665,7 +30651,7 @@ _gameflow_default:
  rem v118 - special saveload variable
  rem 310311- TerryFix - define var to make sure saved ambience is used
  global saveloadambience as integer : saveloadambience=-1
- ` 
+ `
  rem App Loop
  loopapp=1
  while loopapp=1
@@ -34408,7 +34394,7 @@ if file exist(tfile$)=1
     `
     rem load max materials
     tryfield$="materialmax"
-    if field$=tryfield$ 
+    if field$=tryfield$
      gmaterialmax=value1
      if gmaterialmax<18 then gmaterialmax=18 : rem V118 - BETA11 - water uses this in code!
      dim material(gmaterialmax) as materialsettingstype
@@ -35263,7 +35249,7 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
     tcameraspeed#=speed#*playerspeedratio#*(0.5+(cameradampen#/2.0))
     if (plrkeyA)=1 and (plrkeyD)=1
      `do nothing
-    else        
+    else
      if cameraspeed<tcameraspeed# then inc cameraspeed,10.0*timeelapsed#
      if cameraspeed>tcameraspeed# then cameraspeed=tcameraspeed#
     endif
@@ -35271,7 +35257,7 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
   endif
   if camerareachatrun#<cameraspeed/3.0 then camerareachatrun#=cameraspeed/3.0
   if camerareachatrun#<0 then camerareachatrun#=0
- else 
+ else
 `ladder?
 `  phyangle#=moveroty#
 `  if (plrkeyW)=1
@@ -35559,7 +35545,7 @@ if deactivatecollision=0 and skipcol=0
   tdst#=static raycast(ctx#,cty#-5.0,ctz#,ctx#,cty#+15.0,ctz#)
   if tdst#<>0.0
    if tdst#<10.0
-    if camvely#>0.0 
+    if camvely#>0.0
      camvely#=(camvely#*0.5)*-1
      jumpactionnorepeat=0
      jumpaction=0
@@ -53206,9 +53192,7 @@ _darkai_addai:
   if tcontainerid>19 then tcontainerid=19
   ai set entity idle position obj,entityelement(e).x,entityelement(e).z,tcontainerid
   ai set entity angle y obj,entityelement(e).ry
-  targetcontainer=(entityelement(e).y+25)/100
-  if targetcontainer<0 then targetcontainer=0
-  if targetcontainer>19 then targetcontainer=19
+  targetcontainer=AIFindContainer(entityelement(e).y+25)
   ai entity go to position obj,entityelement(e).x,entityelement(e).z,targetcontainer
   ai set entity can duck obj,1
   ai set entity avoid distance obj,300
@@ -53231,19 +53215,17 @@ _darkai_control:
  ttargetvisible=0
  ttargetvisibleduck=0
  inc gameperfentities2, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
+ Rem add all new targets to target list
  Gosub Add_Targets
  inc gameperfentities3, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
  `
  rem Collect Sensory Information
- if ai get entity target id(obj,1)<>0
-  tobjtarget=entityelement(e).ttarget
- else
-  tobjtarget=0
- endif
- `ai get entity target id(obj,1)
+ tobjtarget=0
+ if ai get entity target id(obj,1)<>0 then tobjtarget=entityelement(e).ttarget
+ `
  tsound=ai get entity heard sound(obj)
  ttargets=ai get entity count targets(obj)
-
+ `
  rem Collect Target Information (280410 - added tobjtarget<65535 to prevent crash)
  if tobjtarget>0 and tobjtarget<65535
   if object exist(tobjtarget)=1
@@ -53267,6 +53249,7 @@ _darkai_control:
  tmoving=ai get entity is moving(obj)
  tturning=ai get entity is turning(obj)
  tavoiding=ai get entity avoiding(obj)
+ `
  Rem Hockeykid - 250210 - Added line so Dark AI entities have footfall sounds
  if tmoving>0
   Rem Hockeykid - 050410 - Play fake sound for Dark AI
@@ -53304,8 +53287,8 @@ _darkai_control:
   entityelement(e).darkai.daihasdest=0
  endif
 
- `Sees opponent
- If entityelement(e).darkai.autoattackoff=0
+ rem Sees opponent
+ if entityelement(e).darkai.autoattackoff=0
   if ttargetvisible=1 and entityelement(e).darkai.state=STATE_IDLE or ttargets>0 and entityelement(e).darkai.state=STATE_IDLE
    if ttargetvisibleduck=0
     entityelement(e).darkai.state=STATE_COVER
@@ -53314,7 +53297,6 @@ _darkai_control:
    endif
   endif
  endif
- Rem current unused AI action is 11
 
  Rem Hockeykid - 100310 - If not in any of these action modes and entity is set to automatic mode then turn off
  if entityelement(e).darkai.control=1
@@ -53325,7 +53307,7 @@ _darkai_control:
 
  rem Idle
  if tstate=STATE_IDLE
-  `Stand up
+  rem Stand up
   if tducking=1 then ai entity stand obj
 
   Rem Hockeykid - All AI types
@@ -53340,157 +53322,124 @@ _darkai_control:
   Rem Hockeykid - 160310 - Patrol path, this command creates a path from current point to a path point
   if entityelement(e).darkai.actionmode=8
    i=entityelement(e).darkai.path
-   targetcontainer=(points(i).y+25)/100
-   if targetcontainer<0 then targetcontainer=0
-   if targetcontainer>19 then targetcontainer=19
+   targetcontainer=AIFindContainer(points(i).y+25)
    ai entity go to position obj,points(i).x,points(i).z,targetcontainer
    entityelement(e).darkai.actionmode=0
   endif
+  `
   Rem Hockeykid - 020310 - Special area for allies only
   if entityelement(e).darkai.team=1
-   `Follow the player
-    if entityelement(e).darkai.actionmode=1
-     ai set entity control obj,1
-     ai entity follow player obj,60
-     entityelement(e).darkai.follow=1
-     Rem set the entities control variable to 1 so can be swtiched off later if on
-     entityelement(e).darkai.control=1
-     entityelement(e).darkai.actionmode=0
-    endif
-
-    if entityelement(e).darkai.actionmode=4 and entityelement(e).darkai.follow<>0
-     ai entity separate obj
-     Rem Hockeykid - 030310 - Reset control mode to manual
-     if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control obj,0
-     entityelement(e).darkai.follow=0
-     Rem Hockeykid - 030310 - Call actionmode 3 so entities stop right away
-     entityelement(e).darkai.actionmode=3
-     entityelement(e).darkai.follow=0
-    endif
-
-    if entityelement(e).darkai.actionmode<>4 and entityelement(e).darkai.follow<>0 and entityelement(e).darkai.actionmode<>0
-     ai entity separate obj
-     Rem Hockeykid - 030310 - Reset control mode to manual
-     if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control obj,0
-     entityelement(e).darkai.follow=0
-     targetcontainer=(entityelement(e).y+25)/100
-     if targetcontainer<0 then targetcontainer=0
-     if targetcontainer>19 then targetcontainer=19
-     ai entity go to position obj,entityelement(e).x,entityelement(e).z,targetcontainer
-    endif
-
-
-  endif
-
-  Rem Hockeykid - 020310 -  Area for both enemies and allies
-   `Move randomly
-   if entityelement(e).darkai.delay<timer() and entityelement(e).darkai.actionmode=2
-    entityelement(e).darkai.delay=timer()+2500
-    ai entity random move obj,300,1000
-   endif
-   `Survey Suroundings
-   `if tturning=0 and tmoving=0 and entityelement(e).darkai.delay<timer() and entityelement(e).darkai.actionmode<>2
-   ` entityelement(e).darkai.delay=timer()+1000
-    `ai entity look around obj,40,360
-  ` endif
-   `Stop entity in its tracks
-   if entityelement(e).darkai.actionmode=3
-    Rem entity must be in manual mode
-    if entityelement(e).darkai.control=1 then ai set entity control obj,0 : entityelement(e).darkai.control=0
-    targetcontainer=(entityelement(e).y+25)/100
-    if targetcontainer<0 then targetcontainer=0
-    if targetcontainer>19 then targetcontainer=19
-    ai entity go to position obj,entityelement(e).x,entityelement(e).z,targetcontainer
+   rem Follow the player
+   if entityelement(e).darkai.actionmode=1
+    ai set entity control obj,1
+    ai entity follow player obj,60
+    entityelement(e).darkai.follow=1
+    Rem set the entities control variable to 1 so can be swtiched off later if on
+    entityelement(e).darkai.control=1
     entityelement(e).darkai.actionmode=0
    endif
-   `
-   `Rem Alert entity if Ambushed
-    Rem This can be done purley through scripting now
-    entityelement(e).darkai.ambushed=0
-    remstart
-    if entityelement(e).darkai.ambushed>0
-     `print entityelement(e).darkai.ambushed
-     `ai entity stop obj
-     entityelement(e).darkai.ambushed=0
-     entityelement(e).darkai.state=STATE_COVER
-     ttargetx#=entityelement(e).darkai.ambushx#
-     ttargetz#=entityelement(e).darkai.ambushz#
-     Rem Establish attacker as a target
-     `ttargetvisible=ai get entity can see(obj,ttargetx#,ttargetz#,1) `280410 - old DarkAI
-     `ttargetvisibleduck=ai get entity can see(obj,ttargetx#,ttargetz#,0) `280410 - old DarkAI
-     if entityelement(e).darkai.ehit=-1
-      tobjtarget=physicsplayerborble
-     else
-      tobjtarget=entityelement(entityelement(e).darkai.ehit).obj
-     endif
-     ttargety#=entityelement(e).y+50
-     if tobjtarget>0 and tobjtarget<65535
-      if object exist(tobjtarget)=1
-       ttargety#=object position y(tobjtarget)
-      endif
-     endif
-     ttargetvisible=ai get entity can see(obj,ttargetx#,ttargety#,ttargetz#,1)
-     ttargetvisibleduck=ai get entity can see(obj,ttargetx#,ttargety#,ttargetz#,0)
-     ttargets=ai get entity count targets(obj)
-     ai entity look at position obj,ttargetx#,ttargetz#
-     ai entity move to cover obj,ttargetx#,ttargetz#
-    endif
-    remend
-   `Sees opponent
-   If entityelement(e).darkai.autoattackoff=0
-    if ttargetvisible=1 or ttargets>0
-     if ttargetvisibleduck=0
-      entityelement(e).darkai.state=STATE_COVER
-     else
-      entityelement(e).darkai.state=STATE_ATTACKING
-     endif
-    endif
+
+   if entityelement(e).darkai.actionmode=4 and entityelement(e).darkai.follow<>0
+    ai entity separate obj
+    Rem Hockeykid - 030310 - Reset control mode to manual
+    if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control obj,0
+    entityelement(e).darkai.follow=0
+    Rem Hockeykid - 030310 - Call actionmode 3 so entities stop right away
+    entityelement(e).darkai.actionmode=3
+    entityelement(e).darkai.follow=0
    endif
 
+   if entityelement(e).darkai.actionmode<>4 and entityelement(e).darkai.follow<>0 and entityelement(e).darkai.actionmode<>0
+    ai entity separate obj
+    Rem Hockeykid - 030310 - Reset control mode to manual
+    if entityelement(e).darkai.control=1 then entityelement(e).darkai.control=0 : ai set entity control obj,0
+    entityelement(e).darkai.follow=0
+    targetcontainer=AIFindContainer(entityelement(e).y+25)
+    ai entity go to position obj,entityelement(e).x,entityelement(e).z,targetcontainer
+   endif
+   `
+  endif
+  `
+  Rem Hockeykid - 020310 -  Area for both enemies and allies
+  rem Move randomly
+  if entityelement(e).darkai.delay<timer() and entityelement(e).darkai.actionmode=2
+   entityelement(e).darkai.delay=timer()+2500
+   ai entity random move obj,300,1000
+  endif
+  `
+  rem Stop entity in its tracks
+  if entityelement(e).darkai.actionmode=3
+   Rem entity must be in manual mode
+   if entityelement(e).darkai.control=1 then ai set entity control obj,0 : entityelement(e).darkai.control=0
+   targetcontainer=AIFindContainer(entityelement(e).y+25)
+   ai entity go to position obj,entityelement(e).x,entityelement(e).z,targetcontainer
+   entityelement(e).darkai.actionmode=0
+  endif
+  `
+  Rem Alert entity if Ambushed
+  Rem This can be done purley through scripting now
+  entityelement(e).darkai.ambushed=0
+  `
+  rem Sees opponent
+  if entityelement(e).darkai.autoattackoff=0
+   if ttargetvisible=1 or ttargets>0
+    if ttargetvisibleduck=0
+     entityelement(e).darkai.state=STATE_COVER
+    else
+     entityelement(e).darkai.state=STATE_ATTACKING
+    endif
+   endif
+  endif
  endif
 
  rem Attacking
  if tstate=STATE_ATTACKING or tstate=STATE_COVER
+  rem if told to, stop entity from moving
   if entityelement(e).darkai.aistop=1 then ai entity stop obj
 
-   if tobjtarget>0
-    `ai entity look at position obj,ttargetx#,ttargetz#
-    if entityelement(e).darkai.state<>STATE_COVER and ttargetvisibleduck=0
-     entityelement(e).darkai.state=STATE_COVER : ai entity move to cover obj,ttargetx#,ttargetz#
-    endif
+  if tobjtarget>0
+   `ai entity look at position obj,ttargetx#,ttargetz#
+   if entityelement(e).darkai.state<>STATE_COVER and ttargetvisibleduck=0
+    entityelement(e).darkai.state=STATE_COVER : ai entity move to cover obj,ttargetx#,ttargetz#
+   endif
 
-    if entityelement(e).darkai.actionmode=7 and entityelement(e).darkai.state<>STATE_COVER and ttargetvisibleduck=0
-     entityelement(e).darkai.state=STATE_COVER
-     ai entity move to cover obj,ttargetx#,ttargetz#
-    endif
+   rem if called instruct entity to move to cover
+   if entityelement(e).darkai.actionmode=7 and entityelement(e).darkai.state<>STATE_COVER and ttargetvisibleduck=0
+    entityelement(e).darkai.state=STATE_COVER
+    ai entity move to cover obj,ttargetx#,ttargetz#
+   endif
 
-    if ttargets>2 and tmoving=1
-     entityelement(e).darkai.running=1
-     endif
+   rem if more than 2 enemies then run
+   if ttargets>2 and tmoving=1
+    entityelement(e).darkai.running=1
+   endif
 
-     if entityelement(e).health<(entityelement(e).eleprof.strength*0.5)
-      if tmoving=0 then ai entity move to cover obj,ttargetx#,ttargetz# : entityelement(e).darkai.state=STATE_COVER
-      entityelement(e).darkai.running=1
-     else
-      if ttargetvisible=0
-       if tmoving=0 then ai entity move close obj,ttargetx#,ttargetz#,200.0
-      else
-       rem V118 this seems to have been commented back in by Sean on 28-01-11 - no reason why
-       if entityelement(e).darkai.delay2>timer() and entityelement(e).darkai.state=STATE_ATTACKING then ai entity stop obj
-      endif
-     endif
+   if entityelement(e).health<(entityelement(e).eleprof.strength*0.5)
+    rem if health at half then move to cover
+    if tmoving=0 then ai entity move to cover obj,ttargetx#,ttargetz# : entityelement(e).darkai.state=STATE_COVER
+    entityelement(e).darkai.running=1
    else
-    ai entity search area obj
-    entityelement(e).darkai.state=STATE_IDLE
-   endif
-
-   if entityelement(e).darkai.ambushed>0 and entityelement(e).darkai.autoattackoff=0
-      entityelement(e).darkai.ambushed=0
-      ai entity look at position obj,entityelement(e).darkai.ambushx#,entityelement(e).darkai.ambushz#
-   endif
-   if entityelement(e).darkai.state<>STATE_ATTACKING and ttargetvisibleduck>0
-    entityelement(e).darkai.state=STATE_ATTACKING
+    if ttargetvisible=0
+     rem if lost target then try to find him
+     if tmoving=0 then ai entity move close obj,ttargetx#,ttargetz#,200.0
+    else
+     rem V118 this seems to have been commented back in by Sean on 28-01-11 - no reason why
+     rem without this entity's will continue to move in 1 direction
+     if entityelement(e).darkai.delay2>timer() and entityelement(e).darkai.state=STATE_ATTACKING then ai entity stop obj
     endif
+   endif
+  else
+   ai entity search area obj
+   entityelement(e).darkai.state=STATE_IDLE
+  endif
+
+  if entityelement(e).darkai.ambushed>0 and entityelement(e).darkai.autoattackoff=0
+   entityelement(e).darkai.ambushed=0
+   ai entity look at position obj,entityelement(e).darkai.ambushx#,entityelement(e).darkai.ambushz#
+  endif
+  if entityelement(e).darkai.state<>STATE_ATTACKING and ttargetvisibleduck>0
+   entityelement(e).darkai.state=STATE_ATTACKING
+  endif
  endif
 
  rem Open Attacking
@@ -53512,16 +53461,21 @@ _darkai_control:
  rem Cover
  if tstate=STATE_COVER
   if entityelement(e).darkai.delay<timer()
+   rem check for target height
    tscaley=object size y(obj)/2.0
    t3dvischeck=static raycast(tmyx#,tmyy#-(tscaley*0.75),tmyz#,ttargetx#,ttargety#,ttargetz#)
+   `
    if t3dvischeck=0
+    rem stand and shoot
     ai entity stand obj
     entityelement(e).darkai.delay=timer()+500+rnd(2000)
    else
     if ai get entity is ducking(obj)=1 or (entityelement(e).darkai.running=1 and tmoving=1)
+     rem stand and shoot while moving
      ai entity stand obj
      entityelement(e).darkai.delay=timer()+500+rnd(2000)
     else
+     rem duck if standing still
      ai entity duck obj
      if entityelement(e).health<(entityelement(e).eleprof.strength*0.5)
       entityelement(e).darkai.delay=timer()+2000+rnd(5000)
@@ -53536,66 +53490,68 @@ _darkai_control:
 
  rem Retreat
  if tstate=STATE_RETREAT
-  `Stand up
+  rem Stand up and run
   if tducking=1 then ai entity stand obj
-  `Run
   entityelement(e).darkai.running=1
-  `Move to cover
+  `
+  rem Move to cover if we see our target
   if tmoving=0 and ttargetvisible=1
    ai entity move to cover obj,ttargetx#,ttargetz#
   endif
-  `Return to idle
+  rem Return to idle if no target is visible
   if ttargetvisible=0 and ttargetvisibleduck=0
    entityelement(e).darkai.state=STATE_IDLE
   endif
  endif
-  Rem Any State
 
+ Rem Any State
  Rem check if entity is at cover
  if entityelement(e).darkai.movingtocover=1
   if entityelement(e).darkai.actionmode<>0 then entityelement(e).darkai.movingtocover=0
   if ai get entity x(obj)>=entityelement(e).darkai.coverx-3 and ai get entity x(obj)<=entityelement(e).darkai.coverx+3 and ai get entity z(obj)>=entityelement(e).darkai.coverz-3 and ai get entity z(obj)<=entityelement(e).darkai.coverz+3
+   rem at or near cover
    entityelement(e).darkai.movingtocover=0
    entityelement(e).darkai.state=STATE_COVER
   else
-   targetcontainer=(entityelement(e).y+25)/100
-   if targetcontainer<0 then targetcontainer=0
-   if targetcontainer>19 then targetcontainer=19
+   rem if not at cover then continue to move towards it
+   targetcontainer=AIFindContainer(entityelement(e).y+25)
    ai entity go to position obj,entityelement(e).darkai.coverx,entityelement(e).darkai.coverz,targetcontainer
   endif
  endif
 
- rem Get entity position info
- tentx#=ai get entity x(obj)
- tentz#=ai get entity z(obj)
-
  Rem Hockeykid - 050410 - reset call flag if times up
  if entityelement(e).darkai.called>0
   if timer()-entityelement(e).darkai.calldelay>=1000 then entityelement(e).darkai.called=0
- endif
- if entityelement(e).darkai.called=-1
-  if timer()-entityelement(e).darkai.calldelay2>=5000 then entityelement(e).darkai.called=0
+ else
+  if entityelement(e).darkai.called=-1 and timer()-entityelement(e).darkai.calldelay2>=5000 then entityelement(e).darkai.called=0
  endif
 
  rem Apply Direction
  tmovx#=ai get entity move x(obj)
  tmovz#=ai get entity move z(obj)
+ `
+ rem Get entity position info
+ tentx#=ai get entity x(obj)
+ tentz#=ai get entity z(obj)
+ `
+ rem update entity's position
  entityelement(e).mover.da=ai get entity angle y(obj)
  entityelement(e).x=tentx#
  entityelement(e).z=tentz#
  entityelement(e).darkai.aiy=Object Position Y(obj)
- `entityelement(e).ry=
 
  rem Apply Animation
  entityelement(e).darkai.action=0
- `if entityelement(e).ai.waypoint.state=2 then tmoving=0
  if tmoving=1
+  rem calculate difference in view and move angle
   moveangle#=wrapvalue(atanfull(tmovx#,tmovz#))
   viewangle#=wrapvalue(ai get entity angle y(obj))
   diffangle#=moveangle#-viewangle# : conda#=diffangle#
   if conda#>180 then conda#=360-conda#
   if conda#<-180 then conda#=conda#+360
   entityelement(e).darkai.action=1
+  `
+  rem apply animation type flag
   rem FPGC - 100710 - do not trigger strafe flag (and subsequent animation) until establish proper strafe build-up
   tstillstrafing=0
   if conda#>80.0 then entityelement(e).darkai.strafebuildup=entityelement(e).darkai.strafebuildup+1 : tstillstrafing=1
@@ -53608,6 +53564,8 @@ _darkai_control:
   if conda#<-120.0 or conda#>120.0 then entityelement(e).darkai.action=2
   if entityelement(e).aimoved=1 then entityelement(e).aimoved=0
  endif
+ `
+ rem reset ehit flag
  if entityelement(e).darkai.ehit=-1 then entityelement(e).darkai.ehit=0
  `
  rem Work out distance to target (run if over 600 units away)
@@ -53633,11 +53591,6 @@ _darkai_control:
  else
   ai set entity speed obj,entityelement(e).eleprof.speed/2.0
  endif
- `
- Rem Cross-Layer Interaction
- ttilex#=tentx#/100
- ttiley#=tenty#/100
- ttilez#=tentz#/100
  `
  Rem Calculate Zone Info
  `
@@ -53713,9 +53666,7 @@ return
 _darkai_stop:
  rem FPGC - 300710 - DarkAI only in single player
  if gmultiplayergame=0
-  targetcontainer=(entityelement(e).y+25)/100
-  if targetcontainer<0 then targetcontainer=0
-  if targetcontainer>19 then targetcontainer=19
+  targetcontainer=AIFindContainer(entityelement(e).y+25)
   ai entity go to position entityelement(e).obj,entityelement(e).x,entityelement(e).z,targetcontainer
  endif
 return
@@ -53726,9 +53677,7 @@ _darkai_stopfollow:
   if entityelement(e).darkai.team=1
    ai entity separate entityelement(e).obj
    if entityelement(e).darkai.control=1 then ai set entity control entityelement(e).obj,0 : entityelement(e).darkai.control=0
-   targetcontainer=(entityelement(e).y+25)/100
-   if targetcontainer<0 then targetcontainer=0
-   if targetcontainer>19 then targetcontainer=19
+   targetcontainer=AIFindContainer(entityelement(e).y+25)
    ai entity go to position entityelement(e).obj,entityelement(e).x,entityelement(e).z,targetcontainer
    entityelement(e).darkai.follow=0
   endif
@@ -53982,9 +53931,7 @@ Function AIMoveToSound(obj,obje)
   if entityelement(obje).darkai.hearingrange=0 then entityelement(obje).darkai.hearingrange=700
   sound=AIHeardSound(obje)
   if sound>0
-   targetcontainer=(aisound(sound).y+25)/100
-   if targetcontainer<0 then targetcontainer=0
-   if targetcontainer>19 then targetcontainer=19
+   targetcontainer=AIFindContainer(aisound(sound).y+25)
    ai entity go to position obj,aisound(sound).x,aisound(sound).z,targetcontainer
   endif
  endif
@@ -54141,6 +54088,12 @@ Function AIInsertFactions(team,teamslot,teama,teamtype)
   endif
  endif
 Endfunction
+
+Function AIFindContainer(y#)
+ container=(y#)/100
+ if container<0 then container=0
+ if container>19 then container=19
+Endfunction container
 
 rem
 rem POST PROCESS SUBROUTINES - Uses Camera One As Post Process Screen Aligned QUAD
