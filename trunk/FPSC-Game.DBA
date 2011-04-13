@@ -5176,14 +5176,16 @@ for p=0 to segmeshpartmax
   `
   rem V118 - 300111 - rather than correct old segment files, if full effects on
   rem but no effect specified (FF), then assume BUMP.FX (handled later by 'better' shader system)
-  quix=0
-  if guseeffectonscenesstate=1
-   if segmentprofile(segid,p).effect$=""
-    segmentprofile(segid,p).effect$="effectbank\bump\bump.fx"
-    tfile$=segmentprofile(segid,p).effect$
-    quix=1
-   endif
-  endif
+  rem REVERT - 130411 - this FIXES the invisible segment issue (works on some PC's
+  rem but not all PC's - need to find solution for shading older segments?
+`  quix=0
+`  if guseeffectonscenesstate=1
+`   if segmentprofile(segid,p).effect$=""
+`    segmentprofile(segid,p).effect$="effectbank\bump\bump.fx"
+`    tfile$=segmentprofile(segid,p).effect$
+`    quix=1
+`   endif
+`  endif
   `
   teffectuseslightmapstage=1 : gosub _common_makeeffecttextureset
   if tfile$<>"" and guseeffectonscenesstate=1
