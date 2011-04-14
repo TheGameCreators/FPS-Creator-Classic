@@ -30686,16 +30686,7 @@ _gameflow_default:
    continueokay=0
    while continueokay=0
     gosub _screen_control
-    if vrsidebysidestereo=1
-     titlepagetoggle=1-titlepagetoggle
-     if titlepagetoggle=0
-      set camera view 0,0,screen width()/2,screen height()
-      set sprite resize 0,0,0.5
-     else
-      set camera view screen width()/2,0,screen width(),screen height()
-      set sprite resize 0,screen width()/2,0.5
-     endif
-    endif
+    if vrsidebysidestereo=1 then gosub _vrstereotogglescreen
     sync
    endwhile
    hide mouse : rem GUI-X9 (knxrb)
@@ -30757,10 +30748,23 @@ _gameflow_default:
      saveloadfile$=""
     endif
     `
+    rem VR clears redundant side
+    if vrsidebysidestereo=1
+     gosub _vrstereotogglescreen
+     cls 0 : sync
+     gosub _vrstereotogglescreen
+     cls 0 : sync
+    endif
+    `
     rem Loading level
     if gtestgamemodefromeditor=0 then gosub _screen_loading_init
     if grealgameviewstate=1
      gosub _screen_control
+     if vrsidebysidestereo=1
+      gosub _vrstereotogglescreen
+      sync
+      gosub _vrstereotogglescreen
+     endif
      sync
     endif
     `
@@ -30846,10 +30850,6 @@ _gameflow_default:
         gosub _main_game_core
        else
         rem pause mode
-        if vrsidebysidestereo=1
-         set camera view 0,0,screen width()/2,screen height()
-         set sprite resize 0,0,0.5
-        endif
         if gmultiplayergame=1
          gosub _main_game_core
         else
@@ -30863,7 +30863,7 @@ _gameflow_default:
          next o
         endif
         gosub _screen_control
-        `if len(loadsavedlevel$)<2 then sync : rem FPGC - 280610 - replaced with sync to handle stereoscopics
+        if vrsidebysidestereo=1 then gosub _vrstereotogglescreen
         if len(loadsavedlevel$)<2 then gosub _main_sync
         if gvrmode<>0 then vr920exist=reset left eye()
        endif
@@ -31037,6 +31037,17 @@ _gameflow_default:
   end
  endif
  `
+return
+
+_vrstereotogglescreen:
+ titlepagetoggle=1-titlepagetoggle
+ if titlepagetoggle=0
+  set camera view 0,0,screen width()/2,screen height()
+  set sprite resize 0,0,0.5
+ else
+  set camera view screen width()/2,0,screen width(),screen height()
+  set sprite resize 0,screen width()/2,0.5
+ endif
 return
 
 rem
@@ -34107,7 +34118,7 @@ setuparr$(i)="dividetexturesize="+str$( gdividetexturesize ) : inc i
 setuparr$(i)="controllerhint="+str$( gcontrollerhint ) : inc i
 rem FPGC - 070411 - we can force the standalone games to use VRMODE when using VRQUEST
 if fpgcgenre=0
- setuparr$(i)="vrmode=5" : inc i
+ setuparr$(i)="vrmode=6" : inc i
  setuparr$(i)="vrmodemag=100" : inc i
 else
  setuparr$(i)="vrmode="+str$( gvrmode ) : inc i
@@ -40027,6 +40038,18 @@ endfunction gotel
 ` SAVE LOAD SUBROUTINES
 `
 _saveload_maindialogloop:
+ `
+ rem Ensure save/load stays on left side (where text is)
+ if vrsidebysidestereo=1
+  rem VR clears redundant side
+  gosub _vrstereotogglescreen
+  cls 0 : sync
+  gosub _vrstereotogglescreen
+  cls 0 : sync
+  rem Ensure we render to the left
+  set camera view 0,0,screen width()/2,screen height()
+  set sprite resize 0,0,0.5
+ endif
  `
  rem loop to control save/load dialog
  gosub _saveload_savebox_load
@@ -55149,7 +55172,7 @@ _gui_run:
         endif
         LoadHudX = (gdisplaywidth/2)-image width(saveload.saveloadimg+1)/2
         LoadHudY = (gdisplayheight/2)-image height(saveload.saveloadimg+1)/2
-        if vrsidebysidestereo=1 : LoadHudX=(LoadHudX/2) : tttspacer=150 : else : tttspacer=300 : endif
+        tttspacer=300
         saveload.slothighlight = -1
         if sprite exist(saveload.saveloadimg+1) then paste sprite saveload.saveloadimg+1,LoadHudX,LoadHudY
         ink rgb(255,255,255),0 : center text LoadHudX+tttspacer,LoadHudY+6,strarr$(646)
@@ -55190,7 +55213,7 @@ _gui_run:
         endif
         SaveHudX = (gdisplaywidth/2)-image width(saveload.saveloadimg+1)/2
         SaveHudY = (gdisplayheight/2)-image height(saveload.saveloadimg+1)/2
-        if vrsidebysidestereo=1 : SaveHudX=(SaveHudX/2) : tttspacer=150 : else : tttspacer=300 : endif
+        tttspacer=300
         saveload.slothighlight = -1
         if sprite exist(saveload.saveloadimg+1) then paste sprite saveload.saveloadimg+1,SaveHudX,SaveHudY
         ink rgb(255,255,255),0 : center text SaveHudX+tttspacer,SaveHudY+6,strarr$(647)
