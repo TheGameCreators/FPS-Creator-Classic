@@ -3373,6 +3373,14 @@ if gvrmode=5
  endif
 endif
 
+rem FPGC - 130411 - special case, VRMODE=6 assumes new device
+global vrsidebysidestereo : vrsidebysidestereo=0
+if gvrmode=6
+ vrsidebysidestereo=1
+ set sprite resize 0,0,0.5
+ gvrmode=4
+endif
+
 rem FPGC - 230211 - must be done AFTER a resolution change, as 3d math gets wiped out (matrix4=15)
 gosub _main_initcalceyes
 
@@ -4135,11 +4143,19 @@ _main_sync:
   precamy#=camera position y()
   precamz#=camera position z()
   position camera camera position x()+x vector4(13),camera position y()+y vector4(13),camera position z()+z vector4(13)
+  if vrsidebysidestereo=1
+   set camera view 0,0,screen width()/2,screen height()
+   set sprite resize 0,0,0.5
+  endif
   sync
   rem then relocate camera to right eye and render quickly
   position camera camera position x()+x vector4(14),camera position y()+y vector4(14),camera position z()+z vector4(14)
   rem re-paint all HUD graphics as they are rendered over regular 3D
   gosub _ai_hud_view
+  if vrsidebysidestereo=1
+   set camera view screen width()/2,0,screen width(),screen height()
+   set sprite resize 0,512,0.5
+  endif
   fastsync
   rem restore camera position and rotation for engine flow
   position camera precamx#,precamy#,precamz#
@@ -30670,6 +30686,16 @@ _gameflow_default:
    continueokay=0
    while continueokay=0
     gosub _screen_control
+    if vrsidebysidestereo=1
+     titlepagetoggle=1-titlepagetoggle
+     if titlepagetoggle=0
+      set camera view 0,0,screen width()/2,screen height()
+      set sprite resize 0,0,0.5
+     else
+      set camera view screen width()/2,0,screen width(),screen height()
+      set sprite resize 0,screen width()/2,0.5
+     endif
+    endif
     sync
    endwhile
    hide mouse : rem GUI-X9 (knxrb)
@@ -30819,6 +30845,11 @@ _gameflow_default:
        if showgamemenu=0
         gosub _main_game_core
        else
+        rem pause mode
+        if vrsidebysidestereo=1
+         set camera view 0,0,screen width()/2,screen height()
+         set sprite resize 0,0,0.5
+        endif
         if gmultiplayergame=1
          gosub _main_game_core
         else
@@ -40144,7 +40175,8 @@ _saveload_savebox_run:
   else
    ink rgb(32,32,32),0
   endif
-  text saveload.saveloadx+25,saveload.liney+4,str$(sloti)+"  "+saveloadslot$(sloti)
+  sltttx=saveload.saveloadx+25 : if vrsidebysidestereo=1 then sltttx=sltttx/2
+  text sltttx,saveload.liney+4,str$(sloti)+"  "+saveloadslot$(sloti)
  next sloti
  `
  rem Preview
@@ -40155,10 +40187,11 @@ _saveload_savebox_run:
  `
  rem Title of box
  ink rgb(255,255,255),0
+ sltttx=saveload.saveloadx+300 : if vrsidebysidestereo=1 then sltttx=sltttx/2
  if saveload.loadswitch=1
-  center text saveload.saveloadx+300,saveload.saveloady+6,strarr$(646)
+  center text sltttx,saveload.saveloady+6,strarr$(646)
  else
-  center text saveload.saveloadx+300,saveload.saveloady+6,strarr$(647)
+  center text sltttx,saveload.saveloady+6,strarr$(647)
  endif
  `
  rem Are You Sure prompt
@@ -40173,9 +40206,12 @@ _saveload_savebox_run:
    if tmmx>=tareyousurex+450 and tmmx<=tareyousurex+500 then tyesnochoice1=0 : tyesnochoice2=1
   endif
   if saveload.loadswitch=1 then suretext$=strarr$(648)+" "+saveloadslot$(saveload.slothighlight)+"?" else suretext$=strarr$(649)+" "+saveloadslot$(saveload.slothighlight)+"?"
-  ink rgb(32,32,32),0 : text tareyousurex+30,tareyousurey+22,suretext$
-  ink rgb(tyesnochoice1*255,tyesnochoice1*255,tyesnochoice1*255),0 : text tareyousurex+400,tareyousurey+22,strarr$(650)
-  ink rgb(tyesnochoice2*255,tyesnochoice2*255,tyesnochoice2*255),0 : text tareyousurex+450,tareyousurey+22,strarr$(651)
+  sltttx=tareyousurex+30 : if vrsidebysidestereo=1 then sltttx=sltttx/2
+  ink rgb(32,32,32),0 : text sltttx,tareyousurey+22,suretext$
+  sltttx=tareyousurex+400 : if vrsidebysidestereo=1 then sltttx=sltttx/2
+  ink rgb(tyesnochoice1*255,tyesnochoice1*255,tyesnochoice1*255),0 : text sltttx,tareyousurey+22,strarr$(650)
+  sltttx=tareyousurex+450 : if vrsidebysidestereo=1 then sltttx=sltttx/2
+  ink rgb(tyesnochoice2*255,tyesnochoice2*255,tyesnochoice2*255),0 : text sltttx,tareyousurey+22,strarr$(651)
   rem select one
   if control_mouseclick()<>0 and (tyesnochoice1=1 or tyesnochoice2=1)
    saveload.areyousure=0 : while control_mouseclick()<>0 : endwhile
@@ -55113,9 +55149,10 @@ _gui_run:
         endif
         LoadHudX = (gdisplaywidth/2)-image width(saveload.saveloadimg+1)/2
         LoadHudY = (gdisplayheight/2)-image height(saveload.saveloadimg+1)/2
+        if vrsidebysidestereo=1 : LoadHudX=(LoadHudX/2) : tttspacer=150 : else : tttspacer=300 : endif
         saveload.slothighlight = -1
         if sprite exist(saveload.saveloadimg+1) then paste sprite saveload.saveloadimg+1,LoadHudX,LoadHudY
-        ink rgb(255,255,255),0 : center text LoadHudX+300,LoadHudY+6,strarr$(646)
+        ink rgb(255,255,255),0 : center text LoadHudX+tttspacer,LoadHudY+6,strarr$(646)
         for sloti = 1 to 9
             dY# = LoadHudY+20+(sloti*27)
             if  inputmousex() > LoadHudX and inputmousex() < LoadHudX+280 and inputmousey() > dY# and inputmousey() < dY#+27
@@ -55130,7 +55167,8 @@ _gui_run:
             else
                 ink rgb(35,35,35),0
             endif
-            text LoadHudX+25,dY#+4,str$(sloti)+") "+saveloadslot$(sloti)
+``            text LoadHudX+25,dY#+4,str$(sloti)+") "+saveloadslot$(sloti)
+            text LoadHudX+25,dY#+4,"HELLO WORLD"
         next sloti
         if mMouseUp = 2 and saveload.slothighlight <> -1
             if sprite exist(saveload.saveloadimg+1) then delete sprite saveload.saveloadimg+1
@@ -55152,9 +55190,10 @@ _gui_run:
         endif
         SaveHudX = (gdisplaywidth/2)-image width(saveload.saveloadimg+1)/2
         SaveHudY = (gdisplayheight/2)-image height(saveload.saveloadimg+1)/2
+        if vrsidebysidestereo=1 : SaveHudX=(SaveHudX/2) : tttspacer=150 : else : tttspacer=300 : endif
         saveload.slothighlight = -1
         if sprite exist(saveload.saveloadimg+1) then paste sprite saveload.saveloadimg+1,SaveHudX,SaveHudY
-        ink rgb(255,255,255),0 : center text SaveHudX+300,SaveHudY+6,strarr$(647)
+        ink rgb(255,255,255),0 : center text SaveHudX+tttspacer,SaveHudY+6,strarr$(647)
         for sloti = 1 to 9
             dY# = SaveHudY+20+(sloti*27)
             if inputmousex() > SaveHudX and inputmousex() < SaveHudX+280 and inputmousey() > dY# and inputmousey() < dY#+27
