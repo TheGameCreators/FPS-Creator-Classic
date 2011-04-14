@@ -8325,12 +8325,22 @@ if entityelement(e).fireweapon=1
     rem project gun-line-for-shot (from raw-calc or target)
     if entityelement(e).actualtarget<>0
      tte=entityelement(e).actualtarget-1
-     `x2#=entityelement(e).actualtargetx
-     `y2#=entityelement(e).actualtargety
-     `z2#=entityelement(e).actualtargetz
-     if tte=0 then y2#=object position y(physicsplayerborble) else y2#=object position y(entityelement(tte).obj)
-     if tte=0 then x2#=object position x(physicsplayerborble) else x2#=object position x(entityelement(tte).obj)
-     if tte=0 then z2#=object position z(physicsplayerborble) else z2#=object position z(entityelement(tte).obj)
+     rem 140411 - extra check to ensure entity target exists
+     tttokay=0
+     if tte>0
+      if tte<=array count(entityelement())
+       tttokay=1
+      endif
+     endif
+     if tttokay=1
+      y2#=object position y(entityelement(tte).obj)
+      x2#=object position x(entityelement(tte).obj)
+      z2#=object position z(entityelement(tte).obj)
+     else
+      y2#=object position y(physicsplayerborble)
+      x2#=object position x(physicsplayerborble)
+      z2#=object position z(physicsplayerborble)
+     endif
      tdx#=abs(x2#-x1#)
      tdy#=abs(y2#-y1#)
      tdz#=abs(z2#-z1#)
