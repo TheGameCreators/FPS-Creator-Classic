@@ -35640,8 +35640,8 @@ if deactivatecollision=0 and skipcol=0
    camerastoodonphyobjmovingz#=object position z(camerastoodonphyobj)-lcamerastoodonphyobjmovingz#
    rem only influence of object beneath player borble
    if object position y(camerastoodonphyobj)<object position y(physicsplayerborble)
-    camvelx#=camvelx#+(camerastoodonphyobjmovingx#*10)
-    camvelz#=camvelz#+(camerastoodonphyobjmovingz#*10)
+    camvelx#=camvelx#+(camerastoodonphyobjmovingx#*60.0*timeelapsed#)
+    camvelz#=camvelz#+(camerastoodonphyobjmovingz#*60.0*timeelapsed#)
    endif
    lcamerastoodonphyobjmovingx#=object position x(camerastoodonphyobj)
    lcamerastoodonphyobjmovingz#=object position z(camerastoodonphyobj)
