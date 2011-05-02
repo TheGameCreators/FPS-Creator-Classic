@@ -1755,6 +1755,7 @@ rem GUI-X9 (knxrb) <<<
 #constant AIACTSOUNDSCALE 1013
 #constant AIACTMUSICOVERRIDE 1014
 #constant AIACTVIDEO 1021
+#constant AIACTAISETVIEWRANGE 1022
 #constant AIACTWEBLINK 1031
 #constant AIACTEXPLODE 1032
 #constant AIACTLIGHTON 1051
@@ -11270,6 +11271,7 @@ actword$(AIACTAIADDALLY)="aiaddally"
 actword$(AIACTAIADDENEMY)="aiaddenemy"
 actword$(AIACTAIADDNEUTRAL)="aiaddneutral"
 actword$(AIACTAIAUTOFACTIONOFF)="aiautofactionoff"
+actword$(AIACTAISETVIEWRANGE)="aisetviewrange"
 actword$(AIACTHUDLAYER)="hudlayer" : rem V118 - 110810 - knxrb - Hud Layers
 actword$(AIACTSETHUDXPOS)="sethudxpos" : rem V118 - 160810 - knxrb - Hud - sethudx Command
 actword$(AIACTNEXTLEVEL)="nextlevel"
@@ -16297,6 +16299,9 @@ if aiindex>0
      endcase
      case AIACTAIAUTOFACTIONOFF:
       mutualfactionoff=aiactionseq(seq).value
+     endcase
+     case AIACTAISETVIEWRANGE:
+      ai set entity view range entityelement(e).obj,aiactionseq(seq).value
      endcase
      Rem End Dark AI
      `
