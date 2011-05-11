@@ -29,6 +29,7 @@ rem Credit to Airslide for help with Dark AI when it went into Fenix Mod
 rem Credit to Hockeykid for his continued help integrating Dark AI
 
 _start_engine:
+
 if exeroot$<>"" then set dir exeroot$
 rem Special build flags for 'genre' switch
 global fpgchud$ : fpgchud$=""
@@ -63,6 +64,15 @@ Global exeroot$ : exeroot$=get dir$()
 
 rem V118 - 110810 - knxrb - Hud Layers
 global hudHName$ as string = ""
+
+rem v118 - 110511 - cinematic hands global boolean flags and one tracking variable(terry cox) >>>>
+    global disablefirebutton as boolean : disablefirebutton = 0
+    global preventplrselectinggun as boolean : preventplrselectinggun = 0
+    global startcinematichands as boolean : startcinematichands = 0
+    global cinematichandsloop as boolean : cinematichandsloop = 0
+    global newweapon as boolean : newweapon = 0
+    global trackingcinematichandsloop as integer : trackingcinematichandsloop = 1
+rem cinematic hands <<<<
 
 
 rem - Global array for string variables
@@ -1611,6 +1621,11 @@ rem GUI-X9 (knxrb) >>>
 #constant AICONDSLIDERVALUEEQUAL 857
 rem GUI-X9 (knxrb) <<<
 
+rem v118 - 110511 - cinematic hands - (terry cox) >>>>
+`test to see if player is prevented from selecting a gun
+#constant AICONDPREVENTEDSELECTINGGUN 858
+rem cinematic hands <<<<
+
 #constant AICONDLAST 900
 
 #constant AIACTNONE 0
@@ -1985,7 +2000,18 @@ rem LightRayMod
 rem GUI-X9 (knxrb) >>>
 #constant AIACTFORCEGUISUB 1451
 rem GUI-X9 (knxrb) <<<
-#constant AIACTLAST 1452
+`
+rem v118 - 110511 - cinematic hands (terry cox) >>>>
+`commands that are needed for cinematic hands
+`the first two are optional - the last two are required
+#constant AIACTPREVENTPLAYERSELECTINGGUN 1452
+#constant AIACTDISABLEFIREBUTTON 1453
+#constant AIACTSTARTCINEMATICHANDS 1454
+#constant AIACTGETNEWWEAPON 1455
+#constant AIACTREMOVECURRENTWEAPON 1456
+rem cinematic hands <<<<
+
+#constant AIACTLAST 1500
 
 rem V109 BETA3 - 210408 - AI variables
 global aivariablemode : aivariablemode=0 : rem 0-global, 1-local
@@ -7626,7 +7652,7 @@ for e=1 to entityelementlist
       if entityelement(e).plrdist<80
        rem player collects weapon from enemy (stores takeweaponammo in Quantity)
        weaponindex=tgunid
-       weaponinvposition=pi : tgunid=weaponindex
+       weaponinvposition=pint : tgunid=weaponindex
        tqty=rnd(firemode(tgunid,0).settings.reloadqty)
        autoentityusedtoholdweapon=e
        gosub _player_addweapon
@@ -11002,6 +11028,10 @@ conword$(AICONDCURSORIMAGE)="cursorimage"
 conword$(AICONDCHOICEVALUEEQUAL)="choicevalueequal"
 conword$(AICONDSLIDERVALUEEQUAL)="slidervalueequal"
 rem GUI-X9 (knxrb) <<<
+`
+rem v118 - 110511 - cinematic hands (terry cox) >>>>
+conword$(AICONDPREVENTEDSELECTINGGUN)="plrpreventedselectinggun"
+rem cinematic hands <<<<
 
 rem Set all action keywords
 dim actword$(AIACTLAST)
@@ -11370,6 +11400,15 @@ actword$(AIACTLRDEBUGDEACTIVE)="lrdebugdeactive"
 rem GUI-X9 (knxrb) <>>><
 actword$(AIACTFORCEGUISUB)="updategui"
 rem GUI-X9 (knxrb) <<<
+
+rem v118 - 110511 - cinematic hands (terry cox) >>>>
+actword$(AIACTDISABLEFIREBUTTON)="disablefirebutton"
+actword$(AIACTSTARTCINEMATICHANDS)="startcinematichands"
+actword$(AIACTPREVENTPLAYERSELECTINGGUN)="preventplrselectinggun"
+actword$(AIACTGETNEWWEAPON)="getcinematichands"
+actword$(AIACTREMOVECURRENTWEAPON)="removecurrentweapon"
+rem cinematic hands <<<<
+
 return
 
 _ai_reset_presaveposition:
@@ -12345,14 +12384,14 @@ if aiindex>0
      tplrid=entityelement(e).fakeplayerid
      if tfounde>0 and tplrid>0
       tgunbestdamage=0
-      for pi=1 to player(tplrid).inventorymax
-       te=playerinventory(tplrid,pi).index
+      for pint=1 to player(tplrid).inventorymax
+       te=playerinventory(tplrid,pint).index
        tentid=entityelement(te).bankindex
        tgunid=entityprofile(tentid).isweapon
        if tgunid>0
         if firemode(tgunid,0).settings.damage>tgunbestdamage then tgunbestdamage=firemode(tgunid,0).settings.damage
        endif
-      next pi
+      next pint
       tokay=0
       tent2id=entityelement(tfounde).bankindex
       tgun2id=entityprofile(tent2id).isweapon
@@ -13097,6 +13136,9 @@ if aiindex>0
     endcase
     rem GUI-X9 (knxrb) <<<
     `
+    case AICONDPREVENTEDSELECTINGGUN:
+       if preventplrselectinggun=0 then airesult=0
+    endcase
     `
     `
    endselect
@@ -14472,10 +14514,10 @@ if aiindex>0
          entityelement(te).z=-99999
          tplrid=entityelement(e).fakeplayerid
          if tplrid>0
-          pi=player(tplrid).inventorymax : inc pi
-          playerinventory(tplrid,pi).new=1
-          playerinventory(tplrid,pi).index=te
-          player(tplrid).inventorymax=pi
+          pint=player(tplrid).inventorymax : inc pint
+          playerinventory(tplrid,pint).new=1
+          playerinventory(tplrid,pint).index=te
+          player(tplrid).inventorymax=pint
           rem make NPC player responsible for weapon selection (change to entity control)
           tentid=entityelement(te).bankindex : tgunid=entityprofile(tentid).isweapon
           if tgunid>0
@@ -14883,11 +14925,11 @@ if aiindex>0
        gosub _entity_resolveobjective
        `
        rem only allow weapons
-       pi=player(1).inventorymax : inc pi
-       if pi<100
-        playerinventory(1,pi).new=1
-        playerinventory(1,pi).index=e
-        player(1).inventorymax=pi
+       pint=player(1).inventorymax : inc pint
+       if pint<100
+        playerinventory(1,pint).new=1
+        playerinventory(1,pint).index=e
+        player(1).inventorymax=pint
        endif
        `
      endcase
@@ -14903,9 +14945,9 @@ if aiindex>0
        show object obj
       endif
       rem in case drop originated outside (not .drop=x)
-      for pi=1 to player(1).inventorymax
-       if playerinventory(1,pi).index=e then player(1).command.drop=pi : exit
-      next pi
+      for pint=1 to player(1).inventorymax
+       if playerinventory(1,pint).index=e then player(1).command.drop=pint : exit
+      next pint
      endcase
      case AIACTPLRDROPCURRENT:
       rem only drop if entity is also being currently in use (current)
@@ -14922,9 +14964,9 @@ if aiindex>0
         show object obj
        endif
        rem in case drop originated outside (not .drop=x)
-       for pi=1 to player(1).inventorymax
-        if playerinventory(1,pi).index=e then player(1).command.drop=pi : exit
-       next pi
+       for pint=1 to player(1).inventorymax
+        if playerinventory(1,pint).index=e then player(1).command.drop=pint : exit
+       next pint
       endif
      endcase
      `
@@ -17415,6 +17457,126 @@ if aiindex>0
         gosub _gui_run
      endcase
      `
+     rem v118 - 110511 - cinematic hands (terry cox) >>>>
+     `here are the command case actions
+         case AIACTDISABLEFIREBUTTON:
+            disablefirebutton = aiactionseq(seq).value
+         endcase
+         case AIACTSTARTCINEMATICHANDS:
+            local parameter$ as string
+            local temp$ as string
+            local temp1$ as string
+            `
+            temp$=aiactionseq(seq).string1
+            startcinematichands = val(temp$)
+            if startcinematichands=1 then temp1$=aiactionseq(seq).string2 : cinematichandsloop = val(temp1$)
+         endcase
+         case AIACTPREVENTPLAYERSELECTINGGUN:
+            preventplrselectinggun = aiactionseq(seq).value
+         endcase
+         case AIACTGETNEWWEAPON:
+            local ws as integer
+            local temp$ as string
+            local temp1$ as string
+            local gunname$ as string
+            local gunfolder$ as string
+            `
+            temp$=aiactionseq(seq).string1
+            gunname$=lower$(temp$)
+            temp1$=aiactionseq(seq).string2
+            gunfolder$=lower$(temp1$)
+            `
+            for ws=1 to entityelementlist
+                if lower$(entityelement(ws).eleprof.name$) = gunname$
+                    exit
+                endif
+            next ws
+            if ws <= entityelementmax
+               `
+               rem send trigger signal to sync players (multiplayer)
+               if gmultiplayergame=1
+                mptrigger=1 : mptriggervalue1=ws
+                gosub _multi_mptrigger
+               endif
+               `
+               rem if child of spawn leader, reset spawn count
+               spawne=entityelement(ws).spawn.leaderid
+               if spawne=0 then spawne=ws
+               entityelement(spawne).spawn.leadercount=entityelement(spawne).spawn.delay
+               `
+               rem V110 BETA4 - 070608 - if always active, a collected item keeps script running (for possible PLAYERDROP)
+               if entityelement(ws).eleprof.phyalways<>0
+                rem do not kill entity, keep it running
+               else
+                rem stop any looping sound
+                gosub _ai_stopentsounds
+                rem reset values
+                entityelement(ws).beenkilled=1
+                entityelement(ws).active=0
+               endif
+               `
+               rem clear entity from col map
+               tx=entityelement(ws).x/25
+               ty=entityelement(ws).y/100
+               tz=entityelement(ws).z/-25
+               if tx>=0 and ty>=0 and tz>=0
+                if tx<=viscolx and ty<=viscoly and tz<=viscolz
+                 if viscolmap(tx,ty,tz)=ws then viscolmap(tx,ty,tz)=0
+                endif
+               endif
+               `
+               rem mission objective counter
+               gosub _entity_resolveobjective
+               `
+               rem only allow weapons
+               pint=player(1).inventorymax : inc pint
+               if pint<100
+                playerinventory(1,pint).new=1
+                playerinventory(1,pint).index=ws
+                player(1).inventorymax=pint
+               endif
+               gosub _gun_manager
+               newweapon = 1
+               `
+               rem Find the gun
+               findgun$=gunfolder$
+               gosub _gun_findweaponindexbyname
+               `
+               if foundgunid>0
+                   keepweaponholstered = 0
+                   player(plrid).command.newweapon=foundgunid
+               endif
+            endif
+          endcase
+          case AIACTREMOVECURRENTWEAPON:
+            local wi as integer
+            local gun_name$ as string
+            local gun_token$ as string
+            `
+            if gunid<>0
+               if find first char$(gun(gunid).name$,"\") > 0
+                     gun_token$ = first token$(gun(gunid).name$,"\")
+                     gun_name$ = next token$("\")
+               else
+                     gun_name$ = gun(gunid).name$
+               endif
+               for i = 1 to 10
+                  if weaponslot(i).got = gunid
+                     weaponslot(i).pref=0
+                     weaponslot(i).got=0
+                     weaponhud(i)=0
+                     weaponammo(i)=0
+                     weaponclipammo(i)=0
+                      exit
+                  endif
+               next i
+               gunmode=31 : gunselectionafterhide=0
+               gosub _gun_control
+               wait 150
+            endif
+         endcase
+          
+      rem cinematic hands <<<<
      `
      `
     endselect
@@ -20292,7 +20454,7 @@ _player_obtainaweapon:
  rem uses weaponindex,tqty
  if weaponindex>0
   rem adds the weapon
-  weaponinvposition=pi : tgunid=weaponindex
+  weaponinvposition=pint : tgunid=weaponindex
   if gun(tgunid).settings.weaponisammo=0 and tqty=0 then tqty=1
   tqty=tqty*firemode(tgunid,0).settings.reloadqty
   gosub _player_addweapon
@@ -20306,14 +20468,14 @@ rem For all players
 for plrid=1 to playermax
  `
  rem Check inventory for any new items added
- for pi=1 to player(plrid).inventorymax
-  if playerinventory(plrid,pi).new=1
+ for pint=1 to player(plrid).inventorymax
+  if playerinventory(plrid,pint).new=1
    `
    rem Item checked in
-   playerinventory(plrid,pi).new=0
+   playerinventory(plrid,pint).new=0
    `
    rem Entity ID
-   e=playerinventory(plrid,pi).index
+   e=playerinventory(plrid,pint).index
    entid=entityelement(e).bankindex
    `
    rem If main player, handle internal resources
@@ -20385,14 +20547,14 @@ for plrid=1 to playermax
    endif
    `
   endif
- next pi
+ next pint
  `
  rem Check inventory for any items we need to drop
- for pi=1 to player(plrid).inventorymax
-  if playerinventory(plrid,pi).drop=1
+ for pint=1 to player(plrid).inventorymax
+  if playerinventory(plrid,pint).drop=1
    `
    rem Entity ID
-   e=playerinventory(plrid,pi).index
+   e=playerinventory(plrid,pint).index
    entid=entityelement(e).bankindex
    `
    rem Item Entities expect a state incrememt if player drops after pickup
@@ -20415,11 +20577,11 @@ for plrid=1 to playermax
    endif
    `
    rem Item checked out
-   playerinventory(plrid,pi).drop=0
-   playerinventory(plrid,pi).index=0
+   playerinventory(plrid,pint).drop=0
+   playerinventory(plrid,pint).index=0
    `
   endif
- next pi
+ next pint
  `
 next plrid
 
@@ -20507,10 +20669,26 @@ if player(plrid).health>0 or playerstartstrength=0
   if firemode(gunid,firemode).settings.isempty=0 and firemode(gunid,firemode).settings.hasempty=1 then firemode(gunid,firemode).settings.isempty=1
   if tmouseclick=1 and tmouseheld=0 and player(plrid).state.blockingaction=0 and gun(gunid).settings.ismelee=0 then gunshootnoammo=1
  endif
+ rem v118 - 110511 - cinematic hands (terry cox) >>>>
+ ` this will prevent the player from firing the weapon if set to 1
+    if tmouseclick=1 
+        if disablefirebutton = 1 then player(plrid).state.firingmode=0 else player(plrid).state.firingmode=1
+    endif
+ rem cinematic hands <<<<
  rem AirMod - Blocking Move >>>
- if tmouseclick=2 and firemode(gunid,firemode).action.block.s <> 0 and player(plrid).state.blockingaction = 0 and gun(gunid).settings.ismelee=0
-  player(plrid).state.blockingaction=1 : blocking=1
- endif
+ rem v118 - 110511 - cinematic hands (terry cox) >>>>
+ `this will check to see if it is a cinematic hand to start the blocking animations for the hand
+     if startcinematichands = 1 and firemode(gunid,firemode).action.block.s <> 0 and player(plrid).state.blockingaction = 0 and gun(gunid).settings.ismelee=0
+        player(plrid).state.blockingaction=1 : blocking=1
+    else
+        if tmouseclick=2 and firemode(gunid,firemode).action.block.s <> 0 and player(plrid).state.blockingaction = 0 and gun(gunid).settings.ismelee=0
+            player(plrid).state.blockingaction=1 : blocking=1
+        endif
+    endif
+rem cinematic hands <<<<
+ `if tmouseclick=2 and firemode(gunid,firemode).action.block.s <> 0 and player(plrid).state.blockingaction = 0 and gun(gunid).settings.ismelee=0
+ ` player(plrid).state.blockingaction=1 : blocking=1
+ `endif
  `else
  `  player(plrid).state.blockingaction=0
  `endif
@@ -20572,7 +20750,10 @@ if k$<>"" and gunzoommode=0 or altswapkeycalled=1
   if keyboardpress=0
    `
    rem Change weapon
-    if player(plrid).health>0 or playerstartstrength=0
+    rem v118 - 110511 - cinematic hands (terry cox) - prevent plr selecting gun>>>>
+    if (player(plrid).health>0 or playerstartstrength=0) and preventplrselectinggun = 0
+    rem cinematic hands <<<<
+    `if player(plrid).health>0 or playerstartstrength=0
     `
     rem Weapon select
     wepsel=0
@@ -20636,7 +20817,10 @@ endif
 
 rem Change weapon
 if gunselectionlockdown=0 and gunzoommode=0 and gun(gunid).settings.ismelee=0
- if tmz<>0
+ `if tmz<>0
+ rem v118 - 110511 - cinematic hands (terry cox) - prevent player changing guns with joystick>>>>
+ if tmz<>0 and preventplrselectinggun = 0
+ rem cinematic hands <<<<
   tokay=0 : ttries=10
   while tokay=0 and ttries>0
    if tmz<0 then weaponkeyselection=weaponkeyselection-1
@@ -20784,8 +20968,18 @@ if gotweapon>0
     endif
    endif
   else
-   tpool=firemode(tgunid,1).settings.poolindex
-   if tpool=0 then weaponclipammo(gotweapon)=weaponclipammo(gotweapon)+tqty else ammopool(tpool).ammo=ammopool(tpool).ammo+tqty
+    rem v118 - 110511 - cinematic hands (terry cox) >>>>
+    `if it is a new weapon we don't really need ammo at start
+    `especially if it is a cinematic hand
+        if newweapon = 1
+            newweapon = 0
+        else
+            tpool=firemode(tgunid,1).settings.poolindex
+            if tpool=0 then weaponclipammo(gotweapon)=weaponclipammo(gotweapon)+tqty else ammopool(tpool).ammo=ammopool(tpool).ammo+tqty
+        endif
+    rem cinematic hands <<<<
+   `tpool=firemode(tgunid,1).settings.poolindex
+   `if tpool=0 then weaponclipammo(gotweapon)=weaponclipammo(gotweapon)+tqty else ammopool(tpool).ammo=ammopool(tpool).ammo+tqty
   endif
  endif
 endif
@@ -21758,6 +21952,17 @@ if gunmode=1001
  set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
  set object interpolation currentgunobj,100
  play object currentgunobj,gblock.s,gblock.e
+ rem v118 - 110511 - cinematic hands (terry cox) >>>>
+ `here we check how many times the cinematic hands went through its animation
+ `when is through looping then everything necessary is reset
+ if cinematichandsloop > 0
+     if trackingcinematichandsloop < cinematichandsloop
+         trackingcinematichandsloop = trackingcinematichandsloop + 1
+     else
+         trackingcinematichandsloop = 1 : startcinematichands = 0 : cinematichandsloop = 0
+     endif
+ endif
+ rem cinematic hands <<<<
 endif
 
 if gunmode=1002
@@ -37667,7 +37872,7 @@ _multi_setlocalstart:
   rem assign weapon to player
   tentid=entityelement(te).bankindex
   weaponindex=entityprofile(tentid).hasweapon
-  tqty=10 : pi=0
+  tqty=10 : pint=0
   gosub _player_obtainaweapon
   autoloadgun=weaponindex
  endif
@@ -41362,8 +41567,8 @@ _saveload_retrievesavedata:
  next e
  `
  rem FPGC - 150909 - go through all inventory items and hide any entities that are currently held by player
- for pi=1 to player(1).inventorymax
-  e=playerinventory(1,pi).index
+ for pint=1 to player(1).inventorymax
+  e=playerinventory(1,pint).index
   if e>0
    rem copied from PLRTAKE code (faithful reproduction of the player collect activity)
    obj=entityelement(e).obj
@@ -41398,7 +41603,7 @@ _saveload_retrievesavedata:
    rem mission objective counter
    gosub _entity_resolveobjective
   endif
- next pi
+ next pint
  `
  rem FPGC - 191009 - restore all HUD values
  hudmax=saveloadgamehudmax
