@@ -35545,6 +35545,20 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
  tmotiony#=ode get body linear velocity y(physicsplayerborble)
  tmotionz#=ode get body linear velocity z(physicsplayerborble)
  `
+ rem V118 - ensure motion while jumping never spikes higher than initially tracked speed
+ if jumpaction<>0
+  if motionytracked#=-1.0 
+   rem first motion Y after jump
+   motionytracked#=tmotiony#
+  else
+   rem ensure we don't go HIGHER!
+   if motionytracked#>0.0 then motionytracked#=motionytracked#-(timeelapsed#*1.0)
+   if tmotiony#>motionytracked# then tmotiony#=motionytracked#
+  endif
+ else
+  motionytracked#=-1.0
+ endif
+ `
  if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
   rem underwater
  else
