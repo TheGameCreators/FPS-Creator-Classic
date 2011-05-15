@@ -72,6 +72,7 @@ rem v118 - 110511 - cinematic hands global boolean flags and one tracking variab
     global cinematichandsloop as boolean : cinematichandsloop = 0
     global newweapon as boolean : newweapon = 0
     global trackingcinematichandsloop as integer : trackingcinematichandsloop = 1
+    global disableblockingbutton as boolean : disableblockingbutton = 0
 rem cinematic hands <<<<
 
 
@@ -2009,6 +2010,7 @@ rem v118 - 110511 - cinematic hands (terry cox) >>>>
 #constant AIACTSTARTCINEMATICHANDS 1454
 #constant AIACTGETNEWWEAPON 1455
 #constant AIACTREMOVECURRENTWEAPON 1456
+#constant AIACTDISABLEBLOCKINGBUTTON 1457
 rem cinematic hands <<<<
 
 #constant AIACTLAST 1500
@@ -11407,6 +11409,7 @@ actword$(AIACTSTARTCINEMATICHANDS)="startcinematichands"
 actword$(AIACTPREVENTPLAYERSELECTINGGUN)="preventplrselectinggun"
 actword$(AIACTGETNEWWEAPON)="getcinematichands"
 actword$(AIACTREMOVECURRENTWEAPON)="removecurrentweapon"
+actword$(AIACTDISABLEBLOCKINGBUTTON)="disablecinematichandsbutton"
 rem cinematic hands <<<<
 
 return
@@ -13136,9 +13139,11 @@ if aiindex>0
     endcase
     rem GUI-X9 (knxrb) <<<
     `
+    rem cinematic hands (terry cox) >>>>
     case AICONDPREVENTEDSELECTINGGUN:
        if preventplrselectinggun=0 then airesult=0
     endcase
+    rem cinematic hands <<<<
     `
     `
    endselect
@@ -17462,6 +17467,9 @@ if aiindex>0
          case AIACTDISABLEFIREBUTTON:
             disablefirebutton = aiactionseq(seq).value
          endcase
+         case AIACTDISABLEBLOCKINGBUTTON:
+            disableblockingbutton = aiactionseq(seq).value
+         endcase
          case AIACTSTARTCINEMATICHANDS:
             local parameter$ as string
             local temp$ as string
@@ -20681,7 +20689,7 @@ if player(plrid).health>0 or playerstartstrength=0
      if startcinematichands = 1 and firemode(gunid,firemode).action.block.s <> 0 and player(plrid).state.blockingaction = 0 and gun(gunid).settings.ismelee=0
         player(plrid).state.blockingaction=1 : blocking=1
     else
-        if tmouseclick=2 and firemode(gunid,firemode).action.block.s <> 0 and player(plrid).state.blockingaction = 0 and gun(gunid).settings.ismelee=0
+        if tmouseclick=2 and firemode(gunid,firemode).action.block.s <> 0 and player(plrid).state.blockingaction = 0 and gun(gunid).settings.ismelee=0 and disableblockingbutton=0
             player(plrid).state.blockingaction=1 : blocking=1
         endif
     endif
