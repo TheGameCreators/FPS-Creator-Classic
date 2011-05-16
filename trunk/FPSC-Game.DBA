@@ -1063,7 +1063,7 @@ type entityprofiletype
  decaloffsetdist as float
  decaloffsety as float
  noragdoll as integer
- reserve1 as integer
+ nothrowscript as integer
  reserve2 as integer
  reserve3 as integer
  reserve4 as integer
@@ -10753,7 +10753,8 @@ _entity_deducthealth:
       next tn
       `
       rem FPGC - 230210 - if shutgun style damage (throw to floor), but ragdoll, ignore
-      if entityelement(e).health>0 and timpacttype=2 and tdestroyasragdoll=1
+      rem FPGC - 160511 - if nothrowscript set, ALWAYS ignore throw script (MB)
+      if (entityelement(e).health>0 and timpacttype=2 and tdestroyasragdoll=1) or entityprofile(tentid).nothrowscript=1
        rem ignore
       else
        rem Blast
@@ -27889,6 +27890,7 @@ if file exist(tprofile$)=0
  entityprofile(entid).decaloffsetdist=0
  entityprofile(entid).decaloffsety=0
  entityprofile(entid).noragdoll=0
+ entityprofile(entid).nothrowscript=0
  for q=0 to 100 : entitybodypart(entid,q)=0 : next q
  `
  rem Load entity Data from file
@@ -27999,6 +28001,10 @@ if file exist(tprofile$)=0
     rem FPGC - 280710 - added NORAGDOLL to entity profile
     tryfield$="noragdoll"
     if field$=tryfield$ then entityprofile(entid).noragdoll=value1
+    `
+    rem FPGC - 160511 - added NOTHROWSCRIPT to entity profile
+    tryfield$="nothrowscript"
+    if field$=tryfield$ then entityprofile(entid).nothrowscript=value1
     `
     rem cone of sight
     tryfield$="coneheight"
