@@ -3140,7 +3140,8 @@ if file exist(tfile$)=1
     tryfield$="useweapons" : if field$=tryfield$ then guseweaponsstate=value1
     `
     tryfield$="indieditor" : if field$=tryfield$ then gindieditorstate=value1
-    tryfield$="godmode" : if field$=tryfield$ then ggodmodestate=value1
+    rem V119 - 060611 - Hockeykid - Removed, should only be allowed in test game
+    tryfield$="godmode" : if field$=tryfield$ then ggodmodestate=0`value1
     `
     tryfield$="width" : if field$=tryfield$ then gdisplaywidth=value1 : newwidth=value1
     tryfield$="height" : if field$=tryfield$ then gdisplayheight=value1 : newheight=value1
@@ -17584,7 +17585,7 @@ if aiindex>0
                wait 150
             endif
          endcase
-          
+
       rem cinematic hands <<<<
      `
      `
@@ -20680,7 +20681,7 @@ if player(plrid).health>0 or playerstartstrength=0
  endif
  rem v118 - 110511 - cinematic hands (terry cox) >>>>
  ` this will prevent the player from firing the weapon if set to 1
-    if tmouseclick=1 
+    if tmouseclick=1
         if disablefirebutton = 1 then player(plrid).state.firingmode=0 else player(plrid).state.firingmode=1
     endif
  rem cinematic hands <<<<
@@ -35561,7 +35562,7 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
  `
  rem V118 - ensure motion while jumping never spikes higher than initially tracked speed
  if jumpaction<>0
-  if motionytracked#=-1.0 
+  if motionytracked#=-1.0
    rem first motion Y after jump
    motionytracked#=tmotiony#
   else
