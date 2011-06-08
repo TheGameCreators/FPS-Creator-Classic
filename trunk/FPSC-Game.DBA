@@ -1433,6 +1433,7 @@ type entitytype
  soundistalking as integer
  alttextureused as integer
  ragdollon as integer
+ allowragdoll as integer
  reserve1 as integer
  reserve2 as integer
  reserve3 as integer
@@ -4074,6 +4075,7 @@ _main_game_core:
  endif
  `
  rem Update screen
+ if keystate(28) then gotintodes=0
  gosub _main_sync
  `
  rem FPGC - 190310 - quick exit keys (for standalone game only)
@@ -10740,7 +10742,7 @@ _entity_deducthealth:
     entityelement(e).mover.moved=0
    else
     rem only if not already reacting
-    if entityelement(e).ai.libindex=entityelement(e).ai.libmain or entityelement(e).ai.libindex=entityelement(e).ai.libshoot or tresult=3
+    if entityelement(e).ai.libindex=entityelement(e).ai.libmain or entityelement(e).ai.libindex=entityelement(e).ai.libshoot or tresult=3 or tresult=2
      if timpacttype=2
       `
       rem FPGC - 220210 - if RAGDOLL appears in DESTROY script name, go straight to DESTROY script (no throw anim!)
@@ -10752,12 +10754,16 @@ _entity_deducthealth:
        endif
        tdestroyname$=right$(tdestroyname$,len(tdestroyname$)-1)
       next tn
+      rem Hockeykid - 070611 - If we have more spawns we don't have the time to ragdoll! Just throw back until last spawnlife
+      spawne=entityelement(e).spawn.leaderid
+      if spawne>0
+       if entityelement(spawne).spawn.upto>0 then tdestroyasragdoll=0
+      endif
+      if tresult=2 then tdestroyasragdoll=0
       `
       rem FPGC - 230210 - if shutgun style damage (throw to floor), but ragdoll, ignore
       rem FPGC - 160511 - if nothrowscript set, ALWAYS ignore throw script (MB)
-      if (entityelement(e).health>0 and timpacttype=2 and tdestroyasragdoll=1) or entityprofile(tentid).nothrowscript=1
-       rem ignore
-      else
+      if entityelement(e).health<=0 and entityprofile(tentid).nothrowscript=0 or entityelement(e).health>0 and tresult=2
        rem Blast
        if tdestroyasragdoll=1
         aifile$="people\throwragdollback.fpi"
@@ -14150,7 +14156,15 @@ if aiindex>0
      case AIACTRAGDOLL:
       rem FPGC - 210210 - by popular demand, ragdoll via script
       rem FPGC - 280710 - added flag to ensure non-supported models NEVER use ragdoll (bone splat issue)
-      if entityprofile(entid).ischaracter=1 and entityprofile(entid).noragdoll=0
+      rem Hockeykid - 070611 - Make sure that we're allowed to ragdoll if we have more lives or spawns
+      spawne=entityelement(e).spawn.leaderid
+      if spawne>0
+       tokay=0
+       if entityelement(spawne).spawn.upto<=0 then tokay=1
+      else
+       tokay=1
+      endif
+      if entityprofile(entid).ischaracter=1 and entityprofile(entid).noragdoll=0 and entityelement(e).eleprof.lives<=0 and tokay=1
        if entityelement(e).ragdollon=0
         entityelement(e).ragdollon=1
         ODE Create Ragdoll from bone model obj,0.6 : rem was 0.8 up to 171007 (was 0.6 on 300707)
