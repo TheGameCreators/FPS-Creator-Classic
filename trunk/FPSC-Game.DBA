@@ -20766,10 +20766,16 @@ if gxbox=1 : rem define in a config later
  if joystick hat angle(0)=0 then k$=str$(weaponkeyselection)
 endif
 
+selkeystate=0
+for i=2 to 11
+ if keystate(i) then selkeystate=i : exit
+next i
+`
 rem Keyboard
+Print "keyboardpress: "+str$(keyboardpress)
 altswapkeycalled=0
 if gun(gunid).settings.altswapkey1>-1 and keystate(gun(gunid).settings.altswapkey1) and gunzoommode=0 then altswapkeycalled=1
-if k$<>"" and gunzoommode=0 or altswapkeycalled=1
+if selkeystate>0 and gunzoommode=0 or altswapkeycalled=1
  if altswapkeycalled=1 and gun(gunid).settings.altswapkey2>-1 and keystate(gun(gunid).settings.altswapkey2) or altswapkeycalled=1 and gun(gunid).settings.altswapkey2=-1 or altswapkeycalled=0
   if keyboardpress=0
    `
@@ -20783,11 +20789,17 @@ if k$<>"" and gunzoommode=0 or altswapkeycalled=1
     wepsel=0
     `
     rem Keyboard input
-    if (k$>="1" and k$<="9") and altswapkeycalled=0
-     sel=(asc(k$)-asc("1")) : wepsel=1+sel
-    endif
-    if k$="0" then wepsel=-1
-    if altswapkeycalled=1 then wepsel=-2
+    `if (k$>="1" and k$<="9") and altswapkeycalled=0
+     `sel=(asc(k$)-asc("1")) : wepsel=1+sel
+    `endif
+    `if k$="0" then wepsel=-1
+    `
+    rem Hockeykid - 080611 - Allow moving and switching
+    wepsel=selkeystate-1
+    rem Cannot keypress until release
+    keyboardpress=selkeystate
+    if selkeystate=11 then wepsel=-1
+    if altswapkeycalled=1 then keyboardpress=-2 : wepsel=-2
     `
     rem Actual weapon change
     if altswapkeycalled=0
@@ -20797,9 +20809,11 @@ if k$<>"" and gunzoommode=0 or altswapkeycalled=1
       if weaponindex>0 then player(plrid).command.newweapon=weaponindex
      endif
      rem V118 - 180211 - ensure can only put weapon away when in idle mode
-     if wepsel=-1 and gunmode<=10
-      if gunid<>0
-       gunmode=31 : gunselectionafterhide=0
+     if wepsel=-1 `and gunmode<=10
+      if gunmode<31 or gunmode>35
+       if gunid<>0
+        gunmode=31 : gunselectionafterhide=0
+       endif
       endif
      endif
     endif
@@ -20818,17 +20832,14 @@ if k$<>"" and gunzoommode=0 or altswapkeycalled=1
     player(plrid).recovershield=1
    endif
    `
-   rem Cannot keypress until release
-   keyboardpress=1
-   `
    altswapkeycalled=0
   endif
- else
-  keyboardpress=0
  endif
-else
- keyboardpress=0
 endif
+if keyboardpress>0
+ if keystate(keyboardpress)=0 then keyboardpress=0
+endif
+if keyboardpress=-2 and keyboardpress=0 then keyboardpress=0
 
 rem Mouse Wheel scrolls weapons
 tmz=mousemovez()
@@ -21372,28 +21383,31 @@ texture object hudbankoffset+5,firemode(gunid,firemode).settings.flashimg
 `
 rem Gun Selection
 rem V118 - 180211 - ensure you can only command a weapon change when not putting weapon away or no gun (i.e. don't interupt the weapon put-away anim with weapon change)
-if gunselectionlockdown=0 and (gunmode<=10 or gunid=0)
- if player(1).command.newweapon>0
-  sel=player(1).command.newweapon
-  player(1).command.newweapon=0
-  if weaponammoindex>0
-   rem only if 'different weapon'
-   if weaponslot(weaponammoindex).pref<>sel
-    gunmode=31 : gunselectionafterhide=sel
-    tmouseheld=0
-    rem AirMod - Alternate Fire >>>
-   else
-    `gunzoommode = 0 and
-    if gun(gunid).settings.altswapkey1=-1
-     if (gun(gunid).settings.alternateisflak = 1 or gun(gunid).settings.alternateisray = 1) and gunmode <= 100
-      if gun(gunid).settings.alternate = 1 then gunmode=2009 : gun(gunid).settings.alternate = 0 : else : gunmode=2007 : gun(gunid).settings.alternate = 1
+rem V119 - Hockeykid - 080611 - Make sure we can still switch while doing everything other than switching weapons
+if gunmode<31 or gunmode>35
+ if gunselectionlockdown=0 or gunid=0
+  if player(1).command.newweapon>0
+   sel=player(1).command.newweapon
+   player(1).command.newweapon=0
+   if weaponammoindex>0
+    rem only if 'different weapon'
+    if weaponslot(weaponammoindex).pref<>sel
+     gunmode=31 : gunselectionafterhide=sel
+     tmouseheld=0
+     rem AirMod - Alternate Fire >>>
+    else
+     `gunzoommode = 0 and
+     if gun(gunid).settings.altswapkey1=-1
+      if (gun(gunid).settings.alternateisflak = 1 or gun(gunid).settings.alternateisray = 1) and gunmode <= 100
+       if gun(gunid).settings.alternate = 1 then gunmode=2009 : gun(gunid).settings.alternate = 0 : else : gunmode=2007 : gun(gunid).settings.alternate = 1
+      endif
      endif
+     rem AirMod - Done <<<<
     endif
-    rem AirMod - Done <<<<
+   else
+    gunmode=131 : autoloadgun=sel
+    if autoloadgun<>gunid then tmouseheld=0
    endif
-  else
-   gunmode=131 : autoloadgun=sel
-   if autoloadgun<>gunid then tmouseheld=0
   endif
  endif
 endif
