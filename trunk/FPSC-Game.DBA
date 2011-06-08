@@ -20772,7 +20772,6 @@ for i=2 to 11
 next i
 `
 rem Keyboard
-Print "keyboardpress: "+str$(keyboardpress)
 altswapkeycalled=0
 if gun(gunid).settings.altswapkey1>-1 and keystate(gun(gunid).settings.altswapkey1) and gunzoommode=0 then altswapkeycalled=1
 if selkeystate>0 and gunzoommode=0 or altswapkeycalled=1
