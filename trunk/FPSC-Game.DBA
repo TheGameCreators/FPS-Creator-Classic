@@ -20838,7 +20838,7 @@ endif
 if keyboardpress>0
  if keystate(keyboardpress)=0 then keyboardpress=0
 endif
-if keyboardpress=-2 and keyboardpress=0 then keyboardpress=0
+if keyboardpress=-2 and altswapkeycalled=0 then keyboardpress=0
 
 rem Mouse Wheel scrolls weapons
 tmz=mousemovez()
