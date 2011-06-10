@@ -20486,6 +20486,7 @@ _player_obtainaweapon:
   rem adds the weapon
   weaponinvposition=pint : tgunid=weaponindex
   if gun(tgunid).settings.weaponisammo=0 and tqty=0 then tqty=1
+  tentqty=tqty
   tqty=tqty*firemode(tgunid,0).settings.reloadqty
   gosub _player_addweapon
  endif
@@ -20990,10 +20991,27 @@ if gotweapon>0
  if gun(tgunid).settings.weaponisammo=0
   if tqty=0 then tqty=1
   if weaponammo(gotweapon)=0
+   taltqty=tentqty*firemode(tgunid,1).settings.reloadqty
+   if taltqty>firemode(tgunid,1).settings.reloadqty
+    altpool=firemode(tgunid,1).settings.poolindex
+    weaponammo(gotweapon+10)=firemode(tgunid,1).settings.reloadqty
+    if altpool>0 then ammopool(altpool).ammo=ammopool(altpool).ammo+(taltqty-firemode(tgunid,1).settings.reloadqty) else weaponclipammo(gotweapon+10)=taltqty-firemode(tgunid,1).settings.reloadqty
+   else
+    if gun(tgunid).settings.addtospare=0
+      weaponammo(gotweapon+10)=taltaty
+    else
+     if gun(tgunid).settings.canaddtospare=1
+      altpool=firemode(tgunid,1).settings.poolindex
+      if altpool=0 then weaponclipammo(gotweapon+10)=weaponclipammo(gotweapon+10)+taltqty else ammopool(altpool).ammo=ammopool(altpool).ammo+taltqty
+     endif
+     if gun(tgunid).settings.canaddtospare=0 then weaponammo(gotweapon+10)=taltqty
+    endif
+   endif
    if tqty>firemode(tgunid,0).settings.reloadqty
     rem FPGC - 080710 - gun has MAX slots of ammo, cannot exceed this!
+    tpool=firemode(tgunid,0).settings.poolindex
     weaponammo(gotweapon)=firemode(tgunid,0).settings.reloadqty
-    weaponclipammo(gotweapon)=tqty-firemode(tgunid,0).settings.reloadqty
+    if tpool>0 then ammopool(tpool).ammo=ammopool(tpool).ammo+(tqty-firemode(tgunid,0).settings.reloadqty) else weaponclipammo(gotweapon)=tqty-firemode(tgunid,0).settings.reloadqty
    else
     if gun(tgunid).settings.addtospare=0
       weaponammo(gotweapon)=tqty
@@ -21008,18 +21026,13 @@ if gotweapon>0
     endif
    endif
   else
-    rem v118 - 110511 - cinematic hands (terry cox) >>>>
-    `if it is a new weapon we don't really need ammo at start
-    `especially if it is a cinematic hand
-        if newweapon = 1
-            newweapon = 0
-        else
-            tpool=firemode(tgunid,1).settings.poolindex
-            if tpool=0 then weaponclipammo(gotweapon)=weaponclipammo(gotweapon)+tqty else ammopool(tpool).ammo=ammopool(tpool).ammo+tqty
-        endif
-    rem cinematic hands <<<<
-   `tpool=firemode(tgunid,1).settings.poolindex
-   `if tpool=0 then weaponclipammo(gotweapon)=weaponclipammo(gotweapon)+tqty else ammopool(tpool).ammo=ammopool(tpool).ammo+tqty
+   if newweapon=0
+    tpool=firemode(tgunid,0).settings.poolindex
+    altpool=firemode(tgunid,1).settings.poolindex
+    if tpool=0 then weaponclipammo(gotweapon)=weaponclipammo(gotweapon)+tqty else ammopool(tpool).ammo=ammopool(tpool).ammo+tqty
+    if altpool=0 then weaponclipammo(gotweapon+10)=weaponclipammo(gotweapon+10)+taltqty else ammopool(altpool).ammo=ammopool(altpool).ammo+taltqty
+   endif
+   newweapon=0
   endif
  endif
 endif
