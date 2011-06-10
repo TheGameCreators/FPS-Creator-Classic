@@ -8867,6 +8867,8 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
  if tpermitaspawn=1
   rem Restart spawn cycle
   entityelement(e).spawn.leadercount=entityelement(e).spawn.delay+rnd(entityelement(e).spawn.delayrandom)
+  rem Hockeykid - 080611 - Won't work, throw-ragdoll scripts do not allow for the character to get back up!
+  `if entityelement(e).ragdollon=1 then ode destroy ragdoll entityelement(e).obj : entityelement(e).ragdollon=0
   rem Find child of this leader to spawn
   tproduceqty=0
   tnumbertospawn=entityelement(e).spawn.qty+rnd(entityelement(e).spawn.qtyrandom)
@@ -8950,6 +8952,10 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
       entityelement(te).force.active=0
       entityelement(te).logiccount=0
       entityelement(te).blockedby=0
+      `
+      rem rest ragdoll
+      rem Hockeykid - 080611 - Won't work, throw-ragdoll scripts do not allow for the character to get back up!
+      `if entityelement(te).ragdollon=1 then ode destroy ragdoll entityelement(te).obj : entityelement(te).ragdollon=0
       `
       rem reset entity that reappears in game
       if entityelement(te).eleprof.strength>0
@@ -22836,7 +22842,9 @@ if gunshoot=1
       tforce#=firemode(gunid,firemode).settings.damage/30.0
      endif
      rem entity prone to force
-     if entityelement(e).eleprof.isimmobile=0
+     rem V119 - Hockeykid - 090611 - DAI entities should not get forced back when shot
+     rem can cause them to get shot over their boundaries
+     if entityelement(e).eleprof.isimmobile=0 and ai entity exist(entityelement(e).obj)=0
       rem apply force
       if entityelement(e).eleprof.physics=1
        rem using advanced physics (force is soft if entity destroyed in hit)
