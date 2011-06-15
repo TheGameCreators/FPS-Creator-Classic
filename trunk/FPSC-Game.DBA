@@ -27,6 +27,7 @@ rem FPSC: http://www.fpscreator.com
 rem
 rem Credit to Airslide for help with Dark AI when it went into Fenix Mod
 rem Credit to Hockeykid for his continued help integrating Dark AI
+rem Credit to Robert Knox for help fixing up the engine and adding a cool HUD system
 
 _start_engine:
 
