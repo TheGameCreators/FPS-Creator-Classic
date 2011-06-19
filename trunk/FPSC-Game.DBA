@@ -19328,6 +19328,7 @@ function broadcast3dsound(x#,y#,z#,strength#,obj)
       if ai entity exist(obj) then aisound(i).team=entityelement(obje).darkai.team
       if ai entity exist(obj)=0 then aisound(i).team=0
       aisound(i).x=x#
+      aisound(i).y=y#
       aisound(i).z=z#
       aisound(i).time=timer()
       aisound(i).alive=1
@@ -19335,6 +19336,7 @@ function broadcast3dsound(x#,y#,z#,strength#,obj)
       if obj=-1
        aisound(i).team=1
        aisound(i).x=x#
+       aisound(i).y=y#
        aisound(i).z=z#
        aisound(i).time=timer()
        aisound(i).alive=1
