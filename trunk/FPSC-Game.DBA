@@ -53485,7 +53485,10 @@ _darkai_init:
  ai set radius gairadius : rem ai set avoid mode 1
  `
  rem V118 - 080211 - switch to grid based avoidance system (less likely to push fellows into walls)
- ai set avoid mode 5 : AI SET BLOCKING THRESHOLD 3
+ rem V119 - 230611 - Hockeykid - Sounds nice, but doesn't seem to work as desired. Apparently the blocking threshold is incorrect
+ rem 1 AI can stop another AI, instead of 3 :S
+ `ai set avoid mode 5 : AI SET BLOCKING THRESHOLD 3
+ ai set avoid mode 1
  `
  rem Universe containers (required for static entities)
  for layer=0 to 19
@@ -53785,7 +53788,7 @@ _darkai_control:
     else
      rem V118 this seems to have been commented back in by Sean on 28-01-11 - no reason why
      rem without this entity's will continue to move in 1 direction
-     if entityelement(e).darkai.delay2>timer() and entityelement(e).darkai.state=STATE_ATTACKING then ai entity stop obj
+     `if entityelement(e).darkai.delay2>timer() and entityelement(e).darkai.state=STATE_ATTACKING then ai entity stop obj
     endif
    endif
   else
@@ -53809,11 +53812,11 @@ _darkai_control:
   endif
 
   if entityelement(e).darkai.delay2<timer()
-   entityelement(e).darkai.delay2=timer()+1500
-   instrafe=1
-   if tmoving=0 then ai entity strafe target obj
+   `entityelement(e).darkai.delay2=timer()+1500
+   `instrafe=1
+   `if tmoving=0 then ai entity strafe target obj
   else
-   instrafe=0
+   `instrafe=0
   endif
 
  endif
@@ -54015,6 +54018,7 @@ _darkai_debug:
    ai debug show view arcs 550
   endif
  endif
+ Ai Debug Show Avoidance Angles 550
 return
 
 _ai_find_angle:
