@@ -53933,18 +53933,20 @@ _darkai_control:
  `
  rem Work out distance to target (run if over 600 units away)
  entityelement(e).mover.run=0
- if entityelement(e).darkai.action=1
-  tenttargetx#=ai get entity destination x(obj)-tentx#
-  tenttargetz#=ai get entity destination z(obj)-tentz#
-  tenttarget#=sqrt(abs(tenttargetx#*tenttargetx#)+abs(tenttargetz#*tenttargetz#))
-  if tenttarget#>175
-   entityelement(e).darkai.runbuildup=entityelement(e).darkai.runbuildup+1
-   if entityelement(e).darkai.runbuildup>20
-    entityelement(e).mover.run=1
-    entityelement(e).darkai.action=5
+ if entityelement(e).darkai.autoattackoff=0
+  if entityelement(e).darkai.action=1
+   tenttargetx#=ai get entity destination x(obj)-tentx#
+   tenttargetz#=ai get entity destination z(obj)-tentz#
+   tenttarget#=sqrt(abs(tenttargetx#*tenttargetx#)+abs(tenttargetz#*tenttargetz#))
+   if tenttarget#>175
+    entityelement(e).darkai.runbuildup=entityelement(e).darkai.runbuildup+1
+    if entityelement(e).darkai.runbuildup>20
+     entityelement(e).mover.run=1
+     entityelement(e).darkai.action=5
+    endif
+   else
+    entityelement(e).darkai.runbuildup=0
    endif
-  else
-   entityelement(e).darkai.runbuildup=0
   endif
  endif
  `
