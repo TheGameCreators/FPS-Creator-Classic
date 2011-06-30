@@ -38888,6 +38888,8 @@ _common:
       if tokay=1
        rem record clients choice on the server
        el=getelfromid(dwPlayerID) : characterchosen(el)=tcl
+       rem V119 - Hockeukid - Make sure the server knows who our client is or his health won't be sent!
+       multiplayeridlink(el)=dwPlayerID
        gosub _multi_identifycharactersinentities
        characterchoiceentityindex(el)=characterlistentity(tcl)
        rem set new joiner players health on server
