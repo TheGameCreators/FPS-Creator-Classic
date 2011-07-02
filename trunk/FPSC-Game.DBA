@@ -7621,12 +7621,24 @@ for e=1 to entityelementlist
    rem Inactive entity, however characters have logic even when dead
    if entityprofile(entid).ischaracter=1
     `
+    rem remove attached weapon physics if out of bounds
+    tobj=entityelement(e).attachmentobj
+    if tobj>0
+     if object position y(tobj)<-50
+      gosub _ode_deleteentity
+      hide object tobj
+      position object tobj,-5000,-5000,-5000
+     endif
+    endif
+    `
     rem FPGC - 100710 - on occasion, character can be killed off screen (no anim performed)
     rem so need to adjust position of any carried weapon to floor (other it floats)
+    rem V119 - 020711 - Hockeykid - new system (x10 method) isn't animation specific
+    remstart
     if obj>0
      tvweapobj=entityelement(e).attachmentobj
      if object exist(obj)=1
-      if object in screen(obj)=0
+      if object in screen(obj)=0 and entityelement(e).ragdollon=0
        if tvweapobj>0
         if object exist(tvweapobj)=1
          unglue object tvweapobj
@@ -7638,16 +7650,18 @@ for e=1 to entityelementlist
       endif
      endif
     endif
+    remend
     `
     if entityelement(e).eleprof.cantakeweapon=1
      tgunid=entityelement(e).currentweapon
      if tgunid>0
       rem calculate player activity distance (of the attached weapon point)
       rem FPGC - 100710 - if ragdollified, use entity last location for gun pickup (real OBJ at 0,0,0)
-      if entityprofile(entid).firespotlimb>-1 and entityelement(e).ragdollon=0
-       x1#=limb position x(obj,entityprofile(entid).firespotlimb)
-       y1#=limb position y(obj,entityprofile(entid).firespotlimb)
-       z1#=limb position z(obj,entityprofile(entid).firespotlimb)
+      tdropobj=entityelement(e).attachmentobj
+      if tdropobj>0
+       x1#=object position x(tdropobj) `limb position x(obj,entityprofile(entid).firespotlimb)
+       y1#=object position y(tdropobj)`limb position y(obj,entityprofile(entid).firespotlimb)
+       z1#=object position z(tdropobj)`limb position z(obj,entityprofile(entid).firespotlimb)
       else
        x1#=entityelement(e).x
        y1#=entityelement(e).y
@@ -7690,7 +7704,11 @@ for e=1 to entityelementlist
        entityelement(e).currentweapon=0
        rem remove attached weapon from entity also
        tobj=entityelement(e).attachmentobj
-       if tobj>0 then hide object tobj
+       if tobj>0
+         gosub _ode_deleteentity
+         hide object tobj
+         position object tobj,-5000,-5000,-5000
+       endif
       endif
      endif
     endif
@@ -7787,6 +7805,9 @@ rem Go through all entities for VISUAL
 for e=1 to entityelementlist
  obj=entityelement(e).obj
  entid=entityelement(e).bankindex
+ `
+ if obj>0 then gosub _entity_controlattachments
+ `
  if entityelement(e).active=1 and entityelement(e).dormant=0
   if obj>0
    `
@@ -8987,6 +9008,9 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
        entityelement(te).spawn.life=0
       endif
       `
+      tobj=entityelement(te).attachmentobj
+      if tobj>0 then gosub _ode_deleteentity
+      `
       rem object setting
       if entityelement(te).eleprof.physics=1 or entityelement(te).eleprof.physics=2
        ste=e : e=te : gosub _ode_switchoffe : e=ste
@@ -9958,6 +9982,53 @@ _entity_controlmovements:
  `
 return
 
+_entity_controlattachments:
+
+rem ensure attachments are updated and visible
+tobj=entityelement(e).attachmentobj
+if tobj>0
+ tentid=entityelement(e).bankindex
+ if object exist(tobj)=1
+  if entityelement(e).beenkilled=0
+   rem manual position of gun attachment
+   limbpx#=object position x(entityelement(e).obj)
+   limbpy#=object position y(entityelement(e).obj)
+   limbpz#=object position z(entityelement(e).obj)
+   if entityelement(e).obj>0
+    if object exist(entityelement(e).obj)=1
+     tentid=entityelement(e).bankindex
+     if entityprofile(tentid).firespotlimb>=0
+      rem position of entity hand where gun rests
+      limbpx#=limb position x(entityelement(e).obj,entityprofile(tentid).firespotlimb)
+      limbpy#=limb position y(entityelement(e).obj,entityprofile(tentid).firespotlimb)
+      limbpz#=limb position z(entityelement(e).obj,entityprofile(tentid).firespotlimb)
+      `
+      limbax#=limb direction x(entityelement(e).obj,entityprofile(tentid).firespotlimb)
+      limbay#=limb direction y(entityelement(e).obj,entityprofile(tentid).firespotlimb)
+      limbaz#=limb direction z(entityelement(e).obj,entityprofile(tentid).firespotlimb)
+      `set object to object orientation tobj,entityelement(e).obj,entityprofile(tentid).firespotlimb,0
+      rotate object tobj,limbax#,limbay#,limbaz#
+     endif
+    endif
+   endif
+   position object tobj,limbpx#,limbpy#,limbpz#
+  else
+   rem attachment free of entity, using physics to settle in scene
+  endif
+  `
+  rem hide weapon if character totally invisible
+  if gmultiplayergame=1 and entityelement(e).ai.alphafade=0
+   hide object tobj
+  else
+   show object tobj
+  endif
+  `
+ endif
+
+endif
+
+return
+
 _entity_controllighting:
 
 rem handle entity lighintg
@@ -10582,6 +10653,11 @@ _entity_deducthealth:
      Rem Hockeykid - 250210 - Dark AI kill entity
      if entityelement(e).beenkilled=1 and ai entity exist(entityelement(e).obj)
       ai kill entity entityelement(e).obj
+     endif
+     rem V119 - 020711 - Hockeykid - make attachment object into a physics object
+     tobj=entityelement(e).attachmentobj
+     if tobj>0
+      if object exist(tobj) then gosub _ode_applyphysicstoattachment
      endif
      rem mission objective counter
      gosub _entity_resolveobjective
@@ -29711,7 +29787,7 @@ _entity_switchattachment:
   entityelement(e).attachmentobj=tvweapobj
   rem glue new VWEAP to entity(character)
   position object tvweapobj,0,0,0
-  glue object to limb tvweapobj,tobj,entityprofile(tentid).firespotlimb
+  `glue object to limb tvweapobj,tobj,entityprofile(tentid).firespotlimb
   rem relocate firepsot within VWEAP model for entity use
   entityelement(e).attachmentobjfirespotlimb=0
   perform checklist for object limbs tvweapobj
@@ -34977,6 +35053,24 @@ _ode_setupewithphysics:
  rem redim new size and init vars
  gosub _ode_ensurephysicsobjvalid
  entid=ttentid
+return
+
+_ode_applyphysicstoattachment:
+ ode create dynamic box tobj
+ tfriction=(object size x(tobj)*75)+(object size y(tobj)*75)+(object size z(tobj)*75)
+ tweight=(object size x(tobj)*25)+(object size y(tobj)*25)+(object size z(tobj)*25)
+ tweight=(tweight/50)*50 : tfriction=(tfriction/50)*50
+ if tweight<200 then tweight=200
+ ode set contact fdir1 tobj,tfriction
+ ode set body mass tobj,tweight
+ ode set linear velocity tobj,0,0,0
+ ode set angular velocity tobj,0,0,0
+ ode set gravity tobj,1
+ ode set body rotation tobj,object angle x(tobj),object angle y(tobj),object angle z(tobj)
+return
+
+_ode_deleteentity:
+ ode destroy object tobj
 return
 
 _ode_pushusingtvelandangle:
