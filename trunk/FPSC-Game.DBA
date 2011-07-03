@@ -3378,6 +3378,8 @@ else
      set display mode gdisplaywidth,gdisplayheight,gdisplaydepth,vsyncflag,0,0,0,0,thevrmodeflag
     else
      set display mode desktop width(),desktop height(),gdisplaydepth,vsyncflag
+     gdisplaywidth=desktop width()
+     gdisplayheight=desktop height()
     endif
    endif
   endif
@@ -9008,8 +9010,8 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
        entityelement(te).spawn.life=0
       endif
       `
-      tobj=entityelement(te).attachmentobj
-      if tobj>0 then gosub _ode_deleteentity
+      tdropobj=entityelement(te).attachmentobj
+      if tdropobj>0 then storetobj=tobj : tobj=tdropobj gosub _ode_deleteentity : tobj=storetobj
       `
       rem object setting
       if entityelement(te).eleprof.physics=1 or entityelement(te).eleprof.physics=2
