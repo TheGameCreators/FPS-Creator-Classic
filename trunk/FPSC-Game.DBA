@@ -9011,7 +9011,7 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
       endif
       `
       tdropobj=entityelement(te).attachmentobj
-      if tdropobj>0 then storetobj=tobj : tobj=tdropobj gosub _ode_deleteentity : tobj=storetobj
+      if tdropobj>0 then storetobj=tobj : tobj=tdropobj : gosub _ode_deleteentity : tobj=storetobj
       `
       rem object setting
       if entityelement(te).eleprof.physics=1 or entityelement(te).eleprof.physics=2
