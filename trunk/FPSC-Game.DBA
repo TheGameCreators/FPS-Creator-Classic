@@ -67,13 +67,13 @@ rem V118 - 110810 - knxrb - Hud Layers
 global hudHName$ as string = ""
 
 rem v118 - 110511 - cinematic hands global boolean flags and one tracking variable(terry cox) >>>>
-    global disablefirebutton as boolean : disablefirebutton = 0
-    global preventplrselectinggun as boolean : preventplrselectinggun = 0
-    global startcinematichands as boolean : startcinematichands = 0
-    global cinematichandsloop as boolean : cinematichandsloop = 0
-    global newweapon as boolean : newweapon = 0
-    global trackingcinematichandsloop as integer : trackingcinematichandsloop = 1
-    global disableblockingbutton as boolean : disableblockingbutton = 0
+global disablefirebutton as boolean : disablefirebutton = 0
+global preventplrselectinggun as boolean : preventplrselectinggun = 0
+global startcinematichands as boolean : startcinematichands = 0
+global cinematichandsloop as boolean : cinematichandsloop = 0
+global newweapon as boolean : newweapon = 0
+global trackingcinematichandsloop as integer : trackingcinematichandsloop = 1
+global disableblockingbutton as boolean : disableblockingbutton = 0
 rem cinematic hands <<<<
 
 
@@ -438,6 +438,11 @@ type flaktype
  throwheight as integer
  usedinlevel as integer
  libindex as integer
+ noexplode as integer
+ blood as integer
+ stick as integer
+ sticklife as integer
+ stickobj as integer
 endtype
 dim flak(flakmax) as flaktype
 global flakmax=0
@@ -774,7 +779,8 @@ global physicsplayerborble=65534
 rem Universe Builing Object Resources for entire universe
 global universebuildobjstartoffset=70001
 global universebuildobjendoffset=166000
-global endofallobjectsoffset=166001
+global flakstickbankoffset=166001
+global endofallobjectsoffset=166202
 
 `
 ` Segment Data
@@ -2406,11 +2412,34 @@ type flakelementtype
  xpos as float
  ypos as float
  zpos as float
+ colx as float
+ coly as float
+ colz as float
  owner as integer
  isentity as integer
 endtype
 global flakelementmax=100
 dim flakelement(flakelementmax) as flakelementtype
+
+type flaksticktype
+ flakid as integer
+ x as float
+ y as float
+ z as float
+ colx as float
+ coly as float
+ colz as float
+ obj as integer
+ life as integer
+ rx as float
+ ry as float
+ rz as float
+ used as integer
+endtype
+dim flakstick(flakelementmax) as flaksticktype
+for i=1 to flakelementmax
+ flakstick(i).obj=flakstickbankoffset+100+(i-1)
+next i
 
 rem Decal Structure (explosions, lightdlare, smoke, steam, plasma)
 type decaltype
@@ -3937,6 +3966,7 @@ _main_game_freeleveldata:
   undim gunsoundcompanion()
   undim gunsounditem()
   undim flakelement()
+  undim flakstick()
   undim decal()
   undim decalelement()
   undim player()
@@ -8579,7 +8609,7 @@ if entityelement(e).fireweapon=1
     else
      tdx#=mex#-x1#`entityelement(e).x
      tdz#=mez#-z1#`entityelement(e).z
-     tdy#=(mey#-50)-y1#`entityelement(e).y
+     tdy#=(mey#-phyeyeheight#)-y1#`entityelement(e).y
     endif
     flakpitch=atanfull(tdy#,sqrt(abs(tdx#*tdx#)+abs(tdz#*tdz#)))*-1
    else
@@ -16333,25 +16363,8 @@ if aiindex>0
         e=stte
         Rem Create Blood
         if blood=1
-         decalid=entitydecal(entityelement(e).bankindex,1)
-         if decalid>0
-          distx#=tdamagex#-entityelement(damagede).x
-          disty#=tdamagey#-entityelement(damagede).y
-          distz#=tdamagez#-entityelement(damagede).z
-          bldist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
-          rem direction from player to entity
-          tix#=entityelement(damagede).x-tdamagex# : tiy#=entityelement(damagede).y-tdamagey# : tiz#=entityelement(damagede).z-tdamagez#
-          tdd#=sqrt(abs(tix#*tix#)+abs(tiy#*tiy#)+abs(tiz#*tiz#))
-          tix#=tix#/tdd# : tiy#=tiy#/tdd# : tiz#=tiz#/tdd#
-          rem find point of impact
-          tix#=tix#*(bldist#-10.0)
-          tiy#=tiy#*(bldist#-10.0)
-          tiz#=tiz#*(bldist#-10.0)
-          rem create a splat decal
-          decalscalemodx=0 : rem FPSCV101 - fix
-          decalorient=0 : decalx=tdamagex#+tix# : decaly=((entityelement(damagede).y+(object size y(entityelement(damagede).obj)/2))-rnd(6))+tiy# : decalz=tdamagez#+tiz#
-          originatore=-1 : gosub _decalelement_create
-         endif
+         middlebody=1
+         gosub _create_blood
         endif
 
        endif
@@ -25121,6 +25134,10 @@ for l=0 to 99
    if field$="spinx" then flak(flakid).profile.spinx=value1/10.0
    if field$="bounceonhit" then flak(flakid).profile.bounceonhit=value1
    if field$="explodeonhit" then flak(flakid).profile.explodeonhit=value1
+   if field$="noexplosion" then flak(flakid).noexplode=value1
+   if field$="blood" then flak(flakid).blood=value1
+   if field$="stick" then flak(flakid).stick=value1
+   if field$="sticklife" then flak(flakid).sticklife=value1
    if field$="damage" then flak(flakid).profile.damage=value1
    `
    rem flak EXPLOSION
@@ -25169,6 +25186,22 @@ rem Load flak models
 currentflakobj=loadflak("gamecore\flak\"+flak$+"\PROJECTILE.x")
 flak(flakid).obj=currentflakobj
 
+if flak(flakid).stick=1
+ flak(flakid).stickobj=flakstickbankoffset+(currentflakobj-flakbankoffset)
+
+ if file exist("gamecore\flak\"+flak$+"\stick.x") and file exist("gamecore\flak\"+flak$+"\stick.dbo")=0
+  load object "gamecore\flak\"+flak$+"\stick.x",flak(flakid).stickobj
+  save object "gamecore\flak\"+flak$+"\stick.dbo",flak(flakid).stickobj
+  delete object flak(flakid).stickobj
+ endif
+ if file exist("gamecore\flak\"+flak$+"\stick.dbo")
+  load object "gamecore\flak\"+flak$+"\stick.dbo",flak(flakid).stickobj
+  position object flak(flakid).stickobj,-1000,-1000,-1000
+ else
+  flak(flakid).stick=0
+ endif
+endif
+
 rem Effect on projectiles
 `if guseeffectongunsstate=0 `lee, currently no NORMAL MAPS for projectiles!
 if 1
@@ -25176,6 +25209,11 @@ if 1
  rem Base texture for fast moving projectiles
  img$="gamecore\flak\"+flak$+"\projectile_D2.tga" : imgD2id=loadinternalimage(img$)
  texture object currentflakobj,imgD2id
+ `
+ if flak(flakid).stick=1
+  img$="gamecore\flak\"+flak$+"\stick_D2.tga" : stickimgD2id=loadinternalimage(img$)
+  texture object flak(flakid).stickobj,stickimgD2id
+ endif
  `
 else
  `
@@ -25449,7 +25487,9 @@ if flak(flakid).obj>0
    tfobj=flakelement(tf).obj
    if object exist(tfobj)=1 then delete object tfobj
    objecteffect(tfobj)=0
-   instance object tfobj,flak(flakid).obj
+   rem instanced objects can't have their own emissve
+   `instance object tfobj,flak(flakid).obj
+   clone object tfobj,flak(flakid).obj
    rem use ORIENT to get correct rotation and intertias
    if flakowner=0
     set object to camera orientation tfobj
@@ -25464,6 +25504,12 @@ if flak(flakid).obj>0
    flakelement(tf).ypos=flakelement(tf).ypos+(flakelement(tf).profile.yinc*flakspeed#)
    flakelement(tf).zpos=flakelement(tf).zpos+(flakelement(tf).profile.zinc*flakspeed#)
    position object tfobj,99999,99999,99999
+
+   set object diffuse tfobj,rgb(128,128,128)
+   set object ambience tfobj,rgb(255,255,255)
+   set object emissive tfobj,0
+   set object specular tfobj,0
+
    rem show flak object
    show object tfobj
   endif
@@ -25489,6 +25535,9 @@ mez#=camera position z()
 rem Control all flak activity
 for f=1 to flakelementmax
  tobj=flakelement(f).obj
+ if flakelement(f).active>0
+   if object in screen(tobj) then flaki=f : gosub _lighting_applyflakcolor
+ endif
  if flakelement(f).active=1
   rem update flak object (initial so we see starting position of flak)
   tflakid=flakelement(f).flakid
@@ -25507,10 +25556,13 @@ for f=1 to flakelementmax
   tdetonate=0 : tcollide=0
   rem handle timer delay
   if flakelement(f).profile.lifespan>0
-   dec flakelement(f).profile.lifespan,timeelapsed#
-   if flakelement(f).profile.lifespan<=0
-    flakelement(f).profile.lifespan=0
-    tdetonate=1
+   if flak(tflakid).noexplode=1 and flakelement(f).profile.explodeonhit>0 or flak(tflakid).noexplode=0
+    dec flakelement(f).profile.lifespan,timeelapsed#
+    if flakelement(f).profile.lifespan<=0
+     flakelement(f).profile.lifespan=0
+     tdetonate=1
+     endoflife=1
+    endif
    endif
   endif
   if tdetonate=0
@@ -25584,19 +25636,35 @@ for f=1 to flakelementmax
     if flakelement(f).profile.explodeonhit>0 or flakelement(f).profile.bounceonhit>0
      if flakelement(f).profile.bounceonhit>0 and flakelement(f).profile.explodeonhit=0
       flakelement(f).profile.bounceonhit=flakelement(f).profile.bounceonhit-1
+      if tcollide=1 and flak(tflakid).noexplode=1 then bouncingonhit=1 : tdetonate=1
       playinternal3dsound(flak(tflakid).sound.sndbounceid,tmpx1#,tmpy1#,tmpz1#)
      else
       rem detonate at last collision, add scorch
       tdetonate=1
      endif
+    else
+     rem bouncing flak hasn't worked as it was intendede! This needs to be here so once there are no more bounces
+     rem the object will detonate on next collision!
+     if flakelement(f).profile.bounceonhit<=0
+      if flak(tflakid).noexplode=1
+       tdetonate=1
+      else
+       flakelement(f).active=5
+      endif
+     endif
     endif
+
    endif
    `
   endif
   rem detonate trigger
   if tdetonate=1
-   rem trigger explosion
-   flakelement(f).active=2
+   if flak(tflakid).noexplode=0
+    rem trigger explosion
+    flakelement(f).active=2
+   else
+    flakelement(f).active=4
+   endif
   endif
  endif
  if flakelement(f).active=2
@@ -25671,9 +25739,101 @@ for f=1 to flakelementmax
    endif
   next sf
  endif
+ if flakelement(f).active=4
+  playinternal3dsound(flak(tflakid).sound.sndexplodeid,flakelement(f).xpos,flakelement(f).ypos,flakelement(f).zpos)
+
+  rem hide flak object
+  if bouncingonhit=0 then hide object tobj
+
+  if endoflife=0
+   if tcollide=1
+    if spheree<>-1
+      tdamagex#=flakelement(f).xpos : tdamagey#=flakelement(f).ypos : tdamagez#=flakelement(f).zpos
+      damagede=spheree : nocalcpoi=1
+      if flak(tflakid).blood=1 then gosub _create_blood
+
+      tdamage=flak(tflakid).profile.damage
+      tdamagesource=0 : timpacttype=1 : tdir=0
+      ste=e : sttentid=tentid
+      tentid=entityelement(spheree).bankindex
+      e=spheree
+      if entityprofile(tentid).ischaracter=1
+       `if tdamage<30 then timpacttype=1
+       gosub _entity_deducthealth
+      else
+       gosub _entity_delayeddeducthealth
+      endif
+      e=ste : tentid=sttentid
+    else
+     tdamage=flak(tflakid).profile.damage
+     gosub _player_takedamage
+    endif
+   else
+    rem we hit a wall
+    if flak(tflakid).stick=1
+
+     for i=1 to flakelementmax
+      if flakstick(i).used=0
+       flakstick(i).used=1
+       flakstick(i).flakid=tflakid
+       flakstick(i).life=timer()
+       flakstick(i).x=flakelement(f).xpos
+       flakstick(i).y=flakelement(f).ypos
+       flakstick(i).z=flakelement(f).zpos
+       rem instanced objects can't have their own emissve
+       `instance object flakstick(i).obj,flak(tflakid).stickobj
+       clone object flakstick(i).obj,flak(tflakid).stickobj
+       position object flakstick(i).obj,flakstick(i).x,flakstick(i).y,flakstick(i).z
+       rotate object flakstick(i).obj,object angle x(tobj),object angle y(tobj),object angle z(tobj)
+       set object diffuse flakstick(i).obj,rgb(128,128,128)
+       set object ambience flakstick(i).obj,rgb(255,255,255)
+       set object emissive flakstick(i).obj,0
+       set object specular flakstick(i).obj,0
+       exit
+      endif
+     next i
+    endif
+
+   endif
+
+  endif
+
+  rem allow for falk to bounce of enemies and hurt them while continuing to bounce
+  if bouncingonhit=0 then flakelement(f).active=0 else flakelement(f).active=1
+  bouncingonhit=0
+
+ endif
+ if flakelement(f).active=5
+
+  if flakelement(f).profile.lifespan>0
+   dec flakelement(f).profile.lifespan,timeelapsed#
+   if flakelement(f).profile.lifespan<=0
+    flakelement(f).profile.lifespan=0
+    flakelement(f).active=2
+   endif
+  endif
+
+ endif
  `
 next f
 
+endoflife=0
+
+gosub _flakstick_control
+
+return
+
+_flakstick_control:
+ for i=1 to flakelementmax
+  if flakstick(i).used=1
+   flaki=i
+   if object in screen(flakstick(i).obj) then gosub _lighting_applyflakstickcolor
+   if timer()-flakstick(i).life>=flak(flakstick(i).flakid).sticklife
+    flakstick(i).used=0
+    delete object flakstick(i).obj
+   endif
+  endif
+ next i
 return
 
 `
@@ -27260,6 +27420,58 @@ _lighting_spotflash:
    if light exist(1)=1 then hide light 1
   endif
  endif
+ `
+return
+
+_lighting_applyflakcolor:
+ `
+ rem illumonate flak without shader
+ if flakelement(flaki).obj>0
+
+  recx#=flakelement(flaki).xpos
+  recy#=flakelement(flaki).ypos
+  recz#=flakelement(flaki).zpos
+  tcurrentcolx=recx#/25
+  tcurrentcoly=recy#/25
+  tcurrentcolz=recz#/25
+  if flakelement(flaki).colx<>tcurrentcolx or flakelement(flaki).coly<>tcurrentcoly or flakelement(flaki).colz<>tcurrentcolz
+   flakelement(flaki).colx=tcurrentcolx
+   flakelement(flaki).coly=tcurrentcoly
+   flakelement(flaki).colz=tcurrentcolz
+
+   gosub _lighting_managegloballightingreciever
+
+   set object emissive flakelement(flaki).obj,rgb(avlightcolr#/2,avlightcolg#/2,avlightcolb#/2)
+
+  endif
+ endif
+
+ `
+return
+
+_lighting_applyflakstickcolor:
+ `
+ rem illumonate flak without shader
+ if flakstick(flaki).obj>0
+
+  recx#=flakstick(flaki).x
+  recy#=flakstick(flaki).y
+  recz#=flakstick(flaki).z
+  tcurrentcolx=recx#/25
+  tcurrentcoly=recy#/25
+  tcurrentcolz=recz#/25
+  if flakstick(flaki).colx<>tcurrentcolx or flakstick(flaki).coly<>tcurrentcoly or flakstick(flaki).colz<>tcurrentcolz
+   flakstick(flaki).colx=tcurrentcolx
+   flakstick(flaki).coly=tcurrentcoly
+   flakstick(flaki).colz=tcurrentcolz
+
+   gosub _lighting_managegloballightingreciever
+
+   set object emissive flakstick(flaki).obj,rgb(avlightcolr#/2,avlightcolg#/2,avlightcolb#/2)
+  endif
+
+ endif
+
  `
 return
 
@@ -56583,3 +56795,37 @@ endfunction ldirang#
 function CalcLightDirZ(objang#)
  ldirang#=-0.75*cos(objang#)
 endfunction ldirang#
+
+_create_blood:
+ decalid=entitydecal(entityelement(damagede).bankindex,1)
+ if decalid>0
+  distx#=tdamagex#-entityelement(damagede).x
+  disty#=tdamagey#-entityelement(damagede).y
+  distz#=tdamagez#-entityelement(damagede).z
+  bldist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
+  rem direction from player to entity
+  tix#=entityelement(damagede).x-tdamagex# : tiy#=entityelement(damagede).y-tdamagey# : tiz#=entityelement(damagede).z-tdamagez#
+  tdd#=sqrt(abs(tix#*tix#)+abs(tiy#*tiy#)+abs(tiz#*tiz#))
+  tix#=tix#/tdd# : tiy#=tiy#/tdd# : tiz#=tiz#/tdd#
+  rem find point of impact
+  if nocalcpoi=0
+   tix#=tix#*(bldist#-10.0)
+   tiy#=tiy#*(bldist#-10.0)
+   tiz#=tiz#*(bldist#-10.0)
+  else
+   tix#=1
+   tiy#=1
+   tiz#=1
+  endif
+  rem create a splat decal
+  decalscalemodx=0 : rem FPSCV101 - fix
+  if middlebody=1
+   decaly=((entityelement(damagede).y+(object size y(entityelement(damagede).obj)/2))-rnd(6))+tiy#
+  else
+   decaly=tdamagey#+tiy#
+  endif
+  decalorient=0 : decalx=tdamagex#+tix# : decalz=tdamagez#+tiz#
+  originatore=-1 : gosub _decalelement_create
+ endif
+ middlebody=0
+return
