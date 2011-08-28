@@ -25726,7 +25726,7 @@ for f=1 to flakelementmax
   ty#=flakelement(f).ypos
   tz#=flakelement(f).zpos
   for sf=1 to flakelementmax
-   if f<>sf and flakelement(sf).active=1
+   if f<>sf and flakelement(sf).active=1 and flak(tflakid).noexplode=0
     tsx#=flakelement(sf).xpos-tx#
     tsy#=flakelement(sf).ypos-ty#
     tsz#=flakelement(sf).zpos-tz#
