@@ -2020,6 +2020,8 @@ rem v118 - 110511 - cinematic hands (terry cox) >>>>
 #constant AIACTREMOVECURRENTWEAPON 1456
 #constant AIACTDISABLEBLOCKINGBUTTON 1457
 rem cinematic hands <<<<
+rem set entity speed - (markblosser)
+#constant AIACTSETENTITYSPEED 1458
 
 #constant AIACTLAST 1500
 
@@ -11534,6 +11536,9 @@ actword$(AIACTGETNEWWEAPON)="getcinematichands"
 actword$(AIACTREMOVECURRENTWEAPON)="removecurrentweapon"
 actword$(AIACTDISABLEBLOCKINGBUTTON)="disablecinematichandsbutton"
 rem cinematic hands <<<<
+rem set entiy speed (markblosser)
+actword$(AIACTSETENTITYSPEED)="setentityspeed"
+
 
 return
 
@@ -14500,6 +14505,11 @@ if aiindex>0
       entityelement(e).health=aiactionseq(seq).value
      endcase
      `
+     rem set entity speed (markblosser)
+     case AIACTSETENTITYSPEED:
+      entityelement(e).eleprof.speed=aiactionseq(seq).value
+     endcase
+     
      case AIACTSETTARGET:
       if entityelement(e).possibletarget<>0
        oldtarget=entityelement(e).actualtarget
