@@ -27170,6 +27170,10 @@ _lighting_managegloballightingreciever:
   avlightposx#=avlightposx#/tqtyav#
   avlightposy#=avlightposy#/tqtyav#
   avlightposz#=avlightposz#/tqtyav#
+  rem (markblosser) also average the light colors so multiple lights are less likely to saturate SurfColor completely white!
+  avlightcolr#=avlightcolr#/tqtyav#
+  avlightcolg#=avlightcolg#/tqtyav#
+  avlightcolb#=avlightcolb#/tqtyav#
  endif
  `
  rem get correct average light color
@@ -27272,11 +27276,12 @@ _lighting_applyentitycolor:
  recy#=entityelement(e).y
  recz#=entityelement(e).z
  `
- rem Optimise by only calculating light of entity shifts position
- tcurrentcolx=recx#/25
- tcurrentcoly=recy#/25
- tcurrentcolz=recz#/25
- if tcurrentcolx<>entityelement(e).colr or tcurrentcoly<>entityelement(e).colg or tcurrentcolz<>entityelement(e).colb
+ rem Optimise by only calculating light of entity shifts position - (markblosser) instead don't divide by 25 for smoother SurfColor when moving in/out of lights
+ tcurrentcolx=recx#
+ tcurrentcoly=recy#
+ tcurrentcolz=recz#
+ rem (markblosser) ALWAYS record color-light-calc-position
+ `if tcurrentcolx<>entityelement(e).colr or tcurrentcoly<>entityelement(e).colg or tcurrentcolz<>entityelement(e).colb
   `
   rem Record new color-light-calc position
   entityelement(e).colr=tcurrentcolx : entityelement(e).colg=tcurrentcoly : entityelement(e).colb=tcurrentcolz
@@ -27331,7 +27336,7 @@ _lighting_applyentitycolor:
      endif
     endif
    endif
-  endif
+  `endif  - (markblosser) always record color-light-calc position
   `
  endif
  `
