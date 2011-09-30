@@ -350,6 +350,7 @@ type saveloadgamepositionentitytype
  alttextureused as integer
  rem V118 - 120810 - knxrb - etimer fix from Scene Commander
  etimer as integer
+ animatespeed as float rem (markblosser)
 endtype
 type saveloadgamepositionweaponslottype
  pref got invpos
@@ -1455,6 +1456,7 @@ type entitytype
  Rem Airmod - Done <<<
  hideshadow as integer
  floorpositiony as float
+ animatespeed as float rem set animate command speed (markblosser)
 endtype
 rem Entity Breadcrumbs Data
 type entitybreadcrumbstype
@@ -2022,6 +2024,8 @@ rem v118 - 110511 - cinematic hands (terry cox) >>>>
 rem cinematic hands <<<<
 rem set entity speed - (markblosser)
 #constant AIACTSETENTITYSPEED 1458
+rem set animate command speed - (markblosser)
+#constant AIACTSETANIMATESPEED 1459
 
 #constant AIACTLAST 1500
 
@@ -9305,7 +9309,7 @@ _entity_controlanim:
 
 rem entity with an object
 if obj>0
- `
+ ` 
  rem animation and slerp handling
  if entityelement(e).animset>0
   entityelement(e).animdo=entityelement(e).animset-1
@@ -9339,13 +9343,13 @@ if obj>0
      loop object obj,tffinish-0.001,tffinish
      set object frame obj,tfstart
      entityelement(e).animonce=0
-     set object speed obj,100
+     set object speed obj,100*entityelement(e).animatespeed rem animatespeed multiplier (markblosser)
     else
      loop object obj,tfstart,tffinish
      if entityelement(e).animdir=1
-      set object speed obj,-110*timeelapsed#
+      set object speed obj,-110*timeelapsed#*entityelement(e).animatespeed rem animatespeed multiplier (markblosser)
      else
-      set object speed obj,110*timeelapsed#
+      set object speed obj,110*timeelapsed#*entityelement(e).animatespeed rem animatespeed multiplier (markblosser)
      endif
     endif
    endif
@@ -9355,9 +9359,9 @@ if obj>0
   rem monitor any animation (periodically)
   if timeelapsedrefreshentityanimspeeds=0
    if entityelement(e).animdir=1
-    set object speed obj,-110*timeelapsed#
+    set object speed obj,-110*timeelapsed#*entityelement(e).animatespeed rem animatespeed multiplier (markblosser)
    else
-    set object speed obj,110*timeelapsed#
+    set object speed obj,110*timeelapsed#*entityelement(e).animatespeed rem animatespeed multiplier (markblosser)
    endif
   endif
   `
@@ -11538,7 +11542,8 @@ actword$(AIACTDISABLEBLOCKINGBUTTON)="disablecinematichandsbutton"
 rem cinematic hands <<<<
 rem set entiy speed (markblosser)
 actword$(AIACTSETENTITYSPEED)="setentityspeed"
-
+rem set animate command speed (markblosser)
+actword$(AIACTSETANIMATESPEED)="setanimatespeed"
 
 return
 
@@ -14508,6 +14513,9 @@ if aiindex>0
      rem set entity speed (markblosser)
      case AIACTSETENTITYSPEED:
       entityelement(e).eleprof.speed=aiactionseq(seq).value
+     endcase
+     case AIACTSETANIMATESPEED:
+      entityelement(e).animatespeed=aiactionseq(seq).value/100
      endcase
      
      case AIACTSETTARGET:
@@ -30175,8 +30183,10 @@ _entity_configueelementforuse:
  rem Configure animation defaults
  if entityprofile(entid).ischaracter=1
   entityelement(e).animspeed=2.0
+  entityelement(e).animatespeed=1 rem set default animate command speed (markblosser)
  else
   entityelement(e).animspeed=4.0
+  entityelement(e).animatespeed=1 rem set default animate command speed (markblosser)
  endif
  `
  rem Spawn values
@@ -41000,6 +41010,7 @@ _saveload_savegame:
    a#=saveloadgamepositionentity(lsi).collisionactive : write float 1,a#
    rem V118 - 120810 - knxrb - etimer fix from Scene Commander
    a#=saveloadgamepositionentity(lsi).etimer : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).animatespeed : write float 1,a#  rem (markblosser)
   next lsi
   rem Weapons
   for lsi=0 to 20
@@ -41222,6 +41233,7 @@ _saveload_loadgame:
    read float 1,a# : saveloadgamepositionentity(lsi).collisionactive=a#
    rem V118 - 120810 - knxrb - etimer fix from Scene Commander
    read float 1,a# : saveloadgamepositionentity(lsi).etimer=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).animatespeed=a#  rem (markblosser)
   next lsi
   rem Weapons
   dim saveloadgamepositionweaponslot(20) as saveloadgamepositionweaponslottype
