@@ -23,6 +23,20 @@ float depthScale
 	float UIStep = 0.001;
 > = 0.015;
 
+/*********** SPOTFLASH VALUES FROM FPSC **********/
+
+float4 SpotFlashPos;
+
+
+float4 SpotFlashColor;
+
+
+float SpotFlashRange   //fixed value that FPSC uses
+<
+    string UIName =  "SpotFlash Range";
+    
+> = {600.00};
+
 /******VALUES PULLED FROM FPSC - NON TWEAKABLE**********/
 
 float4 AmbiColor : Ambient
@@ -63,7 +77,7 @@ sampler2D DiffuseSampler = sampler_state
 {
     Texture   = <DiffuseMap>;
     MipFilter = LINEAR;
-    MinFilter = LINEAR;
+    MinFilter = ANISOTROPIC;
     MagFilter = LINEAR;
 };
 
@@ -72,7 +86,7 @@ sampler2D EffectSampler = sampler_state
 {
     Texture   = <EffectMap>;
     MipFilter = LINEAR;
-    MinFilter = LINEAR;
+    MinFilter = ANISOTROPIC;
     MagFilter = LINEAR;
 };
 
@@ -121,6 +135,27 @@ vertexOutput mainVS(appdata IN)
 
 /****************Framgent Shader*****************/
 
+float4 CalcSpotFlash( float3 worldNormal, float3 worldPos )
+{
+    float4 output = (float4)0.0;
+    float3 toLight = SpotFlashPos.xyz - worldPos.xyz;
+    float3 lightDir = normalize( toLight );
+    float lightDist = length( toLight );
+    
+    float MinFalloff = 200;  //falloff start distance - 50,0,.01 are very cool too for lanterns
+    float LinearFalloff = 1;
+    float ExpFalloff = .005;  // 1/200
+    
+    float fAtten = 1.0/(MinFalloff + (LinearFalloff*lightDist)+(ExpFalloff*lightDist*lightDist));
+    
+    SpotFlashPos.w = clamp(0,1,SpotFlashPos.w -.2);
+    
+    
+    output += max(0,dot( lightDir, worldNormal ) * 2.5*SpotFlashColor*fAtten * (SpotFlashPos.w) );
+    
+    return output;
+}
+
 float4 mainPS(vertexOutput IN) : COLOR
 {
     // all shaders should receive the clip value                                                                
@@ -138,7 +173,8 @@ float4 mainPS(vertexOutput IN) : COLOR
     float herospec = pow(max(dot(Nn,Hn),0),10);               //specular highlights 
     float4 fakespecmap = float4((effectmap.z-((abs(effectmap.x-0.5)+abs(effectmap.y-0.5))*3)).xxx,1);
     float4 specular = (AmbiColor+SurfColor)*(herospec)*(fakespecmap*1)*diffuse*atten; //multiply spec texture, lightmap, and diffuse texture
-    float4 LMfinal = (AmbiColor+SurfColor)*diffuse;
+    float4 spotflashlighting = CalcSpotFlash ( IN.WorldNormal, IN.WPos.xyz );
+    float4 LMfinal = (spotflashlighting+AmbiColor+SurfColor)*diffuse;
     float4 result =   LMfinal + specular;
     return result;
 }

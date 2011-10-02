@@ -9,6 +9,7 @@
 /************* UNTWEAKABLES **************/
 
 float4x4 World      : WORLD;
+float4x4 View : View;
 
 float4x4 WorldViewProj : WorldViewProjection;
 float4x4 WorldIT : WorldInverseTranspose;
@@ -16,9 +17,6 @@ float4x4 ViewInv : ViewInverse;
 float4 eyePos : CameraPosition;
 float time: Time;
 float4 clipPlane : ClipPlane;
-
-
-
 
 /******TWEAKABLES***************************/
 
@@ -31,6 +29,28 @@ float SpecExpon : Power
     string UIName =  "specular power";
 > = 64.0;
 
+/*********** SPOTFLASH VALUES FROM FPSC **********/
+
+float4 SpotFlashPos;
+
+
+float4 SpotFlashColor;
+
+
+float SpotFlashRange   //fixed value that FPSC uses
+<
+    string UIName =  "SpotFlash Range";
+    
+> = {600.00};
+
+//----------------
+// FOG sensitivity
+//----------------
+float4 FogColor : Diffuse
+<
+    string UIName =  "Fog Color";
+    string UIType = "Color";
+> = {0.0f, 0.0f, 0.0f, 0.0000001f};
 
 /******VALUES PULLED FROM FPSC - NON TWEAKABLE**********/
 
@@ -39,19 +59,19 @@ float4 AmbiColor : Ambient
     string UIName =  "Ambient Light Color";
 > = {0.1f, 0.1f, 0.1f, 1.0f};
 
-float4 SurfColor : Diffuse
-<
-    string UIName =  "Surface Color";
-    string UIType = "Color";
-> = {1.0f, 1.0f, 1.0f, 1.0f};
-
-float4 LightSource
-<
-    string UIType = "Fixed Light Source";
-> = {5000.0f,100.0f, -0.0f, 1.0f};
-
-
-
+// Supports dynamic lights (using CalcLighting function)
+float4 g_lights_pos0;
+float4 g_lights_pos1;
+float4 g_lights_pos2;
+float4 g_lights_pos3;
+float4 g_lights_atten0;
+float4 g_lights_atten1;
+float4 g_lights_atten2;
+float4 g_lights_atten3;
+float4 g_lights_diffuse0;
+float4 g_lights_diffuse1;
+float4 g_lights_diffuse2;
+float4 g_lights_diffuse3;
 
 /****************** TEXTURES AND SAMPLERS*********************/
 
@@ -74,16 +94,12 @@ texture EffectMap : DiffuseMap
     string type = "2D";
 >;
 
-
-
-
-
 //Lightmap texture
 sampler2D LightmapSampler = sampler_state
 {
     Texture   = <LightMap>;
     MipFilter = LINEAR;
-    MinFilter = LINEAR;
+    MinFilter = ANISOTROPIC;
     MagFilter = LINEAR;
 };
 
@@ -92,7 +108,7 @@ sampler2D DiffuseSampler = sampler_state
 {
     Texture   = <DiffuseMap>;
     MipFilter = LINEAR;
-    MinFilter = LINEAR;
+    MinFilter = ANISOTROPIC;
     MagFilter = LINEAR;
 };
 
@@ -101,16 +117,9 @@ sampler2D EffectSampler = sampler_state
 {
     Texture   = <EffectMap>;
     MipFilter = LINEAR;
-    MinFilter = LINEAR;
+    MinFilter = ANISOTROPIC;
     MagFilter = LINEAR;
 };
-
-
-;
-
-
-
-
 
 /************* DATA STRUCTS **************/
 
@@ -123,8 +132,6 @@ struct appdata {
     float4 Binormal	: BINORMAL0;
 };
 
-
-
 /*data passed to pixel shader*/
 struct vertexOutput
 {
@@ -136,6 +143,7 @@ struct vertexOutput
     float4 WPos : TEXCOORD4;
     float2 atlasUV:TEXCOORD5;
     float clip : TEXCOORD6;
+    float Fog : TEXCOORD7;  
 };
 
 
@@ -154,7 +162,12 @@ vertexOutput mainVS(appdata IN)
     OUT.Position = mul(IN.Position, WorldViewProj);
     OUT.TexCoord  = IN.UV0; 
     OUT.TexCoordLM  = IN.UV1; 
-    OUT.WPos =   worldSpacePos;      
+    OUT.WPos =   worldSpacePos;  
+    
+    // calculate FOG colour
+    float4 cameraPos = mul( worldSpacePos, View );
+    float fogstrength = cameraPos.z * FogColor.w;
+    OUT.Fog = min(fogstrength,1.0);    
     
     /****Calculate a set of texture coordinates to perform atlas (sprite) walking*********/
 	float2 DimensionsXY = float2(3,1); 
@@ -187,6 +200,60 @@ vertexOutput mainVS(appdata IN)
     return OUT;
 }
 
+float4 CalcLighting( float3 worldNormal, float3 worldPos )
+{
+    float4 output = (float4)0.0;
+    // light 0
+    float3 toLight = g_lights_pos0.xyz - worldPos;
+    float lightDist = length( toLight );
+    float fAtten = 1.0/dot( g_lights_atten0, float4(1,lightDist,lightDist*lightDist,0) );
+    float3 lightDir = normalize( toLight );
+    output += max(0,dot( lightDir, worldNormal ) * g_lights_diffuse0 * fAtten);
+    // light 1
+    toLight = g_lights_pos1.xyz - worldPos;
+    lightDist = length( toLight );
+    fAtten = 1.0/dot( g_lights_atten1, float4(1,lightDist,lightDist*lightDist,0) );
+    lightDir = normalize( toLight );
+    output += max(0,dot( lightDir, worldNormal ) * g_lights_diffuse1 * fAtten);
+
+// (pixel shader 2.0 runs out of space here)
+//    // light 2 
+//    toLight = g_lights_pos2.xyz - worldPos;
+//    lightDist = length( toLight );
+//    fAtten = 1.0/dot( g_lights_atten2, float4(1,lightDist,lightDist*lightDist,0) );
+//    lightDir = normalize( toLight );
+//    output += max(0,dot( lightDir, worldNormal ) * g_lights_diffuse2 * fAtten);
+//    // light 3
+//    toLight = g_lights_pos3.xyz - worldPos;
+//    lightDist = length( toLight );
+//    fAtten = 1.0/dot( g_lights_atten3, float4(1,lightDist,lightDist*lightDist,0) );
+//    lightDir = normalize( toLight );
+//    output += max(0,dot( lightDir, worldNormal ) * g_lights_diffuse3 * fAtten);
+
+    return output;
+}
+
+float4 CalcSpotFlash( float3 worldNormal, float3 worldPos )
+{
+    float4 output = (float4)0.0;
+    float3 toLight = SpotFlashPos.xyz - worldPos.xyz;
+    float3 lightDir = normalize( toLight );
+    float lightDist = length( toLight );
+    
+    float MinFalloff = 200;  //falloff start distance - 50,0,.01 are very cool too for lanterns
+    float LinearFalloff = 1;
+    float ExpFalloff = .005;  // 1/200
+    
+    //float fAtten = 1.0/(MinFalloff + (LinearFalloff*lightDist)+(ExpFalloff*lightDist*lightDist));
+    float fAtten = 1.0/(lightDist);  //simplified linear falloff to fit in ps2.0
+    
+    SpotFlashPos.w = clamp(0,1,SpotFlashPos.w -.2);
+    
+    
+    output += max(0,dot( lightDir, worldNormal ) * SpotFlashColor*fAtten * (SpotFlashPos.w) );
+    
+    return output;
+}
 
 /****************Framgent Shader*****************/
 
@@ -213,9 +280,7 @@ float4 mainPS(vertexOutput IN) : COLOR
     float3 Hn = normalize(V+Ln);
     float dis = distance(IN.WPos,eyePos);
 
-    float atten = (1/(dis*(dis*.01)))* 2000 ;  //last value is multiplier, inverse square faloff
-	atten = clamp(atten,0,1.5);  //second value controls how bright to let the highlights become
-	
+    float atten = (1/(dis)) ;  //last value is multiplier, inverse square faloff
 	
 
     
@@ -225,15 +290,18 @@ float4 mainPS(vertexOutput IN) : COLOR
     
     
     //multiply spec texture, lightmap, and diffuse texture
-    float4 specular = (herospec)*(effectmap+0.1)*5*(LM+0.1)*diffuse * atten;
+    float4 specular = (herospec)*(effectmap)*5*(LM)*diffuse ;
     
         
+    float4 dynamiclighting = CalcLighting ( IN.WorldNormal, IN.WPos.xyz );
+    float4 spotflashlighting = CalcSpotFlash ( IN.WorldNormal, IN.WPos.xyz );
     
-    float4 LMfinal = (LM + AmbiColor)*diffuse  ;
+    float4 LMfinal = (LM + AmbiColor + dynamiclighting +spotflashlighting)*diffuse;
     float4 selfIll = atlasill.w *diffuse ;
     
         
     float4 result =   LMfinal  + specular + selfIll  ;
+    return float4((result.xyz*(1-IN.Fog))+(FogColor.xyz*IN.Fog),diffuse.w);
     
     return result;
 }

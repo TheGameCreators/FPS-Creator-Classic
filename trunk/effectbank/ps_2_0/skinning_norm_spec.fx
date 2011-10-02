@@ -25,6 +25,20 @@ float4 clipPlane : ClipPlane;
 /*********** DBPRO UNTWEAKABLES **********/
 float4x4 boneMatrix[60] : BoneMatrixPalette;
 
+/*********** SPOTFLASH VALUES FROM FPSC **********/
+
+float4 SpotFlashPos;
+
+
+float4 SpotFlashColor;
+
+
+float SpotFlashRange   //fixed value that FPSC uses
+<
+    string UIName =  "SpotFlash Range";
+    
+> = {600.00};
+
 
 /******SKY COLORS AND AMBIENT LIGHTING*******************/
 
@@ -116,7 +130,7 @@ sampler2D colorSampler = sampler_state
 {
 	Texture = <colorTexture>;
 	MinFilter = Linear;
-	MagFilter = Linear;
+	MagFilter = ANISOTROPIC;
 	MipFilter = Linear;
 };
 
@@ -124,7 +138,7 @@ sampler2D normalSampler = sampler_state
 {
 	Texture = <normalTexture>;
 	MinFilter = Linear;
-	MagFilter = Linear;
+	MagFilter = ANISOTROPIC;
 	MipFilter = Linear;
 };
 
@@ -132,7 +146,7 @@ sampler2D reflectSampler = sampler_state
 {
 	Texture = <reflectMap>;
 	MinFilter = Linear;
-	MagFilter = Linear;
+	MagFilter = ANISOTROPIC;
 	MipFilter = Linear;
 };
 
@@ -200,6 +214,28 @@ vertexOutput mainVS(appdata IN)
 
 /********* pixel shader ********/
 
+float4 CalcSpotFlash( float3 worldNormal, float3 worldPos )
+{
+    float4 output = (float4)0.0;
+    float3 toLight = SpotFlashPos.xyz - worldPos.xyz;
+    float3 lightDir = normalize( toLight );
+    float lightDist = length( toLight );
+    
+    float MinFalloff = 200;  //falloff start distance - 50,0,.01 are very cool too for lanterns
+    float LinearFalloff = 1;
+    float ExpFalloff = .005;  // 1/200
+    
+    //float fAtten = 1.0/(MinFalloff + (LinearFalloff*lightDist)+(ExpFalloff*lightDist*lightDist));
+    float fAtten = 1.0/(LinearFalloff*lightDist);  //simplified linear falloff to fit in ps2.0
+    
+    SpotFlashPos.w = clamp(0,1,SpotFlashPos.w -.2);
+    
+    
+    output += max(0,dot( lightDir, worldNormal ) * SpotFlashColor*fAtten * (SpotFlashPos.w) );
+    
+    return output;
+}
+
 float4 mainPS(vertexOutput IN) : COLOR
 {
     // all shaders should receive the clip value                                                                
@@ -229,6 +265,7 @@ float4 mainPS(vertexOutput IN) : COLOR
     float3 herolight = normalize( IN.WorldEyeVec+offset);
     float3 Hn2 = normalize(Vn + herolight);
     float4 herolighting = lit((dot(herolight,Nb)),dot(Hn2,Nb),24);
+    float4 spotflashlighting = CalcSpotFlash ( IN.WorldNormal, IN.Wpos.xyz );
     
 
     
@@ -243,10 +280,10 @@ float4 mainPS(vertexOutput IN) : COLOR
     float4 herospecContrib =   specmap  *  (herolighting.z);
     float4 herolightfinal = (herodiffContrib +herospecContrib );
     
-    float4 ambContrib =  ((0.5*AmbiColor *  diffusemap)) + (0.5*AmbiColor*herolightfinal);	
+    float4 ambContrib =  (spotflashlighting+AmbiColor) *  diffusemap;	
  
     
-    float4 result = 0.9*diffContrib +2.0*specContrib  + ambContrib +0.1*herolightfinal ;
+    float4 result = 0.9*diffContrib +2.0*specContrib  + ambContrib  ;
     
     result.a=diffusemap.a * Alphavalue;
 

@@ -34,6 +34,20 @@ float4 clipPlane : ClipPlane;
 /*********** DBPRO UNTWEAKABLES **********/
 float4x4 boneMatrix[60] : BoneMatrixPalette;
 
+/*********** SPOTFLASH VALUES FROM FPSC **********/
+
+float4 SpotFlashPos;
+
+
+float4 SpotFlashColor;
+
+
+float SpotFlashRange   //fixed value that FPSC uses
+<
+    string UIName =  "SpotFlash Range";
+    
+> = {600.00};
+
 /******SKY COLORS AND AMBIENT LIGHTING*******************/
 
 //this value is pulled from FPSC - non tweakable
@@ -49,6 +63,11 @@ float4 SurfColor : Diffuse
     string UIName =  "Surface Color";
     string UIType = "Color";
 > = { 1.000000, 1.000000, 1.000000, 1.000000 };
+
+//this value is also pulled from fpsc
+float4 FloorPositionY : Diffuse
+<
+> = { 0.000000, 0.000000, 0.000000, 0.000000 };
 
 /************* LIGHTS **************/
 
@@ -114,7 +133,7 @@ sampler2D colorSampler = sampler_state
 {
 	Texture = <colorTexture>;
 	MinFilter = Linear;
-	MagFilter = Linear;
+	MagFilter = ANISOTROPIC;
 	MipFilter = Linear;
 };
 
@@ -122,7 +141,7 @@ sampler2D normalSampler = sampler_state
 {
 	Texture = <normalTexture>;
 	MinFilter = Linear;
-	MagFilter = Linear;
+	MagFilter = ANISOTROPIC;
 	MipFilter = Linear;
 };
 
@@ -130,7 +149,7 @@ sampler2D reflectSampler = sampler_state
 {
 	Texture = <reflectMap>;
 	MinFilter = Linear;
-	MagFilter = Linear;
+	MagFilter = ANISOTROPIC;
 	MipFilter = Linear;
 };
 
@@ -176,6 +195,7 @@ vertexOutput mainVS(appdata IN)
      netPosition += vec3.xyz * IN.Blendweight[i];
      netNormal += norm3.xyz * IN.Blendweight[i];
     }
+
     float4 tempPos = float4(netPosition,1.0);
     netNormal = normalize(netNormal);
 
@@ -189,8 +209,7 @@ vertexOutput mainVS(appdata IN)
     OUT.HPosition = mul(tempPos, WorldViewProj);
     OUT.Wpos = worldSpacePos;
 
-    // all shaders should send the clip value to the pixel shader (for refr/refl)                                                                     
-    // OUT.clip = dot(worldSpacePos, clipPlane); // too expensive for VS2.0
+    // all shaders should send the clip value to the pixel shader (for refr/refl)                  // OUT.clip = dot(worldSpacePos, clipPlane); // too expensive for VS2.0
     OUT.clip = (worldSpacePos.y * clipPlane.y) + clipPlane.a; // good for water plane
 
     return OUT;
@@ -198,10 +217,30 @@ vertexOutput mainVS(appdata IN)
 
 /********* pixel shader ********/
 
+float4 CalcSpotFlash( float3 worldNormal, float3 worldPos )
+{
+    float4 output = (float4)0.0;
+    float3 toLight = SpotFlashPos.xyz - worldPos.xyz;
+    float3 lightDir = normalize( toLight );
+    float lightDist = length( toLight );
+    
+    float MinFalloff = 200;  //falloff start distance - 50,0,.01 are very cool too for lanterns
+    float LinearFalloff = 1;
+    float ExpFalloff = .005;  // 1/200
+    
+    float fAtten = 1.0/(MinFalloff + (LinearFalloff*lightDist)+(ExpFalloff*lightDist*lightDist));
+    
+    SpotFlashPos.w = clamp(0,1,SpotFlashPos.w -.2);
+    
+    
+    output += max(0,dot( lightDir, worldNormal ) * 1*SpotFlashColor*fAtten * (SpotFlashPos.w) );
+    
+    return output;
+}
+
 float4 mainPS(vertexOutput IN) : COLOR
 {
-    // all shaders should receive the clip value                                                                
-    clip(IN.clip);
+    // all shaders should receive the clip value                                                   clip(IN.clip);
 
     float4 diffusemap = tex2D(colorSampler,IN.TexCoord.xy);
     float4 specmap = tex2D(reflectSampler,IN.TexCoord.xy);
@@ -239,7 +278,8 @@ float4 mainPS(vertexOutput IN) : COLOR
     float dis = distance(IN.Wpos,ViewInv[3].xyz);
     float atten = (1/(dis)*20);
     
-    float4 ambContrib =   (AmbiColor*herolightfinal);	
+    float4 spotflashlighting = CalcSpotFlash ( IN.WorldNormal, IN.Wpos.xyz );    
+    float4 ambContrib =   (spotflashlighting+AmbiColor)*diffusemap;	
 
     // older stock characters did not store illum in spec alpha
     // float4 selfIll = specmap.w * diffusemap;

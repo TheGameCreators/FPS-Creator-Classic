@@ -9,9 +9,24 @@ float4x4 WorldViewProj : WorldViewProjection;
 float4x4 World : World;
 float4x4 View : View;
 float4x4 ViewInv : ViewInverse;
+float4 clipPlane : ClipPlane;
 
 /*********** DBPRO UNTWEAKABLES **********/
 float4x4 boneMatrix[60] : BoneMatrixPalette;
+
+/*********** SPOTFLASH VALUES FROM FPSC **********/
+
+float4 SpotFlashPos;
+
+
+float4 SpotFlashColor;
+
+
+float SpotFlashRange   //fixed value that FPSC uses
+<
+    string UIName =  "SpotFlash Range";
+    
+> = {600.00};
 
 /************* SURFACE **************/
 
@@ -58,7 +73,7 @@ sampler2D colorSampler = sampler_state
 {
 	Texture = <colorTexture>;
 	MinFilter = Linear;
-	MagFilter = Linear;
+	MagFilter = ANISOTROPIC;
 	MipFilter = Linear;
 };
 
@@ -76,8 +91,11 @@ struct appdata {
 struct vertexOutput {
     float4 HPosition	: POSITION;
     float4 TexCoord	: TEXCOORD0;
-    float4 Col		: COLOR;
-    float3 Fog		: TEXCOORD1;
+    float3 Normal	: TEXCOORD1;
+    float3 Fog		: TEXCOORD2;
+    float clipvalue     : TEXCOORD3;
+    float3 WPos : TEXCOORD4;
+    
 };
 
 /*********** vertex shader ******/
@@ -99,30 +117,70 @@ vertexOutput mainVS(appdata IN)
     }
     float4 tempPos = float4(netPosition,1.0);
     netNormal = normalize(netNormal);
+    
+    
 
     float3 worldSpacePos = mul(tempPos, World).xyz;
+    OUT.WPos = worldSpacePos; ///spotmod
     OUT.TexCoord = IN.UV;
     OUT.HPosition = mul(tempPos, WorldViewProj);
 
-    float3 L = -lhtDir;
-    float4 gogo;
-    gogo = (max(0, dot(netNormal, L))*SurfColor*0.25) + (SurfColor*0.75) + AmbiColor;
-    gogo.w=1;
-    OUT.Col = gogo;
+//    float3 L = -lhtDir;
+//    float4 gogo;
+//    gogo = (max(0, dot(netNormal, L))*SurfColor*0.25) + (SurfColor*0.75) + AmbiColor;
+//    gogo.w=1;
+//    OUT.Col = gogo;
+    //OUT.Normal = netNormal;
+    OUT.Normal = mul(netNormal, WorldIT).xyz;
 
-    float4 cameraPos = mul( float4(worldSpacePos,1), View );
+    float4 cameraPos = float4(1,1,1,1); //mul( float4(worldSpacePos,1), View );
     float fogstrength = cameraPos.z * FogColor.w;
     OUT.Fog = FogColor.xyz * fogstrength;
+
+    // all shaders should send the clip value to the pixel shader (for refr/refl)                                                                     
+    // OUT.clip = dot(worldSpacePos, clipPlane); // too expensive for VS2.0
+    OUT.clipvalue = (worldSpacePos.y * clipPlane.y) + clipPlane.a; // good for water plane
 
     return OUT;
 }
 
-float4 PS(
-    float4 Diff : COLOR0,
-    float2 Tex  : TEXCOORD0,
-    float3 Fog  : TEXCOORD1 ) : COLOR
+float4 CalcSpotFlash( float3 worldNormal, float3 worldPos )
 {
-    return (tex2D(colorSampler, Tex) * Diff) + FillerColor + float4(Fog,1.0);
+    float4 output = (float4)0.0;
+    float3 toLight = SpotFlashPos.xyz - worldPos.xyz;
+    float3 lightDir = normalize( toLight );
+    float lightDist = length( toLight );
+    
+    float MinFalloff = 200;  //minimum falloff distance
+    float LinearFalloff = 1;
+    float ExpFalloff = .005;  // 1/200
+    
+    float fAtten = 1.0/(MinFalloff + (LinearFalloff*lightDist)+(ExpFalloff*lightDist*lightDist));
+    
+    SpotFlashPos.w = clamp(0,1,SpotFlashPos.w -.2); 
+    
+    
+    output += max(0,dot( lightDir, worldNormal ) * 2.0*SpotFlashColor*fAtten * (SpotFlashPos.w) );
+    
+    return output;
+}
+
+float4 PS(
+    float2 Tex  : TEXCOORD0,
+    float3 Normal : TEXCOORD1,	
+    float3 Fog  : TEXCOORD2,
+    float clipvalue  : TEXCOORD3, vertexOutput IN ) : COLOR
+{
+    clip(clipvalue);
+    
+    float4 spotflashlighting = CalcSpotFlash ( IN.Normal, IN.WPos.xyz );  //spotmod
+
+    float3 L = -lhtDir;
+    float4 gogo;
+    gogo = (max(0, dot(Normal, L))*SurfColor*0.25) + (SurfColor*0.75) + AmbiColor +spotflashlighting;
+    gogo.w=1;
+
+    return (tex2D(colorSampler, Tex) * gogo) + FillerColor + float4(Fog,1.0) ;
 }
 
 /****** technique *******/
@@ -133,6 +191,6 @@ technique dx9textured
 	{		
 	        Sampler[0] = (colorSampler);
 		VertexShader = compile vs_2_0 mainVS();
-	        PixelShader  = compile ps_1_0 PS();
+	        PixelShader  = compile ps_2_0 PS();
 	}
 }
