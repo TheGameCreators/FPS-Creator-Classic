@@ -27305,6 +27305,15 @@ _lighting_applyentitycolor:
    tamb#=guivisualsettings.ambience/100.0 : set vector4 1,tamb#,tamb#,tamb#,1.0
    set effect constant vector teffectid,"AmbiColor",1
    `
+   rem (markblosser) - send spotflash light values to shader - light range is fixed at 600 in _lighting_spotflash:
+   rem (markblosser) - SpotFlashPos.w is carrying the spotflash fadeout value 
+   set vector4 1,spotflashx#,spotflashy#,spotflashz#,spotfadeout#
+   set effect constant vector teffectid,"SpotFlashPos",1
+   set vector4 1,spotlightr#,spotlightg#,spotlightb#,1.0
+   set effect constant vector teffectid,"SpotFlashColor",1
+      
+   
+   
    rem V118 - 110211 - send floorpositionY to shader if shader uses shadow style functionality
    tmp1#=entityelement(e).floorpositiony : rem Floor Position Y
    tmp2#=0 : rem Reserved

@@ -5,7 +5,7 @@ project name=FPSC-Game
 
 ; **** source file information ****
 main=FPSC-Game.DBA
-LineMain=5
+LineMain=27308
 
 ; **** Executable Information  ***
 ; build types: exe, media, installer, alone
