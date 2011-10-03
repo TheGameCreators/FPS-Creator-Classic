@@ -175,7 +175,8 @@ struct vertexOutput {
     float3 WorldTangent	: TEXCOORD4;
     float3 WorldBinorm	: TEXCOORD5;
     float3 Wpos : TEXCOORD6;
-    float clip : TEXCOORD7;    
+    float clip : TEXCOORD7;  
+   
 };
 
 /*********** vertex shader ******/
@@ -240,7 +241,8 @@ float4 CalcSpotFlash( float3 worldNormal, float3 worldPos )
 
 float4 mainPS(vertexOutput IN) : COLOR
 {
-    // all shaders should receive the clip value                                                   clip(IN.clip);
+    // all shaders should receive the clip value                                                  
+     clip(IN.clip);
 
     float4 diffusemap = tex2D(colorSampler,IN.TexCoord.xy);
     float4 specmap = tex2D(reflectSampler,IN.TexCoord.xy);
@@ -264,8 +266,8 @@ float4 mainPS(vertexOutput IN) : COLOR
     float3 Hn2 = normalize(Vn + herolight);
     float4 herolighting = lit((dot(herolight,Nb)),dot(Hn2,Nb),32);
     
-    SurfColor = clamp(SurfColor,0.1,1.0);
-    AmbiColor = clamp(AmbiColor,0.15,0.8);
+    
+   
     
     float4 diffContrib = SurfColor * diffusemap * (lighting.y) ;
     float4 specContrib = SurfColor *  specmap * lighting.z;
