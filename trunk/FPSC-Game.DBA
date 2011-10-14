@@ -1772,6 +1772,9 @@ rem cinematic hands <<<<
 #constant AIACTFOGRED 832
 #constant AIACTFOGGREEN 833
 #constant AIACTFOGBLUE 834
+`markblosser - add fogstart,fogend commands
+#constant AIACTFOGSTART 835
+#constant AIACTFOGEND 836
 #constant AIACTSKY 841
 #constant AIACTSKYSCROLL 842
 #constant AIACTNEWJUMPHEIGHT 901
@@ -2694,8 +2697,8 @@ rem FPSCV104 Fog globals
 Global hudfogon as integer
 Global hudfogison as integer
 Global hudfoglaston as integer
-Global hudfognear as float
-Global hudfogfar as float
+Global hudfognear as float : hudfognear=-2000.0
+Global hudfogfar as float : hudfogfar=-10000.0
 Global hudfogred as float
 Global hudfoggreen as float
 Global hudfogblue as float
@@ -11298,6 +11301,9 @@ actword$(AIACTFOG)="fog"
 actword$(AIACTFOGRED)="fogred"
 actword$(AIACTFOGGREEN)="foggreen"
 actword$(AIACTFOGBLUE)="fogblue"
+`markblosser - add FOGSTART, FOGEND
+actword$(AIACTFOGSTART)="fogstart"
+actword$(AIACTFOGEND)="fogend"
 actword$(AIACTSKY)="sky"
 actword$(AIACTSKYSCROLL)="skyscroll"
 actword$(AIACTNEWJUMPHEIGHT)="newjumpheight"
@@ -15277,6 +15283,8 @@ if aiindex>0
       else
        `fog off
        hudfogon=0
+       hudfognear=-2000
+       hudfogfar=-10000
       endif
      endcase
      case AIACTFOGRED:
@@ -15290,6 +15298,13 @@ if aiindex>0
      case AIACTFOGBLUE:
       hudfogblue=aiactionseq(seq).value
       `fog color hudfogred,hudfoggreen,hudfogblue
+     endcase
+     `markblosser - add new fogstart,fogend,and fogoffset commands
+     case AIACTFOGSTART:
+      hudfognear=aiactionseq(seq).value      
+     endcase
+     case AIACTFOGEND:
+      hudfogfar=aiactionseq(seq).value      
      endcase
      case AIACTSKY:
       rem Already done during loading of AI-Asset
@@ -27090,7 +27105,9 @@ _lighting_managegloballightingreciever:
  `
  rem Reset ready to store strongest point
  totaltlightpower#=0
- avlightposx#=mex# : avlightposy#=mey# : avlightposz#=mez#
+ rem markblosser -instead of using player position, use generic recxyz# position so we can figure out closest light to entity as well
+ avlightposx#=recx# : avlightposy#=recy# : avlightposz#=recz#
+ `avlightposx#=mex# : avlightposy#=mey# : avlightposz#=mez#
  avlightcolr#=0 : avlightcolg#=0 : avlightcolb#=0
  tlightinfluencedbydynamiclight=0
  avlightrange#=0
@@ -27125,11 +27142,14 @@ _lighting_managegloballightingreciever:
      tlightpower#=0
     endif
     `
-    rem with range of player
+    rem with range of player - markblosser - not using mex# to calculate tdiffx#, instead using recx# so entities can find nearest light too
     tplayercareabout#=1000.0
-    tdiffx#=mex#-infinilight().x
-    tdiffy#=mey#-infinilight().y
-    tdiffz#=mez#-infinilight().z
+    tdiffx#=recx#-infinilight().x   
+    tdiffy#=recy#-infinilight().y
+    tdiffz#=recz#-infinilight().z
+    `tdiffx#=mex#-infinilight().x
+    `tdiffy#=mey#-infinilight().y
+    `tdiffz#=mez#-infinilight().z
     tdiff#=sqrt(abs(tdiffx#*tdiffx#)+abs(tdiffy#*tdiffy#)+abs(tdiffz#*tdiffz#))
     tlightrawstrength#=1.0-(tdiff#/tplayercareabout#) : rem player can apprecirate/care about direction of light within this range
     tlightrawstrength#=tlightrawstrength#*tlightpower#
@@ -27389,6 +27409,12 @@ for tef=1 to effectbankmax
  set effect constant vector teffectid,"SpotFlashPos",1
  set vector4 1,spotlightr#,spotlightg#,spotlightb#,1.0
  set effect constant vector teffectid,"SpotFlashColor",1
+ `
+ rem markblosser - pass hud fog values to shaders
+ set vector4 1,(hudfogred/255.0),(hudfoggreen/255.0),(hudfogblue/255.0),1.0
+ set effect constant vector teffectid,"HudFogColor",1
+ set vector4 1,hudfognear,hudfogfar,1.0,1.0
+ set effect constant vector teffectid,"HudFogDist",1
  `
  rem V118 - 050211 - also send DYNAMIC lighting info to shaders (in case they support dynamic lighting)
  lightindex=2
