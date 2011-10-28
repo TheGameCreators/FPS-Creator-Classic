@@ -1775,6 +1775,8 @@ rem cinematic hands <<<<
 `markblosser - add fogstart,fogend commands
 #constant AIACTFOGSTART 835
 #constant AIACTFOGEND 836
+`markblosser - set post process effect
+#constant AIACTSETPOSTEFFECT 837
 #constant AIACTSKY 841
 #constant AIACTSKYSCROLL 842
 #constant AIACTNEWJUMPHEIGHT 901
@@ -11304,6 +11306,8 @@ actword$(AIACTFOGBLUE)="fogblue"
 `markblosser - add FOGSTART, FOGEND
 actword$(AIACTFOGSTART)="fogstart"
 actword$(AIACTFOGEND)="fogend"
+`markblosser - add SETPOSTEFFECT
+actword$(AIACTSETPOSTEFFECT)="setposteffect"
 actword$(AIACTSKY)="sky"
 actword$(AIACTSKYSCROLL)="skyscroll"
 actword$(AIACTNEWJUMPHEIGHT)="newjumpheight"
@@ -15305,6 +15309,39 @@ if aiindex>0
      endcase
      case AIACTFOGEND:
       hudfogfar=aiactionseq(seq).value      
+     endcase
+     `markblosser - add setposteffect command
+     case AIACTSETPOSTEFFECT:      
+      effectfilename$=""
+      effectfilename$="effectbank\postprocess\" + aiactionseq(seq).filename + ".fx"
+      select effectfilename$
+       case "effectbank\postprocess\gasmask.fx"
+        texture object 65536,0,65536
+        texture object 65536,1,65538
+        texture object 65536,2,65539
+       endcase
+       case "effectbank\postprocess\refract.fx"
+        texture object 65536,0,65536
+        texture object 65536,1,65540        
+       endcase
+       case "effectbank\postprocess\multi.fx"
+        texture object 65536,0,65536
+        texture object 65536,1,65541
+        texture object 65536,2,65542        
+       endcase
+       case "effectbank\postprocess\filmreel.fx"
+        texture object 65536,0,65536
+        texture object 65536,1,65543        
+       endcase
+       case "effectbank\postprocess\rain.fx"
+        texture object 65536,0,65536
+        texture object 65536,1,65544
+        texture object 65536,2,65545        
+       endcase
+      endselect       
+        delete effect 65535
+        load effect effectfilename$,65535,0
+        set object effect 65536,65535      
      endcase
      case AIACTSKY:
       rem Already done during loading of AI-Asset
@@ -54849,6 +54886,16 @@ _postprocess_init:
  depthoffieldfilescreen$="effectbank\ps_2_0\post-depthoffield.fx"
  addfiletocollection(bloomfilescreen$)
  addfiletocollection(depthoffieldfilescreen$)
+ rem markblosser - also add any additional post effects and media (must be in "effectbank\postprocess" folder)
+ addallfilestocollection("effectbank\postprocess")
+ load image "effectbank\postprocess\gasmask_normal.dds",65538
+ load image "effectbank\postprocess\gasmask_mask.dds",65539 
+ load image "effectbank\postprocess\refract_normal.dds",65540 
+ load image "effectbank\postprocess\multi_1.dds",65541 
+ load image "effectbank\postprocess\multi_2.dds",65542
+ load image "effectbank\postprocess\filmreel_scratches.dds",65543
+ load image "effectbank\postprocess\rain_diffuse.dds",65544
+ load image "effectbank\postprocess\rain_normal.dds",65545
  `
  rem if flagged, use post processing (camera one)
  if gpostprocessmode=0 and gpostprocessing<>0 and segobjusedformapeditor=0
