@@ -54891,8 +54891,8 @@ _postprocess_init:
  load image "effectbank\postprocess\gasmask_normal.dds",65538
  load image "effectbank\postprocess\gasmask_mask.dds",65539 
  load image "effectbank\postprocess\refract_normal.dds",65540 
- load image "effectbank\postprocess\multi_1.dds",65541 
- load image "effectbank\postprocess\multi_2.dds",65542
+ if file exist ("effectbank\postprocess\multi_1.dds")=1 then load image "effectbank\postprocess\multi_1.dds",65541 
+ if file exist ("effectbank\postprocess\multi_2.dds")=1 then load image "effectbank\postprocess\multi_2.dds",65542
  load image "effectbank\postprocess\filmreel_scratches.dds",65543
  load image "effectbank\postprocess\rain_diffuse.dds",65544
  load image "effectbank\postprocess\rain_normal.dds",65545
