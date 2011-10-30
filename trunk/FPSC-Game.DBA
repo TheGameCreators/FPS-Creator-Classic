@@ -14298,8 +14298,10 @@ if aiindex>0
        if entityelement(spawne).spawn.upto<=0 then tokay=1
       else
        tokay=1
-      endif
-      if entityprofile(entid).ischaracter=1 and entityprofile(entid).noragdoll=0 and entityelement(e).eleprof.lives<=0 and tokay=1
+      endif 
+      rem markblosser - 102911 - breaks model pack 52 characters whose lives never reach 0, death is controlled purely in script
+      `if entityprofile(entid).ischaracter=1 and entityprofile(entid).noragdoll=0 and entityelement(e).eleprof.lives<=0 and tokay=1         
+      if entityprofile(entid).ischaracter=1 and entityprofile(entid).noragdoll=0 and entityelement(e).eleprof.lives<=1 and tokay=1
        if entityelement(e).ragdollon=0
         entityelement(e).ragdollon=1
         ODE Create Ragdoll from bone model obj,0.6 : rem was 0.8 up to 171007 (was 0.6 on 300707)
@@ -15314,34 +15316,37 @@ if aiindex>0
      case AIACTSETPOSTEFFECT:      
       effectfilename$=""
       effectfilename$="effectbank\postprocess\" + aiactionseq(seq).filename + ".fx"
-      select effectfilename$
-       case "effectbank\postprocess\gasmask.fx"
-        texture object 65536,0,65536
-        texture object 65536,1,65538
-        texture object 65536,2,65539
-       endcase
-       case "effectbank\postprocess\refract.fx"
-        texture object 65536,0,65536
-        texture object 65536,1,65540        
-       endcase
-       case "effectbank\postprocess\multi.fx"
-        texture object 65536,0,65536
-        texture object 65536,1,65541
-        texture object 65536,2,65542        
-       endcase
-       case "effectbank\postprocess\filmreel.fx"
-        texture object 65536,0,65536
-        texture object 65536,1,65543        
-       endcase
-       case "effectbank\postprocess\rain.fx"
-        texture object 65536,0,65536
-        texture object 65536,1,65544
-        texture object 65536,2,65545        
-       endcase
-      endselect       
+      rem make sure post-processing object exists, if not, ignore effect
+      if object exist (65536)=1
+       select effectfilename$
+        case "effectbank\postprocess\gasmask.fx"
+         texture object 65536,0,65536
+         texture object 65536,1,65538
+         texture object 65536,2,65539
+        endcase
+        case "effectbank\postprocess\refract.fx"
+         texture object 65536,0,65536
+         texture object 65536,1,65540        
+        endcase
+        case "effectbank\postprocess\multi.fx"
+         texture object 65536,0,65536
+         texture object 65536,1,65541
+         texture object 65536,2,65542        
+        endcase
+        case "effectbank\postprocess\filmreel.fx"
+         texture object 65536,0,65536
+         texture object 65536,1,65543        
+        endcase
+        case "effectbank\postprocess\rain.fx"
+         texture object 65536,0,65536
+         texture object 65536,1,65544
+         texture object 65536,2,65545        
+        endcase
+       endselect       
         delete effect 65535
         load effect effectfilename$,65535,0
         set object effect 65536,65535      
+      endif
      endcase
      case AIACTSKY:
       rem Already done during loading of AI-Asset
