@@ -9314,7 +9314,7 @@ _entity_controlanim:
 
 rem entity with an object
 if obj>0
- ` 
+ `
  rem animation and slerp handling
  if entityelement(e).animset>0
   entityelement(e).animdo=entityelement(e).animset-1
@@ -14298,9 +14298,9 @@ if aiindex>0
        if entityelement(spawne).spawn.upto<=0 then tokay=1
       else
        tokay=1
-      endif 
+      endif
       rem markblosser - 102911 - breaks model pack 52 characters whose lives never reach 0, death is controlled purely in script
-      `if entityprofile(entid).ischaracter=1 and entityprofile(entid).noragdoll=0 and entityelement(e).eleprof.lives<=0 and tokay=1         
+      `if entityprofile(entid).ischaracter=1 and entityprofile(entid).noragdoll=0 and entityelement(e).eleprof.lives<=0 and tokay=1
       if entityprofile(entid).ischaracter=1 and entityprofile(entid).noragdoll=0 and entityelement(e).eleprof.lives<=1 and tokay=1
        if entityelement(e).ragdollon=0
         entityelement(e).ragdollon=1
@@ -14529,7 +14529,7 @@ if aiindex>0
      case AIACTSETANIMATESPEED:
       entityelement(e).animatespeed=aiactionseq(seq).value/100
      endcase
-     
+
      case AIACTSETTARGET:
       if entityelement(e).possibletarget<>0
        oldtarget=entityelement(e).actualtarget
@@ -15307,13 +15307,13 @@ if aiindex>0
      endcase
      `markblosser - add new fogstart,fogend,and fogoffset commands
      case AIACTFOGSTART:
-      hudfognear=aiactionseq(seq).value      
+      hudfognear=aiactionseq(seq).value
      endcase
      case AIACTFOGEND:
-      hudfogfar=aiactionseq(seq).value      
+      hudfogfar=aiactionseq(seq).value
      endcase
      `markblosser - add setposteffect command
-     case AIACTSETPOSTEFFECT:      
+     case AIACTSETPOSTEFFECT:
       effectfilename$=""
       effectfilename$="effectbank\postprocess\" + aiactionseq(seq).filename + ".fx"
       rem make sure post-processing object exists, if not, ignore effect
@@ -15326,26 +15326,26 @@ if aiindex>0
         endcase
         case "effectbank\postprocess\refract.fx"
          texture object 65536,0,65536
-         texture object 65536,1,65540        
+         texture object 65536,1,65540
         endcase
         case "effectbank\postprocess\multi.fx"
          texture object 65536,0,65536
          texture object 65536,1,65541
-         texture object 65536,2,65542        
+         texture object 65536,2,65542
         endcase
         case "effectbank\postprocess\filmreel.fx"
          texture object 65536,0,65536
-         texture object 65536,1,65543        
+         texture object 65536,1,65543
         endcase
         case "effectbank\postprocess\rain.fx"
          texture object 65536,0,65536
          texture object 65536,1,65544
-         texture object 65536,2,65545        
+         texture object 65536,2,65545
         endcase
-       endselect       
+       endselect
         delete effect 65535
         load effect effectfilename$,65535,0
-        set object effect 65536,65535      
+        set object effect 65536,65535
       endif
      endcase
      case AIACTSKY:
@@ -27186,7 +27186,7 @@ _lighting_managegloballightingreciever:
     `
     rem with range of player - markblosser - not using mex# to calculate tdiffx#, instead using recx# so entities can find nearest light too
     tplayercareabout#=1000.0
-    tdiffx#=recx#-infinilight().x   
+    tdiffx#=recx#-infinilight().x
     tdiffy#=recy#-infinilight().y
     tdiffz#=recz#-infinilight().z
     `tdiffx#=mex#-infinilight().x
@@ -27368,7 +27368,7 @@ _lighting_applyentitycolor:
    set effect constant vector teffectid,"AmbiColor",1
    `
    rem (markblosser) - send spotflash light values to shader - light range is fixed at 600 in _lighting_spotflash:
-   rem (markblosser) - SpotFlashPos.w is carrying the spotflash fadeout value 
+   rem (markblosser) - SpotFlashPos.w is carrying the spotflash fadeout value
    set vector4 1,spotflashx#,spotflashy#,spotflashz#,spotfadeout#
    set effect constant vector teffectid,"SpotFlashPos",1
    set vector4 1,spotlightr#,spotlightg#,spotlightb#,1.0
@@ -27446,7 +27446,7 @@ for tef=1 to effectbankmax
  set effect constant vector teffectid,"AmbiColor",1
  `
  rem (markblosser) - send spotflash light values to shader - light range is fixed at 600 in _lighting_spotflash:
- rem (markblosser) - SpotFlashPos.w is carrying the spotflash fadeout value 
+ rem (markblosser) - SpotFlashPos.w is carrying the spotflash fadeout value
  set vector4 1,spotflashx#,spotflashy#,spotflashz#,spotfadeout#
  set effect constant vector teffectid,"SpotFlashPos",1
  set vector4 1,spotlightr#,spotlightg#,spotlightb#,1.0
@@ -54894,9 +54894,9 @@ _postprocess_init:
  rem markblosser - also add any additional post effects and media (must be in "effectbank\postprocess" folder)
  addallfilestocollection("effectbank\postprocess")
  load image "effectbank\postprocess\gasmask_normal.dds",65538
- load image "effectbank\postprocess\gasmask_mask.dds",65539 
- load image "effectbank\postprocess\refract_normal.dds",65540 
- if file exist ("effectbank\postprocess\multi_1.dds")=1 then load image "effectbank\postprocess\multi_1.dds",65541 
+ load image "effectbank\postprocess\gasmask_mask.dds",65539
+ load image "effectbank\postprocess\refract_normal.dds",65540
+ if file exist ("effectbank\postprocess\multi_1.dds")=1 then load image "effectbank\postprocess\multi_1.dds",65541
  if file exist ("effectbank\postprocess\multi_2.dds")=1 then load image "effectbank\postprocess\multi_2.dds",65542
  load image "effectbank\postprocess\filmreel_scratches.dds",65543
  load image "effectbank\postprocess\rain_diffuse.dds",65544
@@ -55286,6 +55286,30 @@ function getintervar(var$)
   case "$EAZ"
    temp=entityelement(e).rz
   endcase
+  case "$CAX"
+   `Grab camera to check
+   temp=camera angle x(0)
+  endcase
+  case "$CAY"
+   `Grab camera to check
+   temp=camera angle y(0)
+  endcase
+  case "$CAZ"
+   `Grab camera to check
+   temp=camera angle z(0)
+  endcase
+  case "$CPX"
+   `Grab camera to check
+   temp=camera position x(0)
+  endcase
+  case "$CPY"
+   `Grab camera to check
+   temp=camera position y(0)
+  endcase
+  case "$CPZ"
+   `Grab camera to check
+   temp=camera position z(0)
+  endcase
  endselect
 endfunction temp
 
@@ -55328,6 +55352,30 @@ function setintervar(var$,alter#)
   endcase
   case "$EAZ"
    entityelement(e).rz=alter#
+  endcase
+  case "$CAX"
+   `Grab camera to check
+   xrotate camera 0,alter#
+  endcase
+  case "$CAY"
+   `Grab camera to check
+   yrotate camera 0,alter#
+  endcase
+  case "$CAZ"
+   `Grab camera to check
+   zrotate camera 0,alter#
+  endcase
+  case "$CPX"
+   `Grab camera to check
+   position camera 0,alter#,camera position z(0)
+  endcase
+  case "$CPY"
+   `Grab camera to check
+   position camera 0,camera position x(0),alter#,camera position z(0)
+  endcase
+  case "$CPZ"
+   `Grab camera to check
+   position camera 0,camera position x(0),camera position y(0),alter#
   endcase
  endselect
 endfunction
