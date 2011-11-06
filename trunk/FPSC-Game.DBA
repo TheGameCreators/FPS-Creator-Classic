@@ -55366,16 +55366,13 @@ function setintervar(var$,alter#)
    zrotate camera 0,alter#
   endcase
   case "$CPX"
-   `Grab camera to check
-   position camera 0,alter#,camera position z(0)
+   camerapositionx=alter#
   endcase
   case "$CPY"
-   `Grab camera to check
-   position camera 0,camera position x(0),alter#,camera position z(0)
+   camerapositiony=alter#
   endcase
   case "$CPZ"
-   `Grab camera to check
-   position camera 0,camera position x(0),camera position y(0),alter#
+   camerapositionz=alter#
   endcase
  endselect
 endfunction
