@@ -31,6 +31,87 @@ rem Credit to Robert Knox for help fixing up the engine and adding a cool HUD sy
 
 _start_engine:
 
+Rem Scene Commander globals
+
+rem wobble
+global wobble#=0.0
+rem new deaths
+global tiltondeath=0
+global tilton=0
+global tiltspeed#=0.0
+global temptilt=0
+global thud=0
+global tiltbounce=10
+global justdone=0
+rem video
+global unskip=0
+rem player forced actiona
+global playeraction=0
+global forcemove=0
+rem allow force damage
+global forcedamageon=1
+rem guns
+global crosshairon=1
+global forcedslot=0
+rem armour
+global armour=100
+global armouron=0
+global armx=18
+global army=8
+global bodyon=0
+rem air
+global airon=0
+global airleft=100
+global airmax=100
+global drowntime=2000
+global airtime=2000
+global airtimer=timer()
+global drowntimer=timer()
+global airx=24
+global airy=8
+global instantdrown=1
+global lastsetair=0
+global drowned=0
+rem god mode
+global isimmune=0
+rem control keys
+global arrowkeyson=1
+global jumponkey=1
+global crouchonkey=1
+global peekonkeys=1
+global walkonkeys=1
+global runkeys=1
+rem compass - knxrb
+global compassOn = 0
+global compassX = 80
+global compassY: compassY = screen height()- 80
+global spritesPasted = 0
+global gameStarted = 0
+global madeCompass = 0
+global needleSpin = 0
+global compassSpin = 1
+global compassobject=666666
+global needleobject=666667
+rem dark ai radar
+global darkradar=0
+global radarx:radarx=screen width()-80
+global radary:radary=screen height()-80
+global maderadar=0
+global rotateblip=1
+global radarrange=45
+global radarobject=666669
+global blipstart=666670
+rem player speed mod
+global speedmod#=100.0
+rem radar/compass object as objective
+global objectivemode=0
+global istheobjective=0
+global objectivex=80
+global objectivey: objectivey=screen height() - 80
+global madeobjective=0
+global objectiveobject=666681
+global maxslots=10
+
 if exeroot$<>"" then set dir exeroot$
 rem Special build flags for 'genre' switch
 global fpgchud$ : fpgchud$=""
@@ -351,6 +432,7 @@ type saveloadgamepositionentitytype
  rem V118 - 120810 - knxrb - etimer fix from Scene Commander
  etimer as integer
  animatespeed as float rem (markblosser)
+ entitydammult as integer rem Scene Commander
 endtype
 type saveloadgamepositionweaponslottype
  pref got invpos
@@ -1315,6 +1397,7 @@ type entityeleproftype
 endtype
 rem Entity Elements Data
 type entitytype
+ entitydammult as integer rem Scene Commander
  enterwater as integer
  isflak as integer
  darkai as darkaitype
@@ -1636,6 +1719,20 @@ rem v118 - 110511 - cinematic hands - (terry cox) >>>>
 `test to see if player is prevented from selecting a gun
 #constant AICONDPREVENTEDSELECTINGGUN 858
 rem cinematic hands <<<<
+
+Rem Scene commander conditions
+#constant AICONDMOUSECONDITION 870
+#constant AICONDAIRGREATER 871
+#constant AICONDAIRLESSER 872
+#constant AICONDAIREQUAL 873
+#constant AICONDSAMEFLOORASPLR 874
+#constant AICONDPLRFLOOREQUAL 875
+#constant AICONDENTFLOOREQUAL 876
+#constant AICONDISIMMUNE 877
+#constant AICONDWEAPONSGREATER 878
+#constant AICONDWEAPONSLESSER 879
+#constant AICONDWEAPONSEQUAL 880
+
 
 #constant AICONDLAST 900
 
@@ -2032,7 +2129,64 @@ rem set entity speed - (markblosser)
 rem set animate command speed - (markblosser)
 #constant AIACTSETANIMATESPEED 1459
 
-#constant AIACTLAST 1500
+rem Scene Commander actions
+#constant AIACTWOBBLE 1500
+#constant AIACTTILTON 1501
+#constant AIACTTILTSPEED 1502
+#constant AIACTTILTBOUNCE 1503
+#constant AIACTUNSKIP 1504
+#constant AIACTPLRACTION 1505
+#constant AIACTFORCEMOVE 1506
+#constant AIACTEMITFORCE 1507
+#constant AIACTFORCEDAMAGEON 1508
+#constant AIACTCROSSHAIRON 1509
+#constant AIACTWEAPONTOSLOT 1510
+#constant AIACTARMON 1511
+#constant AIACTARMADD 1512
+#constant AIACTARMDEC 1513
+#constant AIACTARMX 1514
+#constant AIACTARMY 1515
+#constant AIACTSETARM 1516
+#constant AIACTAIRON 1517
+#constant AIACTADDAIR 1518
+#constant AIACTAIRTIME 1519
+#constant AIACTDROWNTIME 1520
+#constant AIACTAIRMAX 1521
+#constant AIACTSETAIR 1522
+#constant AIACTSETAIRX 1523
+#constant AIACTSETAIRY 1524
+#constant AIACTINSTANTDROWN 1525
+#constant AIACTIMMUNE 1526
+#constant AIACTARROWON 1527
+#constant AIACTJUMPON 1528
+#constant AIACTCROUCHON 1529
+#constant AIACTPEEKON 1530
+#constant AIACTWALKON 1531
+#constant AIACTRUNON 1532
+#constant AIACTFORCEDAMAGE 1533
+#constant AIACTCOMPASSON 1534
+#constant AIACTCOMPASSOFF 1535
+#constant AIACTCOMPASSX 1536
+#constant AIACTCOMPASSY 1537
+#constant AIACTCOMPASSSPIN 1538
+#constant AIACTNEEDLESPIN 1539
+#constant AIACTRADAR 1540
+#constant AIACTRADARX 1541
+#constant AIACTRADARY 1542
+#constant AIACTRADARROTATE 1543
+#constant AIACTRADARRANGE 1544
+#constant AIACTSPEEDMOD 1545
+#constant AIACTADDFPGCRAWTEXT 1546
+#constant AIACTSETOBJECTIVE 1547
+#constant AIACTSETOBJECTIVEX 1548
+#constant AIACTSETOBJECTIVEY 1549
+#constant AIACTOBJECTIVEMODE 1550
+#constant AIACTSETVARRND 1551
+#constant AIACTRANDOMIZE 1552
+#constant AIACTMAXSLOTS 1553
+#constant AIACTEDAMMULT 1554
+
+#constant AIACTLAST 1600
 
 rem V109 BETA3 - 210408 - AI variables
 global aivariablemode : aivariablemode=0 : rem 0-global, 1-local
@@ -2190,6 +2344,8 @@ endtype
 
 rem Gun Settings Data Structure
 type gunsettingstype
+Rem Scene Commander
+   emptyreloadonly as integer
  bulletamount as integer
  currentbullet as integer
  bulletlimbsmax as integer
@@ -3641,6 +3797,18 @@ resetfilecollection()
 rem FPGC - 200310 - initialise FULL SCREEN EFFECTS (camera one) (moved from above to allow file capture)
 gosub _postprocess_init
 
+addfiletocollection("databank\compass.png")
+addfiletocollection("databank\needle.png")
+addfiletocollection("databank\radarback.png")
+addfiletocollection("databank\objective.png")
+for f=1 to 10
+a$="databank\blip"+str$(f)+".png"
+if file exist(a$)
+addfiletocollection(a$)
+endif
+next f
+
+
 rem FPGC - 010410 - add controller graphics if flagged
 if gcontrollerhint<>0
  addfiletocollection("gamecore\huds\controller\base.png")
@@ -4003,6 +4171,16 @@ _main_game_freeleveldata:
    undim weaponclipammo()
   endif
   undim weaponhud()
+
+rem Compass - Scene commander- original code used with permission knxrb
+compassOn = 0
+madeCompass =0
+if sprite exist(compassobject)=1
+hide sprite compassobject
+endif
+if sprite exist(needleobject)=1
+hide sprite needleobject
+endif
   `
   rem Recreate all data for new level (uses leavegamedataalone)
   gosub _FPSC_Full_Data_Init
@@ -4120,6 +4298,113 @@ _main_game_core:
  `
  rem Update screen
  if keystate(28) then gotintodes=0
+
+
+rem scene commander new air commands
+
+if airon=2 and playerunderwater=0 then airleft=airmax
+
+if playerunderwater<>0
+
+   if airon<>0
+
+      if timer()-airtimer>airtime and airleft>0
+      airleft=airleft-1
+      airtimer=timer()
+      endif
+
+   if airleft<=0
+      if instantdrown=0
+         if timer()-drowntimer>drowntime and player(1).health>0
+         drowned=1
+      tdamage=1:gosub _player_takedamage
+      drowntimer=timer()
+      drowned=0
+         endif
+
+      endif
+
+   endif
+
+      if airleft<=0
+       if instantdrown=1
+       drowned=1
+     tdamage=1000000:gosub _player_takedamage
+     rem play drown sound alpha v1.2
+     tsnd=19
+      if playersound(tplrid,tsnd)>0
+      broadcast3dsound(camera position x(),camera position y(),camera position z(),10.0,-1)
+      play sound playersound(tplrid,tsnd)
+
+       endif
+      endif
+
+   endif
+  endif
+endif
+
+Rem Scene Commander tilt on player death.
+
+if tilton<>0
+   if tiltondeath<>0
+      if tiltontemp=0 then tiltontemp=tilton
+      if tiltontemp=5 then tiltontemp=rnd(3)+1
+
+      select tiltontemp
+case 1
+   dec tiltondeath,tiltspeed#
+   rotate camera 0,camera angle x(0),camera angle y(0),tiltondeath
+   if tiltondeath<270
+      tiltondeath=270
+      if thud=0 then thud=1:camshake#=rnd(tiltbounce)+tiltbounce
+   endif
+endcase
+
+case 2
+   inc tiltondeath,tiltspeed#
+   if tiltondeath>360 then tiltondeath=1
+   rotate camera 0,camera angle x(0),camera angle y(0),tiltondeath
+   if tiltondeath>90
+      tiltondeath=90
+      if thud=0 then thud=1:camshake#=rnd(tiltbounce)+tiltbounce
+   endif
+endcase
+
+case 3
+   inc tiltondeath,tiltspeed#
+   if tiltondeath>360 then tiltondeath=1
+   rotate camera 0,tiltondeath,camera angle y(0),camera angle z(0)
+   if tiltondeath>90
+      tiltondeath=90
+      if thud=0 then thud=1:camshake#=rnd(tiltbounce)+tiltbounce
+      endif
+endcase
+
+case 4
+     dec tiltondeath,tiltspeed#
+   rotate camera 0,tiltondeath,camera angle y(0),camera angle z(0)
+   if tiltondeath<270
+      tiltondeath=270
+      if thud=0 then thud=1:camshake#=rnd(tiltbounce)+tiltbounce
+    endif
+endcase
+
+endselect
+endif
+endif
+
+if player(1).health>0 and justdone=0 then tiltondeath=0:rotate camera 0,0,camera angle y(0),0:temptilt=0:thud=0:justdone=1
+
+Rem Scene commander
+Rem Show / Hide crosshair
+if gunid>0 and crosshairon=0
+    if gun(gunid).settings.crosshairimg>0 then hide object hudbankoffset+31
+   endif
+
+   if gunid>0 and crosshairon=1
+    if gun(gunid).settings.crosshairimg>0 then show object hudbankoffset+31
+   endif
+
  gosub _main_sync
  `
  rem FPGC - 190310 - quick exit keys (for standalone game only)
@@ -4571,6 +4856,7 @@ return
 
 _main_game_corecontrol:
 
+
 rem Stamp time for performance meter
 if showgamemenu=0 then inputpositionmouse(screen width()/2,screen height()/2)
 
@@ -4930,7 +5216,8 @@ if guseweaponsstate=1
  debugviewtext(290,strarr$(120))
  set static scorch tbullethole,4,4
 endif
-
+rem Compass - has game started flag.
+gameStarted = 1
 rem FPGC - now universe constructed, can remove all STATIC ENTITY resources
 debugviewtext(291,"Removing static entities...")
 eleobj=entityobjectoffset
@@ -8509,13 +8796,19 @@ if entityelement(e).fireweapon=1
       rem enemy fire always one half the players effectiveness after first few points
       tperc#=tperc#*0.5
      endif
-     tdamage#=bulletdamage#*tperc# : tdamage=tdamage#
+     rem scene commander entity damage muliplier
+     tdamage#=bulletdamage#*tperc#*entityelement(e).entitydammult: tdamage=tdamage#
      if entityelement(e).actualtarget=1
       rem player was the target
       if tdamage>0 then gosub _player_takedamage
       if player(1).health<=0 and playerstartstrength>0
        rem hear the full sound of what killed you
        if tsndid>0
+   rem Scene commander tilt on death
+         if tiltondeath=0
+         tiltondeath=360:justdone=0
+         if gunid>0 then gunmode=31
+          endif
         playinternal3dsound(tsndid,camera position x(),camera position y(),camera position z())
        endif
       endif
@@ -10499,6 +10792,7 @@ _entity_addforcesphere:
     if entityprofile(tentid).ischaracter=1
      rem characters can shrug off some explosion force
      if tdamage<30 then timpacttype=1
+     if forcedamageon=0 then tdamage=0
      gosub _entity_deducthealth
     else
      gosub _entity_delayeddeducthealth
@@ -11169,6 +11463,19 @@ rem v118 - 110511 - cinematic hands (terry cox) >>>>
 conword$(AICONDPREVENTEDSELECTINGGUN)="plrpreventedselectinggun"
 rem cinematic hands <<<<
 
+Rem Scene commander conditions
+conword$(AICONDMOUSECONDITION)="mouseclick"
+conword$(AICONDAIRGREATER)="airgreater"
+conword$(AICONDAIRLESSER)="airlesser"
+conword$(AICONDAIREQUAL)="airequal"
+conword$(AICONDSAMEFLOORASPLR)="samefloorasplr"
+conword$(AICONDPLRFLOOREQUAL)="plrfloorequal"
+conword$(AICONDENTFLOOREQUAL)="entityfloorequal"
+conword$(AICONDISIMMUNE)="plrisimmune"
+conword$(AICONDWEAPONSGREATER)="plrweaponsgreater"
+conword$(AICONDWEAPONSLESSER)="plrweaponslesser"
+conword$(AICONDWEAPONSEQUAL)="plrweaponsequal"
+
 rem Set all action keywords
 dim actword$(AIACTLAST)
 actword$(AIACTNONE)="none"
@@ -11555,6 +11862,63 @@ actword$(AIACTSETENTITYSPEED)="setentityspeed"
 rem set animate command speed (markblosser)
 actword$(AIACTSETANIMATESPEED)="setanimatespeed"
 
+rem Scene Commander actions
+actword$(AIACTWOBBLE)="plrwobble"
+actword$(AIACTTILTON)="plrdeath"
+actword$(AIACTTILTSPEED)="plrdeathspeed"
+actword$(AIACTILTBOUNCE)="plrdeathbounce"
+actword$(AIACTUNSKIP)="playfullvideo"
+actword$(AIACTPLRACTION)="plraction"
+actword$(AIACTFORCEMOVE)="plrforcemove"
+actword$(AIACTEMITFORCE)="emitforce"
+actword$(AIACTFORCEDAMAGEON)="forcedamageon"
+actword$(AIACTCROSSHAIRON)="crosshair"
+actword$(AIACTWEAPONTOSLOT)="weapontoslot"
+actword$(AIACTARMON)="armon"
+actword$(AIACTARMADD)="arminc"
+actword$(AIACTARMDEC)="armdec"
+actword$(AIACTARMX)="setarmx"
+actword$(AIACTARMY)="setarmy"
+actword$(AIACTSETARM)="setarm"
+actword$(AIACTAIRON)="airon"
+actword$(AIACTADDAIR)="addair"
+actword$(AIACTAIRTIME)="setairtime"
+actword$(AIACTDROWNTIME)="setdrowntime"
+actword$(AIACTAIRMAX)="setairmax"
+actword$(AIACTSETAIR)="setair"
+actword$(AIACTSETAIRX)="setairx"
+actword$(AIACTSETAIRY)="setairy"
+actword$(AIACTINSTANTDROWN)="instantdrown"
+actword$(AIACTIMMUNE)="plrsetimmune"
+actword$(AIACTARROWON)="arrowkeys"
+actword$(AIACTCROUCHON)="crouchkey"
+actword$(AIACTPEEKON)="peekkey"
+actword$(AIACTJUMPON)="jumpkey"
+actword$(AIACTWALKON)="walkkeys"
+actword$(AIACTRUNON)="runkeys"
+actword$(AIACTFORCEDAMAGE)="setforcedamage"
+actword$(AIACTCOMPASSON)="compasson"
+actword$(AIACTCOMPASSOFF)="compassoff"
+actword$(AIACTCOMPASSX)="compassx"
+actword$(AIACTCOMPASSY)="compassy"
+actword$(AIACTCOMPASSSPIN)="compassspin"
+actword$(AIACTNEEDLESPIN)="needlespin"
+actword$(AIACTRADAR)="radaron"
+actword$(AIACTRADARX)="radarx"
+actword$(AIACTRADARY)="radary"
+actword$(AIACTRADARROTATE)="rotateblip"
+actword$(AIACTRADARRANGE)="radarrange"
+actword$(AIACTSPEEDMOD)="plrspeedmod"
+actword$(AIACTADDFPGCRAWTEXT)="addrawtext"
+actword$(AIACTSETOBJECTIVE)="setisobjective"
+actword$(AIACTSETOBJECTIVEX)="setobjectivex"
+actword$(AIACTSETOBJECTIVEY)="setobjectivey"
+actword$(AIACTOBJECTIVEMODE)="setobjectivemode"
+actword$(AIACTSETVARRND)="setvarrnd"
+actword$(AIACTRANDOMIZE)="randomize"
+actword$(AIACTMAXSLOTS)="setmaxweapons"
+actword$(AIACTEDAMMULT)="entitydamagemult"
+
 return
 
 _ai_reset_presaveposition:
@@ -11767,6 +12131,23 @@ if aiindex>0
    case "$MMZ"
     aiconditionseq(seq).valuea=dcamz#
    endcase
+Rem Scene Commander
+    case "$ARM"
+    aiconditionseq(seq).valuea=armour
+    endcase
+    case "$AIR"
+    aiconditionseq(seq).valuea=airleft
+    endcase
+    case "$FPS"
+   aiconditionseq(seq).valuea=screen fps()
+   endcase
+   case "$WAT"
+   aiconditionseq(seq).valuea=waterheight#
+   endcase
+   case "$MAX"
+   aiconditionseq(seq).valuea=maxslots
+   endcase
+
   endselect
   `
   select aiconditionseq(seq).string2
@@ -11844,6 +12225,22 @@ if aiindex>0
    endcase
    case "$MMZ"
     aiconditionseq(seq).valueb=dcamz#
+   endcase
+Rem Scene Commander
+    case "$ARM"
+    aiconditionseq(seq).valueb=armour
+    endcase
+    case "$AIR"
+    aiconditionseq(seq).valueb=airleft
+    endcase
+    case "$FPS"
+   aiconditionseq(seq).valueb=screen fps()
+   endcase
+   case "$WAT"
+   aiconditionseq(seq).valueb=waterheight#
+   endcase
+   case "$MAX"
+   aiconditionseq(seq).valueb=maxslots
    endcase
   endselect
    `
@@ -13287,6 +13684,150 @@ if aiindex>0
        if preventplrselectinggun=0 then airesult=0
     endcase
     rem cinematic hands <<<<
+
+    Rem Scene commander conditions
+
+case AICONDMOUSECONDITION:
+
+conda=aiconditionseq(seq).valuea
+condb=0
+
+temp=mouseclick()
+
+airesult=0
+
+if temp=conda then airesult=1
+
+endcase
+
+case AICONDAIRGREATER:
+conda=aiconditionseq(seq).valuea
+condb=airleft
+if conda>condb then airesult=1
+endcase
+
+case AICONDAIRLESSER:
+conda=aiconditionseq(seq).valuea
+condb=airleft
+if conda<condb then airesult=1
+endcase
+
+case AICONDAIREQUAL:
+conda=aiconditionseq(seq).valuea
+condb=airleft
+if conda=condb then airesult=1
+endcase
+
+case AICONDSAMEFLOORASPLR:
+
+playerlevel=int(object position y(physicsplayerborble))/100
+          if playerlevel<0 then playerlevel=0
+          if playerlevel>19 then playerlevel=19
+
+         entitylevel=int(entityelement(e).y)/100
+          if entitylevel<0 then entitylevel=0
+          if entitylevel>19 then entitylevel=19
+
+ if playerlevel=entitylevel
+airesult=1
+else
+airesult=0
+endif
+endcase
+
+case AICONDPLRFLOOREQUAL:
+
+conda=aiconditionseq(seq).valuea
+
+playerlevel=int(object position y(physicsplayerborble))/100
+          if playerlevel<0 then playerlevel=0
+          if playerlevel>19 then playerlevel=19
+
+ if playerlevel=conda
+airesult=1
+else
+airesult=0
+endif
+endcase
+
+case AICONDENTFLOOREQUAL:
+
+conda=aiconditionseq(seq).valuea
+
+   entitylevel=int(entityelement(e).y)/100
+          if entitylevel<0 then entitylevel=0
+          if entitylevel>19 then entitylevel=19
+
+ if entitylevel=conda
+airesult=1
+else
+airesult=0
+endif
+endcase
+
+
+case AICONDISIMMUNE:
+     conda=aiconditionseq(seq).valuea
+
+     if conda<>isimmune
+     airesult=0
+     else
+      airesult=1
+     endif
+
+     endcase
+
+     case AICONDWEAPONSGREATER:
+
+     conda=aiconditionseq(seq).valuea
+     airesult=0
+
+     Rem Scene Commander, count weapons for max slots.
+  weaps=0
+  For count=1 to 10
+  if weaponslot(count).pref<>0 then inc weaps,1
+  next count
+
+ if weaps>conda
+ airesult=1
+ endif
+
+
+     endcase
+
+     case AICONDWEAPONSLESSER:
+
+     conda=aiconditionseq(seq).valuea
+     airesult=0
+   Rem Scene Commander, count weapons for max slots.
+    weaps=0
+    For count=1 to 10
+      if weaponslot(count).pref<>0 then inc weaps,1
+      next count
+
+      if weaps<conda
+      airesult=1
+      endif
+
+     endcase
+
+     case AICONDWEAPONSEQUAL:
+
+     conda=aiconditionseq(seq).valuea
+     airesult=0
+
+      weaps=0
+      For count=1 to 10
+      if weaponslot(count).pref<>0 then inc weaps,1
+      next count
+
+      if weaps=conda
+      airesult=1
+      endif
+
+
+     endcase
+
     `
     `
    endselect
@@ -13451,6 +13992,22 @@ if aiindex>0
    case "$MMZ"
     aiactionseq(seq).value=dcamz#
    endcase
+Rem Scene Commander
+    case "$ARM"
+    aiactionseq(seq).value=armour
+    endcase
+    case "$AIR"
+    aiactionseq(seq).value=airleft
+    endcase
+    case "$FPS"
+   aiactionseq(seq).value=screen fps()
+   endcase
+   case "$WAT"
+   aiactionseq(seq).value=waterheight#
+   endcase
+   case "$MAX"
+   aiactionseq(seq).value=maxslots
+   endcase
   endselect
   `
   select aiactionseq(seq).string2
@@ -13528,6 +14085,22 @@ if aiindex>0
    endcase
    case "$MMZ"
     aiactionseq(seq).valueb=dcamz#
+   endcase
+Rem Scene Commander
+    case "$ARM"
+    aiconditionseq(seq).valueb=armour
+    endcase
+    case "$AIR"
+    aiconditionseq(seq).valueb=airleft
+    endcase
+    case "$FPS"
+   aiconditionseq(seq).valueb=screen fps()
+   endcase
+   case "$WAT"
+   aiconditionseq(seq).valueb=waterheight#
+   endcase
+   case "$MAX"
+   aiconditionseq(seq).valueb=maxslots
    endcase
   endselect
     `
@@ -15456,9 +16029,12 @@ if aiindex>0
         load animation videofilename$,lastvideoplayed
         play animation lastvideoplayed,0,0,screen width(),screen height()
         while animation playing(lastvideoplayed)=1
-         if control_escapekey()=1 then exit
-         if spacekey()=1 then exit
-         if control_mouseclick()<>0 then exit
+        Rem Scene Commander unskippible video
+        if unskip=0
+            if control_escapekey()=1 then exit
+            if spacekey()=1 then exit
+            if control_mouseclick()<>0 then exit
+        endif
          sync
         endwhile
         while control_escapekey()=1 or spacekey()=1 or control_mouseclick()<>0 : sync : endwhile
@@ -17774,7 +18350,408 @@ if aiindex>0
          endcase
 
       rem cinematic hands <<<<
-     `
+
+      rem Scene Commander Actions
+  case AIACTWOBBLE:
+        wobble#=aiactionseq(seq).value
+     endcase
+
+     case AIACTTILTON:
+
+     tilton=aiactionseq(seq).value
+     if tilton<1 then tilton=1
+     if tilton>5 then tilton=5
+
+     endcase
+
+     case AIACTTILTSPEED:
+
+     tiltspeed#=aiactionseq(seq).value
+
+     endcase
+
+     case AIACTTILTBOUNCE:
+
+     tiltbounce=aiactionseq(seq).value
+
+     endcase
+
+      case AIACTUNSKIP:
+
+     unskip=aiactionseq(seq).value
+
+     if unskip<1
+     unskip=0
+     else
+     unskip=1
+     endif
+
+     endcase
+
+   case AIACTPLRACTION:
+
+     temp=aiactionseq(seq).value
+      if temp>0 and temp<11
+      playeraction=temp
+      endif
+
+   endcase
+
+   case AIACTFORCEMOVE:
+
+   forcemove=aiactionseq(seq).value
+
+   endcase
+
+   case AIACTEMITFORCE:
+
+   spherex#=entityelement(e).x : spherey#=entityelement(e).y : spherez#=entityelement(e).z
+   sphereforce#=aiactionseq(seq).value : gosub _entity_addforcesphere
+
+     endcase
+
+     case AIACTFORCEDAMAGEON:
+
+     forcedamageon=aiactionseq(seq).value
+
+     endcase
+
+      case AIACTCROSSHAIRON:
+
+     crosshairon=aiactionseq(seq).value
+
+     endcase
+
+case AIACTWEAPONTOSLOT:
+
+forcedslot=aiactionseq(seq).value
+
+if forcedslot<0 then forcedslot=0
+if forcedslot>10 then forcedslot=10
+
+      endcase
+
+ case AIACTARMON:
+a1=aiactionseq(seq).value
+if a1>=0 and a1<2
+armouron=a1
+endif
+ endcase
+
+case AIACTARMADD:
+ a1=aiactionseq(seq).value
+armour=armour+a1
+endcase
+
+case AIACTARMDEC:
+a1=aiactionseq(seq).value
+armour=armour-a1
+endcase
+
+case AIACTARMX:
+armx=aiactionseq(seq).value
+endcase
+
+case AIACTARMY:
+army=aiactionseq(seq).value
+endcase
+
+case AIACTSETARM:
+armour=aiactionseq(seq).value
+ endcase
+
+ case AIACTAIRON:
+
+     airon=aiactionseq(seq).value
+
+     endcase
+
+      case AIACTADDAIR:
+
+     airleft=airleft+aiactionseq(seq).value
+
+     endcase
+
+     case AIACTAIRTIME:
+
+     airtime=aiactionseq(seq).value
+
+     endcase
+
+     case AIACTDROWNTIME:
+
+     drowntime=aiactionseq(seq).value
+
+     endcase
+
+      case AIACTAIRMAX:
+
+      airmax=aiactionseq(seq).value
+
+      endcase
+
+      case AIACTSETAIR:
+
+      airleft=aiactionseq(seq).value
+      lastsetair=airleft
+
+      endcase
+
+      case AIACTSETAIRX:
+
+      airx=aiactionseq(seq).value
+
+      endcase
+
+      case AIACTSETAIRY:
+
+      airy=aiactionseq(seq).value
+
+      endcase
+
+      case AIACTINSTANTDROWN:
+
+      instantdrown=aiactionseq(seq).value
+
+      endcase
+
+      case AIACTIMMUNE:
+
+     isimmune=aiactionseq(seq).value
+
+     endcase
+
+ case AIACTARROWON:
+      arrowkeyson=aiactionseq(seq).value
+      if arrowkeyson=0
+      else
+      arrowkeys=1
+      endif
+      endcase
+
+      case AIACTJUMPON:
+      jumponkey=aiactionseq(seq).value
+      if jumponkey=0
+      else
+      jumponkey=1
+      endif
+      endcase
+
+        case AIACTWALKON:
+      walkonkeys=aiactionseq(seq).value
+      if walkonkeys=0
+      else
+        walkonkeys=1
+      endif
+      endcase
+
+        case AIACTRUNON:
+      runkeys=aiactionseq(seq).value
+      if runkeys=0
+      else
+        runkeys=1
+      endif
+      endcase
+
+         case AIACTCROUCHON:
+      crouchonkey=aiactionseq(seq).value
+      if crouchonkey=0
+      else
+      crouchonkey=1
+      endif
+      endcase
+
+         case AIACTPEEKON:
+      peekonkeys=aiactionseq(seq).value
+      if peekonkeys<1
+     peekonkeys=0
+      else
+      peekonkeys=1
+      endif
+      endcase
+
+      case AIACTFORCEDAMAGE:
+
+     spheredamage#=aiactionseq(seq).value
+
+     endcase
+
+rem Compass >>>
+     case AIACTCOMPASSON:
+      compassOn = 1
+      madeCompass = 0
+
+     endcase
+     case AIACTCOMPASSOFF:
+      compassOn = 0
+      madeCompass =0
+
+     endcase
+     case AIACTCOMPASSX:
+       compassX =(gdisplaywidth/100.0)*aiactionseq(seq).value
+     endcase
+     case AIACTCOMPASSY:
+      compassY = (gdisplayheight/100.0)*aiactionseq(seq).value
+     endcase
+     case AIACTCOMPASSSPIN:
+      compassSpin = 1
+      needleSpin = 0
+     endcase
+     case AIACTNEEDLESPIN:
+      compassSpin = 0
+      needleSpin = 1
+     endcase
+     rem Compass <<<
+
+case AIACTRADAR:
+
+darkradar=aiactionseq(seq).value
+
+endcase
+
+
+case AIACTRADARX:
+radarx=(gdisplaywidth/100.0)*aiactionseq(seq).value
+endcase
+
+case AIACTRADARY:
+radary=(gdisplayheight/100.0)*aiactionseq(seq).value
+endcase
+
+case AIACTRADARROTATE:
+
+rotateblip=aiactionseq(seq).value
+
+endcase
+
+case AIACTRADARRANGE:
+radarrange=aiactionseq(seq).value
+endcase
+
+case AIACTSPEEDMOD:
+
+      temp=aiactionseq(seq).value
+
+      speedmod#=temp
+
+      endcase
+
+case AIACTADDFPGCRAWTEXT:
+
+      a$=aiactionseq(seq).string1
+      grawtext$=grawtext$+a$
+
+      endcase
+
+case AIACTSETOBJECTIVE:
+
+     turnoff=aiactionseq(seq).value
+
+     if turnoff<>0 then istheobjective=e
+     if turnoff=0 then istheobjective=0
+
+     if madeobjective=0
+      if sprite exist(objectiveobject)=1
+      delete sprite objectiveobject
+      if image exist(objectiveobject)=1
+      delete image objectiveobject
+      endif
+      endif
+
+      if file exist("databank\objective.png")
+      load image "databank\objective.png",objectiveobject
+
+      sprite objectiveobject,-100000,-100000,objectiveobject
+      offset sprite objectiveobject,sprite width(objectiveobject)/2,sprite height(objectiveobject)/2
+      set sprite objectiveobject,0,1
+      hide sprite objectiveobject
+      set sprite priority objectiveobject,1
+      endif
+     endif
+
+     endcase
+
+     case AIACTSETOBJECTIVEX:
+
+     objectivex=aiactionseq(seq).value
+
+
+     endcase
+
+      case AIACTSETOBJECTIVEY:
+
+      objectivey=aiactionseq(seq).value
+
+     endcase
+
+     case AIACTOBJECTIVEMODE:
+
+     objectivemode=aiactionseq(seq).value
+
+    if objectivemode<0 then objectivemode=0
+    if objectivemode>2 then objectivemode=1
+
+     endcase
+
+case AIACTSETVARRND:
+      rem Plystire 109 - Merge this command with our system
+      if aiactionseq(seq).string2=""
+      rndvalue=rnd(aiactionseq(seq).value)
+       if aivariablemode=0
+        aiglobals(aivariableindex)=rndvalue
+       else
+        ailocals(e,aivariableindex)=rndvalue
+       endif
+      else
+       rem Use the better system ;)
+       tvarfound=0
+       rem Using our strings from the parser, let's find the var the user wants to set
+       if left$(aiactionseq(seq).string1,1)="$"
+       rndvalue=rnd(aiactionseq(seq).value)
+        setintervar(aiactionseq(seq).string1,rndvalue)
+        else
+        for uvar = 0 to array count(uservars(0))
+         if uservars(uvar).name = aiactionseq(seq).string1
+          rem Found the variable, let's set it
+          uservars(uvar).value = rndvalue
+          tvarfound=1
+          rem And Exit the For loop
+          exit
+         endif
+        next uvar
+        `
+        if tvarfound=0
+         for lvar = 0 to 99
+          if aiuserlocals(e,lvar).name = aiactionseq(seq).string1
+           rem Found the variable, let's set it
+           aiuserlocals(e,lvar).value = rndvalue
+           rem And Exit the For loop
+           exit
+          endif
+         next lvar
+        endif
+        `
+       endif
+      endif
+     endcase
+
+     case AIACTRANDOMIZE:
+     randomize timer()
+     endcase
+
+   case AIACTMAXSLOTS:
+      maxslots=aiactionseq(seq).value
+      if maxslots>10 then maxslots=10
+      if maxslots<0 then maxslots=0
+     endcase
+
+     case AIACTEDAMMULT:
+
+     entityelement(e).entitydammult=aiactionseq(seq).value/100.0
+
+     endcase
+
+
      `
     endselect
     `
@@ -20653,7 +21630,13 @@ _player_obtainaweapon:
  rem uses weaponindex,tqty
  if weaponindex>0
   rem adds the weapon
+
+rem Scene Commander force to slot
+if forcedslot > 0
+ weaponinvposition=forcedslot : tgunid=weaponindex
+else
   weaponinvposition=pint : tgunid=weaponindex
+  endif
   if gun(tgunid).settings.weaponisammo=0 and tqty=0 then tqty=1
   tentqty=tqty
   tqty=tqty*firemode(tgunid,0).settings.reloadqty
@@ -21116,8 +22099,16 @@ if gotweapon=0
   for ws=1 to 10
    if weaponslot(ws).pref=0 then exit
   next ws
+   Rem Scene Commander change
+  if forcedslot<>0 then ws=forcedslot:gotweaponpref=ws:forcedslot=0
+  Rem Scene Commander, count weapons for maximum slots. If exceeded, prevent pick up.
+  weaps=0
+  For count=1 to 10
+  if weaponslot(count).pref<>0 then inc weaps,1
+  next count
+  if weaps>=maxslots then ws=100
   if ws<=10
-   rem add weapon into free slow and create pref for it
+   rem add weapon into free slot and create pref for it
    weaponslot(ws).pref=weaponindex
    weaponhud(ws)=gun(weaponindex).hudimage
    rem FPGC - mark weapon with 'possible' entity that held this weapon (for equipment activation)
@@ -21528,6 +22519,8 @@ if gunmode<100
   gunfull=1
   if (weaponammo(weaponammoindex+ammooffset) < firemode(gunid,firemode).settings.reloadqty+1 and firemode(gunid,firemode).settings.chamberedround > 0) then gunfull = 0
   if (weaponammo(weaponammoindex+ammooffset) < firemode(gunid,firemode).settings.reloadqty and firemode(gunid,firemode).settings.chamberedround=0) then gunfull = 0
+Rem Scene Commander
+if (weaponammo(weaponammoindex+ammooffset)>0 and firemode(gunid,firemode).settings.emptyreloadonly = 1) then gunfull=1
   rem V110 - 220508 - and also for when walking/running
   if gunmode<30
    `if gunclick=2 then gunmode=121
@@ -23433,6 +24426,8 @@ for l=0 to 299
    value2=val(removeedgespaces(right$(value$,len(value$)-mid)))
    `
    rem GUN SETTINGS
+
+
    if field$="weaponisammo" then gun(gunid).settings.weaponisammo=value1
    if field$="melee key" then gun(gunid).settings.meleekey=value1
    Rem This whole section is to easily allow alternate fire mode to use these commands
@@ -23443,6 +24438,8 @@ for l=0 to 299
     if i=2 then alt$="alt"
     if i<>2 then x=i else x=1
     rem GUN SETTINGS
+      Rem Scene Commander
+   if field$=alt$+"emptyreloadonly" then firemode(gunid,x).settings.emptyreloadonly=value1
     if field$=alt$+"muzzlesize" then firemode(gunid,x).settings.muzzlesize#=value1
     if field$=alt$+"muzzlecolorr" then firemode(gunid,x).settings.muzzlecolorr=value1
     if field$=alt$+"muzzlecolorg" then firemode(gunid,x).settings.muzzlecolorg=value1
@@ -23703,9 +24700,11 @@ for l=0 to 299
    `
   endif
  endif
+
 next l
 undim data$()
 endif
+
 
 
 Rem No run animations
@@ -26497,6 +27496,22 @@ rem if multiplayer client, cannot take damage directly
 else
 `
 rem Determine what to do from damage
+rem Scene Commander armour
+if isimmune<>0 then tdamage=0
+t1=tdamage
+if armouron<>0 and t1<>0 and drowned=0
+    if t1>0
+t1=tdamage-armour
+armour=armour-tdamage
+if armour>0 then t1=0
+if t1>0
+armour=0
+    endif
+endif
+endif
+
+if t1<=0 then t1=0
+tdamage=t1
 if (tdamage>0 and player(plrid).health>0 and playerstartstrength>0) or (playerstartstrength=0 and tdamage>65000)
  if playerstartstrength>0 then player(plrid).health=player(plrid).health-tdamage
  if player(plrid).health<=0 and player(plrid).recovershield=0
@@ -29339,6 +30354,7 @@ if file exist(elementsfilename$)=1
       rem FPGC - 300710 - older levels dont use particle override
       entityelement(e).eleprof.particleoverride=0
      endif
+     entityelement(e).entitydammult=1.0
     next e
    endif
   else
@@ -29688,6 +30704,32 @@ if entityelement(e).staticflag=1 and entityprofile(entid).texd$=""
      endif
     endif
    endif
+  endif
+ endif
+endif
+
+
+rem Scene commander, x10 addition, if have weapon, and have melee weapins in model, hide melee weapons
+if obj>0
+ if entityelement(e).eleprof.hasweapon<>0
+  tprofileobjnum=entityelement(e).profileobj
+  if object exist(obj)=1 and object exist(tprofileobjnum)=1
+   perform checklist for object limbs tprofileobjnum
+   for tc=1 to checklist quantity()
+    rem hide the bone and the mesh associated with the bone (+1)
+    if upper$(checklist string$(tc))="MELEE-WEAPON-LEFT"
+     hide limb tprofileobjnum,tc-1
+     hide limb obj,tc-1
+     hide limb tprofileobjnum,tc
+     hide limb obj,tc
+    endif
+    if upper$(checklist string$(tc))="MELEE-WEAPON-RIGHT"
+     hide limb tprofileobjnum,tc-1
+     hide limb obj,tc-1
+     hide limb tprofileobjnum,tc
+     hide limb obj,tc
+    endif
+   next tc
   endif
  endif
 endif
@@ -33067,6 +34109,10 @@ if inputsys.kscancode=90 then tkeystate44=1
 cammovex#=inputsys.xmousemove
 cammovey#=inputsys.ymousemove
 
+
+
+Rem Scene commander end
+
 rem Camera old information
 cox#=camera position x()
 coy#=camera position y()
@@ -33273,6 +34319,7 @@ return
 _entity_getactualframefinish:
  tbasetype=2 : gosub _entity_getactualframe
 return
+
 
 _player_determinevisibility:
 
@@ -34083,7 +35130,7 @@ next cLayer : rem V118 - 110810 - knxrb - Hud Layers
   rem Radar Blip (v1.1)
   if hud(hudid).maintype=4 and hud(hudid).typemode=11
    `
-   rem Mimic radar blip
+   rem Mimic radar blip - Scene Commander legacy radar
    for e=1 to entityelementlist
     if entityelement(e).health>0
      tentid=entityelement(e).bankindex
@@ -34102,6 +35149,164 @@ next cLayer : rem V118 - 110810 - knxrb - Hud Layers
   endif
   `
  next hudid
+
+ rem Radar Blip Dark AI - Scene commander
+
+rem Scene Commander, if radar used, and not made, make it.
+
+if maderadar=0 and darkradar<>0
+makeradar()
+maderadar=1
+endif
+
+rem Compass - Scene commander, original code used with permission (knxrb).
+
+if compassOn = 1
+   if madeCompass = 0
+      makecompass()
+      madeCompass = 1
+   endif
+
+ rem hide radar if it exists but is off
+ if darkradar=0 and sprite exist(radarobject)=1
+ hide sprite radarobject
+ endif
+
+rem calculate player level for character radar cull
+ if darkradar<>0 and sprite exist(radarobject)=1 and object exist(physicsplayerborble)
+         playerlevel=int(object position y(physicsplayerborble))/100
+          if playerlevel<0 then playerlevel=0
+          if playerlevel>19 then playerlevel=19
+
+          show sprite radarobject
+          paste sprite radarobject,radarx,radary
+
+
+          for e=1 to entityelementlist
+
+         if entityelement(e).health>0
+         tentid=entityelement(e).bankindex
+
+            if entityprofile(tentid).ischaracter=1
+               rem calculate entity level for character radar cull
+            entitylevel=int(entityelement(e).y)/100
+            if entitylevel<0 then entitylevel=0
+            if entitylevel>19 then entitylevel=19
+            fundx#=entityelement(e).x-camera position x()
+            fundy#=camera position z()-entityelement(e).z
+            funangle#=atanfull(fundy#,fundx#)
+            rrr#=funangle#-camera angle y()
+               if playerlevel=entitylevel
+               entobj=entityelement(e).obj
+                  if entobj>0 and physicsplayerborble>0
+
+                  rem calculate radar distance
+                  tcamx#=object position x(physicsplayerborble)
+                  tcamy#=object position y(physicsplayerborble)
+                  tcamz#=object position z(physicsplayerborble)
+
+                  tdx#=entityelement(e).x-tcamx#
+                  tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+                  tdz#=entityelement(e).z-tcamz#
+                  howfar=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+                  howfar=int(howfar/12)
+
+                  beenonradar=0
+
+                     if ai entity exist(entobj)=1
+
+                     for onradar=1 to 10
+
+                     if entityelement(e).darkai.team=onradar and sprite exist(onradar+radarobject) and howfar<=radarrange
+                     offset sprite onradar+radarobject,sprite width(onradar+radarobject)/2,sprite height(onradar+radarobject)/2
+
+                     if rotateblip=1 then rotate sprite onradar+radarobject,wrapvalue(object angle y(entobj))
+
+                     paste sprite onradar+radarobject,radarx-8+(cos(rrr#)*howfar),radary-8+(sin(rrr#)*howfar)
+
+                     beenonradar=1
+
+                     endif
+
+                     next onradar
+
+                     endif
+
+                     if sprite exist(666671) and howfar<=radarrange and beenonradar=0
+                     offset sprite 666671,sprite width(666671)/2,sprite height(666671)/2
+
+                      if rotateblip=1 then rotate sprite 666671,wrapvalue(object angle y(entobj))
+
+                     paste sprite 666671,radarx-8+(cos(rrr#)*howfar),radary-8+(sin(rrr#)*howfar)
+
+                     endif
+
+
+                  endif
+
+               endif
+
+            endif
+
+
+    endif
+   next e
+   `
+
+
+
+  endif
+
+
+   if compassSpin = 1
+      if sprite exist(compassobject)=1
+         rotate sprite compassobject,wrapvalue(-camera angle y())
+      endif
+   endif
+   if needleSpin = 1
+      if sprite exist(needleobject)=1
+         rotate sprite needleobject,wrapvalue(camera angle y())
+      endif
+   endif
+   if sprite exist(compassobject)=1
+
+      paste sprite compassobject,compassX,compassY
+   endif
+   if sprite exist(needleobject)=1
+
+      paste sprite needleobject,compassX,compassY
+   endif
+
+endif
+
+
+rem Check for objective display
+
+displayobjective()
+
+rem display armour value
+
+if armouron<>0
+
+a$=str$(armour)
+
+specialpaste(armx,army,a$)
+
+rem display air value
+
+endif
+
+if airmax<>0 and airleft>airmax then airleft=airmax
+
+if airon<>0
+
+a$=str$(airleft)
+
+specialpaste(airx,airy,a$)
+
+endif
+
+
  `
  rem Draw Raw Text to screen HUD
  if grawtext$<>""
@@ -35725,27 +36930,47 @@ else
  plrkeyF12=88
 endif
 
+Rem Scene Commander edit
 rem Read keys from config, and use in player control actions
+if walkonkeys=1
 if keystate(plrkeyW)=1 then plrkeyW=1 else plrkeyW=0
 if keystate(plrkeyA)=1 then plrkeyA=1 else plrkeyA=0
 if keystate(plrkeyS)=1 then plrkeyS=1 else plrkeyS=0
 if keystate(plrkeyD)=1 then plrkeyD=1 else plrkeyD=0
-if keystate(plrkeyQ)=1 then plrkeyQ=1 else plrkeyQ=0
-if keystate(plrkeyE)=1 then plrkeyE=1 else plrkeyE=0
-if keystate(plrkeyC)=1 then plrkeyC=1 else plrkeyC=0
+endif
+
+rem Scene Commander forced move
+if forcemove>0
+plrkeyW=1
+endif
+
+if forcemove<0
+plrkeyS=1
+endif
+
+Rem Scene Commander edit
+if keystate(plrkeyQ)=1 and peekonkeys=1 then plrkeyQ=1 else plrkeyQ=0
+if keystate(plrkeyE)=1 and peekonkeys=1 then plrkeyE=1 else plrkeyE=0
+Rem Scene Commander change
+if keystate(plrkeyC)=1 and crouchonkey=1 then plrkeyC=1 else plrkeyC=0
+`if keystate(plrkeyC)=1 then plrkeyC=1 else plrkeyC=0
+
+Rem end change
 if keystate(plrkeyZ)=1 then plrkeyZ=1 else plrkeyZ=0
 if keystate(plrkeyR)=1 then plrkeyR=1 else plrkeyR=0
-if keystate(plrkeySPACE)=1 then plrkeySPACE=1 else plrkeySPACE=0
+Rem Scene Commander edit
+if keystate(plrkeySPACE)=1 and jumponkey=1 then plrkeySPACE=1 else plrkeySPACE=0
 if keystate(plrkeyRETURN)=1 then plrkeyRETURN=1 else plrkeyRETURN=0
-if keystate(plrkeySHIFT)=1 then plrkeySHIFT=1 else plrkeySHIFT=0
-if keystate(plrkeySHIFT2)=1 then plrkeySHIFT2=1 else plrkeySHIFT2=0
+if keystate(plrkeySHIFT)=1 and runkeys=1 then plrkeySHIFT=1 else plrkeySHIFT=0
+if keystate(plrkeySHIFT2)=1 and runkeys=1 then plrkeySHIFT2=1 else plrkeySHIFT2=0
 
-rem hard coded arrow keys
+rem hard coded arrow keys - Scene commander change
+if arrowkeyson=1
 if upkey()=1 then plrkeyW=1
 if leftkey()=1 then plrkeyA=1
 if downkey()=1 then plrkeyS=1
 if rightkey()=1 then plrkeyD=1
-
+endif
 rem U71 - Contoller
 if gxbox=1 : rem define in a config later
  `
@@ -35772,6 +36997,44 @@ if gxbox=1 : rem define in a config later
  endif
  `
 endif
+
+Rem Scene commander automated actions
+select playeraction
+case 1
+player(1).state.firingmode=1
+endcase
+case 2
+gunzoommode=1
+endcase
+case 3
+plrkeyR=1
+endcase
+case 4
+plrkeyC=1
+endcase
+case 5
+plrkeySPACE=1
+endcase
+case 6
+plrkeyE=1
+endcase
+case 7
+plrkeyQ=1
+endcase
+case 8
+plrkeyRETURN=1
+endcase
+case 9
+tmouseclick=1
+endcase
+case 10
+tmouseclick=2
+endcase
+
+endselect
+playeraction=0
+
+Rem Scene commander end.
 
 rem Camera old information
 ctox#=ctx# : ctoy#=cty# : ctoz#=ctz#
@@ -35923,6 +37186,11 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
  `
  rem Movement (forward,backward,strafe)
  camerareachatrun#=0.0
+ rem scene commander addition
+ speedchange#=speedmod#/100
+ basespeed#=basespeed#*speedchange#
+ rem end screen commander addition
+ speed#=basespeed#
  plrbasespeed#=basespeed#
  rem FPGC - 100310 - adjust actual viewing angle with VR tracker
  tmpcamy#=camera angle y()
@@ -36554,7 +37822,20 @@ else
  `
 endif
 
+
+
+rem Scene Commander, player wobblling
+
+if wobble#<>0.0 and player(1).health>0
+ wobbleangle#=wrapvalue(wobbleangle#+((2+rnd(4)+(11-wobble#))/10.0))
+ camangx#=camangx#+cos(wobbleangle#*2.0)*wobble#*0.008*(sin(wobbleangle#)*1.2)
+ camangy#=camangy#+sin(wobbleangle#*4.0)*wobble#*0.005
+endif
+
+rem Scene Commander end
+
 rem FPSXCV104RC5 - zoom mode wobble based on accuracy
+
 if plrzoomin#<>0.0
  plrzoomaccuracyangle#=wrapvalue(plrzoomaccuracyangle#+((2+rnd(4)+(11-plrzoomin#))/10.0))
  camangx#=camangx#+cos(plrzoomaccuracyangle#*2.0)*plrzoomaccuracy#*plrzoomin#*0.008*(sin(plrzoomaccuracyangle#)*1.2)
@@ -41098,6 +42379,7 @@ _saveload_savegame:
    rem V118 - 120810 - knxrb - etimer fix from Scene Commander
    a#=saveloadgamepositionentity(lsi).etimer : write float 1,a#
    a#=saveloadgamepositionentity(lsi).animatespeed : write float 1,a#  rem (markblosser)
+   a#=saveloadgamepositionentity(lsi).entitydammult: write float 1,a# rem Scene commander
   next lsi
   rem Weapons
   for lsi=0 to 20
@@ -41156,6 +42438,80 @@ _saveload_savegame:
   rem What gun is being carried
   a#=saveloadgameposition.playerholdinggun : write float 1,a#
   rem 091009 - Object angles fiffer from RX RY RZ
+  Rem Scene commander save additions
+a#=wobble#: write float 1,a#
+rem new deaths
+a#=tiltondeath: write float 1,a#
+a#=tilton: write float 1,a#
+a#=tiltspeed#: write float 1,a#
+a#=temptilt: write float 1,a#
+a#=thud: write float 1,a#
+a#=tiltbounce: write float 1,a#
+a#=justdone: write float 1,a#
+rem video
+a#=unskip: write float 1,a#
+rem player forced actiona
+a#=playeraction: write float 1,a#
+a#=forcemove: write float 1,a#
+rem allow force damage
+a#=forcedamageon: write float 1,a#
+rem guns
+a#=crosshairon: write float 1,a#
+a#=forcedslot: write float 1,a#
+rem armour
+a#=armour: write float 1,a#
+a#=armouron: write float 1,a#
+a#=armx: write float 1,a#
+a#=army: write float 1,a#
+a#=bodyon: write float 1,a#
+rem air
+a#=airon: write float 1,a#
+a#=airleft: write float 1,a#
+a#=airmax: write float 1,a#
+a#=drowntime: write float 1,a#
+a#=airtime: write float 1,a#
+a#=airtimer: write float 1,a#
+a#=drowntimer: write float 1,a#
+a#=airx: write float 1,a#
+a#=airy: write float 1,a#
+a#=instantdrown: write float 1,a#
+a#=lastsetair: write float 1,a#
+a#=drowned: write float 1,a#
+rem god mode
+a#=isimmune: write float 1,a#
+rem control keys
+a#=arrowkeyson: write float 1,a#
+a#=jumponkey: write float 1,a#
+a#=crouchonkey: write float 1,a#
+a#=peekonkeys: write float 1,a#
+a#=walkonkeys: write float 1,a#
+a#=runkeys: write float 1,a#
+rem compass - knxrb
+a#=compassOn: write float 1,a#
+a#=compassX: write float 1,a#
+a#=compassY: write float 1,a#
+a#=spritesPasted: write float 1,a#
+a#=gameStarted: write float 1,a#
+a#=madeCompass: write float 1,a#
+a#=needleSpin: write float 1,a#
+a#=compassSpin: write float 1,a#
+rem dark ai radar
+a#=darkradar: write float 1,a#
+a#=radarx: write float 1,a#
+a#=radary: write float 1,a#
+a#=maderadar: write float 1,a#
+a#=rotateblip: write float 1,a#
+a#=radarrange: write float 1,a#
+rem player speed mod
+a#=speedmod#: write float 1,a#
+rem radar/compass object as objective
+a#=objectivemode: write float 1,a#
+a#=istheobjective: write float 1,a#
+a#=objectivex: write float 1,a#
+a#=objectivey: write float 1,a#
+a#=madeobjective: write float 1,a#
+a#=maxslots: write float 1,a#
+
   for lsi=0 to entityelementmax
    a#=saveloadgamepositionentity(lsi).orx : write float 1,a#
    a#=saveloadgamepositionentity(lsi).ory : write float 1,a#
@@ -41321,6 +42677,7 @@ _saveload_loadgame:
    rem V118 - 120810 - knxrb - etimer fix from Scene Commander
    read float 1,a# : saveloadgamepositionentity(lsi).etimer=a#
    read float 1,a# : saveloadgamepositionentity(lsi).animatespeed=a#  rem (markblosser)
+   read float 1,a# : saveloadgamepositionentity(lsi).entitydammult=a# rem Scene commander
   next lsi
   rem Weapons
   dim saveloadgamepositionweaponslot(20) as saveloadgamepositionweaponslottype
@@ -41380,6 +42737,78 @@ _saveload_loadgame:
   read float 1,a# : saveloadgameposition.playerrx=a#
   read float 1,a# : saveloadgameposition.playerholdinggun=a#
   rem 091009 - object otation seperated from entity element rotatyion
+read float 1,a#:wobble#=a#
+rem new deaths
+read float 1,a#:tiltondeath=a#
+read float 1,a#:tilton=a#
+read float 1,a#:tiltspeed#=a#
+read float 1,a#:temptilt=a#
+read float 1,a#:thud=a#
+read float 1,a#:tiltbounce=a#
+read float 1,a#:justdone=a#
+rem video
+read float 1,a#:unskip=a#
+rem player forced actiona
+read float 1,a#:playeraction=a#
+read float 1,a#:forcemove=a#
+rem allow force damage
+read float 1,a#:forcedamageon=a#
+rem guns
+read float 1,a#:crosshairon=a#
+read float 1,a#:forcedslot=a#
+rem armour
+read float 1,a#:armour=a#
+read float 1,a#:armouron=a#
+read float 1,a#:armx=a#
+read float 1,a#:army=a#
+read float 1,a#:bodyon=a#
+rem air
+read float 1,a#:airon=a#
+read float 1,a#:airleft=a#
+read float 1,a#:airmax=a#
+read float 1,a#:drowntime=a#
+read float 1,a#:airtime=a#
+read float 1,a#:airtimer=a#
+read float 1,a#:drowntimer=a#
+read float 1,a#:airx=a#
+read float 1,a#:airy=a#
+read float 1,a#:instantdrown=a#
+read float 1,a#:lastsetair=a#
+read float 1,a#:drowned=a#
+rem god mode
+read float 1,a#:isimmune=a#
+rem control keys
+read float 1,a#:arrowkeyson=a#
+read float 1,a#:jumponkey=a#
+read float 1,a#:crouchonkey=a#
+read float 1,a#:peekonkeys=a#
+read float 1,a#:walkonkeys=a#
+read float 1,a#:runkeys=a#
+rem compass - knxrb
+read float 1,a#:compassOn=a#
+read float 1,a#:compassX=a#
+read float 1,a#:compassY=a#
+read float 1,a#:spritesPasted=0
+read float 1,a#:gameStarted=a#
+read float 1,a#:madeCompass=0
+read float 1,a#:needleSpin=a#
+read float 1,a#:compassSpin=a#
+rem dark ai radar
+read float 1,a#:darkradar=a#
+read float 1,a#:radarx=a#
+read float 1,a#:radary=a#
+read float 1,a#:maderadar=0
+read float 1,a#:rotateblip=a#
+read float 1,a#:radarrange=a#
+rem player speed mod
+read float 1,a#:speedmod#=a#
+rem radar/compass object as objective
+read float 1,a#:objectivemode=a#
+read float 1,a#:istheobjective=a#
+read float 1,a#:objectivex=a#
+read float 1,a#:objectivey=a#
+read float 1,a#:madeobjective=0
+read float 1,a#:maxslots=a#
   for lsi=0 to entityelementmax
    read float 1,a# : saveloadgamepositionentity(lsi).orx=a#
    read float 1,a# : saveloadgamepositionentity(lsi).ory=a#
@@ -55286,6 +56715,23 @@ function getintervar(var$)
   case "$EAZ"
    temp=entityelement(e).rz
   endcase
+  Rem Scene Commander
+  case "$ARM"
+   temp=armour
+  endcase
+  case "$AIR"
+   temp=airleft
+  endcase
+  case "$FPS"
+   temp=screen fps()
+  endcase
+  case "$WAT"
+   temp=waterheight#
+  endcase
+  case "$MAX"
+   temp=maxslots
+  endcase
+  rem Hockeykid
   case "$CAX"
    `Grab camera to check
    temp=camera angle x(0)
@@ -55353,6 +56799,20 @@ function setintervar(var$,alter#)
   case "$EAZ"
    entityelement(e).rz=alter#
   endcase
+  Rem Scene Commander
+  case "$ARM"
+   armour=alter#
+  endcase
+  case "$AIR"
+   airleft=alter#
+  endcase
+  case "$WAT"
+   waterheight#=alter#
+  endcase
+  case "$MAX"
+   maxslots=alter#
+  endcase
+  rem Hockeykid
   case "$CAX"
    `Grab camera to check
    xrotate camera 0,alter#
@@ -55530,6 +56990,89 @@ function UpDateReflection()
  sync mask %11111111 - (1 << 1) - (1 << 2)
 endfunction
 
+function makecompass()
+
+if sprite exist(compassobject)=1
+   delete sprite compassobject
+endif
+if sprite exist(needleobject)=1
+   delete sprite needleobject
+endif
+if image exist(compassobject)=1
+   delete image compassobject
+endif
+if image exist(needleobject)=1
+   delete image needleobject
+endif
+if image exist(compassobject) = 0
+   set image colorkey 0,0,0
+
+   load image "databank\compass.png",compassobject
+
+endif
+if image exist(needleobject) = 0
+   set image colorkey 0,0,0
+   load image "databank\needle.png",needleobject
+
+endif
+if sprite exist(compassobject)=0
+   sprite compassobject,-10000,-10000,compassobject
+   offset sprite compassobject,sprite width(compassobject)/2,sprite height(compassobject)/2
+   set sprite compassobject,1,1
+
+   hide sprite compassobject
+endif
+if sprite exist(needleobject)=0
+   sprite needleobject,-10000,-10000,needleobject
+   offset sprite needleobject,sprite width(needleobject)/2,sprite height(needleobject)/2
+   set sprite needleobject,1,1
+
+   hide sprite needleobject
+endif
+
+endfunction
+
+function makeradar()
+
+for f=blipstart to blipstart+10
+if sprite exist(f)=1
+   delete sprite f
+   if image exist(f)
+   delete image f
+   endif
+endif
+next f
+
+   if sprite exist(radarobject)=1
+   delete sprite radarobject
+   if image exist(radarobject)=1
+   delete image radarobject
+   endif
+   endif
+
+
+for f=blipstart to blipstart+10
+a$="databank\blip"+str$(f-radarobject)+".png"
+if file exist(a$)
+load image a$,f
+sprite f,-100000,-100000,f
+offset sprite f,sprite width(f)/2,sprite height(f)/2
+set sprite f,0,1
+set sprite priority f,1
+hide sprite f
+
+endif
+next f
+
+if file exist("databank\radarback.png")
+load image "databank\radarback.png",radarobject
+sprite radarobject,-100000,-100000,radarobject
+offset sprite radarobject,sprite width(radarobject)/2,sprite height(radarobject)/2
+set sprite radarobject,0,1
+hide sprite radarobject
+
+endif
+endfunction
 rem GUI-X9 (knxrb) >>>
 _gui_init:
     if MenuInit = 0
@@ -56960,6 +58503,98 @@ function CalcLightDirZ(objang#)
  ldirang#=-0.75*cos(objang#)
 endfunction ldirang#
 
+rem Scene commander special fast paste for numerics
+function specialpaste(x,y,newpaste$)
+
+ink rgb(255,255,255),0
+done=0
+for hudid=1 to hudmax
+
+   if hud(hudid).maintype=6 and done=0
+    rem NUMERIC
+    for tt=1 to len(newpaste$)
+     ttnum=-1
+     if mid$(newpaste$,tt)="." then ttnum=10
+     if mid$(newpaste$,tt)="\" then ttnum=11
+     if ttnum=-1 then ttnum=asc(mid$(newpaste$,tt))-asc("0")
+     if ttnum<>-1
+      ttnumy=ttnum/4 : ttnum=ttnum-(ttnumy*4) : ttbitx#=(1.0/64.0)*16 : ttbity#=(1.0/64.0)*16
+      if hud(hudid).image>0
+       set sprite texture coord hudid,0,(ttbitx#*ttnum),(ttbity#*ttnumy)
+       set sprite texture coord hudid,1,(ttbitx#*ttnum)+ttbitx#,(ttbity#*ttnumy)
+       set sprite texture coord hudid,2,(ttbitx#*ttnum),(ttbity#*ttnumy)+ttbity#
+       set sprite texture coord hudid,3,(ttbitx#*ttnum)+ttbitx#,(ttbity#*ttnumy)+ttbity#
+       paste sprite hudid,x+((tt-1)*12),y
+      endif
+      endif
+
+    next tt
+    done=1
+    endif
+    if done<>0 then exitfunction
+    next hudid
+
+    endfunction
+
+    function displayobjective()
+
+   rem display isobjective direction
+
+   if istheobjective=0 or objectivemode=0
+   if sprite exist(objectiveobject)
+   hide sprite objectiveobject
+   endif
+   exitfunction
+   endif
+
+   if istheobjective>0 and object exist(physicsplayerborble)=1
+
+   tcamx#=object position x(physicsplayerborble)
+   tcamy#=object position y(physicsplayerborble)
+   tcamz#=object position z(physicsplayerborble)
+
+   tdx#=entityelement(istheobjective).x-tcamx#
+   tdy#=entityelement(istheobjective).y+(object size(entityelement(istheobjective).obj)/2)-tcamy#
+   tdz#=entityelement(istheobjective).z-tcamz#
+
+   howfar=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+   howfar=int(howfar/25)
+
+      if howfar<>1 then howfar=howfar*2
+
+      if howfar>80 then howfar=80
+      if howfar<1 then howfar=1
+      rem calculate player and objective level for objective mode=2
+      playerlevel=int(object position y(physicsplayerborble))/100
+      if playerlevel<0 then playerlevel=0
+      if playerlevel>19 then playerlevel=19
+
+      objectivelevel=int(entityelement(istheobjective).y)/100
+      if objectivelevel<0 then objectivelevel=0
+      if objectivelevel>19 then objectivelevel=19
+      rem find the angle.
+      fundx#=entityelement(istheobjective).x-camera position x()
+      fundy#=camera position z()-entityelement(istheobjective).z
+      funangle#=atanfull(fundy#,fundx#)
+      rrr#=funangle#-camera angle y()
+
+      if sprite exist(objectiveobject)=1
+
+
+         if objectivemode=1 or (objectivemode=2 and playerlevel=objectivelevel)
+         show sprite objectiveobject
+         paste sprite objectiveobject,objectivex+(cos(rrr#)*howfar),objectivey+(sin(rrr#)*howfar)
+         endif
+     endif
+
+      if entityelement(istheobjective).health<=0 then istheobjective=0
+
+   endif
+
+rem end is o
+
+    endfunction
+
 _create_blood:
  decalid=entitydecal(entityelement(damagede).bankindex,1)
  if decalid>0
@@ -56993,3 +58628,4 @@ _create_blood:
  endif
  middlebody=0
 return
+
