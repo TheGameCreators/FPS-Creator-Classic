@@ -1732,6 +1732,8 @@ Rem Scene commander conditions
 #constant AICONDWEAPONSGREATER 878
 #constant AICONDWEAPONSLESSER 879
 #constant AICONDWEAPONSEQUAL 880
+#constant AICONDWEAPONINSLOT 881
+#constant AICONDCURRENTWEAPON 882
 
 
 #constant AICONDLAST 900
@@ -2185,6 +2187,7 @@ rem Scene Commander actions
 #constant AIACTRANDOMIZE 1552
 #constant AIACTMAXSLOTS 1553
 #constant AIACTEDAMMULT 1554
+#constant AIACTPLRSTRENGTH 1555
 
 #constant AIACTLAST 1600
 
@@ -4298,7 +4301,6 @@ _main_game_core:
  `
  rem Update screen
  if keystate(28) then gotintodes=0
-
 
 rem scene commander new air commands
 
@@ -11475,6 +11477,8 @@ conword$(AICONDISIMMUNE)="plrisimmune"
 conword$(AICONDWEAPONSGREATER)="plrweaponsgreater"
 conword$(AICONDWEAPONSLESSER)="plrweaponslesser"
 conword$(AICONDWEAPONSEQUAL)="plrweaponsequal"
+conword$(AICONDWEAPONINSLOT)="weaponinslot"
+conword$(AICONDCURRENTWEAPON)="currentweapon"
 
 rem Set all action keywords
 dim actword$(AIACTLAST)
@@ -11918,6 +11922,7 @@ actword$(AIACTSETVARRND)="setvarrnd"
 actword$(AIACTRANDOMIZE)="randomize"
 actword$(AIACTMAXSLOTS)="setmaxweapons"
 actword$(AIACTEDAMMULT)="entitydamagemult"
+actword$(AIACTPLRSTRENGTH)="playerstrength"
 
 return
 
@@ -13828,7 +13833,42 @@ case AICONDISIMMUNE:
 
      endcase
 
-    `
+     case AICONDWEAPONINSLOT:
+
+     airesult=0
+
+      conda=aiconditionseq(seq).valuea
+      if conda>0 and conda<10
+
+         if weaponslot(conda).got<>0
+         airesult=1
+         endif
+
+      endif
+
+     endcase
+
+     case AICONDCURRENTWEAPON:
+
+     rem Scene Commander, find current weapon, there maybe a better way of doing this.
+     findslot=0
+
+     for f=1 to 10
+      if weaponslot(f).got=gunid
+      findslot=f
+      exit
+      endif
+     next f
+
+     if aiconditionseq(seq).valuea=findslot
+      airesult=1
+      else
+      airesult=0
+     endif
+
+
+     endcase
+
     `
    endselect
    `
@@ -18748,6 +18788,14 @@ case AIACTSETVARRND:
      case AIACTEDAMMULT:
 
      entityelement(e).entitydammult=aiactionseq(seq).value/100.0
+
+     endcase
+
+     case AIACTPLRSTRENGTH:
+
+      temp#=aiactionseq(seq).value
+      cameracarryweight#=(temp#/100.0)*4000.0
+      camerathrow#=temp#
 
      endcase
 
@@ -42511,6 +42559,8 @@ a#=objectivex: write float 1,a#
 a#=objectivey: write float 1,a#
 a#=madeobjective: write float 1,a#
 a#=maxslots: write float 1,a#
+a#=cameracarryweight#: write float 1,a#
+a#=camerathrow#: write float 1,a#
 
   for lsi=0 to entityelementmax
    a#=saveloadgamepositionentity(lsi).orx : write float 1,a#
@@ -42808,7 +42858,12 @@ read float 1,a#:istheobjective=a#
 read float 1,a#:objectivex=a#
 read float 1,a#:objectivey=a#
 read float 1,a#:madeobjective=0
+rem load max slots
 read float 1,a#:maxslots=a#
+rem load current strength
+read float 1,a#:cameracarryweight#=a#
+read float 1,a#:camerathrow#=a#
+
   for lsi=0 to entityelementmax
    read float 1,a# : saveloadgamepositionentity(lsi).orx=a#
    read float 1,a# : saveloadgamepositionentity(lsi).ory=a#
@@ -58628,4 +58683,5 @@ _create_blood:
  endif
  middlebody=0
 return
+
 
