@@ -29,6 +29,28 @@ rem Credit to Airslide for help with Dark AI when it went into Fenix Mod
 rem Credit to Hockeykid for his continued help integrating Dark AI
 rem Credit to Robert Knox for help fixing up the engine and adding a cool HUD system
 
+sync on : sync rate 0
+
+      if Sw=0 or Sh=0
+         load dll "user32.dll",1
+            Sw=call dll(1,"GetSystemMetrics",0)
+            Sh=call dll(1,"GetSystemMetrics",1)
+         delete dll 1
+      endif
+
+global vsync
+
+rem alpha v1.6 call kernel32 dll for better performance freq
+Kernel32 =1
+load dll "kernel32.dll",Kernel32
+memptr = make memory(16)
+call dll Kernel32, "QueryPerformanceFrequency", memptr
+
+perftimer() = *memptr
+
+delete dll Kernel32
+
+
 _start_engine:
 
 Rem Scene Commander globals
@@ -111,6 +133,15 @@ global objectivey: objectivey=screen height() - 80
 global madeobjective=0
 global objectiveobject=666681
 global maxslots=10
+Rem Scene Commander water performance
+Global waterflec=400
+rem Scene Commander culling
+global cullmode=1
+global cullmodi=400
+
+rem scene commander - average FPS for smoother movement
+global nextave=1
+dim fpsstore(30):for f=1 to 30:fpsstore(f)=80:next f
 
 if exeroot$<>"" then set dir exeroot$
 rem Special build flags for 'genre' switch
@@ -189,6 +220,9 @@ global timestampactivitymax=0
 global timestampactivityflagged=0
 global timestampactivityindex=0
 dim timestampactivity$(1000)
+Rem Scene Commander performance
+global timebasepercycle# as float : timebasepercycle#=0
+global timebasepercyclestamp as DWORD : timebasepercyclestamp=timer()
 
 rem FPGC - 090909 - mising media collector
 dim missingmedia$(0)
@@ -433,6 +467,8 @@ type saveloadgamepositionentitytype
  etimer as integer
  animatespeed as float rem (markblosser)
  entitydammult as integer rem Scene Commander
+ ishidden as integer rem Scene Commander
+ cullstate as integer rem Scene Commander
 endtype
 type saveloadgamepositionweaponslottype
  pref got invpos
@@ -1398,6 +1434,8 @@ endtype
 rem Entity Elements Data
 type entitytype
  entitydammult as integer rem Scene Commander
+ ishidden as integer rem Scene Commander
+ cullstate as integer rem Scene Commander
  enterwater as integer
  isflak as integer
  darkai as darkaitype
@@ -2100,6 +2138,8 @@ Rem Water commands
 #constant AIACTWATERGREEN 1340
 #constant AIACTWATERBLUE 1341
 #constant AIACTWATERHEIGHTOFZONE 1342
+Rem Scene Commander water quality
+#constant AIACTWATERFLEC 1343
 rem GUI-X9 (knxrb) >>>
 #constant AIACTEYEHURTTIME 1442
 #constant AIACTFADERSPEED 1443
@@ -2188,6 +2228,11 @@ rem Scene Commander actions
 #constant AIACTMAXSLOTS 1553
 #constant AIACTEDAMMULT 1554
 #constant AIACTPLRSTRENGTH 1555
+#constant AIACTCULLMODE 1556
+#constant AIACTCULLRANGE 1557
+#constant AIACTHIDEOBJ 1558
+#constant AIACTSHOWOBJ 1559
+#constant AIACTCULLMODI 1560
 
 #constant AIACTLAST 1600
 
@@ -3546,9 +3591,9 @@ if runengineinframe=1
  rem FPGC - 260210 - display size from SETUP.INI, else 640x480
  vsyncflag=1 : thevrmodeflag=0 : if gvrmode<>0 then thevrmodeflag=1
  if check display mode(gdisplaywidth,gdisplayheight,gdisplaydepth)=1
-  set display mode gdisplaywidth,gdisplayheight,gdisplaydepth,vsyncflag,0,0,0,0,thevrmodeflag
+  set display mode gdisplaywidth,gdisplayheight,gdisplaydepth,vsync,0,0,0,0,thevrmodeflag
  else
-  set display mode 640,480,gdisplaydepth,vsyncflag
+  set display mode 640,480,gdisplaydepth,vsync
  endif
 else
  if trueappname$="FPSC-MapEditor"
@@ -3574,9 +3619,9 @@ else
     `vsyncflag=0 : rem to test machine independence
     thevrmodeflag=0 : if gvrmode<>0 then thevrmodeflag=1
     if check display mode(gdisplaywidth,gdisplayheight,gdisplaydepth)=1
-     set display mode gdisplaywidth,gdisplayheight,gdisplaydepth,vsyncflag,0,0,0,0,thevrmodeflag
+     set display mode gdisplaywidth,gdisplayheight,gdisplaydepth,vsync,0,0,0,0,thevrmodeflag
     else
-     set display mode desktop width(),desktop height(),gdisplaydepth,vsyncflag
+     set display mode desktop width(),desktop height(),gdisplaydepth,vsync
      gdisplaywidth=desktop width()
      gdisplayheight=desktop height()
     endif
@@ -3726,7 +3771,9 @@ rem For status text if any
 set text font "Verdana"
 
 rem Init app (lee - 140310 - sync rate was 38)
-sync on : sync rate 0 : autocam off : disable systemkeys
+`sync on : sync rate 0 : autocam off : disable systemkeys
+rem scene commander performance
+sync on : sync rate 80 : autocam off : disable systemkeys `- new cap to fix animation issues
 hide mouse : backdrop off : disable escapekey
 
 rem If Game is NOT IN TEST MODE, default is full screen shown
@@ -4449,7 +4496,9 @@ if gunid>0 and crosshairon=0
 return
 
 _main_sync:
- `
+
+culling()
+
  rem FPGC - 280610 - moved entire SYNC sequence to subroutine so PAUSE mode can call it too
  if gvrmode<>0
   rem VR920
@@ -4866,6 +4915,10 @@ rem STATUS AND HUD GRAPHICS
 if gamewarmupcount=0
  gosub _screen_control
 endif
+
+rem Scene Commander - calculate more accurate time based movement
+
+timebasepercycle#=(1.0/50.0)*(timer()-timebasepercyclestamp) : timebasepercyclestamp=timer()
 
 rem FPSCV104RC4 - i want to see this
 `if grealgameviewstate=0
@@ -7737,8 +7790,19 @@ meheight#=(ellipsevolumesize#-0.25)*30.0
 rem handle AI sound
 managebroadcastsound()
 
+rem maintain constant game speed -timer based - Scene Commander rewrite for smoother movement
+
+timeelapsed#=timebasepercycle#
+fpsstore(nextave)=timeelapsed#
+temptime#=0
+for ave=1 to 30
+temptime#=temptime#+fpsstore(ave)
+next ave
+timeelasped#=temptime#/30
+timeelasped#=(timeelasped#/100)*timescale
+inc nextave,1:if nextave>30 then nextave=1
 rem maintain constant game speed
-timeelapsed#=(1.0/50.0)*(timer()-timestamp) : timestamp=timer()
+`timeelapsed#=(1.0/50.0)*(timer()-timestamp) : timestamp=timer()
 
 rem maintain couner for any animspeed changes
 inc timeelapsedrefreshentityanimspeeds
@@ -11041,7 +11105,7 @@ _entity_deducthealth:
         gosub _part_createfragment
         rem Forces object invisible (replaced by fragments)
         tobj=entityelement(e).obj
-        hide object tobj
+        hide object tobj:entityelement(e).ishidden=2
        else
         if texplodable=2 and explosionscorch<>0
          rem not quite explode, just scorch (as though internally fried)
@@ -11088,7 +11152,7 @@ _entity_deducthealth:
        gosub _ode_switchoffe
        rem hide object
        tobj=entityelement(e).obj
-       hide object tobj
+       hide object tobj:entityelement(e).ishidden=2
        rem hide blob shadow if any
        if entityelement(e).attachmentblobobj>0
         if object exist(entityelement(e).attachmentblobobj)=1
@@ -11842,6 +11906,8 @@ actword$(AIACTWATERRED)="waterred"
 actword$(AIACTWATERGREEN)="watergreen"
 actword$(AIACTWATERBLUE)="waterblue"
 actword$(AIACTWATERHEIGHTOFZONE)="waterheightofzone"
+Rem Scene commander, water performance options
+actword$(AIACTWATERFLEC)="waterreflection"
 rem LightRay Addition
 rem LRMod
 actword$(AIACTLRAYSET)="lrayset"
@@ -11923,6 +11989,12 @@ actword$(AIACTRANDOMIZE)="randomize"
 actword$(AIACTMAXSLOTS)="setmaxweapons"
 actword$(AIACTEDAMMULT)="entitydamagemult"
 actword$(AIACTPLRSTRENGTH)="playerstrength"
+
+actword$(AIACTCULLRANGE)="cullrange"
+actword$(AIACTCULLMODE)="cullmode"
+actword$(AIACTHIDEOBJ)="hide"
+actword$(AIACTSHOWOBJ)="show"
+actword$(AIACTCULLMODI)="cullmod"
 
 return
 
@@ -12152,6 +12224,26 @@ Rem Scene Commander
    case "$MAX"
    aiconditionseq(seq).valuea=maxslots
    endcase
+   case "$DIS"
+
+   entobj=entityelement(e).obj
+   if entobj>0 and physicsplayerborble>0
+
+   tcamx#=object position x(physicsplayerborble)
+   tcamy#=object position y(physicsplayerborble)
+   tcamz#=object position z(physicsplayerborble)
+
+   tdx#=entityelement(e).x-tcamx#
+   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdz#=entityelement(e).z-tcamz#
+   dist=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+   else
+   dist=9999999
+
+   aiconditionseq(seq).valuea=dist
+   endif
+
+   endcase
 
   endselect
   `
@@ -12247,6 +12339,28 @@ Rem Scene Commander
    case "$MAX"
    aiconditionseq(seq).valueb=maxslots
    endcase
+
+   case "$DIS"
+
+   entobj=entityelement(e).obj
+   if entobj>0 and physicsplayerborble>0
+
+   tcamx#=object position x(physicsplayerborble)
+   tcamy#=object position y(physicsplayerborble)
+   tcamz#=object position z(physicsplayerborble)
+
+   tdx#=entityelement(e).x-tcamx#
+   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdz#=entityelement(e).z-tcamz#
+   dist=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+   else
+   dist=999999
+
+   aiconditionseq(seq).valueb=dist
+   endif
+
+   endcase
+
   endselect
    `
    select aiconditionseq(seq).type
@@ -14048,6 +14162,27 @@ Rem Scene Commander
    case "$MAX"
    aiactionseq(seq).value=maxslots
    endcase
+   case "$DIS"
+
+      entobj=entityelement(e).obj
+      if entobj>0 and physicsplayerborble>0
+
+   tcamx#=object position x(physicsplayerborble)
+   tcamy#=object position y(physicsplayerborble)
+   tcamz#=object position z(physicsplayerborble)
+
+   tdx#=entityelement(e).x-tcamx#
+   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdz#=entityelement(e).z-tcamz#
+   dist=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+   else
+   dist=999999
+
+   aiactionseq(seq).value=dist
+   endif
+
+   endcase
+
   endselect
   `
   select aiactionseq(seq).string2
@@ -14142,6 +14277,26 @@ Rem Scene Commander
    case "$MAX"
    aiconditionseq(seq).valueb=maxslots
    endcase
+
+   case "$DIS"
+
+   entobj=entityelement(e).obj
+    if entobj>0 and physicsplayerborble>0
+   tcamx#=object position x(physicsplayerborble)
+   tcamy#=object position y(physicsplayerborble)
+   tcamz#=object position z(physicsplayerborble)
+
+   tdx#=entityelement(e).x-tcamx#
+   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdz#=entityelement(e).z-tcamz#
+   dist=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+   else
+   dist=999999
+
+   aiconditionseq(seq).valueb=dist
+   endif
+
+   endcase
   endselect
     `
     select aiactionseq(seq).type
@@ -14165,7 +14320,7 @@ Rem Scene Commander
        else
         set object collision off obj
        endif
-       hide object obj
+       hide object obj:entityelement(e).ishidden=2
       endif
       rem stop any looping sound
       gosub _ai_stopentsounds
@@ -15287,7 +15442,7 @@ Rem Scene Commander
         if entityelement(te).x<>-99999
          rem Not already collected
          `detach object from static tobj : hide object tobj
-         hide object tobj
+         hide object tobj:entityelement(e).ishidden=2
          entityelement(te).x=-99999
          entityelement(te).y=-99999
          entityelement(te).z=-99999
@@ -15675,7 +15830,7 @@ Rem Scene Commander
        rem switch off obj
        if obj>0
         gosub _ode_switchoffe
-        hide object obj
+        hide object obj:entityelement(e).ishidden=2
         set object collision off obj
        endif
        `
@@ -16127,7 +16282,7 @@ Rem Scene Commander
         gosub _ode_switchoffe
         rem hide object
         tobj=entityelement(e).obj
-        hide object tobj
+        hide object tobj:entityelement(e).ishidden=2
         rem hide blob shadow if any
         if entityelement(e).attachmentblobobj>0
          if object exist(entityelement(e).attachmentblobobj)=1
@@ -18244,7 +18399,11 @@ Rem Scene Commander
       waterheight#=entityelement(e).y+aiactionseq(seq).value
       position object waterobj,0,waterheight#,0
      endcase
-     `
+     rem Scene Commander, water performance
+      case AIACTWATERFLEC:
+      waterflec=aiactionseq(seq).value
+     endcase
+
      rem LightRay Addition
      rem LRMod
      case AIACTLRAYSET:
@@ -18798,6 +18957,55 @@ case AIACTSETVARRND:
       camerathrow#=temp#
 
      endcase
+
+     case AIACTCULLRANGE:
+
+     rem Scene Commander - Sets entites cull range, if less than 150 force to 150.
+     entityelement(e).cullstate=aiactionseq(seq).value
+     if entityelement(e).cullstate<150 then entityelement(e).cullstate=150
+     endcase
+
+     case AIACTCULLMODE:
+
+     rem Scene Commander - toggles global cull mode, 0=Legacy culling, 1 Legacy + Culls dynamic entites based on distance.
+
+     if aiactionseq(seq).value>=0 and aiactionseq(seq).value<2
+      cullmode=aiactionseq(seq).value
+     endif
+
+     endcase
+
+     case AIACTHIDEOBJ:
+
+     rem Scene Commander - hide object if NOT flagged as destroyed/taken
+
+      if entityelement(e).ishidden<>2
+      entityelement(e).ishidden=3
+      endif
+
+     endcase
+
+      case AIACTSHOWOBJ:
+
+       rem Scene Commander - show object if NOT flagged as destroyed/taken
+
+      if entityelement(e).ishidden<>2
+      entityelement(e).ishidden=0
+      endif
+
+     endcase
+
+   case AIACTCULLMODI:
+
+   cullmodi=aiactionseq(seq).value
+
+   rem Scene Commander - prevent x0 preventing display
+
+   if cullmodi<1 then cullmodi=1
+
+   endcase
+
+
 
 
      `
@@ -42428,6 +42636,8 @@ _saveload_savegame:
    a#=saveloadgamepositionentity(lsi).etimer : write float 1,a#
    a#=saveloadgamepositionentity(lsi).animatespeed : write float 1,a#  rem (markblosser)
    a#=saveloadgamepositionentity(lsi).entitydammult: write float 1,a# rem Scene commander
+   a#=saveloadgamepositionentity(lsi).ishidden: write float 1,a# rem Scene commander
+   a#=saveloadgamepositionentity(lsi).cullstate: write float 1,a# rem Scene commander
   next lsi
   rem Weapons
   for lsi=0 to 20
@@ -42561,6 +42771,10 @@ a#=madeobjective: write float 1,a#
 a#=maxslots: write float 1,a#
 a#=cameracarryweight#: write float 1,a#
 a#=camerathrow#: write float 1,a#
+a#=waterflec: write float 1,a#
+rem Scene Commander culling
+a#=cullmode: write float 1,a#
+a#=cullmodi: write float 1,a#
 
   for lsi=0 to entityelementmax
    a#=saveloadgamepositionentity(lsi).orx : write float 1,a#
@@ -42728,6 +42942,8 @@ _saveload_loadgame:
    read float 1,a# : saveloadgamepositionentity(lsi).etimer=a#
    read float 1,a# : saveloadgamepositionentity(lsi).animatespeed=a#  rem (markblosser)
    read float 1,a# : saveloadgamepositionentity(lsi).entitydammult=a# rem Scene commander
+   read float 1,a# : saveloadgamepositionentity(lsi).ishidden=a# rem Scene commander
+   read float 1,a# : saveloadgamepositionentity(lsi).cullstate=a# rem Scene commander
   next lsi
   rem Weapons
   dim saveloadgamepositionweaponslot(20) as saveloadgamepositionweaponslottype
@@ -42863,6 +43079,10 @@ read float 1,a#:maxslots=a#
 rem load current strength
 read float 1,a#:cameracarryweight#=a#
 read float 1,a#:camerathrow#=a#
+read float 1,a#:waterflec=a#
+rem Scene Commander culling
+read float 1,a#:cullmode=a#
+read float 1,a#:cullmodi=a#
 
   for lsi=0 to entityelementmax
    read float 1,a# : saveloadgamepositionentity(lsi).orx=a#
@@ -43562,7 +43782,7 @@ _saveload_retrievesavedata:
    rem switch off obj
    if obj>0
     gosub _ode_switchoffe
-    hide object obj
+    hide object obj:entityelement(spawne).ishidden=2
     set object collision off obj
    endif
    if entityelement(e).eleprof.phyalways<>0
@@ -56622,8 +56842,9 @@ _water_control:
  if camera position y()>waterheight#
   if playerunderwater=1
    Rem Leave water sound
-   if playersound(1,17)>0
-    playinternal3dsound(playersound(1,17),camera position x(),camera position y(),camera position z())
+   if playersound(1,20)>0
+   rem scene commander change, leave sound for gulp sound. I prefered it. WAS 17
+    playinternal3dsound(playersound(1,20),camera position x(),camera position y(),camera position z())
    endif
    if waterunderwatersoundid>0 then stop sound waterunderwatersoundid
    triggersplash=2
@@ -56786,6 +57007,27 @@ function getintervar(var$)
   case "$MAX"
    temp=maxslots
   endcase
+
+   case "$DIS"
+
+   entobj=entityelement(e).obj
+   if entobj>0 and physicsplayerborble>0
+
+   tcamx#=object position x(physicsplayerborble)
+   tcamy#=object position y(physicsplayerborble)
+   tcamz#=object position z(physicsplayerborble)
+
+   tdx#=entityelement(e).x-tcamx#
+   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdz#=entityelement(e).z-tcamz#
+   dist=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+   else
+   dist=999999
+
+   temp=dist
+   endif
+
+   endcase
   rem Hockeykid
   case "$CAX"
    `Grab camera to check
@@ -56867,6 +57109,7 @@ function setintervar(var$,alter#)
   case "$MAX"
    maxslots=alter#
   endcase
+
   rem Hockeykid
   case "$CAX"
    `Grab camera to check
@@ -56965,6 +57208,7 @@ function UpDateWater()
  r=delete vector4(1)
  `
  rem Upade Refract and Reflect cameras
+
  set effect technique WaterFx,"Refract"
  UpDateRefraction()
  if camera position y(0)>waterheight#
@@ -56982,7 +57226,15 @@ function UpDateWater()
    next teffectid
    r=delete vector4(1)
   endif
+   rem Scene Commander water performance
+  if waterflec<>0
+
+  if camera position y(playercam)<(waterheight#+waterflec)
+
   UpDateReflection()
+ endif
+  endif
+  `rem Scene Commander end
   if hudfogon=0
    rem FF fog off - maybe this should be before UpDateReflection?
    fog off
@@ -58649,6 +58901,70 @@ for hudid=1 to hudmax
 rem end is o
 
     endfunction
+
+    function culling()
+
+rem get player position
+ tcamx#=object position x(physicsplayerborble)
+ tcamy#=object position y(physicsplayerborble)
+ tcamz#=object position z(physicsplayerborble)
+
+ rem if not just using FPSC default culling
+if cullmode<>0
+
+for e=1 to entityelementlist
+
+  obj=entityelement(e).obj
+
+            if obj>0
+            entid=entityelement(e).bankindex
+            seeit=0
+            Rem get is object on screen
+               if object exist(obj) then seeit=object in screen(obj)
+
+                  rem characters,doors,windows and the dead excluded from cull
+                  if object exist(obj) and (entityprofile(entid).ischaracter<>1 and entityelement(e).eleprof.physics<>3) or (entityprofile(entid).ischaracter=1  and entityelement(e).beenkilled<>0 and seeit=0)
+
+         `if object not on screen or is hidden then hide
+         if seeit=0 or entityelement(e).cullstate=3 then hide object obj:exit
+
+         Rem get object distance
+
+                 tdx#=object position x(obj)-tcamx#
+                 tdy#=object position y(obj)+(object size(obj)/2)-tcamy#
+                 tdz#=object position z(obj)-tcamz#
+
+                  howfar=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+                  `size adjustment, arrived at through experimentation and is approximately cullmodi*100=1 segment
+                  sizeis=int(object size(obj)/10)
+                  rem cullmodi allows user adjustment to global entity culling
+                  sizeis=sizeis*cullmodi
+                           rem if entity has user defined cull then use that
+                     if entityelement(e).cullstate>3 then sizeis=entityelement(e).cullstate
+                        rem never hide really close objects regardless
+                        if howfar<150 or entityelement(e).cullstate=2 then sizeis=1000000
+
+                           if (entityelement(e).ishidden<>2 and howfar<sizeis)
+                           show object obj
+                           entityelement(e).ishidden=0
+                           endif
+
+                           if howfar>=sizeis and entityelement(e).ishidden<>2
+                           hide object obj
+                           endif
+
+
+         rem close obj 'cullable'
+         endif
+      rem close obj exist
+      endif
+
+  next e
+
+  rem close if no culling
+  endif
+
+endfunction
 
 _create_blood:
  decalid=entitydecal(entityelement(damagede).bankindex,1)
