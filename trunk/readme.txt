@@ -6,6 +6,138 @@ You can find the latest FAQ at http://code.google.com/p/fpscreatorengine/wiki/FA
 History
 =======
 
+V1.1.9
+------
+
+playfullvideo=x – X=1, plays the full version of the next video called by video=x, preventing the player interrupting the playback.
+plrwobble=x – sets the amount of 'wobble' affecting the player as they move around.
+plrdeath=x –where X equal the direction of fall for the player
+
+X=1 Fall left
+X=2 Fall right
+X=3 Fall forward
+X=4 Fall backwards
+X=5 Fall randomly
+
+plrdeathspeed=x where x is the speed of the players fall.
+
+plrdeathbounce=x where x is the amount of 'shake' when the player hits the floor.
+
+plraction=X – Forces a one off player action
+X=1 Fires current weapon
+X=2 Zooms current weapon
+X=3 Reloads current weapon
+X=4 Crouches player
+X=5 Jumps player
+X=6 Peeks player left
+X=7 Peeks player right
+X=8 Forces “use” key
+X=9 Forces left mouse click
+X=10 Forces right mouse click
+
+plrforcemove=X – if positive, turns on auto move forward for player, a negative value forces an auto move backwards as if the appropriate 
+movement key had been pressed. A setting of 0 (the default) disables auto move
+
+Emitforce=x emits X amount of force from the current entity as a pulse. In a range of 0.0+ (default 1.0)
+Forcedamageon=x 1=allows force damage (the default) any other number prevents damage
+
+mousesclick=x (condition) – Returns the current mousestate.
+
+X=1 returns true if left button is depressed
+X=2 returns true if right button is depressed
+X=3 returns true if both left and right buttons are depressed
+
+crosshair=x, where 1 displays a crosshair if available and x=0 disables them. The default is on
+weapontoslot=x where X is the next weapon slot to be used, X=0, use next free slot.
+Armon = x 1=Turn on body armour, 0=No body armour, damage
+is deducted from armour before health.
+SetArmx=x, X cord of the armour display
+SetArmy=x, Y cord of the armour display
+SetArm=x, Sets body armour value to X
+ArmInc=X, add X to your current body armour
+ArmDec=X, subtract X from your current armour.
+Airon=X - X=0 is off, X=1 acts like an aqualung. X=2 acts like lungs, restoring air to the amount set by SetAirMax when you surface.
+Addair=X - Add x to air
+Setair=X - Sets air to X
+Setairx=X - Sets air display X cord to X
+Setairy=X – Sets air display Y cord to X
+Setairmax=X – sets the maximum air allowed.
+Setair=X - Sets air to X
+Setairtime=X – Where X is the number of milliseconds underwater before air is reduced
+Setdrowntime=X - Where X is the number of milliseconds underwater before drowning damage occurs.
+Instantdrown=x – If X=1 (default) running out of air results ininstant death, otherwise x=0 reduces heath.
+AirGreater=x (condition) - returns true if air is greater than X.
+AirLesser=x (condition) - returns true if air is less than X.
+AirEqual=x (condition) - returns true if air equals X.
+Samefloorasplr(condition)  - returns true if the entity is on the same floor as the player.
+Entityfloorequal=x - returns true if the entity is on floor X
+plrfloorequal=x - returns true if the player is on floor X
+plrsetimmune=x, when set the anything other than 0, player is immune from all damage!
+plrisimmune (condition)– returns true if the player is immune from damage.
+
+Automated feature -Some characters, most notable Bond1's excellent models often include hard modelled melee weapons. The code automatically detects if you want the model to use another weapon and hides the melee weapon. Models must however use the 
+default FPSC limb naming convention: MELEE-WEAPON-LEFT or MELEE-WEAPON-RIGHT.
+
+Arrowkeys=X - toggles use of the arrow keys for movement
+Peekkey= X - toggles use of the the peek keys
+Crouchkey= X - toggles use of the crouch key
+Jumpkey= X - toggles use of the jump key
+Walkkey=X - toggles use of the walk key for movement
+Runkey=x - toggles use of the walk key for movement
+Setforcedamage – Sets the amount of damage the next force burst will cause.
+Compasson = Turns on the compass
+Compassoff= Turns off the compass
+CompassX = Compass x coordinate on screen
+CompassY = Compass y coordinate on screen
+Compassspin = Sets the compass to spin rather than the needle
+Needlespin = Sets the needle to spin rather than the compass.
+radaron=x, where 1 turns on the dark radar feature, using blip1.png,blip2.png, etc, stored in databank to represent teams (1-10)  non Dark AI's blips show as enemy (blip2)
+radarx=x the radar x cord of the radar centre
+radary=x the radar y cord of the radar centre
+rotateblip=x, 1= enables radar blip to show entity facing
+radarrange=x the range that entities show on the radar in segments
+plrspeedmod=x where x adjusts the player speed by X%
+
+AddRawText = String, Adds the string to the current RawText text.
+Setisobjective, the object is set as the objective. A pointer, using the same format as the radar and the compass will point in the direction of the objective. Entities and Characters can all be
+set as objectives. This is NOT the same as the isobjective in an objects settings.
+setobjectivex=x. Where x= the x coordinate of the centre of the objective pointer
+setobjectivey=x. Where x= the y coordinate of the centre of the objective pointer
+setobjectivemode=x where x=0 hide objective set objective, x=1 always show, x=2 show on same floor only.
+setvarrnd=x or setvarrnd=var x. sets system variable or named var to a random value between 0 and x
+Randomize - resets the rnd seed to the timer
+Emptyreloadonly (gunspec) - Won't allow reload until weapon is empty. E.g. M1 Garand, flintlock, etc.
+setmaxweapons=x - sets the maximum number of weapons allowed in the players inventory. Exceeding X prevents pick up.
+plrweaponsgreater=x (condition) - returns true if weapons in inventory is greater than X
+plrweaponslesser=x (condition) -  returns true if weapons in inventory is less than X
+plrweaponsequal=x (condition) - returns true if weapons in inventory is equal to X
+$ARM = system variable armour
+$AIR = system variable air
+$FPS = system variable FPS
+$WAT = system variable water height
+$MAX = system variable maximum weapons slots
+
+Moved all new data to save/load routine.
+
+Assigned variables to radar/compass objects for ease of use.
+entitydamagemult=x multiplies the entities damage by x%
+
+weaponinslot=x (condition) - returns true if slot X contains a weapon
+playerstrength=x - multiplies the players strength by X%
+currentweapon=x (condition) - returns true if the currently held weapon is in slot X
+
+Added performance increases
+Added 'average' timer based movement,for smoother movement.
+Increase max FPS to 80 to account for additional improvements, cap required as FPS 80+ corrupting animations, will look into this.
+
+cullmode=X - 0=Legacy culling, 1=Legacy+dynamic entity cull based on entity size- default, x=1 and system calculated cull range
+cullrange=X - when cullmode=1 sets the range the entity will be culled at, overriding system defaults
+hide - hides the current entity
+show - shows the current entity
+cullmodi=x - where x is the multiplier for the new culling - x=default 400, while entity size dependant 100=approximately 1 segment.
+$DIS - returns the current entities distance from the player.
+
+
 V1.1.8
 ------
  
