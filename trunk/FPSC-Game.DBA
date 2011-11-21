@@ -37926,7 +37926,8 @@ if deactivatecollision=0 and skipcol=0
  endif
  `
  rem Jump ends when camera starts decending
- if jumpactionnorepeat=0 and camvely#<0.0 then jumpaction=0
+ rem V119 - this can freeze the player in mid-air
+ `if jumpactionnorepeat=0 and camvely#<0.0 then jumpaction=0
  `
  rem debug object
  if physicsdebug=1
