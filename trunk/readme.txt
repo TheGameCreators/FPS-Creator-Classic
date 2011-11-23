@@ -47,6 +47,9 @@ X=1 returns true if left button is depressed
 X=2 returns true if right button is depressed
 X=3 returns true if both left and right buttons are depressed
 
+
+WASP - Official V2 additions
+
 crosshair=x, where 1 displays a crosshair if available and x=0 disables them. The default is on
 weapontoslot=x where X is the next weapon slot to be used, X=0, use next free slot.
 Armon = x 1=Turn on body armour, 0=No body armour, damage
@@ -78,6 +81,8 @@ plrisimmune (condition)– returns true if the player is immune from damage.
 Automated feature -Some characters, most notable Bond1's excellent models often include hard modelled melee weapons. The code automatically detects if you want the model to use another weapon and hides the melee weapon. Models must however use the 
 default FPSC limb naming convention: MELEE-WEAPON-LEFT or MELEE-WEAPON-RIGHT.
 
+WASP - official V3 additions
+
 Arrowkeys=X - toggles use of the arrow keys for movement
 Peekkey= X - toggles use of the the peek keys
 Crouchkey= X - toggles use of the crouch key
@@ -97,6 +102,8 @@ radary=x the radar y cord of the radar centre
 rotateblip=x, 1= enables radar blip to show entity facing
 radarrange=x the range that entities show on the radar in segments
 plrspeedmod=x where x adjusts the player speed by X%
+
+WASP - official V4 additions.
 
 AddRawText = String, Adds the string to the current RawText text.
 Setisobjective, the object is set as the objective. A pointer, using the same format as the radar and the compass will point in the direction of the objective. Entities and Characters can all be
@@ -119,12 +126,18 @@ $MAX = system variable maximum weapons slots
 
 Moved all new data to save/load routine.
 
+WASP - official V5 additions.
+
 Assigned variables to radar/compass objects for ease of use.
 entitydamagemult=x multiplies the entities damage by x%
+
+WASP - Official V6 additions
 
 weaponinslot=x (condition) - returns true if slot X contains a weapon
 playerstrength=x - multiplies the players strength by X%
 currentweapon=x (condition) - returns true if the currently held weapon is in slot X
+
+WASP Official - Cull additions
 
 Added performance increases
 Added 'average' timer based movement,for smoother movement.
@@ -134,8 +147,30 @@ cullmode=X - 0=Legacy culling, 1=Legacy+dynamic entity cull based on entity size
 cullrange=X - when cullmode=1 sets the range the entity will be culled at, overriding system defaults
 hide - hides the current entity
 show - shows the current entity
-cullmodi=x - where x is the multiplier for the new culling - x=default 400, while entity size dependant 100=approximately 1 segment.
+cullmod=x - where x is the multiplier for the new culling - x=default 400, while entity size dependant 100=approximately 1 segment.
 $DIS - returns the current entities distance from the player.
+
+WASP official - V7 - for use after V1.19 beta
+
+Increased maximum radar blips to 20 to bring in line with maximum AI teams.
+Changes to cull system to improve performance and added entity fade for smoother appearence.
+
+plrisrunning=x (condition) - X=1 returns true if the player is running, x=0 returns true if player not running.
+plriszoomed=x (condition) - X=1 returns true if player weapon currently zoomed, X=0, returns true if weapon not zoomed
+plrisusingreload=X (condition) - X=1 returns true if reload pressed, X=0, returns true if reload not pressed.
+plriscrouching=x (condition) - X=1. returns true if player crouched, x=0 returns true if player not crouching
+plrisonground=x (condition) - X=1 and player is on ground returns true, X=0 and player is not on ground returns true.
+plrisjumping=x (condition) x=1 returns true if player is jumping, x=0 returns true if player is not jumping.
+
+swaptoalt - swaps to alt fire on the current weapon
+firemode=x (condition) - returns true if current firemode=x, 0=normal, 1=alt fire mode
+
+plrrotatex=x - rotate camera angle x to X
+plrrotatey=x - rotate camera angle y to X
+
+entrotatex=x - rotate entity angle x to x
+entrotatey=x - rotate entity angle y to x
+entrotatez=x - rotate entity angle z to x
 
 
 V1.1.8
