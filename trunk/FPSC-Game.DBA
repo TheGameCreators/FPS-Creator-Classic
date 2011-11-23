@@ -131,13 +131,15 @@ global istheobjective=0
 global objectivex=80
 global objectivey: objectivey=screen height() - 80
 global madeobjective=0
-global objectiveobject=666681
+global objectiveobject=666691
 global maxslots=10
 Rem Scene Commander water performance
 Global waterflec=400
 rem Scene Commander culling
 global cullmode=1
 global cullmodi=400
+global plrfootfall=1
+global forcealtswap=0
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
@@ -469,6 +471,7 @@ type saveloadgamepositionentitytype
  entitydammult as integer rem Scene Commander
  ishidden as integer rem Scene Commander
  cullstate as integer rem Scene Commander
+
 endtype
 type saveloadgamepositionweaponslottype
  pref got invpos
@@ -1578,6 +1581,7 @@ type entitytype
  hideshadow as integer
  floorpositiony as float
  animatespeed as float rem set animate command speed (markblosser)
+
 endtype
 rem Entity Breadcrumbs Data
 type entitybreadcrumbstype
@@ -1772,6 +1776,13 @@ Rem Scene commander conditions
 #constant AICONDWEAPONSEQUAL 880
 #constant AICONDWEAPONINSLOT 881
 #constant AICONDCURRENTWEAPON 882
+#constant AICONDPLRRUNNING 883
+#constant AICONDPLRCROUCHING 884
+#constant AICONDZOOMED 885
+#constant AICONDPLRUSINGRELOAD 886
+#constant AICONDPLRONGROUND 887
+#constant AICONDPLRJUMPING 888
+#constant AICONDFIREMODE 889
 
 
 #constant AICONDLAST 900
@@ -2233,6 +2244,13 @@ rem Scene Commander actions
 #constant AIACTHIDEOBJ 1558
 #constant AIACTSHOWOBJ 1559
 #constant AIACTCULLMODI 1560
+#constant AIACTFOOTFALL 1561
+#constant AIACTSWAPALT 1562
+#constant AIACTROTATEPLRX 1563
+#constant AIACTROTATEPLRY 1564
+#constant AIACTENTROTX 1565
+#constant AIACTENTROTY 1566
+#constant AIACTENTROTZ 1567
 
 #constant AIACTLAST 1600
 
@@ -3851,7 +3869,7 @@ addfiletocollection("databank\compass.png")
 addfiletocollection("databank\needle.png")
 addfiletocollection("databank\radarback.png")
 addfiletocollection("databank\objective.png")
-for f=1 to 10
+for f=1 to 20
 a$="databank\blip"+str$(f)+".png"
 if file exist(a$)
 addfiletocollection(a$)
@@ -4348,6 +4366,8 @@ _main_game_core:
  `
  rem Update screen
  if keystate(28) then gotintodes=0
+
+ `text 200,200,str$(firemode)
 
 rem scene commander new air commands
 
@@ -10742,7 +10762,7 @@ _entity_completerayhit:
    tdamagesource=0 : timpacttype=bulletraytype
    tdamagex#=x# : tdamagey#=y# : tdamagez#=z#
    tuseentityowndecaldamage=1
-   `
+
    rem arena game there are no knock-downs (multiplayer)
    if gmultiplayergame=1
     timpacttype=1
@@ -10855,10 +10875,12 @@ _entity_addforcesphere:
     ste=e : sttentid=tentid
     tentid=entityelement(tte).bankindex
     e=tte
+
     if entityprofile(tentid).ischaracter=1
      rem characters can shrug off some explosion force
      if tdamage<30 then timpacttype=1
      if forcedamageon=0 then tdamage=0
+
      gosub _entity_deducthealth
     else
      gosub _entity_delayeddeducthealth
@@ -10979,6 +11001,8 @@ _entity_deducthealth:
  `
  rem takes TDAMAGE,TDIR and TIMPACTTYPE
  tresult=0 : tentid=entityelement(e).bankindex
+
+
  `
  rem AirMod - Update Last Hit Pos
  if obj > 0
@@ -11543,6 +11567,15 @@ conword$(AICONDWEAPONSLESSER)="plrweaponslesser"
 conword$(AICONDWEAPONSEQUAL)="plrweaponsequal"
 conword$(AICONDWEAPONINSLOT)="weaponinslot"
 conword$(AICONDCURRENTWEAPON)="currentweapon"
+Rem Scene Commander, V1.19 beta 2
+conword$(AICONDPLRRUNNING)="plrisrunning"
+conword$(AICONDPLRCROUCHING)="plriscrouching"
+conword$(AICONDZOOMED)="plriszoomed"
+conword$(AICONDPLRUSINGRELOAD)="plrisusingreload"
+conword$(AICONDPLRONGROUND)="plrisonground"
+conword$(AICONDPLRJUMPING)="plrisjumping"
+conword$(AICONDFIREMODE)="firemode"
+
 
 rem Set all action keywords
 dim actword$(AIACTLAST)
@@ -11936,7 +11969,7 @@ rem Scene Commander actions
 actword$(AIACTWOBBLE)="plrwobble"
 actword$(AIACTTILTON)="plrdeath"
 actword$(AIACTTILTSPEED)="plrdeathspeed"
-actword$(AIACTILTBOUNCE)="plrdeathbounce"
+actword$(AIACTTILTBOUNCE)="plrdeathbounce"
 actword$(AIACTUNSKIP)="playfullvideo"
 actword$(AIACTPLRACTION)="plraction"
 actword$(AIACTFORCEMOVE)="plrforcemove"
@@ -11995,6 +12028,14 @@ actword$(AIACTCULLMODE)="cullmode"
 actword$(AIACTHIDEOBJ)="hide"
 actword$(AIACTSHOWOBJ)="show"
 actword$(AIACTCULLMODI)="cullmod"
+
+actword$(AIACTFOOTFALL)="plrfootfall"
+actword$(AIACTSWAPALT)="swaptoalt"
+actword$(AIACTROTATEPLRX)="plrrotatex"
+actword$(AIACTROTATEPLRY)="plrrotatey"
+actword$(AIACTENTROTX)="entrotatex"
+actword$(AIACTENTROTY)="entrotatey"
+actword$(AIACTENTROTZ)="entrotatez"
 
 return
 
@@ -13980,10 +14021,87 @@ case AICONDISIMMUNE:
       airesult=0
      endif
 
-
      endcase
 
-    `
+     Rem Scene Commander V1.19 beta 2
+
+     case AICONDPLRRUNNING:
+
+    if isrunning<>0 and aiconditionseq(seq).valuea=1
+    airesult=1
+    endif
+
+    if isrunning=0 and aiconditionseq(seq).valuea=0
+    airesult=1
+    endif
+
+    endcase
+
+    case AICONDPLRCROUCHING:
+
+    if crouchmode<>0 and aiconditionseq(seq).valuea=1
+    airesult=1
+    endif
+
+   if crouchmode=0 and aiconditionseq(seq).valuea=0
+   airesult=1
+   endif
+
+
+    endcase
+
+   case AICONDZOOMED:
+
+   if gunzoommode<>0 and aiconditionseq(seq).valuea=1
+   airesult=1
+   endif
+
+   if gunzoommode=0 and aiconditionseq(seq).valuea=0
+   airesult=1
+   endif
+
+
+   endcase
+
+   case AICONDPLRUSINGRELOAD:
+   if aiconditionseq(seq).valuea>1 then aiconditionseq(seq).valuea=1
+   if plrkeyR<>aiconditionseq(seq).valuea then airesult=0
+   endcase
+
+   case AICONDPLRONGROUND:
+
+        if abs(grav#)<5.5 and jumpaction=0 and physuspendgravity=0 and aiconditionseq(seq).valuea=1
+         airesult=1
+         endif
+
+        if abs(grav#)>5.5 and jumpaction=0 and physuspendgravity=0 and aiconditionseq(seq).valuea=1
+        airesult=1
+        endif
+
+
+    endcase
+
+   case AICONDPLRJUMPING:
+
+    if jumpaction<>0 and aiconditionseq(seq).valuea=1
+    airesult=1
+    endif
+
+   if jumpaction=0 and aiconditionseq(seq).valuea=0
+   airesult=1
+   endif
+
+   endcase
+
+   case AICONDFIREMODE:
+
+   if firemode=aiconditionseq(seq).valuea
+   airesult=1
+   endif
+
+   endcase
+
+
    endselect
    `
    rem nw addition, if airesult prematurely zero can leave NOW
@@ -19005,10 +19123,57 @@ case AIACTSETVARRND:
 
    endcase
 
+   case AIACTFOOTFALL:
 
+   plrfootfall=aiactionseq(seq).value
+   if plrfootfall<0 then plrfootfall=0
+   if plrfootfall>1 then plrfootfall=1
 
+   endcase
 
-     `
+   case AIACTSWAPALT:
+
+   forcealtswap=1
+
+   endcase
+
+   case AIACTROTATEPLRX:
+
+   aiactionseq(seq).value=wrapvalue(aiactionseq(seq).value)
+
+   rotate camera aiactionseq(seq).value,camera angle y(),camera angle z()
+
+   endcase
+
+   case AIACTROTATEPLRY:
+
+   aiactionseq(seq).value=wrapvalue(aiactionseq(seq).value)
+
+   rotate camera camera angle x(),aiactionseq(seq).value,camera angle z()
+
+   endcase
+
+   case AIACTENTROTX:
+
+   aiactionseq(seq).value=wrapvalue(aiactionseq(seq).value)
+   entityelement(e).rx=aiactionseq(seq).value
+
+   endcase
+
+   case AIACTENTROTY:
+
+   aiactionseq(seq).value=wrapvalue(aiactionseq(seq).value)
+   entityelement(e).ry=aiactionseq(seq).value
+
+   endcase
+
+   case AIACTENTROTZ:
+
+   aiactionseq(seq).value=wrapvalue(aiactionseq(seq).value)
+   entityelement(e).rz=aiactionseq(seq).value
+
+   endcase
+ `
     endselect
     `
    next seq
@@ -21701,7 +21866,7 @@ if colmaterialtype>=0
       rem FPGC - 280809 - tone player footfalls RIGHT DOWN as they are halllmark annoyances from FPSC!!)
       broadcast3dsound(camera position x(),camera position y(),camera position z(),10.0,-1)
       set sound volume sndid,88-rnd(5) : rem VERY SUBTLE AS IT SHOULD HAVE BEEN ALL ALONG (AND VOLUME VARIETY)
-      play sound sndid
+     if plrfootfall=1 then play sound sndid
      endif
      if colmaterialtype=9
       rem X10 water noise related to intensity
@@ -22188,7 +22353,7 @@ next i
 `
 rem Keyboard
 altswapkeycalled=0
-if gun(gunid).settings.altswapkey1>-1 and keystate(gun(gunid).settings.altswapkey1) and gunzoommode=0 then altswapkeycalled=1
+if gun(gunid).settings.altswapkey1>-1 and keystate(gun(gunid).settings.altswapkey1) and gunzoommode=0 or forcealtswap=1 then altswapkeycalled=1:forcealtswap=0
 if selkeystate>0 and gunzoommode=0 or altswapkeycalled=1
  if altswapkeycalled=1 and gun(gunid).settings.altswapkey2>-1 and keystate(gun(gunid).settings.altswapkey2) or altswapkeycalled=1 and gun(gunid).settings.altswapkey2=-1 or altswapkeycalled=0
   if keyboardpress=0
@@ -24252,6 +24417,7 @@ if gunshoot=1
    rem has bullet hit any entity
    if tcloseste>0 and (dstwallhit#=0 or dstwallhit#>tclosestdist#)
     `
+
     rem complete rayhit if wall not in way (must come right after _entity_hasbulletrayhit)
     gosub _entity_completerayhit
     `
@@ -27089,6 +27255,7 @@ for f=1 to flakelementmax
       e=spheree
       if entityprofile(tentid).ischaracter=1
        `if tdamage<30 then timpacttype=1
+
        gosub _entity_deducthealth
       else
        gosub _entity_delayeddeducthealth
@@ -35471,7 +35638,7 @@ rem calculate player level for character radar cull
 
                      if ai entity exist(entobj)=1
 
-                     for onradar=1 to 10
+                     for onradar=1 to 20
 
                      if entityelement(e).darkai.team=onradar and sprite exist(onradar+radarobject) and howfar<=radarrange
                      offset sprite onradar+radarobject,sprite width(onradar+radarobject)/2,sprite height(onradar+radarobject)/2
@@ -37286,6 +37453,7 @@ endcase
 case 10
 tmouseclick=2
 endcase
+
 
 endselect
 playeraction=0
@@ -42776,6 +42944,7 @@ a#=waterflec: write float 1,a#
 rem Scene Commander culling
 a#=cullmode: write float 1,a#
 a#=cullmodi: write float 1,a#
+a#=plrfootfall: write float 1,a#
 
   for lsi=0 to entityelementmax
    a#=saveloadgamepositionentity(lsi).orx : write float 1,a#
@@ -43084,6 +43253,7 @@ read float 1,a#:waterflec=a#
 rem Scene Commander culling
 read float 1,a#:cullmode=a#
 read float 1,a#:cullmodi=a#
+read float 1,a#:plrfootfall=a#
 
   for lsi=0 to entityelementmax
    read float 1,a# : saveloadgamepositionentity(lsi).orx=a#
@@ -57342,7 +57512,7 @@ endfunction
 
 function makeradar()
 
-for f=blipstart to blipstart+10
+for f=blipstart to blipstart+20
 if sprite exist(f)=1
    delete sprite f
    if image exist(f)
@@ -57359,7 +57529,7 @@ next f
    endif
 
 
-for f=blipstart to blipstart+10
+for f=blipstart to blipstart+20
 a$="databank\blip"+str$(f-radarobject)+".png"
 if file exist(a$)
 load image a$,f
@@ -58905,19 +59075,24 @@ rem end is o
 
     function culling()
 
+ rem if not just using FPSC default culling
+if cullmode<>0
+
 rem get player position
  tcamx#=object position x(physicsplayerborble)
  tcamy#=object position y(physicsplayerborble)
  tcamz#=object position z(physicsplayerborble)
 
- rem if not just using FPSC default culling
-if cullmode<>0
 
 for e=1 to entityelementlist
+
+rem only check entities not hidden by system
+if entityelement(e).ishidden<>2
 
   obj=entityelement(e).obj
 
             if obj>0
+
             entid=entityelement(e).bankindex
             seeit=0
             Rem get is object on screen
@@ -58941,24 +59116,45 @@ for e=1 to entityelementlist
                   rem cullmodi allows user adjustment to global entity culling
                   sizeis=sizeis*cullmodi
                            rem if entity has user defined cull then use that
+
                      if entityelement(e).cullstate>3 then sizeis=entityelement(e).cullstate
                         rem never hide really close objects regardless
                         if howfar<150 or entityelement(e).cullstate=2 then sizeis=1000000
 
-                           if (entityelement(e).ishidden<>2 and howfar<sizeis)
-                           show object obj
-                           entityelement(e).ishidden=0
-                           endif
+                              if sizeis<1000000
+                              fade=abs(howfar-sizeis)
+                              else
+                              fade=100
+                              endif
 
-                           if howfar>=sizeis and entityelement(e).ishidden<>2
+
+                              if fade<entityelement(e).ai.destalphafade and fade<101
+                              set alpha mapping on obj,fade
+                              endif
+
+                           if howfar<sizeis
+                              show object obj
+                              entityelement(e).ishidden=0
+                              endif
+
+
+
+                           if howfar>=sizeis
                            hide object obj
+                           entityelement(e).ishidden=1
                            endif
 
 
          rem close obj 'cullable'
+
+
          endif
+
       rem close obj exist
+
       endif
+
+endif
 
   next e
 
@@ -59000,5 +59196,6 @@ _create_blood:
  endif
  middlebody=0
 return
+
 
 
