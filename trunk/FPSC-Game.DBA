@@ -3677,6 +3677,12 @@ if gvrmode=6
  gvrmode=4
 endif
 
+rem V119 - reposition default radar and compass based on new screen resolution
+radarx =(gdisplaywidth/100.0)*90
+radary = (gdisplayheight/100.0)*90
+compassX =(gdisplaywidth/100.0)*10
+compassY = (gdisplayheight/100.0)*90
+
 rem FPGC - 230211 - must be done AFTER a resolution change, as 3d math gets wiped out (matrix4=15)
 gosub _main_initcalceyes
 
