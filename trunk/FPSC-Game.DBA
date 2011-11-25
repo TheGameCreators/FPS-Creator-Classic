@@ -140,6 +140,9 @@ global cullmode=1
 global cullmodi=400
 global plrfootfall=1
 global forcealtswap=0
+global moveplrx#=0.0
+global moveplry#=0.0
+global moveplrz#=0.0
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
@@ -2251,6 +2254,9 @@ rem Scene Commander actions
 #constant AIACTENTROTX 1565
 #constant AIACTENTROTY 1566
 #constant AIACTENTROTZ 1567
+#constant AIACTMOVEPLRX 1568
+#constant AIACTMOVEPLRY 1569
+#constant AIACTMOVEPLRZ 1570
 
 #constant AIACTLAST 1600
 
@@ -3677,11 +3683,14 @@ if gvrmode=6
  gvrmode=4
 endif
 
-rem V119 - reposition default radar and compass based on new screen resolution
+rem V119 - reposition default radar,compass and objective based on new screen resolution
 radarx =(gdisplaywidth/100.0)*90
 radary = (gdisplayheight/100.0)*90
 compassX =(gdisplaywidth/100.0)*10
 compassY = (gdisplayheight/100.0)*90
+rem Scene Commander, bring objective in line with Lee changes
+objectivex= (gdisplaywidth/100.0)*90
+objectivey= (gdisplayheight/100.0)*90
 
 rem FPGC - 230211 - must be done AFTER a resolution change, as 3d math gets wiped out (matrix4=15)
 gosub _main_initcalceyes
@@ -9307,6 +9316,7 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
      if object exist(tobj)=1 and entityelement(te).active=0
       if entityelement(te).beenkilled=1
        entityelement(te).beenkilled=0
+       entityelement(te).ishidden=0
        tpermitaspawn=1 : exit
       endif
      endif
@@ -12042,6 +12052,9 @@ actword$(AIACTROTATEPLRY)="plrrotatey"
 actword$(AIACTENTROTX)="entrotatex"
 actword$(AIACTENTROTY)="entrotatey"
 actword$(AIACTENTROTZ)="entrotatez"
+actword$(AIACTMOVEPLRX)="moveplrx"
+actword$(AIACTMOVEPLRY)="moveplry"
+actword$(AIACTMOVEPLRZ)="moveplrz"
 
 return
 
@@ -12271,24 +12284,22 @@ Rem Scene Commander
    case "$MAX"
    aiconditionseq(seq).valuea=maxslots
    endcase
+
    case "$DIS"
 
-   entobj=entityelement(e).obj
-   if entobj>0 and physicsplayerborble>0
+   aiconditionseq(seq).valuea=edistance(e)
 
-   tcamx#=object position x(physicsplayerborble)
-   tcamy#=object position y(physicsplayerborble)
-   tcamz#=object position z(physicsplayerborble)
+   endcase
 
-   tdx#=entityelement(e).x-tcamx#
-   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
-   tdz#=entityelement(e).z-tcamz#
-   dist=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
-   else
-   dist=9999999
+   case "$DIF"
 
-   aiconditionseq(seq).valuea=dist
-   endif
+   aiconditionseq(seq).valuea=(edistance(e)/100)*8.33
+
+   endcase
+
+   case "$DIM"
+
+    aiconditionseq(seq).valuea=(edistance(e)/100)*2.54
 
    endcase
 
@@ -12389,22 +12400,19 @@ Rem Scene Commander
 
    case "$DIS"
 
-   entobj=entityelement(e).obj
-   if entobj>0 and physicsplayerborble>0
+   aiconditionseq(seq).valueb=edistance(e)
 
-   tcamx#=object position x(physicsplayerborble)
-   tcamy#=object position y(physicsplayerborble)
-   tcamz#=object position z(physicsplayerborble)
+   endcase
 
-   tdx#=entityelement(e).x-tcamx#
-   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
-   tdz#=entityelement(e).z-tcamz#
-   dist=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
-   else
-   dist=999999
+   case "$DIF"
 
-   aiconditionseq(seq).valueb=dist
-   endif
+   aiconditionseq(seq).valueb=(edistance(e)/100)*8.33
+
+   endcase
+
+   case "$DIM"
+
+    aiconditionseq(seq).valueb=(edistance(e)/100)*2.54
 
    endcase
 
@@ -14288,24 +14296,22 @@ Rem Scene Commander
    endcase
    case "$DIS"
 
-      entobj=entityelement(e).obj
-      if entobj>0 and physicsplayerborble>0
-
-   tcamx#=object position x(physicsplayerborble)
-   tcamy#=object position y(physicsplayerborble)
-   tcamz#=object position z(physicsplayerborble)
-
-   tdx#=entityelement(e).x-tcamx#
-   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
-   tdz#=entityelement(e).z-tcamz#
-   dist=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
-   else
-   dist=999999
-
-   aiactionseq(seq).value=dist
-   endif
+   aiactionseq(seq).value=edistance(e)
 
    endcase
+
+   case "$DIF"
+
+   aiactionseq(seq).value=(edistance(e)/100)*8.33
+
+   endcase
+
+   case "$DIM"
+
+    aiactionseq(seq).value=(edistance(e)/100)*2.54
+
+   endcase
+
 
   endselect
   `
@@ -14404,21 +14410,20 @@ Rem Scene Commander
 
    case "$DIS"
 
-   entobj=entityelement(e).obj
-    if entobj>0 and physicsplayerborble>0
-   tcamx#=object position x(physicsplayerborble)
-   tcamy#=object position y(physicsplayerborble)
-   tcamz#=object position z(physicsplayerborble)
+   aiconditionseq(seq).valueb=edistance(e)
 
-   tdx#=entityelement(e).x-tcamx#
-   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
-   tdz#=entityelement(e).z-tcamz#
-   dist=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
-   else
-   dist=999999
 
-   aiconditionseq(seq).valueb=dist
-   endif
+   endcase
+
+   case "$DIF"
+
+   aiconditionseq(seq).valueb=(edistance(e)/100)*8.33
+
+   endcase
+
+   case "$DIM"
+
+    aiconditionseq(seq).valueb=(edistance(e)/100)*2.54
 
    endcase
   endselect
@@ -14460,6 +14465,7 @@ Rem Scene Commander
      endcase
      case AIACTSUSPEND:
       rem deactivate entity (like a corpse)
+      entityelement(e).ishidden=2
       entityelement(e).active=0
       entityelement(e).beenkilled=1
       entityelement(e).logiccount=0 : entityelement(e).logiccountburst=120
@@ -19179,6 +19185,25 @@ case AIACTSETVARRND:
    entityelement(e).rz=aiactionseq(seq).value
 
    endcase
+
+   case AIACTMOVEPLRX:
+
+   moveplrx#=aiactionseq(seq).value
+
+   endcase
+
+   case AIACTMOVEPLRY:
+
+   moveplry#=aiactionseq(seq).value
+
+   endcase
+
+   case AIACTMOVEPLRY:
+
+   moveplrz#=aiactionseq(seq).value
+
+   endcase
+
  `
     endselect
     `
@@ -38366,12 +38391,18 @@ endif
 rem apply new velocities for future movement
 if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
  rem V109 BETA3 - remove fall velocity cap to create realistic gravity fall
+  rem Scene Commander, add player velocity from moveplr commands
+camvelx#=camvelx#+moveplrx#:moveplrx#=0
+camvely#=camvely#+moveplry#:moveplry#=0
+camvelz#=camvelz#+moveplrz#:moveplrz#=0
  rem cap these velocities to prevent borble fling away
  if camvelx#<-60 then camvelx#=-60
  if camvelx#>60 then camvelx#=60
  if camvelz#<-60 then camvelz#=-60
  if camvelz#>60 then camvelz#=60
+
  ode set linear velocity physicsplayerborble,camvelx#,camvely#,camvelz#
+
  ode set angular velocity physicsplayerborble,0,0,0
 else
  rem ensures player does not slide away after died
@@ -57187,24 +57218,22 @@ function getintervar(var$)
 
    case "$DIS"
 
-   entobj=entityelement(e).obj
-   if entobj>0 and physicsplayerborble>0
-
-   tcamx#=object position x(physicsplayerborble)
-   tcamy#=object position y(physicsplayerborble)
-   tcamz#=object position z(physicsplayerborble)
-
-   tdx#=entityelement(e).x-tcamx#
-   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
-   tdz#=entityelement(e).z-tcamz#
-   dist=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
-   else
-   dist=999999
-
-   temp=dist
-   endif
+   temp=edistance(e)
 
    endcase
+
+   case "$DIF"
+
+   temp=(edistance(e)/100)*8.33
+
+   endcase
+
+   case "$DIM"
+
+    temp=(edistance(e)/100)*2.54
+
+   endcase
+
   rem Hockeykid
   case "$CAX"
    `Grab camera to check
@@ -59104,11 +59133,8 @@ if entityelement(e).ishidden<>2
             Rem get is object on screen
                if object exist(obj) then seeit=object in screen(obj)
 
-                  rem characters,doors,windows and the dead excluded from cull
+                  rem doors and windows, characters and the dead excluded from the cull.
                   if object exist(obj) and (entityprofile(entid).ischaracter<>1 and entityelement(e).eleprof.physics<>3) or (entityprofile(entid).ischaracter=1  and entityelement(e).beenkilled<>0 and seeit=0)
-
-         `if object not on screen or is hidden then hide
-         if seeit=0 or entityelement(e).cullstate=3 then hide object obj:exit
 
          Rem get object distance
 
@@ -59145,7 +59171,7 @@ if entityelement(e).ishidden<>2
 
 
 
-                           if howfar>=sizeis
+                           if howfar>=sizeis or entityelement(e).cullstate=3 or seeit=0
                            hide object obj
                            entityelement(e).ishidden=1
                            endif
@@ -59168,6 +59194,25 @@ endif
   endif
 
 endfunction
+
+function edistance(e)
+
+entobj=entityelement(e).obj
+   if entobj>0 and physicsplayerborble>0
+
+   tcamx#=object position x(physicsplayerborble)
+   tcamy#=object position y(physicsplayerborble)
+   tcamz#=object position z(physicsplayerborble)
+
+   tdx#=entityelement(e).x-tcamx#
+   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdz#=entityelement(e).z-tcamz#
+   dist=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+   else
+   dist=9999999
+   endif
+
+   endfunction dist
 
 _create_blood:
  decalid=entitydecal(entityelement(damagede).bankindex,1)
@@ -59202,6 +59247,7 @@ _create_blood:
  endif
  middlebody=0
 return
+
 
 
 

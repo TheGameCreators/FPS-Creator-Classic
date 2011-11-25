@@ -172,6 +172,16 @@ entrotatex=x - rotate entity angle x to x
 entrotatey=x - rotate entity angle y to x
 entrotatez=x - rotate entity angle z to x
 
+WASP official - V8
+
+Fixed 'leavecorpse' bug, leave corpse now leaves corpse as it should do.
+Fixed limited spawn bug
+moveplrx=x - adds a one off X to players X velocity
+moveplry=x - adds a one off X to players Y velocity
+moveplrz=x - adds a one off X to players Z velocity
+$DIF - returns the current entities real world distance in feet from the player.
+$DIM - returns the current entities real world distance in metres from the player.
+
 
 V1.1.8
 ------
