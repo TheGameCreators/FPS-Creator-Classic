@@ -182,6 +182,14 @@ moveplrz=x - adds a one off X to players Z velocity
 $DIF - returns the current entities real world distance in feet from the player.
 $DIM - returns the current entities real world distance in metres from the player.
 
+WASP official - V9
+
+Prevented culling for multiplayer
+Added png & jpg to splash screen options. Only 1 type allowed. Note, Jpg will not fade.
+Fixed objective to scale to screen res.
+Fixed non-spawned characters appearing on radar
+onradar=x (condition) returns true if character on radar and x=1, else returns true if x=0 and character not on the radar.
+
 
 V1.1.8
 ------
