@@ -1,0 +1,27 @@
+;//Requires v1.17+ DarkAI
+
+desc          = DarkAI ally follow player
+
+;Start
+:state=0:setaiactive=1,alwaysactive=1,reloadweapon,state=1
+
+;Walking animations
+:ducking=0,strafingleft=1:animationnormal,animate=3
+:ducking=0,strafingright=1:animationnormal,animate=4
+:ducking=0,movingforwards=1:animationnormal,animate=2
+:ducking=0,movingbackwards=1:animationreverse,animate=2
+:ducking=0,idle=1:animate=1
+
+;Crouching Animations
+:ducking=1,movingforwards=1:animate=32
+:ducking=1,movingbackwards=1:animationreverse
+:ducking=1,strafingleft=1:animate=32
+:ducking=1,movingbackwards=1:animate=32
+:ducking=1,idle=1:animate=31
+
+;Follow
+:state=1,plrdistfurther=100:aifollowplr=1
+:state=1,plrdistwithin=100:aifollowplr=0
+:nearactivatable=0:settarget,activatetarget=2
+
+;End

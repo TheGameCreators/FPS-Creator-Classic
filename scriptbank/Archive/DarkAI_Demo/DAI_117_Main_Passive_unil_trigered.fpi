@@ -1,0 +1,69 @@
+;//Requires v1.17+ DarkAI + TF341 animation
+
+desc          = DarkAI passive until triggered (demo script)
+
+;//DEMO HUD
+:state=0:hudreset,hudx=10,hudy=80,hudtext=DARK AI DEMO CONTROL,hudname=tip1,hudhide=1,hudmake=display
+:state=0:hudreset,hudx=10,hudy=82,hudtext=PRESS [V] START DEMO,hudname=tip2,hudhide=1,hudmake=display
+:state=0:hudreset,hudx=10,hudy=84,hudtext=HOLD [Z] STOP DEMO,hudname=tip3,hudhide=1,hudmake=display
+:state=1:hudshow=tip1,hudshow=tip2,hudshow=tip3
+
+;//Dark AI Animations----------------------------------------------------------------------------------------------------
+;//Running
+:activated=1,ducking=0,movingforwards=1,aitargetdistfurther=200:animate=5
+:activated=1,ducking=0,movingforwards=1,aitargetdistwithin=200:animate=2
+;//Walking animations
+:ducking=0,strafingleft=1:animate=3
+:ducking=0,strafingright=1:animate=4
+:activated=0,ducking=0,movingforwards=1:animate=2
+:ducking=0,movingbackwards=1:animate=2
+:ducking=0,idle=1:animate=1
+;//Crouching Animations
+:ducking=1,idle=0:animate=32
+:ducking=1,idle=1:animate=31
+
+;//Common behavior and triggers---------------------------------------------------------------------------------
+
+;//Sprint when activated
+:activated=0:aisetspeed=100
+:activated=1:aisetspeed=250
+:aihastarget=1,movingforwards=1,aitargetdistfurther=100:activate=1
+:aihastarget=1,movingforwards=1,aitargetdistwithin=90:activate=0
+:movingforwards=0:activate=0
+:aihastarget=0:activate=0
+
+:state=1,random=100:aimoverandom
+:state=1,random=200:aistop
+:idle=1,random=50:rotateheadrandom=50
+:idle=0:resethead
+
+;//Change to shoot script when shot by enemy and aggro nearby allies.
+:state=1,shotdamage=1:aimovetocover=0,aiattackawareness=1,aisettarget,airotatetotarget,aicallteam=500,shootplr,state=2
+:state=1,aicalled=1:aicleartarget,aiattackawareness=1,shootplr,state=2
+
+;//Reload
+:state=1,hasweapon=1,ifweapon=0,ducking=0:aistop,setaiactive=0,state=25
+:state=1,hasweapon=1,ifweapon=0,ducking=1:aistop,setaiactive=0,state=45
+
+;//Reload standing
+:state=25:setframe=6,state=26
+:state=26:incframe=6
+:state=26,framebeyond=6 60:reloadweapon
+:state=26,frameatend=6:sound=audiobank\guns\reload.wav,state=27
+:state=27:state=1,setaiactive=1
+
+;//Reload crouched
+:state=45:setframe=36,state=46
+:state=46:incframe=36
+:state=46,framebeyond=36 60:reloadweapon
+:state=46,frameatend=36:sound=audiobank\guns\reload.wav,state=47
+:state=47:state=1,setaiactive=1
+
+;//DEMO MODE
+;//toggle to agressive (hot) mode when 'V' is pressed (run shoot script)
+:keypressed=47 1:aistop,aicleartarget,aiattackawareness=1,shootplr,sound=audiobank\switches\click.wav,state=2
+
+
+;//Start Script------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+:state=0:setaiactive=1,alwaysactive=1,reloadweapon,activate=0,aiattackawareness=0,state=1
+;//End

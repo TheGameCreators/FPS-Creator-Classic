@@ -1,0 +1,8 @@
+rem Special version of the FPSC-Game.exe called FPSC-Game-Web.exe
+rem used in combination with the Web Game Builder program to convert
+rem your standalone FPS Creator executable into an ActiveX allowing
+rem you to paste your FPSC game right into your web page! Neat :)
+
+rem FPGC - 260210 - Special flag to modify the start-up to create an ActiveX frame
+runengineinframe=1
+

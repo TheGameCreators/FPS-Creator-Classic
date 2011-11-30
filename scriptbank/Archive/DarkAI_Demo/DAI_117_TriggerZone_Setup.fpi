@@ -1,0 +1,24 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Setup "master" level
+
+:always:globalvar=1
+
+;Faction setup
+:state=0:aiaddenemy=1 2
+
+;Hud setup
+:state=0:hudreset,hudx=50,hudy=50,hudtext=Objective - Find the zombie's master and kill him to stop the zombies from attaking you. (Press F1 to close),hudname=obj,hudmake=display,state=11
+
+;Toggle Hud
+:state=1,keypressed=59 1:hudunshow=obj,sound=audiobank\switches\click.wav,state=2
+:state=2,keypressed=59 0:state=3
+
+:state=3,keypressed=59 1:hudshow=obj,sound=audiobank\switches\click.wav,state=4
+:state=4,keypressed=59 0:state=1
+
+:state=11,varequal=1:state=1
+
+;End of Script
