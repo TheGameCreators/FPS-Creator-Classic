@@ -1,0 +1,17 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Toggle Gasmask on and off with G key
+
+;Triggers
+:state=0,scancodekeypressed=34:state=1
+:state=1:setposteffect=gasmask,state=3
+:state=3,scancodekeypressed=0:state=4
+
+
+
+:state=4,scancodekeypressed=34:ambience=0,state=5
+:state=5:setposteffect=bloom,state=6
+:state=6,scancodekeypressed=0:state=0
+

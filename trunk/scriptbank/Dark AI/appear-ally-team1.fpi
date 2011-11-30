@@ -1,0 +1,13 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = addally
+
+;Triggers
+
+:state=0:state=1,setalphafade=0,animate=1
+:state=1,alphafadeequal=0:incalphafade=100
+:state=1,alphafadeequal=100:state=2,addaiteam=1,runfpidefault=1
+
+;End of Script
