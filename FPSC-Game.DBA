@@ -1157,7 +1157,7 @@ type entityprofiletype
  limbmax as integer
  headlimb as integer
  spine as integer
- spine2 as integer
+ SP2 as integer
  firespotlimb as integer
  animmax as integer
  footfallmax as integer
@@ -1588,7 +1588,25 @@ type entitytype
  ishidden as integer rem Scene Commander
  cullstate as integer rem Scene Commander
  onradar as integer rem Scene Commander
+ Rem Scene Commander scaling/both limb and overall.
+ LC as integer
+ RC as integer
+ LF as integer
+ RF as integer
+ LT as integer
+ RT as integer
+ LH as integer
+ RH as integer
+ LFA as integer
+ RFA as integer
+ LUA as integer
+ RUA as integer
+ SP1 as integer
+ SP2 as integer
+ SP3 as integer
+ NECK as integer
 
+ loadedall as integer
 endtype
 rem Entity Breadcrumbs Data
 type entitybreadcrumbstype
@@ -2262,6 +2280,8 @@ rem Scene Commander actions
 #constant AIACTMOVEPLRX 1568
 #constant AIACTMOVEPLRY 1569
 #constant AIACTMOVEPLRZ 1570
+#constant AIACTSCALE 1571
+#constant AIACTSCALELIMB 1572
 
 #constant AIACTLAST 1600
 
@@ -3696,6 +3716,10 @@ compassY = (gdisplayheight/100.0)*90
 rem Scene Commander, bring objective in line with Lee changes
 objectivex= (gdisplaywidth/100.0)*90
 objectivey= (gdisplayheight/100.0)*90
+armx = (gdisplaywidth/100.0)*90
+army = (gdisplayheight/100.0)*90
+airx = (gdisplaywidth/100.0)*90
+airy = (gdisplayheight/100.0)*90
 
 rem FPGC - 230211 - must be done AFTER a resolution change, as 3d math gets wiped out (matrix4=15)
 gosub _main_initcalceyes
@@ -8405,12 +8429,12 @@ for e=1 to entityelementlist
       if entityelement(e).spiner>0 then dec entityelement(e).spiner,5
       if entityelement(e).spiner<0 then entityelement(e).spiner=0
      endif
-     if entityprofile(entid).spine>-1 and entityprofile(entid).ischaracter=1 and entityprofile(entid).spine2>-1
+     if entityprofile(entid).spine>-1 and entityprofile(entid).ischaracter=1 and entityprofile(entid).SP2>-1
       rotation#=(entityelement(e).spiner/2.0)
       Rem Handle Spine 1 Rotation
       Rotate Limb entityelement(e).obj,entityprofile(entid).spine,Limb Angle X(entityelement(e).obj,entityprofile(entid).spine),rotation#,Limb Angle Z(entityelement(e).obj,entityprofile(entid).spine)
       Rem Handle Spine 2 Rotation
-      Rotate Limb entityelement(e).obj,entityprofile(entid).spine2,Limb Angle X(entityelement(e).obj,entityprofile(entid).spine2),rotation#,Limb Angle Z(entityelement(e).obj,entityprofile(entid).spine2)
+      Rotate Limb entityelement(e).obj,entityprofile(entid).SP2,Limb Angle X(entityelement(e).obj,entityprofile(entid).SP2),rotation#,Limb Angle Z(entityelement(e).obj,entityprofile(entid).SP2)
      endif
      `
      rem any visual overlay info
@@ -12085,6 +12109,7 @@ actword$(AIACTENTROTZ)="entrotatez"
 actword$(AIACTMOVEPLRX)="moveplrx"
 actword$(AIACTMOVEPLRY)="moveplry"
 actword$(AIACTMOVEPLRZ)="moveplrz"
+actword$(AIACTSCALE)="scale"
 
 return
 
@@ -16046,7 +16071,7 @@ Rem Scene Commander
       if obj>0
        position object obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
        set object collision on obj
-       show object obj
+       show object obj:entityelement(e).ishidden=0
       endif
       rem in case drop originated outside (not .drop=x)
       for pint=1 to player(1).inventorymax
@@ -16065,7 +16090,7 @@ Rem Scene Commander
        if obj>0
         position object obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
         set object collision on obj
-        show object obj
+        show object obj:entityelement(e).ishidden=0
        endif
        rem in case drop originated outside (not .drop=x)
        for pint=1 to player(1).inventorymax
@@ -16403,6 +16428,7 @@ Rem Scene Commander
          sync
         endwhile
         while control_escapekey()=1 or spacekey()=1 or control_mouseclick()<>0 : sync : endwhile
+        unskip=0
         delete animation lastvideoplayed
         lastvideoplayed=0
         tensureentitytimestampsupdated=1
@@ -17178,7 +17204,7 @@ Rem Scene Commander
       if ai entity exist(entityelement(e).obj)
        entid=entityelement(e).bankindex
        entityelement(e).darkai.useaim=aiactionseq(seq).value
-       if entityprofile(entid).spine=-1 or entityprofile(entid).spine2=-1 then entityelement(e).darkai.useaim=0
+       if entityprofile(entid).spine=-1 or entityprofile(entid).SP2=-1 then entityelement(e).darkai.useaim=0
        if entityelement(e).darkai.useaim=0 then entityelement(e).spiner=0
       endif
      endcase
@@ -19244,7 +19270,31 @@ case AIACTSETVARRND:
 
    endcase
 
- `
+   case AIACTSCALE:
+
+   tempscale=aiactionseq(seq).value
+   maxscale=aiactionseq(seq).valueb
+
+   newscale=rnd(maxscale)+tempscale
+
+      for li = 2 to 13
+
+       alterlimbscale(e,li,newscale)
+
+      next li
+
+
+      tadj#=object collision center y(obj)
+
+      applyscalefactor#=(object size y(obj)/100.0)
+      tadj#=tadj#*applyscalefactor#
+
+     entityelement(e).y=entityelement(e).y+tadj#
+     position object obj,entityelement(e).x,entityelement(e).y+tadj#,entityelement(e).z
+
+     endcase
+
+
     endselect
     `
    next seq
@@ -29762,25 +29812,198 @@ if desc$<>""
    if object exist(entobj)=1
     perform checklist for object limbs entobj
     for tc=1 to checklist quantity()
-     if lower$(checklist string$(tc))="bip01_spine1"
+     if lower$(checklist string$(tc))="bip01_SP1"
       entityprofile(entid).spine=tc-1
       exit
      endif
     next tc
    endif
   endif
- if entityprofile(entid).spine2=-1
+ if entityprofile(entid).SP2=-1
    if object exist(entobj)=1
     perform checklist for object limbs entobj
     for tc=1 to checklist quantity()
-     if lower$(checklist string$(tc))="bip01_spine2"
-      entityprofile(entid).spine2=tc-1
+     if lower$(checklist string$(tc))="bip01_SP2"
+      entityprofile(entid).SP2=tc-1
       exit
      endif
     next tc
    endif
   endif
  endif
+
+ ` Scene Commander limb scaling/scaling - requires standard limb naming convention
+
+   rem left calf
+   if object exist(entobj)=1
+    perform checklist for object limbs entobj
+    for tc=1 to checklist quantity()
+     if lower$(checklist string$(tc))="bip01_l_calf"
+      entityelement(e).LC = tc-1
+      inc entityelement(e).loadedall,1
+      tc=checklist quantity()+1
+     endif
+    next tc
+   endif
+
+   rem right calf
+   if object exist(entobj)=1
+    perform checklist for object limbs entobj
+    for tc=1 to checklist quantity()
+     if lower$(checklist string$(tc))="bip01_r_calf"
+      entityelement(e).RC = tc-1
+      inc entityelement(e).loadedall,1
+      tc=checklist quantity()+1
+     endif
+    next tc
+   endif
+
+   rem left foot
+   if object exist(entobj)=1
+    perform checklist for object limbs entobj
+    for tc=1 to checklist quantity()
+     if lower$(checklist string$(tc))="bip01_l_foot"
+      entityelement(e).LF = tc-1
+      inc entityelement(e).loadedall,1
+      tc=checklist quantity()+1
+     endif
+    next tc
+   endif
+
+   rem right foot
+   if object exist(entobj)=1
+    perform checklist for object limbs entobj
+    for tc=1 to checklist quantity()
+     if lower$(checklist string$(tc))="bip01_r_foot"
+      entityelement(e).RF = tc-1
+      inc entityelement(e).loadedall,1
+      tc=checklist quantity()+1
+     endif
+    next tc
+   endif
+
+ rem left hand
+
+if object exist(entobj)=1
+    perform checklist for object limbs entobj
+    for tc=1 to checklist quantity()
+     if lower$(checklist string$(tc))="bip01_l_hand"
+      entityelement(e).LH = tc-1
+      inc entityelement(e).loadedall,1
+      tc=checklist quantity()+1
+     endif
+    next tc
+   endif
+
+   rem right hand
+   if object exist(entobj)=1
+    perform checklist for object limbs entobj
+    for tc=1 to checklist quantity()
+     if lower$(checklist string$(tc))="bip01_r_hand"
+      entityelement(e).RH = tc-1
+      inc entityelement(e).loadedall,1
+      tc=checklist quantity()+1
+     endif
+    next tc
+   endif
+
+   rem left forearm
+   if object exist(entobj)=1
+    perform checklist for object limbs entobj
+    for tc=1 to checklist quantity()
+     if lower$(checklist string$(tc))="bip01_l_forearm"
+      entityelement(e).LFA = tc-1
+      inc entityelement(e).loadedall,1
+      tc=checklist quantity()+1
+     endif
+    next tc
+   endif
+
+   rem right forearm
+   if object exist(entobj)=1
+    perform checklist for object limbs entobj
+    for tc=1 to checklist quantity()
+     if lower$(checklist string$(tc))="bip01_r_forearm"
+      entityelement(e).RFA = tc-1
+      inc entityelement(e).loadedall,1
+      tc=checklist quantity()+1
+     endif
+    next tc
+   endif
+
+   rem left uppderarm
+   if object exist(entobj)=1
+    perform checklist for object limbs entobj
+    for tc=1 to checklist quantity()
+     if lower$(checklist string$(tc))="bip01_l_upperarm"
+      entityelement(e).LUA = tc-1
+      inc entityelement(e).loadedall,1
+      tc=checklist quantity()+1
+     endif
+    next tc
+   endif
+
+   rem right upperarm
+   if object exist(entobj)=1
+    perform checklist for object limbs entobj
+    for tc=1 to checklist quantity()
+     if lower$(checklist string$(tc))="bip01_r_upperarm"
+      entityelement(e).RUA = tc-1
+      inc entityelement(e).loadedall,1
+      tc=checklist quantity()+1
+     endif
+    next tc
+   endif
+
+   rem NECK
+   if object exist(entobj)=1
+    perform checklist for object limbs entobj
+    for tc=1 to checklist quantity()
+     if lower$(checklist string$(tc))="bip01_NECK"
+      entityelement(e).NECK = tc-1
+      inc entityelement(e).loadedall,1
+      tc=checklist quantity()+1
+     endif
+    next tc
+   endif
+
+   rem spine 3
+   if object exist(entobj)=1
+    perform checklist for object limbs entobj
+    for tc=1 to checklist quantity()
+     if lower$(checklist string$(tc))="bip01_SP3"
+      entityelement(e).SP3 = tc-1
+      inc entityelement(e).loadedall,1
+      tc=checklist quantity()+1
+     endif
+    next tc
+   endif
+
+   rem left thigh
+   if object exist(entobj)=1
+    perform checklist for object limbs entobj
+    for tc=1 to checklist quantity()
+     if lower$(checklist string$(tc))="bip01_l_thigh"
+      entityelement(e).LT = tc-1
+      inc entityelement(e).loadedall,1
+      tc=checklist quantity()+1
+     endif
+    next tc
+   endif
+
+   rem right thigh
+   if object exist(entobj)=1
+    perform checklist for object limbs entobj
+    for tc=1 to checklist quantity()
+     if lower$(checklist string$(tc))="bip01_r_thigh"
+      entityelement(e).RT = tc-1
+      inc entityelement(e).loadedall,1
+      tc=checklist quantity()+1
+     endif
+    next tc
+   endif
+
+
  `
  rem assign physics weight and friction (if not set)
  if entityprofile(entid).physics<>0
@@ -29840,7 +30063,7 @@ if file exist(tprofile$)=0
  entityprofile(entid).raisefactor=0
  entityprofile(entid).phyalways=0
  entityprofile(entid).spine=-1
- entityprofile(entid).spine2=-1
+ entityprofile(entid).SP2=-1
  entityprofile(entid).decaloffsetangle=0
  entityprofile(entid).decaloffsetdist=0
  entityprofile(entid).decaloffsety=0
@@ -32414,7 +32637,7 @@ _entity_delete:
   entityprofile(entid).explodable=0
   entityprofile(entid).explodedamage=0
   entityprofile(entid).spine=-1
-  entityprofile(entid).spine2=-1
+  entityprofile(entid).SP2=-1
  endif
  `
 return
@@ -59254,6 +59477,121 @@ entobj=entityelement(e).obj
    endif
 
    endfunction dist
+
+
+function alterlimbscale(en,lm,ls)
+if entityelement(en).obj>0
+if object exist(entityelement(en).obj)
+ select lm
+ case 1
+  if limb exist(entityelement(en).obj,entityprofile(entityelement(en).bankindex).headlimb)
+
+  scale limb entityelement(en).obj,entityprofile(entityelement(en).bankindex).headlimb,ls,ls,ls
+
+  endif
+ endcase
+
+ case 2
+  if limb exist(entityelement(en).obj,entityelement(en).LC)
+  scale limb entityelement(en).obj,entityelement(en).LC,ls,ls,ls
+
+  endif
+ endcase
+ case 3
+  if limb exist(entityelement(en).obj,entityelement(en).RC)
+  scale limb entityelement(en).obj,entityelement(en).RC,ls,ls,ls
+
+  endif
+ endcase
+ case 4
+  if limb exist(entityelement(en).obj,entityelement(en).LF)
+  scale limb entityelement(en).obj,entityelement(en).LF,ls,ls,ls
+
+  endif
+ endcase
+ case 5
+  if limb exist(entityelement(en).obj,entityelement(en).RF)
+  scale limb entityelement(en).obj,entityelement(en).RF,ls,ls,ls
+
+  endif
+ endcase
+case 6
+  if limb exist(entityelement(en).obj,entityelement(en).LT)
+  scale limb entityelement(en).obj,entityelement(en).LT,ls,ls,ls
+
+  endif
+ endcase
+ case 7
+  if limb exist(entityelement(en).obj,entityelement(en).RT)
+  scale limb entityelement(en).obj,entityelement(en).RT,ls,ls,ls
+
+  endif
+ endcase
+ case 8
+  if limb exist(entityelement(en).obj,entityelement(en).LH)
+  scale limb entityelement(en).obj,entityelement(en).LH,ls,ls,ls
+
+  endif
+ endcase
+ case 9
+  if limb exist(entityelement(en).obj,entityelement(en).RH)
+  scale limb entityelement(en).obj,entityelement(en).RH,ls,ls,ls
+
+  endif
+ endcase
+ case 10
+  if limb exist(entityelement(en).obj,entityelement(en).LFA)
+  scale limb entityelement(en).obj,entityelement(en).LFA,ls,ls,ls
+
+  endif
+ endcase
+ case 11
+  if limb exist(entityelement(en).obj,entityelement(en).RFA)
+  scale limb entityelement(en).obj,entityelement(en).RFA,ls,ls,ls
+  endif
+ endcase
+ case 12
+  if limb exist(entityelement(en).obj,entityelement(en).LUA)
+  scale limb entityelement(en).obj,entityelement(en).LUA,ls,ls,ls
+
+  endif
+ endcase
+ case 13
+  if limb exist(entityelement(en).obj,entityelement(en).RUA)
+  scale limb entityelement(en).obj,entityelement(en).RUA,ls,ls,ls
+
+  endif
+ endcase
+
+ case 14
+  if limb exist(entityelement(en).obj,entityelement(en).SP1)
+  scale limb entityelement(en).obj,entityelement(en).SP1,ls,ls,ls
+
+  endif
+ endcase
+ case 15
+  if limb exist(entityelement(en).obj,entityelement(en).SP2)
+  scale limb entityelement(en).obj,entityelement(en).SP2,ls,ls,ls
+
+  endif
+ endcase
+ case 16
+  if limb exist(entityelement(en).obj,entityelement(en).SP3)
+  scale limb entityelement(en).obj,entityelement(en).SP3,ls,ls,ls
+
+  endif
+ endcase
+case 17
+  if limb exist(entityelement(en).obj,entityelement(en).NECK)
+  scale limb entityelement(en).obj,entityelement(en).NECK,ls,ls,ls
+
+  endif
+
+endcase
+ endselect
+endif
+endif
+endfunction
 
 _create_blood:
  decalid=entitydecal(entityelement(damagede).bankindex,1)
