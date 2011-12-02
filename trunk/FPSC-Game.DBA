@@ -143,6 +143,7 @@ global forcealtswap=0
 global moveplrx#=0.0
 global moveplry#=0.0
 global moveplrz#=0.0
+global lastfired=0
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
@@ -474,7 +475,9 @@ type saveloadgamepositionentitytype
  entitydammult as integer rem Scene Commander
  ishidden as integer rem Scene Commander
  cullstate as integer rem Scene Commander
- onradar as integer
+ onradar as integer rem Scene Commander
+ radardistance as integer
+
 
 endtype
 type saveloadgamepositionweaponslottype
@@ -1588,6 +1591,7 @@ type entitytype
  ishidden as integer rem Scene Commander
  cullstate as integer rem Scene Commander
  onradar as integer rem Scene Commander
+ radardistance as integer
  Rem Scene Commander scaling/both limb and overall.
  LC as integer
  RC as integer
@@ -1605,8 +1609,6 @@ type entitytype
  SP2 as integer
  SP3 as integer
  NECK as integer
-
- loadedall as integer
 endtype
 rem Entity Breadcrumbs Data
 type entitybreadcrumbstype
@@ -1809,7 +1811,9 @@ Rem Scene commander conditions
 #constant AICONDPLRJUMPING 888
 #constant AICONDFIREMODE 889
 #constant AICONDONRADAR 890
-
+#constant AICONDLASTFIRED 891
+#constant AICONDRADARGREATER 892
+#constant AICONDRADAREQUAL 893
 
 #constant AICONDLAST 900
 
@@ -3713,9 +3717,9 @@ radarx =(gdisplaywidth/100.0)*90
 radary = (gdisplayheight/100.0)*90
 compassX =(gdisplaywidth/100.0)*10
 compassY = (gdisplayheight/100.0)*90
-rem Scene Commander, bring objective in line with Lee changes
-objectivex= (gdisplaywidth/100.0)*90
-objectivey= (gdisplayheight/100.0)*90
+rem Scene Commander, bring objective, armour and air in line with Lee changes
+objectivex= compassx
+objectivey= compassy
 armx = (gdisplaywidth/100.0)*90
 army = (gdisplayheight/100.0)*90
 airx = (gdisplaywidth/100.0)*90
@@ -11645,7 +11649,9 @@ conword$(AICONDPLRONGROUND)="plrisonground"
 conword$(AICONDPLRJUMPING)="plrisjumping"
 conword$(AICONDFIREMODE)="firemode"
 conword$(AICONDONRADAR)="onradar"
-
+conword$(AICONDLASTFIRED)="plrlastfired"
+conword$(AICONDRADARGREATER)="radargreater"
+conword$(AICONDRADAREQUAL)="radarequal"
 
 rem Set all action keywords
 dim actword$(AIACTLAST)
@@ -14179,6 +14185,42 @@ case AICONDISIMMUNE:
    endif
 
    endcase
+
+   case AICONDLASTFIRED:
+
+   findgun$=lower$(aiconditionseq(seq).string1)
+
+   if lastfired=0
+   airesult=0
+   else
+      gosub _gun_findweaponindexbyname
+      if foundgunid>0
+         if foundgunid=lastfired then airesult=1
+         lastfired=0
+      endif
+   endif
+
+   endcase
+
+case AICONDRADARGREATER:
+
+temprange=aiconditionseq(seq).valuea
+tempmode=aiconditionseq(seq).valueb
+
+if tempmode=1 and entityelement(e).radardistance>temprange then airesult=1
+if tempmode=0 and entityelement(e).radardistance>temprange then airesult=1
+
+endcase
+
+case AICONDRADAREQUAL:
+
+temprange=aiconditionseq(seq).valuea
+tempmode=aiconditionseq(seq).valueb
+
+if tempmode=1 and entityelement(e).radardistance=temprange then airesult=1
+if tempmode=0 and entityelement(e).radardistance<>temprange then airesult=1
+
+endcase
 
 
    endselect
@@ -22384,6 +22426,7 @@ if player(plrid).health>0 or playerstartstrength=0
  if weaponammo(weaponammoindex+ammooffset)>0 or firemode(gunid,firemode).settings.reloadqty=0
   if tmouseclick=1 and player(plrid).state.blockingaction=0 and gun(gunid).settings.ismelee=0 then player(plrid).state.firingmode=1
   if firemode(gunid,firemode).settings.isempty>0
+
    if gunmode<>7031 and gunmode<>7041
     if gunmode<123 or gunmode>124
      if gunmode<700 or gunmode>707 then firemode(gunid,firemode).settings.isempty=0
@@ -22397,7 +22440,12 @@ if player(plrid).health>0 or playerstartstrength=0
  rem v118 - 110511 - cinematic hands (terry cox) >>>>
  ` this will prevent the player from firing the weapon if set to 1
     if tmouseclick=1
-        if disablefirebutton = 1 then player(plrid).state.firingmode=0 else player(plrid).state.firingmode=1
+        if disablefirebutton = 1
+        player(plrid).state.firingmode=0
+        else
+        player(plrid).state.firingmode=1
+        lastfired=gunid
+        endif
     endif
  rem cinematic hands <<<<
  rem AirMod - Blocking Move >>>
@@ -29840,7 +29888,6 @@ if desc$<>""
     for tc=1 to checklist quantity()
      if lower$(checklist string$(tc))="bip01_l_calf"
       entityelement(e).LC = tc-1
-      inc entityelement(e).loadedall,1
       tc=checklist quantity()+1
      endif
     next tc
@@ -29852,7 +29899,6 @@ if desc$<>""
     for tc=1 to checklist quantity()
      if lower$(checklist string$(tc))="bip01_r_calf"
       entityelement(e).RC = tc-1
-      inc entityelement(e).loadedall,1
       tc=checklist quantity()+1
      endif
     next tc
@@ -29864,7 +29910,6 @@ if desc$<>""
     for tc=1 to checklist quantity()
      if lower$(checklist string$(tc))="bip01_l_foot"
       entityelement(e).LF = tc-1
-      inc entityelement(e).loadedall,1
       tc=checklist quantity()+1
      endif
     next tc
@@ -29876,7 +29921,6 @@ if desc$<>""
     for tc=1 to checklist quantity()
      if lower$(checklist string$(tc))="bip01_r_foot"
       entityelement(e).RF = tc-1
-      inc entityelement(e).loadedall,1
       tc=checklist quantity()+1
      endif
     next tc
@@ -29889,7 +29933,6 @@ if object exist(entobj)=1
     for tc=1 to checklist quantity()
      if lower$(checklist string$(tc))="bip01_l_hand"
       entityelement(e).LH = tc-1
-      inc entityelement(e).loadedall,1
       tc=checklist quantity()+1
      endif
     next tc
@@ -29901,7 +29944,6 @@ if object exist(entobj)=1
     for tc=1 to checklist quantity()
      if lower$(checklist string$(tc))="bip01_r_hand"
       entityelement(e).RH = tc-1
-      inc entityelement(e).loadedall,1
       tc=checklist quantity()+1
      endif
     next tc
@@ -29913,7 +29955,6 @@ if object exist(entobj)=1
     for tc=1 to checklist quantity()
      if lower$(checklist string$(tc))="bip01_l_forearm"
       entityelement(e).LFA = tc-1
-      inc entityelement(e).loadedall,1
       tc=checklist quantity()+1
      endif
     next tc
@@ -29925,7 +29966,6 @@ if object exist(entobj)=1
     for tc=1 to checklist quantity()
      if lower$(checklist string$(tc))="bip01_r_forearm"
       entityelement(e).RFA = tc-1
-      inc entityelement(e).loadedall,1
       tc=checklist quantity()+1
      endif
     next tc
@@ -29937,7 +29977,6 @@ if object exist(entobj)=1
     for tc=1 to checklist quantity()
      if lower$(checklist string$(tc))="bip01_l_upperarm"
       entityelement(e).LUA = tc-1
-      inc entityelement(e).loadedall,1
       tc=checklist quantity()+1
      endif
     next tc
@@ -29949,7 +29988,6 @@ if object exist(entobj)=1
     for tc=1 to checklist quantity()
      if lower$(checklist string$(tc))="bip01_r_upperarm"
       entityelement(e).RUA = tc-1
-      inc entityelement(e).loadedall,1
       tc=checklist quantity()+1
      endif
     next tc
@@ -29961,7 +29999,6 @@ if object exist(entobj)=1
     for tc=1 to checklist quantity()
      if lower$(checklist string$(tc))="bip01_NECK"
       entityelement(e).NECK = tc-1
-      inc entityelement(e).loadedall,1
       tc=checklist quantity()+1
      endif
     next tc
@@ -29973,7 +30010,6 @@ if object exist(entobj)=1
     for tc=1 to checklist quantity()
      if lower$(checklist string$(tc))="bip01_SP3"
       entityelement(e).SP3 = tc-1
-      inc entityelement(e).loadedall,1
       tc=checklist quantity()+1
      endif
     next tc
@@ -29985,7 +30021,6 @@ if object exist(entobj)=1
     for tc=1 to checklist quantity()
      if lower$(checklist string$(tc))="bip01_l_thigh"
       entityelement(e).LT = tc-1
-      inc entityelement(e).loadedall,1
       tc=checklist quantity()+1
      endif
     next tc
@@ -29997,7 +30032,6 @@ if object exist(entobj)=1
     for tc=1 to checklist quantity()
      if lower$(checklist string$(tc))="bip01_r_thigh"
       entityelement(e).RT = tc-1
-      inc entityelement(e).loadedall,1
       tc=checklist quantity()+1
      endif
     next tc
@@ -35925,6 +35959,7 @@ rem calculate player level for character radar cull
                   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
                   tdz#=entityelement(e).z-tcamz#
                   howfar=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+                  entityelement(e).radardistance=howfar
                   howfar=int(howfar/12)
 
                   beenonradar=0
@@ -37720,6 +37755,7 @@ Rem Scene commander automated actions
 select playeraction
 case 1
 player(1).state.firingmode=1
+lastfired=gunid
 endcase
 case 2
 gunzoommode=1
@@ -43245,7 +43281,9 @@ a#=waterflec: write float 1,a#
 rem Scene Commander culling
 a#=cullmode: write float 1,a#
 a#=cullmodi: write float 1,a#
+rem additional Scene Commander
 a#=plrfootfall: write float 1,a#
+a#=lastfired: write float 1,a#
 
   for lsi=0 to entityelementmax
    a#=saveloadgamepositionentity(lsi).orx : write float 1,a#
@@ -43555,6 +43593,7 @@ rem Scene Commander culling
 read float 1,a#:cullmode=a#
 read float 1,a#:cullmodi=a#
 read float 1,a#:plrfootfall=a#
+read float 1,a#:lastfired=a#
 
   for lsi=0 to entityelementmax
    read float 1,a# : saveloadgamepositionentity(lsi).orx=a#
@@ -56868,7 +56907,7 @@ Function AIHeardSound(obje)
  tclosestdist#=99999.0
  output=0
  arraycount=array count(aisound())
- hearing=entityelement(obje).darkai.hearingrange^2
+ hearing=entityelement(obje).darkai.hearingrange
  teamslot=AIFindTeam(entityelement(obje).darkai.team)
  for i=1 to arraycount
   tokay=1
@@ -56877,7 +56916,16 @@ Function AIHeardSound(obje)
   next x
   if tokay=1
    if aisound(i).alive=1 and aisound(i).team<>entityelement(obje).darkai.team
-    dst#=(entityelement(obje).x-aisound(i).x)^2 + (entityelement(obje).z-aisound(i).z)^2
+rem calculate sound distance
+                  tobjx#=entityelement(obje).x
+                  tobjy#=entityelement(obje).y
+                  tobjz#=entityelement(obje).z
+
+                  tdx#=aisound(i).x-tobjx#
+                  tdy#=aisound(i).y-tobjy#
+                  tdz#=aisound(i).z-tobjz#
+                 dst#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+
     if dst#<=hearing and dst#<tclosestdist#
      output=i : tclosestdist#=dst#
     endif
