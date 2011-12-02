@@ -144,6 +144,7 @@ global moveplrx#=0.0
 global moveplry#=0.0
 global moveplrz#=0.0
 global lastfired=0
+global noholster=1
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
@@ -2286,6 +2287,7 @@ rem Scene Commander actions
 #constant AIACTMOVEPLRZ 1570
 #constant AIACTSCALE 1571
 #constant AIACTSCALELIMB 1572
+#constant AIACTHOLSTER 1573
 
 #constant AIACTLAST 1600
 
@@ -12116,6 +12118,7 @@ actword$(AIACTMOVEPLRX)="moveplrx"
 actword$(AIACTMOVEPLRY)="moveplry"
 actword$(AIACTMOVEPLRZ)="moveplrz"
 actword$(AIACTSCALE)="scale"
+actword$(AIACTHOLSTER)="holster"
 
 return
 
@@ -19336,6 +19339,12 @@ case AIACTSETVARRND:
 
      endcase
 
+     case AIACTHOLSTER:
+
+      noholster=aiactionseq(seq).value
+
+     endcase
+
 
     endselect
     `
@@ -23707,7 +23716,7 @@ if gunmode=26
 endif
 
 rem gun put away and hide control
-if gunmode=31
+if gunmode=31 and noholster=1
  gunmode=32
  guninterp=4
  gunselectionlockdown=1
@@ -43284,6 +43293,7 @@ a#=cullmodi: write float 1,a#
 rem additional Scene Commander
 a#=plrfootfall: write float 1,a#
 a#=lastfired: write float 1,a#
+a#=noholster: write float 1,a#
 
   for lsi=0 to entityelementmax
    a#=saveloadgamepositionentity(lsi).orx : write float 1,a#
@@ -43594,6 +43604,7 @@ read float 1,a#:cullmode=a#
 read float 1,a#:cullmodi=a#
 read float 1,a#:plrfootfall=a#
 read float 1,a#:lastfired=a#
+read float 1,a#:noholster=a#
 
   for lsi=0 to entityelementmax
    read float 1,a# : saveloadgamepositionentity(lsi).orx=a#
