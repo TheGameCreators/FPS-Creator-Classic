@@ -8120,11 +8120,13 @@ for e=1 to entityelementlist
     rem FPGC - 100710 - on occasion, character can be killed off screen (no anim performed)
     rem so need to adjust position of any carried weapon to floor (other it floats)
     rem V119 - 020711 - Hockeykid - new system (x10 method) isn't animation specific
+
     remstart
     if obj>0
      tvweapobj=entityelement(e).attachmentobj
      if object exist(obj)=1
-      if object in screen(obj)=0 and entityelement(e).ragdollon=0
+        if object in screen(obj)=0 and entityelement(e).ragdollon=0
+
        if tvweapobj>0
         if object exist(tvweapobj)=1
          unglue object tvweapobj
@@ -8137,6 +8139,7 @@ for e=1 to entityelementlist
      endif
     endif
     remend
+
     `
     if entityelement(e).eleprof.cantakeweapon=1
      tgunid=entityelement(e).currentweapon
@@ -11079,7 +11082,6 @@ _entity_deducthealth:
  tresult=0 : tentid=entityelement(e).bankindex
 
 
- `
  rem AirMod - Update Last Hit Pos
  if obj > 0
   if entityprofile(tentid).headlimb<>-1
@@ -15520,15 +15522,26 @@ Rem Scene Commander
      endcase
      `
      case AIACTADDHEALTH:
-      entityelement(e).health=entityelement(e).health+aiactionseq(seq).value
+     if aiactionseq(seq).value>0 then entityelement(e).health=entityelement(e).health+aiactionseq(seq).value
+      if aiactionseq(seq).value<0
+      tdamage=abs(aiactionseq(seq).value)
+      gosub _entity_deducthealth
+      endif
+
      endcase
      case AIACTSUBHEALTH:
       tdamage=aiactionseq(seq).value
       tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y : tdamagez#=entityelement(e).z
       gosub _entity_deducthealth
+
      endcase
      case AIACTSETHEALTH:
       entityelement(e).health=aiactionseq(seq).value
+      if entityelement(e).health<0
+      tdamage=1000000
+      gosub _entity_deducthealth
+      endif
+
      endcase
      `
      rem set entity speed (markblosser)
