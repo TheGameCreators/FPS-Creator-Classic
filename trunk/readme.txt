@@ -6,6 +6,11 @@ You can find the latest FAQ at http://code.google.com/p/fpscreatorengine/wiki/FA
 History
 =======
 
+V1.1.9 BETA4
+------------
+
+* Thanks to The Zombie Killer for helping improve the anti-hacking featues of the FPSC Editor
+
 V1.1.9
 ------
 
