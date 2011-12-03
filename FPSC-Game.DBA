@@ -9510,7 +9510,8 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
       endif
       position object tobj,entityelement(te).x,entityelement(te).y,entityelement(te).z
       rem V109 BETA10 - 120508 - fix disppearing spawned characters using full effects
-      entityelement(te).ai.alphafade=0
+      Rem Scene Commander, temp fix to disappearing spawned characters, does not fade in, but as destalphafade is full and doesn't take half alpha in account anyway.
+      entityelement(te).ai.alphafade=100
       entityelement(te).ai.destalphafade=100
       entityelement(te).ai.oldalphafade=0
       entityelement(te).ai.alphafadeupdate=1
@@ -16323,7 +16324,7 @@ Rem Scene Commander
      `markblosser - add setposteffect command
      case AIACTSETPOSTEFFECT:
       effectfilename$=""
-      effectfilename$="effectbank\postprocess\" + aiactionseq(seq).filename + ".fx"
+      effectfilename$="effectbank\postprocess\" +lower$(aiactionseq(seq).filename) + ".fx"
       rem make sure post-processing object exists, if not, ignore effect
       if object exist (65536)=1
        select effectfilename$
@@ -19309,7 +19310,7 @@ case AIACTSETVARRND:
 
    endcase
 
-   case AIACTMOVEPLRY:
+   case AIACTMOVEPLRZ:
 
    moveplrz#=aiactionseq(seq).value
 
