@@ -3894,6 +3894,31 @@ if gtestgamemodefromeditor=0 and gcompilestandaloneexe=0
  endif
 
 next variousfiles
+
+rem Scene Commander optional splash video file.
+    videofilename$="..\splash.avi"
+
+      if videofilename$<>""
+       if file exist(videofilename$)=1
+        splashvideoplayed=1
+        load animation videofilename$,splashvideoplayed
+        play animation splashvideoplayed,0,0,screen width(),screen height()
+        while animation playing(splashvideoplayed)=1
+
+            if control_escapekey()=1 then exit
+            if spacekey()=1 then exit
+            if control_mouseclick()<>0 then exit
+
+         sync
+        endwhile
+        while control_escapekey()=1 or spacekey()=1 or control_mouseclick()<>0 : sync : endwhile
+
+        delete animation splashvideoplayed
+        splashvideoplayed=0
+
+       endif
+      endif
+
  rem get the actual server IP for information purposes
  if gmultiplayergame=1
   `
