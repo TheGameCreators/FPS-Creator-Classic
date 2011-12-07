@@ -9385,10 +9385,8 @@ rem AirMod - Done <<<
 _entity_controlspawn:
 
 rem Only leaders control spawn events (activated is automatic for spawn switch on)
-if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=0 and entityelement(e).activated=1
-entityelement(e).spawn.atstart=1
+if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=0 and entityelement(e).activated=1 then entityelement(e).spawn.atstart=1
 
-endif
 if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
 
  rem Count down to next spawn
@@ -10993,8 +10991,6 @@ _entity_addforcesphere:
      if tdamage<30 then timpacttype=1
      if forcedamageon=0 then tdamage=0
 
-
-
      gosub _entity_deducthealth
     else
      gosub _entity_delayeddeducthealth
@@ -11117,7 +11113,6 @@ _entity_deducthealth:
  tresult=0 : tentid=entityelement(e).bankindex
 
 
- `
  rem AirMod - Update Last Hit Pos
  if obj > 0
   if entityprofile(tentid).headlimb<>-1
@@ -11199,6 +11194,7 @@ _entity_deducthealth:
      tobj=entityelement(e).attachmentobj
      if tobj>0
       if object exist(tobj) then gosub _ode_applyphysicstoattachment
+
      endif
      rem mission objective counter
      gosub _entity_resolveobjective
@@ -11290,7 +11286,7 @@ _entity_deducthealth:
        gosub _ode_switchoffe
        rem hide object
        tobj=entityelement(e).obj
-       hide object tobj:entityelement(e).ishidden=2
+       hide object tobj
        rem hide blob shadow if any
        if entityelement(e).attachmentblobobj>0
         if object exist(entityelement(e).attachmentblobobj)=1
@@ -15562,20 +15558,25 @@ Rem Scene Commander
       case AIACTADDHEALTH:
      if aiactionseq(seq).value>0 then entityelement(e).health=entityelement(e).health+aiactionseq(seq).value
       if aiactionseq(seq).value<0
+      obj=entityelement(e).obj
       tdamage=abs(aiactionseq(seq).value)
+      tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y  : tdamagex#=entityelement(e).y
       gosub _entity_deducthealth
       endif
 
      endcase
      case AIACTSUBHEALTH:
       tdamage=aiactionseq(seq).value
-      tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y : tdamagez#=entityelement(e).z
+      obj=entityelement(e).obj
+      tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y  : tdamagex#=entityelement(e).y
       gosub _entity_deducthealth
 
      endcase
      case AIACTSETHEALTH:
       entityelement(e).health=aiactionseq(seq).value
-      if entityelement(e).health<0
+      if entityelement(e).health<=0
+      tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y  : tdamagex#=entityelement(e).y
+      obj=entityelement(e).obj
       tdamage=1000000
       gosub _entity_deducthealth
       endif
@@ -37417,7 +37418,7 @@ _ode_applyphysicstoattachment:
  if tweight<200 then tweight=200
  ode set contact fdir1 tobj,tfriction
  ode set body mass tobj,tweight
- ode set linear velocity tobj,0,0,0
+ ode set linear velocity tobj,rnd(10),20+rnd(20),rnd(10)
  ode set angular velocity tobj,0,0,0
  ode set gravity tobj,1
  ode set body rotation tobj,object angle x(tobj),object angle y(tobj),object angle z(tobj)
@@ -59791,6 +59792,7 @@ _create_blood:
  endif
  middlebody=0
 return
+
 
 
 
