@@ -145,6 +145,8 @@ global moveplry#=0.0
 global moveplrz#=0.0
 global lastfired=0
 global noholster=1
+global noairon=0
+global drowndamage=1
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
@@ -2288,6 +2290,8 @@ rem Scene Commander actions
 #constant AIACTSCALE 1571
 #constant AIACTSCALELIMB 1572
 #constant AIACTHOLSTER 1573
+#constant AIACTNOAIR 1574
+#constant AIACTSETDROWNDAMAGE 1575
 
 #constant AIACTLAST 1600
 
@@ -3722,10 +3726,10 @@ compassY = (gdisplayheight/100.0)*90
 rem Scene Commander, bring objective, armour and air in line with Lee changes
 objectivex= compassx
 objectivey= compassy
-armx = (gdisplaywidth/100.0)*90
-army = (gdisplayheight/100.0)*90
-airx = (gdisplaywidth/100.0)*90
-airy = (gdisplayheight/100.0)*90
+armx = (gdisplaywidth/100.0)
+army = (gdisplayheight/100.0)
+airx = (gdisplaywidth/100.0)
+airy = (gdisplayheight/100.0)
 
 rem FPGC - 230211 - must be done AFTER a resolution change, as 3d math gets wiped out (matrix4=15)
 gosub _main_initcalceyes
@@ -4466,11 +4470,11 @@ _main_game_core:
 
 rem scene commander new air commands
 
-if airon=2 and playerunderwater=0 then airleft=airmax
+if airon=2 and playerunderwater=0 and noairon=0 then airleft=airmax
 
-if playerunderwater<>0
+if playerunderwater<>0 or noairon<>0
 
-   if airon<>0
+   if airon<>0 or noairon<>0
 
       if timer()-airtimer>airtime and airleft>0
       airleft=airleft-1
@@ -4481,7 +4485,7 @@ if playerunderwater<>0
       if instantdrown=0
          if timer()-drowntimer>drowntime and player(1).health>0
          drowned=1
-      tdamage=1:gosub _player_takedamage
+      tdamage=drowndamage:gosub _player_takedamage
       drowntimer=timer()
       drowned=0
          endif
@@ -4494,6 +4498,7 @@ if playerunderwater<>0
        if instantdrown=1
        drowned=1
      tdamage=1000000:gosub _player_takedamage
+     airleft=airmax
      rem play drown sound alpha v1.2
      tsnd=19
       if playersound(tplrid,tsnd)>0
@@ -7632,6 +7637,7 @@ _entity_startentitiesoff:
       rem spawn leaders do not require attached weapon
       if entityelement(e).spawn.leader=0
        tobj=obj : gosub _entity_switchattachment
+
       endif
      endif
     endif
@@ -9527,7 +9533,7 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
       endif
       `
       tdropobj=entityelement(te).attachmentobj
-      if tdropobj>0 then storetobj=tobj : tobj=tdropobj : gosub _ode_deleteentity : tobj=storetobj
+      if tdropobj>0 then storetobj=tobj : tobj=tdropobj : gosub _ode_deleteentity :  tobj=storetobj
       `
       rem object setting
       if entityelement(te).eleprof.physics=1 or entityelement(te).eleprof.physics=2
@@ -9535,7 +9541,8 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
       endif
       position object tobj,entityelement(te).x,entityelement(te).y,entityelement(te).z
       rem V109 BETA10 - 120508 - fix disppearing spawned characters using full effects
-      entityelement(te).ai.alphafade=0
+      Rem Scene Commander fix, now start at full alpha for respawns.
+      entityelement(te).ai.alphafade=100
       entityelement(te).ai.destalphafade=100
       entityelement(te).ai.oldalphafade=0
       entityelement(te).ai.alphafadeupdate=1
@@ -10530,6 +10537,7 @@ if tobj>0
     endif
    endif
    position object tobj,limbpx#,limbpy#,limbpz#
+
   else
    rem attachment free of entity, using physics to settle in scene
   endif
@@ -12144,6 +12152,8 @@ actword$(AIACTMOVEPLRY)="moveplry"
 actword$(AIACTMOVEPLRZ)="moveplrz"
 actword$(AIACTSCALE)="scale"
 actword$(AIACTHOLSTER)="holster"
+actword$(AIACTNOAIR)="globalnoair"
+actword$(AIACTSETDROWNDAMAGE)="setnoairdamage"
 
 return
 
@@ -19370,8 +19380,22 @@ case AIACTSETVARRND:
 
      endcase
 
+     case AIACTNOAIR:
+
+     noairon=aiactionseq(seq).value
+
+     endcase
+
+     case AIACTSETDROWNDAMAGE:
+
+      drowndamage=aiactionseq(seq).value
+
+     endcase
+
 
     endselect
+
+    rem Scene commander actions end
     `
    next seq
    `
@@ -36085,7 +36109,7 @@ endif
 
 if airmax<>0 and airleft>airmax then airleft=airmax
 
-if airon<>0
+if airon<>0 or noairon<>0
 
 a$=str$(airleft)
 
@@ -43319,6 +43343,8 @@ rem additional Scene Commander
 a#=plrfootfall: write float 1,a#
 a#=lastfired: write float 1,a#
 a#=noholster: write float 1,a#
+a#=noairon: write float 1,a#
+a#=drowndamage: write float 1,a#
 
   for lsi=0 to entityelementmax
    a#=saveloadgamepositionentity(lsi).orx : write float 1,a#
@@ -43630,6 +43656,8 @@ read float 1,a#:cullmodi=a#
 read float 1,a#:plrfootfall=a#
 read float 1,a#:lastfired=a#
 read float 1,a#:noholster=a#
+read float 1,a#:noairon=a#
+read float 1,a#:drowndamage=a#
 
   for lsi=0 to entityelementmax
    read float 1,a# : saveloadgamepositionentity(lsi).orx=a#
