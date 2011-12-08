@@ -195,6 +195,28 @@ Fixed objective to scale to screen res.
 Fixed non-spawned characters appearing on radar
 onradar=x (condition) returns true if character on radar and x=1, else returns true if x=0 and character not on the radar.
 
+WASP official - V10
+
+scale=x or scale=x y - scales characters to scale X or scale X+ a value between 0-Y
+
+V11
+
+plrlastfired=x (condition) returns true if weapon path X is the last player weapon fired.
+radargreater=x y (condition) returns true is an entites range on the radar is greater (in segment size) than x and Y=1, else returns true if range less than x and Y=0
+radarequal=x y (condition) returns true is an entites range on the radar is equal (in segment size) to x and Y=1, else returns true if range does not equal x and Y=0
+Fixed aiheardsound bug.
+holster=x where x=1, player can swap/holster weapons as normal, x=0, player cannot holster or swap weapons.
+
+V12
+
+Fixed invisible spawn issue.
+Fixed addhealth issue
+Fixed AI footfall issue
+Added Splash.avi video option.
+globalnoair=x where X=1 set a global zero air, and x=0 sets air on. uses standard air settings otherwise.
+setnoairdamage=x where x is the about of health lost when player has no air left.
+fixed indirect death issue
+tweaked  vWEAP physics
 
 V1.1.8
 ------
