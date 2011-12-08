@@ -15555,32 +15555,31 @@ Rem Scene Commander
       if player(1).health>playerstartstrength then player(1).health=playerstartstrength
      endcase
      `
-      case AIACTADDHEALTH:
-     if aiactionseq(seq).value>0 then entityelement(e).health=entityelement(e).health+aiactionseq(seq).value
-      if aiactionseq(seq).value<0
-      obj=entityelement(e).obj
-      tdamage=abs(aiactionseq(seq).value)
-      tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y  : tdamagex#=entityelement(e).y
-      gosub _entity_deducthealth
+     case AIACTADDHEALTH:
+      entityelement(e).health=entityelement(e).health+aiactionseq(seq).value
+      if entityelement(e).health<=0
+       rem entity deducted to death!
+       entityelement(e).health=1 : tdamage=1
+       tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y : tdamagez#=entityelement(e).z
+       obj=entityelement(e).obj
+       gosub _entity_deducthealth
       endif
-
      endcase
      case AIACTSUBHEALTH:
       tdamage=aiactionseq(seq).value
-      obj=entityelement(e).obj
       tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y  : tdamagex#=entityelement(e).y
+      obj=entityelement(e).obj
       gosub _entity_deducthealth
-
      endcase
      case AIACTSETHEALTH:
       entityelement(e).health=aiactionseq(seq).value
       if entityelement(e).health<=0
-      tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y  : tdamagex#=entityelement(e).y
-      obj=entityelement(e).obj
-      tdamage=1000000
-      gosub _entity_deducthealth
+       rem entity deducted to death!
+       entityelement(e).health=1 : tdamage=1
+       tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y : tdamagez#=entityelement(e).z
+       obj=entityelement(e).obj
+       gosub _entity_deducthealth
       endif
-
      endcase
      `
      rem set entity speed (markblosser)
