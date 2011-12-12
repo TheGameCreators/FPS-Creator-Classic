@@ -147,6 +147,12 @@ global lastfired=0
 global noholster=1
 global noairon=0
 global drowndamage=1
+global gdisplaywidth : gdisplaywidth=Sw
+global gdisplayheight : gdisplayheight=Sh
+global pickrange#=75.0
+global lastpickrange#=75.0
+global laststrength#=4000.0
+global lastthrow#=100.0
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
@@ -2292,6 +2298,8 @@ rem Scene Commander actions
 #constant AIACTHOLSTER 1573
 #constant AIACTNOAIR 1574
 #constant AIACTSETDROWNDAMAGE 1575
+#constant AIACTPLRPICKON 1576
+#constant AIACTPLRPICKRANGE 1577
 
 #constant AIACTLAST 1600
 
@@ -2452,7 +2460,12 @@ endtype
 rem Gun Settings Data Structure
 type gunsettingstype
 Rem Scene Commander
-   emptyreloadonly as integer
+emptyreloadonly as integer
+gravitygun as integer
+gravitystrength as integer
+magnet as integer
+magnetstrength as integer
+rem scene commnader end
  bulletamount as integer
  currentbullet as integer
  bulletlimbsmax as integer
@@ -9405,7 +9418,9 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
       if entityelement(te).beenkilled=1
        entityelement(te).beenkilled=0
        entityelement(te).ishidden=0
+       if object in screen(tobj)=0
        tpermitaspawn=1 : exit
+       endif
       endif
      endif
     endif
@@ -12156,6 +12171,8 @@ actword$(AIACTSCALE)="scale"
 actword$(AIACTHOLSTER)="holster"
 actword$(AIACTNOAIR)="globalnoair"
 actword$(AIACTSETDROWNDAMAGE)="setnoairdamage"
+actword$(AIACTPLRPICKON)="plrpickon"
+actword$(AIACTPLRPICKRANGE)="plrpickrange"
 
 return
 
@@ -19246,6 +19263,8 @@ case AIACTSETVARRND:
      case AIACTPLRSTRENGTH:
 
       temp#=aiactionseq(seq).value
+      laststrength#=cameracarryweight#
+      lastthrow#=camerathrow#
       cameracarryweight#=(temp#/100.0)*4000.0
       camerathrow#=temp#
 
@@ -19408,6 +19427,23 @@ case AIACTSETVARRND:
       drowndamage=aiactionseq(seq).value
 
      endcase
+
+      case AIACTPLRPICKON:
+
+      if aiactionseq(seq).value=1
+      pickrange#=lastpickrange#
+      else
+      lastpickrange#=pickrange#
+      pickrange#=0
+      endif
+      endcase
+
+      case AIACTPLRPICKRANGE:
+
+      lastpickrange#=pickrange#
+      pickrange#=aiactionseq(seq).value
+
+      endcase
 
 
     endselect
@@ -21691,6 +21727,8 @@ for plrid=1 to playermax
  if plrid=1
   tsndid=17 : snd$="audiobank\water\WaterIn.wav" : playersound(plrid,tsndid)=loadinternalsoundcore(rootdir$+snd$,t3d)
   tsndid=18 : snd$="audiobank\water\WaterOut.wav" : playersound(plrid,tsndid)=loadinternalsoundcore(rootdir$+snd$,t3d)
+  tsndid=19 : snd$="audiobank\water\Drown.wav" : playersound(plrid,tsndid)=loadinternalsoundcore(rootdir$+snd$,t3d)
+  tsndid=20 : snd$="audiobank\water\GaspForAir.wav" : playersound(plrid,tsndid)=loadinternalsoundcore(rootdir$+snd$,t3d)
  endif
  `
  rem Load tred sounds from material list plrid of 2,3,4 used by entities)
@@ -22468,8 +22506,9 @@ if tdisablepickupdropthiscycle=1 and tmouseclick=2 then tmouseclick=0
 if showgamemenu=1 then tmouseclick=0
 `
 rem FPGC - 180610 - FPGC variant treats tmouseclick=1 as =2 (so if using equipment, revert to =1)
-if fpgcgenre=0
+if fpgcgenre=0 or firemode(gunid,firemode).settings.gravitygun<>0
  if currentgunobj>0
+
   if tmouseclick=2 then tmouseclick=1
  endif
 endif
@@ -25104,7 +25143,13 @@ for l=0 to 299
     if i<>2 then x=i else x=1
     rem GUN SETTINGS
       Rem Scene Commander
-   if field$=alt$+"emptyreloadonly" then firemode(gunid,x).settings.emptyreloadonly=value1
+      if field$=alt$+"gravitygun" then firemode(gunid,x).settings.gravitygun=value1
+      if field$=alt$+"magnet" then firemode(gunid,x).settings.magnet=value1
+      if field$=alt$+"magnetstrength" then firemode(gunid,x).settings.magnetstrength=value1
+      if field$=alt$+"gravitystrength" then firemode(gunid,x).settings.gravitystrength=value1
+  
+      if field$=alt$+"emptyreloadonly" then firemode(gunid,x).settings.emptyreloadonly=value1
+
     if field$=alt$+"muzzlesize" then firemode(gunid,x).settings.muzzlesize#=value1
     if field$=alt$+"muzzlecolorr" then firemode(gunid,x).settings.muzzlecolorr=value1
     if field$=alt$+"muzzlecolorg" then firemode(gunid,x).settings.muzzlecolorg=value1
@@ -38894,6 +38939,27 @@ if tclosestpickable=0
      if tda#>180 then tda#=360-tda#
      if tday#>180 then tday#=360-tday#
      if tda#<15 and tday#<70
+     rem Scene Commander gravity gun edit
+      camerareachmax#=pickrange#
+     if gunid<>0 and firemode(gunid,firemode).settings.gravitygun<>0
+     camerareachmax#=firemode(gunid,firemode).settings.gravitygun
+     endif
+
+     Rem Scene commanders, gravity gun/magnet strength
+     cameracarryweight#=laststrength#
+     camerathrow#=lastthrow#
+       if gunid<>0 and firemode(gunid,firemode).settings.gravitystrength<>0
+      cameracarryweight#=(temp#/100.0)*firemode(gunid,firemode).settings.gravitystrength
+      camerathrow#=firemode(gunid,firemode).settings.gravitystrength
+      endif
+
+      Rem Magnet strength supercedes gravity strength if in magnet mode.
+
+      if gunid<>0 and firemode(gunid,firemode).settings.magnetstrength<>0
+      cameracarryweight#=(temp#/100.0)*firemode(gunid,firemode).settings.magnetstrength
+      camerathrow#=firemode(gunid,firemode).settings.magnetstrength
+      endif
+
       if td#<camerareachmax#
        if entityelement(e).eleprof.phyweight<cameracarryweight#
         inc tcountclosestpickables
@@ -38936,6 +39002,12 @@ if tclosestpickable > 0
       if tda#>180 then tda#=360-tda#
       if tday#>180 then tday#=360-tday#
       if tda#<15 and tday#<70
+      Rem Scene Commander gravity gun edit
+      if gunid<>0 and firemode(gunid,firemode).settings.gravitygun<>0
+      camerareachmax#=firemode(gunid,firemode).settings.gravitygun
+      else
+      camerareachmax#=pickrange#
+      endif
        if td#<camerareachmax#
         if entityelement(e).eleprof.phyweight<cameracarryweight#
          tpickobject = pick object(screen width()/2,screen height()/2,tobj,tobj)
@@ -38957,7 +39029,9 @@ if camerapickup=1
  tpickupkeystate=0
  `if keystate(20)=1 then tpickupkeystate=1
  if keystate(20)=1 and gunzoommode=0 then tpickupkeystate=1
- `
+ ``Rem Scene Commander gravity gun check
+ if control_mouseclick_mode(1)=1 and gunzoommode=0 and firemode(gunid,firemode).settings.gravitygun<>0 then tpickupkeystate=2
+
  rem FPGC - 150310 - allow controller button B only as a possible right click
  if control_mouseclick_mode(1)=2 and gunzoommode=0 then tpickupkeystate=1
  `
@@ -39015,8 +39089,8 @@ if camerapickup=1
        if cameradampen#<0.1 then cameradampen#=0.1
        if cameradampen#>1.0 then cameradampen#=1.0
       endif
-      rem put weapon away
-      if gunid<>0 then gunmode=31 : gunselectionafterhide=0
+      rem put weapon away - Scene commander edit
+      if gunid<>0 and firemode(gunid,firemode).settings.gravitygun=0 and  firemode(gunid,firemode).settings.magnet=0 then gunmode=31 : gunselectionafterhide=0
       rem object reduces mess so not pushing other objects around (inc player)
       ode set body mass camerapicked,entityelement(camerapickede).eleprof.phyweight/10.0
       rem player takes on mass of object
@@ -39141,8 +39215,20 @@ if camerapicked>0
    throwdistance#=(entityelement(camerapickede).eleprof.phyweight/1000.0)
    tthrowheight#=((camerathrowelev#+sin(camera angle x())*-100)/throwdistance#)
    throwdistance#=camerathrow#/throwdistance#
+
    taddx#=camvelx# : taddy#=camvely# : taddz#=camvelz#
+
+
+   rem scene commander edit
+
+   if firemode(gunid,firemode).settings.gravitygun=0 or firemode(gunid,firemode).settings.magnet=0
    ode set linear velocity camerapicked, taddx#+sin(camera angle y())*throwdistance#,taddy#+tthrowheight#,taddz#+cos(camera angle y())*throwdistance#
+   endif
+
+   if firemode(gunid,firemode).settings.magnet=1
+   ode set linear velocity camerapicked, taddx#+sin(wrapvalue(camera angle y()+180))*throwdistance#,taddy#+tthrowheight#,taddz#+cos(wrapvalue(camera angle y()+180))*throwdistance#
+   endif
+
    if entityelement(camerapickede).eleprof.rotatethrow<>0
     trotate#=entityelement(camerapickede).eleprof.rotatethrow
     ode set angular velocity camerapicked, ((rnd(1)*2.0)-1.0)*trotate#, 0, ((rnd(1)*2.0)-1.0)*trotate#
@@ -43362,6 +43448,10 @@ a#=lastfired: write float 1,a#
 a#=noholster: write float 1,a#
 a#=noairon: write float 1,a#
 a#=drowndamage: write float 1,a#
+a#=lastpickrange#: write float 1,a#
+a#=pickrange#: write float 1,a#
+a#=laststrength#: write float 1,a#
+a#=lastthrow#: write float 1,a#
 
   for lsi=0 to entityelementmax
    a#=saveloadgamepositionentity(lsi).orx : write float 1,a#
@@ -43675,6 +43765,10 @@ read float 1,a#:lastfired=a#
 read float 1,a#:noholster=a#
 read float 1,a#:noairon=a#
 read float 1,a#:drowndamage=a#
+read float 1,a#:lastpickrange#=a#
+read float 1,a#:pickrange#=a#
+read float 1,a#:laststrength#=a#
+read float 1,a#:lastthrow#=a#
 
   for lsi=0 to entityelementmax
    read float 1,a# : saveloadgamepositionentity(lsi).orx=a#
