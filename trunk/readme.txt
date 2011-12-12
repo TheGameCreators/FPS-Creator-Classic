@@ -218,6 +218,13 @@ setnoairdamage=x where x is the about of health lost when player has no air left
 fixed indirect death issue
 tweaked  vWEAP physics
 
+V13
+
+gravitygun=x (gunspec) - turns weapon into gravity gun, allow plr to pick up an object with right click within range X, right click again, drops, left click throws
+magnet=x (gunspec) - turns gravity gun into magnet, left click hurls held object towards player
+gravitystrength=x (gunspec) - sets the psyhics weight the gravity gun will handle
+magnetstrength=x (gunspec)  - sets the psyhics weight the magnet will handle
+
 V1.1.8
 ------
  
