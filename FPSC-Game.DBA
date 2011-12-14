@@ -1823,8 +1823,12 @@ Rem Scene commander conditions
 #constant AICONDLASTFIRED 891
 #constant AICONDRADARGREATER 892
 #constant AICONDRADAREQUAL 893
+#constant AICONDENTITYPLRGREATER 894
+#constant AICONDENTITYPLRLESSER 895
+#constant AICONDFLOORHIGHER 896
+#constant AICONDFLOORLOWER 897
 
-#constant AICONDLAST 900
+#constant AICONDLAST 950
 
 #constant AIACTNONE 0
 #constant AIACTDESTROY 1
@@ -9418,9 +9422,9 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
       if entityelement(te).beenkilled=1
        entityelement(te).beenkilled=0
        entityelement(te).ishidden=0
-       if object in screen(tobj)=0
+
        tpermitaspawn=1 : exit
-       endif
+
       endif
      endif
     endif
@@ -9429,6 +9433,24 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
  endif
  if tpermitaspawn=1
   rem Restart spawn cycle
+
+   entid=entityelement(e).bankindex
+   newscale=entityprofile(entid).scale
+
+  for li = 2 to 13
+
+       alterlimbscale(te,li,newscale)
+
+      next li
+
+      tadj#=object collision center y(obj)
+
+      applyscalefactor#=(object size y(obj)/100.0)
+      tadj#=tadj#*applyscalefactor#
+
+     entityelement(e).spawn.y=entityelement(e).spawn.y+tadj#
+
+
   entityelement(e).spawn.leadercount=entityelement(e).spawn.delay+rnd(entityelement(e).spawn.delayrandom)
   rem Hockeykid - 080611 - Won't work, throw-ragdoll scripts do not allow for the character to get back up!
   `if entityelement(e).ragdollon=1 then ode destroy ragdoll entityelement(e).obj : entityelement(e).ragdollon=0
@@ -9456,9 +9478,13 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
          if tx>=0 and ty>=0 and tz>=0
           if tx<=viscolx and ty<=viscoly and tz<=viscolz
            if viscolmap(tx,ty,tz)=0
-            entityelement(te).y=entityelement(e).spawn.y
+
+
+            entityelement(te).y=entityelement(e).spawn.y+tdj#
             entityelement(te).x=tryx#
             entityelement(te).z=tryz#
+
+
             tokay=1 : exit
            endif
           endif
@@ -9469,10 +9495,12 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
        if ttriesrange>8 then tokay=2
       endwhile
      else
+
       entityelement(te).x=entityelement(e).spawn.x
-      entityelement(te).y=entityelement(e).spawn.y
+      entityelement(te).y=entityelement(e).spawn.y+tadj#
       entityelement(te).z=entityelement(e).spawn.z
       tokay=1
+
      endif
      `
      rem if space, init entity with AIINIT
@@ -9559,7 +9587,7 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
       position object tobj,entityelement(te).x,entityelement(te).y,entityelement(te).z
       rem V109 BETA10 - 120508 - fix disppearing spawned characters using full effects
       Rem Scene Commander fix, now start at full alpha for respawns.
-      entityelement(te).ai.alphafade=100
+      entityelement(te).ai.alphafade=96
       entityelement(te).ai.destalphafade=100
       entityelement(te).ai.oldalphafade=0
       entityelement(te).ai.alphafadeupdate=1
@@ -11705,6 +11733,12 @@ conword$(AICONDLASTFIRED)="plrlastfired"
 conword$(AICONDRADARGREATER)="radargreater"
 conword$(AICONDRADAREQUAL)="radarequal"
 
+conword$(AICONDENTITYPLRGREATER)="entityishigher"
+conword$(AICONDENTITYPLRLESSER)="entityislower"
+
+conword$(AICONDFLOORHIGHER)="entityfloorhigher"
+conword$(AICONDFLOORLOWER)="entityfloorlower"
+
 rem Set all action keywords
 dim actword$(AIACTLAST)
 actword$(AIACTNONE)="none"
@@ -12515,23 +12549,14 @@ Rem Scene Commander
    case "$MAX"
    aiconditionseq(seq).valueb=maxslots
    endcase
-
    case "$DIS"
-
    aiconditionseq(seq).valueb=edistance(e)
-
    endcase
-
    case "$DIF"
-
    aiconditionseq(seq).valueb=(edistance(e)/100)*8.33
-
    endcase
-
    case "$DIM"
-
     aiconditionseq(seq).valueb=(edistance(e)/100)*2.54
-
    endcase
 
   endselect
@@ -14031,9 +14056,11 @@ case AICONDPLRFLOOREQUAL:
 
 conda=aiconditionseq(seq).valuea
 
-playerlevel=int(object position y(physicsplayerborble))/100
-          if playerlevel<0 then playerlevel=0
-          if playerlevel>19 then playerlevel=19
+
+   playerlevel=int(object position y(physicsplayerborble))/100
+   if playerlevel<0 then playerlevel=0
+      if playerlevel>19 then playerlevel=19
+
 
  if playerlevel=conda
 airesult=1
@@ -14277,6 +14304,83 @@ tempmode=aiconditionseq(seq).valueb
 if tempmode=1 and entityelement(e).radardistance=temprange then airesult=1
 if tempmode=0 and entityelement(e).radardistance<>temprange then airesult=1
 
+endcase
+
+case AICONDENTITYPLRGREATER:
+
+conda=aiconditionseq(seq).valuea
+
+
+condb=entityelement(e).y-object position y(physicsplayerborble)
+   if condb>0
+      if condb>conda
+         airesult=1
+      endif
+
+   endif
+
+
+
+endcase
+
+case AICONDENTITYPLRLESSER:
+
+conda=aiconditionseq(seq).valuea
+
+
+condb=entityelement(e).y-object position y(physicsplayerborble)
+   if condb<0
+      if abs(condb)>conda
+         airesult=1
+      endif
+
+   endif
+
+
+
+endcase
+
+
+case AICONDFLOORHIGHER:
+
+conda=aiconditionseq(seq).valuea
+if conda<0 then conda=0
+if conda>19 then conda=19
+
+         playerlevel=int(object position y(physicsplayerborble))/100
+          if playerlevel<0 then playerlevel=0
+          if playerlevel>19 then playerlevel=19
+
+            entitylevel=int(entityelement(e).y)/100
+          if entitylevel<0 then entitylevel=0
+          if entitylevel>19 then entitylevel=19
+
+ if  (playerlevel-entitylevel)>conda
+airesult=1
+else
+airesult=0
+endif
+endcase
+
+case AICONDFLOORLOWER:
+
+conda=aiconditionseq(seq).valuea
+if conda<0 then conda=0
+if conda>19 then conda=19
+
+         playerlevel=int(object position y(physicsplayerborble))/100
+          if playerlevel<0 then playerlevel=0
+          if playerlevel>19 then playerlevel=19
+
+            entitylevel=int(entityelement(e).y)/100
+          if entitylevel<0 then entitylevel=0
+          if entitylevel>19 then entitylevel=19
+
+ if  (entitylevel-playerlevel)>conda
+airesult=1
+else
+airesult=0
+endif
 endcase
 
 
@@ -19399,7 +19503,6 @@ case AIACTSETVARRND:
 
       next li
 
-
       tadj#=object collision center y(obj)
 
       applyscalefactor#=(object size y(obj)/100.0)
@@ -19407,6 +19510,8 @@ case AIACTSETVARRND:
 
      entityelement(e).y=entityelement(e).y+tadj#
      position object obj,entityelement(e).x,entityelement(e).y+tadj#,entityelement(e).z
+     entid=entityelement(e).bankindex
+     entityprofile(entid).scale=newscale
 
      endcase
 
@@ -25147,7 +25252,7 @@ for l=0 to 299
       if field$=alt$+"magnet" then firemode(gunid,x).settings.magnet=value1
       if field$=alt$+"magnetstrength" then firemode(gunid,x).settings.magnetstrength=value1
       if field$=alt$+"gravitystrength" then firemode(gunid,x).settings.gravitystrength=value1
-  
+
       if field$=alt$+"emptyreloadonly" then firemode(gunid,x).settings.emptyreloadonly=value1
 
     if field$=alt$+"muzzlesize" then firemode(gunid,x).settings.muzzlesize#=value1
