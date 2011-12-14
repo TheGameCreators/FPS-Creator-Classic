@@ -225,6 +225,15 @@ magnet=x (gunspec) - turns gravity gun into magnet, left click hurls held object
 gravitystrength=x (gunspec) - sets the psyhics weight the gravity gun will handle
 magnetstrength=x (gunspec)  - sets the psyhics weight the magnet will handle
 
+V14
+
+entityishigher=x (condition) - returns true if the entity is X units higher than the player
+entityislower=x (condition) - returns true if the entity is X units lower than the player
+entityfloorhigher=x (condition) - returns true if the entity is X floors higher than the player
+entityfloorlower=x (condition) - returns true if the entity is X floors lower than the player
+plrpickon=x, x=1 then allow player pick up with right click
+plrpickrange=x, sets the range at which the player can pick up an entity with right click
+
 V1.1.8
 ------
  
