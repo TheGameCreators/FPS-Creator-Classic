@@ -153,6 +153,12 @@ global pickrange#=75.0
 global lastpickrange#=75.0
 global laststrength#=4000.0
 global lastthrow#=100.0
+global flashr=255
+global flashg=255
+global flashb=255
+global flashrange=600
+
+global spotflash=0
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
@@ -1827,6 +1833,7 @@ Rem Scene commander conditions
 #constant AICONDENTITYPLRLESSER 895
 #constant AICONDFLOORHIGHER 896
 #constant AICONDFLOORLOWER 897
+#constant AICONDFLASHING 898
 
 #constant AICONDLAST 950
 
@@ -2304,6 +2311,11 @@ rem Scene Commander actions
 #constant AIACTSETDROWNDAMAGE 1575
 #constant AIACTPLRPICKON 1576
 #constant AIACTPLRPICKRANGE 1577
+#constant AIACTFLASH 1578
+#constant AIACTFLASHRED 1579
+#constant AIACTFLASHGREEN 1580
+#constant AIACTFLASHBLUE 1581
+#constant AIACTFLASHRANGE 1582
 
 #constant AIACTLAST 1600
 
@@ -11739,6 +11751,8 @@ conword$(AICONDENTITYPLRLESSER)="entityislower"
 conword$(AICONDFLOORHIGHER)="entityfloorhigher"
 conword$(AICONDFLOORLOWER)="entityfloorlower"
 
+conword$(AICONDFLASHING)="flashing"
+
 rem Set all action keywords
 dim actword$(AIACTLAST)
 actword$(AIACTNONE)="none"
@@ -12207,6 +12221,11 @@ actword$(AIACTNOAIR)="globalnoair"
 actword$(AIACTSETDROWNDAMAGE)="setnoairdamage"
 actword$(AIACTPLRPICKON)="plrpickon"
 actword$(AIACTPLRPICKRANGE)="plrpickrange"
+actword$(AIACTFLASH)="emitflash"
+actword$(AIACTFLASHRED)="setflashred"
+actword$(AIACTFLASHGREEN)="setflashgreen"
+actword$(AIACTFLASHBLUE)="setflashblue"
+actword$(AIACTFLASHRANGE)="setflashrange"
 
 return
 
@@ -14382,6 +14401,22 @@ else
 airesult=0
 endif
 endcase
+
+case AICONDFLASHING:
+
+conda=aiconditionseq(seq).valuea
+
+if spotflash=0 and conda=0
+airesult=1
+endif
+
+if spotflash<>0 and conda=1
+airesult=1
+endif
+
+endcase
+
+
 
 
    endselect
@@ -19550,6 +19585,66 @@ case AIACTSETVARRND:
 
       endcase
 
+      case AIACTFLASH:
+
+      if spotflash=0
+      tx#=entityelement(e).x
+      ty#=entityelement(e).y
+      tz#=entityelement(e).z
+
+      tcolr=flashr
+      tcolg=flashg
+      tcolb=flashb
+
+       spotflash=100
+       gosub _lighting_spotflash
+       flashrange=600
+      endif
+
+      endcase
+
+      case AIACTFLASHRED:
+
+      temp=aiactionseq(seq).value
+
+      if temp>=0 and temp<256
+
+      flashr=temp
+
+      endif
+
+      endcase
+
+      case AIACTFLASHGREEN:
+
+      temp=aiactionseq(seq).value
+
+      if temp>=0 and temp<256
+
+      flashg=temp
+
+      endif
+
+
+      endcase
+
+      case AIACTFLASHBLUE:
+
+      temp=aiactionseq(seq).value
+
+      if temp>=0 and temp<256
+
+      flashb=temp
+
+      endif
+
+      endcase
+
+      case AIACTFLASHRANGE:
+
+      flashrange=aiactionseq(seq).value
+
+      endcase
 
     endselect
 
@@ -29028,6 +29123,7 @@ _lighting_managegloballightingreciever:
     tlightrawstrength#=tlightrawstrength#*tlightpower#
     if tlightrawstrength#<0.0 then tlightrawstrength#=0.0
     if tlightrawstrength#>1.0 then tlightrawstrength#=1.0
+
     if tdiff#<tplayercareabout#
      `
      rem Work out average light position based on player position
@@ -29338,7 +29434,7 @@ _lighting_spotflash:
  if spotflash=100
   spotflash=99 : spotflashx#=tx# : spotflashy#=ty# : spotflashz#=tz#
   if light exist(1)=1
-   set point light 1,spotflashx#,spotflashy#,spotflashz# : set light range 1,600
+   set point light 1,spotflashx#,spotflashy#,spotflashz# : set light range 1,flashrange
    spotlightr#=tcolr : spotlightg#=tcolg : spotlightb#=tcolb
    color light 1,spotlightr#,spotlightg#,spotlightb#
    show light 1
@@ -43557,6 +43653,10 @@ a#=lastpickrange#: write float 1,a#
 a#=pickrange#: write float 1,a#
 a#=laststrength#: write float 1,a#
 a#=lastthrow#: write float 1,a#
+a#=flashr: write float 1,a#
+a#=flashg: write float 1,a#
+a#=flashb: write float 1,a#
+a#=flashrange: write float 1,a#
 
   for lsi=0 to entityelementmax
    a#=saveloadgamepositionentity(lsi).orx : write float 1,a#
@@ -43874,6 +43974,10 @@ read float 1,a#:lastpickrange#=a#
 read float 1,a#:pickrange#=a#
 read float 1,a#:laststrength#=a#
 read float 1,a#:lastthrow#=a#
+read float 1,a#:flashr=a#
+read float 1,a#:flashg=a#
+read float 1,a#:flashb=a#
+read float 1,a#:flashrange=a#
 
   for lsi=0 to entityelementmax
    read float 1,a# : saveloadgamepositionentity(lsi).orx=a#
