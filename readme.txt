@@ -234,6 +234,15 @@ entityfloorlower=x (condition) - returns true if the entity is X floors lower th
 plrpickon=x, x=1 then allow player pick up with right click
 plrpickrange=x, sets the range at which the player can pick up an entity with right click
 
+V15
+
+emitflash - Emits a flash from an entity
+setflashred=x - sets the next flashes red element
+setflashgreen=x - sets the next flashes green element
+setflashblue=x - sets the next flashes blue element
+setflashrange=x - sets the flash range of the next flash emitted, default=600
+flashing=x (condition) returns true if a spotflash is in process and x=1 or returns true if no spotflash is in process and x=0
+
 V1.1.8
 ------
  
