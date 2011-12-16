@@ -9048,6 +9048,7 @@ if entityelement(e).fireweapon=1
          distx#=tdamagex#-entityelement(e).x
          disty#=tdamagey#-entityelement(e).y
          distz#=tdamagez#-entityelement(e).z
+
          dmgdist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
          rem direction from player to entity
          tix#=entityelement(e).x-tdamagex# : tiy#=entityelement(e).y-tdamagey# : tiz#=entityelement(e).z-tdamagez#
@@ -9057,9 +9058,15 @@ if entityelement(e).fireweapon=1
          tix#=tix#*(dmgdist#-10.0)
          tiy#=tiy#*(dmgdist#-10.0)
          tiz#=tiz#*(dmgdist#-10.0)
+
+
+
          rem create a splat decal
          decalscalemodx=0 : rem FPSCV101 - fix
          decalorient=0 : decalx=tdamagex#+tix# : decaly=((entityelement(e).y+(object size y(entityelement(e).obj)/2))-rnd(6))+tiy# : decalz=tdamagez#+tiz#
+
+
+
          originatore=-1 : gosub _decalelement_create
         endif
         remstart
@@ -19053,6 +19060,8 @@ Rem Scene Commander
 
    case AIACTEMITFORCE:
 
+   rem logic burst to allow constant force emissions
+   entityelement(e).logiccount=0
    spherex#=entityelement(e).x : spherey#=entityelement(e).y : spherez#=entityelement(e).z
    sphereforce#=aiactionseq(seq).value : gosub _entity_addforcesphere
 
@@ -19588,6 +19597,8 @@ case AIACTSETVARRND:
       case AIACTFLASH:
 
       if spotflash=0
+         rem logic burst to allow constant flash emissions
+      entityelement(e).logiccount=0
       tx#=entityelement(e).x
       ty#=entityelement(e).y
       tz#=entityelement(e).z
