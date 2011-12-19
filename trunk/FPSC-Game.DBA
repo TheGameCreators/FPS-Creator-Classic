@@ -157,8 +157,8 @@ global flashr=255
 global flashg=255
 global flashb=255
 global flashrange=600
-
 global spotflash=0
+global playerdammult#=0.0
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
@@ -492,7 +492,7 @@ type saveloadgamepositionentitytype
  cullstate as integer rem Scene Commander
  onradar as integer rem Scene Commander
  radardistance as integer
-
+ shotby as integer
 
 endtype
 type saveloadgamepositionweaponslottype
@@ -1175,7 +1175,7 @@ type entityprofiletype
  limbmax as integer
  headlimb as integer
  spine as integer
- SP2 as integer
+ spine2 as integer
  firespotlimb as integer
  animmax as integer
  footfallmax as integer
@@ -1459,7 +1459,6 @@ endtype
 rem Entity Elements Data
 type entitytype
 
-
  enterwater as integer
  isflak as integer
  darkai as darkaitype
@@ -1621,9 +1620,10 @@ type entitytype
  LUA as integer
  RUA as integer
  SP1 as integer
- SP2 as integer
+ spine2 as integer
  SP3 as integer
  NECK as integer
+ shotby as integer
 endtype
 rem Entity Breadcrumbs Data
 type entitybreadcrumbstype
@@ -1834,6 +1834,9 @@ Rem Scene commander conditions
 #constant AICONDFLOORHIGHER 896
 #constant AICONDFLOORLOWER 897
 #constant AICONDFLASHING 898
+#constant AICONDSPAWNSLEFT 899
+#constant AICONDSPAWNSGREATER 900
+#constant AICONDSHOTBY 901
 
 #constant AICONDLAST 950
 
@@ -2316,6 +2319,8 @@ rem Scene Commander actions
 #constant AIACTFLASHGREEN 1580
 #constant AIACTFLASHBLUE 1581
 #constant AIACTFLASHRANGE 1582
+#constant AIACTLOGICBURST 1583
+#constant AIACTPLRDAM 1584
 
 #constant AIACTLAST 1600
 
@@ -8001,6 +8006,7 @@ for e=1 to entityelementlist
    if entityelement(e).spawn.life>0
     if timer()>entityelement(e).spawn.life
      entityelement(e).spawn.life=0
+     entityelement(e).shotby=998
      tkillentitynow=1
     endif
    endif
@@ -8008,6 +8014,7 @@ for e=1 to entityelementlist
    rem always kill an entity falling out of universe
    if entityelement(e).y<-100
     tkillentitynow=1
+    entityelement(e).shotby=999
    endif
    `
    rem kill now
@@ -8495,12 +8502,12 @@ for e=1 to entityelementlist
       if entityelement(e).spiner>0 then dec entityelement(e).spiner,5
       if entityelement(e).spiner<0 then entityelement(e).spiner=0
      endif
-     if entityprofile(entid).spine>-1 and entityprofile(entid).ischaracter=1 and entityprofile(entid).SP2>-1
+     if entityprofile(entid).spine>-1 and entityprofile(entid).ischaracter=1 and entityprofile(entid).spine2>-1
       rotation#=(entityelement(e).spiner/2.0)
       Rem Handle Spine 1 Rotation
       Rotate Limb entityelement(e).obj,entityprofile(entid).spine,Limb Angle X(entityelement(e).obj,entityprofile(entid).spine),rotation#,Limb Angle Z(entityelement(e).obj,entityprofile(entid).spine)
       Rem Handle Spine 2 Rotation
-      Rotate Limb entityelement(e).obj,entityprofile(entid).SP2,Limb Angle X(entityelement(e).obj,entityprofile(entid).SP2),rotation#,Limb Angle Z(entityelement(e).obj,entityprofile(entid).SP2)
+      Rotate Limb entityelement(e).obj,entityprofile(entid).spine2,Limb Angle X(entityelement(e).obj,entityprofile(entid).spine2),rotation#,Limb Angle Z(entityelement(e).obj,entityprofile(entid).spine2)
      endif
      `
      rem any visual overlay info
@@ -9065,8 +9072,6 @@ if entityelement(e).fireweapon=1
          decalscalemodx=0 : rem FPSCV101 - fix
          decalorient=0 : decalx=tdamagex#+tix# : decaly=((entityelement(e).y+(object size y(entityelement(e).obj)/2))-rnd(6))+tiy# : decalz=tdamagez#+tiz#
 
-
-
          originatore=-1 : gosub _decalelement_create
         endif
         remstart
@@ -9083,7 +9088,6 @@ if entityelement(e).fireweapon=1
         add static scorch tscorchsize3#,tscorchtype3
         remend
        endif
-
        gosub _entity_deducthealth : e=stte
        tentid=entityelement(e).bankindex
        entid=entityelement(e).bankindex
@@ -10266,6 +10270,7 @@ _entity_move_restoreref:
    tdamage=entityelement(e).health
    entityelement(e).health=1
    tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y : tdamagez#=entityelement(e).z
+   entityelement(e).shotby=999
    gosub _entity_deducthealth
   endif
  endif
@@ -10470,6 +10475,7 @@ _entity_controlmovements:
      tdamage=1+((abs(entityelement(e).y-entityelement(e).mover.gravlasty)-entityelement(e).eleprof.hurtfall)/5.0)
      tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y : tdamagez#=entityelement(e).z
      tdamagesource=0 : timpacttype=1
+     entityelement(e).shotby=997
      gosub _entity_deducthealth
     endif
     rem record last ground player stood on
@@ -10928,13 +10934,16 @@ _entity_completerayhit:
    tperc#=(gunrange#-dst#)/gunrange#
    if dst#<200 then tperc#=1.0
    tdamage=bulletdamage : dec tdamage,rnd(tdamage/5)
-   tdamage=tdamage*tperc#
+   Rem Scene commander, player damage multiplyer
+   truedam#=tperc#
+   if playerdammult#<>0 then truedam#=truedam#*playerdammult#
+   tdamage=tdamage*truedam#
 
    tdamagesource=0 : timpacttype=bulletraytype
    tdamagex#=x# : tdamagey#=y# : tdamagez#=z#
    tuseentityowndecaldamage=1
-
-
+      Rem Scene Commander shot by what weapon.
+   entityelement(e).shotby=gunid
    rem arena game there are no knock-downs (multiplayer)
    if gmultiplayergame=1
     timpacttype=1
@@ -11052,7 +11061,7 @@ _entity_addforcesphere:
      rem characters can shrug off some explosion force
      if tdamage<30 then timpacttype=1
      if forcedamageon=0 then tdamage=0
-
+      entityelement(e).shotby=996
      gosub _entity_deducthealth
     else
      gosub _entity_delayeddeducthealth
@@ -11759,6 +11768,9 @@ conword$(AICONDFLOORHIGHER)="entityfloorhigher"
 conword$(AICONDFLOORLOWER)="entityfloorlower"
 
 conword$(AICONDFLASHING)="flashing"
+conword$(AICONDSPAWNSLEFT)="spawnsleft"
+conword$(AICONDSPAWNSGREATER)="spawnsgreater"
+conword$(AICONDSHOTBY)="damageby"
 
 rem Set all action keywords
 dim actword$(AIACTLAST)
@@ -12233,6 +12245,8 @@ actword$(AIACTFLASHRED)="setflashred"
 actword$(AIACTFLASHGREEN)="setflashgreen"
 actword$(AIACTFLASHBLUE)="setflashblue"
 actword$(AIACTFLASHRANGE)="setflashrange"
+actword$(AIACTLOGICBURST)="logicburst"
+actword$(AIACTPLRDAM)="plrdamagemult"
 
 return
 
@@ -14310,6 +14324,16 @@ case AICONDISIMMUNE:
       endif
    endif
 
+   if lastfired<>0
+   conda=aiconditionseq(seq).valuea
+      if conda>0 and conda<11
+         if weaponslot(conda).got=lastfired
+         airesult=1
+         lastfired=0
+         endif
+      endif
+   endif
+
    endcase
 
 case AICONDRADARGREATER:
@@ -14345,8 +14369,6 @@ condb=entityelement(e).y-object position y(physicsplayerborble)
 
    endif
 
-
-
 endcase
 
 case AICONDENTITYPLRLESSER:
@@ -14361,8 +14383,6 @@ condb=entityelement(e).y-object position y(physicsplayerborble)
       endif
 
    endif
-
-
 
 endcase
 
@@ -14423,7 +14443,69 @@ endif
 
 endcase
 
+Rem Scene Commander- based on code supplied by Ched80 - used with permission.
+case AICONDSPAWNSLEFT:
 
+condb=aiconditionseq(seq).valueb
+tte=entityelement(e).spawn.leaderid
+conda=aiconditionseq(seq).valuea
+if condb=1 and conda=entityelement(tte).spawn.upto then airesult=1
+if condb=0 and conda<>entityelement(tte).spawn.upto then airesult=1
+endcase
+Rem Scene Commander- based on code supplied by Ched80 - used with permission.
+case AICONDSPAWNSGREATER:
+
+condb=aiconditionseq(seq).valueb
+tte=entityelement(e).spawn.leaderid
+conda=aiconditionseq(seq).valuea
+if conda>entityelement(tte).spawn.upto and condb=1 then airesult=1
+if conda<entityelement(tte).spawn.upto and condb=0 then airesult=1
+endcase
+
+case AICONDSHOTBY:
+
+   findgun$=lower$(aiconditionseq(seq).string1)
+   airesult=0
+   foundgunid=0
+   if entityelement(e).shotby=0
+   airesult=0
+   else
+      gosub _gun_findweaponindexbyname
+      if foundgunid>0
+         if foundgunid=entityelement(e).shotby
+         airesult=1
+         entityelement(e).shotby=0
+         endif
+      endif
+   endif
+
+   if lower$(findgun$)="collision" and entityelement(e).shotby=993
+   airesult=1:entityelement(e).shotby=0
+   endif
+   if lower$(findgun$)="melee" and entityelement(e).shotby=994
+   airesult=1:entityelement(e).shotby=0
+   endif
+   if lower$(findgun$)="indirect" and entityelement(e).shotby=995
+   airesult=1:entityelement(e).shotby=0
+   endif
+   if lower$(findgun$)="flak" and entityelement(e).shotby=996
+   airesult=1:entityelement(e).shotby=0
+   endif
+   if lower$(findgun$)="falling" and entityelement(e).shotby=997
+   airesult=1:entityelement(e).shotby=0
+   endif
+
+   if entityelement(e).shotby<>0
+   conda=aiconditionseq(seq).valuea
+      if conda>0 and conda<11
+         if weaponslot(conda).got=entityelement(e).shotby
+         airesult=1:entityelement(e).shotby=0
+         endif
+      endif
+   endif
+
+
+   endcase
 
 
    endselect
@@ -15725,6 +15807,7 @@ Rem Scene Commander
        entityelement(e).health=1 : tdamage=1
        tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y : tdamagez#=entityelement(e).z
        obj=entityelement(e).obj
+       entityelement(e).shotby=995
        gosub _entity_deducthealth
       endif
      endcase
@@ -15732,6 +15815,7 @@ Rem Scene Commander
       tdamage=aiactionseq(seq).value
       tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y  : tdamagex#=entityelement(e).y
       obj=entityelement(e).obj
+      entityelement(e).shotby=995
       gosub _entity_deducthealth
      endcase
      case AIACTSETHEALTH:
@@ -15741,6 +15825,7 @@ Rem Scene Commander
        entityelement(e).health=1 : tdamage=1
        tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y : tdamagez#=entityelement(e).z
        obj=entityelement(e).obj
+       entityelement(e).shotby=995
        gosub _entity_deducthealth
       endif
      endcase
@@ -17464,7 +17549,7 @@ Rem Scene Commander
       if ai entity exist(entityelement(e).obj)
        entid=entityelement(e).bankindex
        entityelement(e).darkai.useaim=aiactionseq(seq).value
-       if entityprofile(entid).spine=-1 or entityprofile(entid).SP2=-1 then entityelement(e).darkai.useaim=0
+       if entityprofile(entid).spine=-1 or entityprofile(entid).spine2=-1 then entityelement(e).darkai.useaim=0
        if entityelement(e).darkai.useaim=0 then entityelement(e).spiner=0
       endif
      endcase
@@ -17661,6 +17746,7 @@ Rem Scene Commander
         tdamagesource=0 : timpacttype=1 : tdamage=entityelement(e).darkai.meleedamage
         tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y  : tdamagex#=entityelement(e).y
         stte=e : e=tte : damagede=e
+        entityelement(e).shotby=994
         gosub _entity_deducthealth
         e=stte
         Rem Create Blood
@@ -19657,7 +19743,21 @@ case AIACTSETVARRND:
 
       endcase
 
-    endselect
+      case AIACTLOGICBURST:
+
+      entityelement(e).logiccount=0
+
+      endcase
+
+
+    case AIACTPLRDAM:
+
+    playerdammult#=aiactionseq(seq).value
+
+    endcase
+
+   endselect
+
 
     rem Scene commander actions end
     `
@@ -27754,7 +27854,7 @@ for f=1 to flakelementmax
       e=spheree
       if entityprofile(tentid).ischaracter=1
        `if tdamage<30 then timpacttype=1
-
+       entityelement(e).shotby=996
        gosub _entity_deducthealth
       else
        gosub _entity_delayeddeducthealth
@@ -30199,12 +30299,12 @@ if desc$<>""
     next tc
    endif
   endif
- if entityprofile(entid).SP2=-1
+ if entityprofile(entid).spine2=-1
    if object exist(entobj)=1
     perform checklist for object limbs entobj
     for tc=1 to checklist quantity()
-     if lower$(checklist string$(tc))="bip01_SP2"
-      entityprofile(entid).SP2=tc-1
+     if lower$(checklist string$(tc))="bip01_spine2"
+      entityprofile(entid).spine2=tc-1
       exit
      endif
     next tc
@@ -30429,7 +30529,7 @@ if file exist(tprofile$)=0
  entityprofile(entid).raisefactor=0
  entityprofile(entid).phyalways=0
  entityprofile(entid).spine=-1
- entityprofile(entid).SP2=-1
+ entityprofile(entid).spine2=-1
  entityprofile(entid).decaloffsetangle=0
  entityprofile(entid).decaloffsetdist=0
  entityprofile(entid).decaloffsety=0
@@ -33003,7 +33103,7 @@ _entity_delete:
   entityprofile(entid).explodable=0
   entityprofile(entid).explodedamage=0
   entityprofile(entid).spine=-1
-  entityprofile(entid).SP2=-1
+  entityprofile(entid).spine2=-1
  endif
  `
 return
@@ -39616,8 +39716,8 @@ _ode_sounds:
      if tdamage>2 and tdamagebybangcount=0
       rem entity damage here
       tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y : tdamagez#=entityelement(e).z
-      if e1>0 then e=e1 : entid=entityelement(e).bankindex : gosub _entity_deducthealth : tdamagebybangcount=20
-      if e2>0 then e=e2 : entid=entityelement(e).bankindex : gosub _entity_deducthealth : tdamagebybangcount=20
+      if e1>0 then e=e1 :entityelement(e).shotby=993: entid=entityelement(e).bankindex : gosub _entity_deducthealth : tdamagebybangcount=20
+      if e2>0 then e=e2 :entityelement(e).shotby=993: entid=entityelement(e).bankindex : gosub _entity_deducthealth : tdamagebybangcount=20
      endif
      rem bangobj e refresh
      e=phyobjele(bangobj)
@@ -60049,8 +60149,8 @@ case 6
   endif
  endcase
  case 15
-  if limb exist(entityelement(en).obj,entityelement(en).SP2)
-  scale limb entityelement(en).obj,entityelement(en).SP2,ls,ls,ls
+  if limb exist(entityelement(en).obj,entityelement(en).spine2)
+  scale limb entityelement(en).obj,entityelement(en).spine2,ls,ls,ls
 
   endif
  endcase
@@ -60079,6 +60179,7 @@ _create_blood:
   disty#=tdamagey#-entityelement(damagede).y
   distz#=tdamagez#-entityelement(damagede).z
   bldist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
+
   rem direction from player to entity
   tix#=entityelement(damagede).x-tdamagex# : tiy#=entityelement(damagede).y-tdamagey# : tiz#=entityelement(damagede).z-tdamagez#
   tdd#=sqrt(abs(tix#*tix#)+abs(tiy#*tiy#)+abs(tiz#*tiz#))
@@ -60093,6 +60194,7 @@ _create_blood:
    tiy#=1
    tiz#=1
   endif
+
   rem create a splat decal
   decalscalemodx=0 : rem FPSCV101 - fix
   if middlebody=1
@@ -60101,6 +60203,7 @@ _create_blood:
    decaly=tdamagey#+tiy#
   endif
   decalorient=0 : decalx=tdamagex#+tix# : decalz=tdamagez#+tiz#
+
   originatore=-1 : gosub _decalelement_create
  endif
  middlebody=0
