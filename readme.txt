@@ -201,7 +201,7 @@ scale=x or scale=x y - scales characters to scale X or scale X+ a value between 
 
 V11
 
-plrlastfired=x (condition) returns true if weapon path X is the last player weapon fired.
+plrlastfired=x (condition) returns true if weapon path X is the last player weapon fired or x=the slot the weapon is carried in.
 radargreater=x y (condition) returns true is an entites range on the radar is greater (in segment size) than x and Y=1, else returns true if range less than x and Y=0
 radarequal=x y (condition) returns true is an entites range on the radar is equal (in segment size) to x and Y=1, else returns true if range does not equal x and Y=0
 Fixed aiheardsound bug.
@@ -242,6 +242,13 @@ setflashgreen=x - sets the next flashes green element
 setflashblue=x - sets the next flashes blue element
 setflashrange=x - sets the flash range of the next flash emitted, default=600
 flashing=x (condition) returns true if a spotflash is in process and x=1 or returns true if no spotflash is in process and x=0
+logicburst - give entity temporary logic burst, effectively setting to always active for a few moments.
+spawnsleft=x y (condition) returns true if spawnsleft=x and y=1 or returns true if spawnsleft<>x and y=0
+spawnsgreater=x y (condition) returns true if spawns are greater than x and y=1 or returns true if spawns are less than x and y=0
+damageby=X (condition) where X is either a weapon path (e.g. ww2/colt45)
+ or the string "collision", "melee", "indirect", "flak" or "falling".
+ or X= the slot number the weapon is carried in.
+plrdamagemult=x where x is a multiplier for the current damage caused by the player.
 
 V1.1.8
 ------
