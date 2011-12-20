@@ -493,7 +493,6 @@ type saveloadgamepositionentitytype
  onradar as integer rem Scene Commander
  radardistance as integer
  shotby as integer
-
 endtype
 type saveloadgamepositionweaponslottype
  pref got invpos
@@ -2321,6 +2320,7 @@ rem Scene Commander actions
 #constant AIACTFLASHRANGE 1582
 #constant AIACTLOGICBURST 1583
 #constant AIACTPLRDAM 1584
+#constant AIACTDESTROYIN 1585
 
 #constant AIACTLAST 1600
 
@@ -12247,6 +12247,7 @@ actword$(AIACTFLASHBLUE)="setflashblue"
 actword$(AIACTFLASHRANGE)="setflashrange"
 actword$(AIACTLOGICBURST)="logicburst"
 actword$(AIACTPLRDAM)="plrdamagemult"
+actword$(AIACTDESTROYIN)="timedestroy"
 
 return
 
@@ -19756,7 +19757,13 @@ case AIACTSETVARRND:
 
     endcase
 
-   endselect
+   case AIACTDESTROYIN:
+
+   entityelement(e).spawn.life=timer()+(aiactionseq(seq).value*1000)
+
+   endcase
+
+    endselect
 
 
     rem Scene commander actions end
