@@ -160,12 +160,12 @@ WASP official - V7 - for use after V1.19 beta
 Increased maximum radar blips to 20 to bring in line with maximum AI teams.
 Changes to cull system to improve performance and added entity fade for smoother appearence.
 
-plrisrunning=x (condition) - X=1 returns true if the player is running, x=0 returns true if player not running.
-plriszoomed=x (condition) - X=1 returns true if player weapon currently zoomed, X=0, returns true if weapon not zoomed
+plrisrunning (condition)  returns true if the player is running, 
+plriszoomed (condition) - returns true if player weapon currently zoomed,
 plrisusingreload=X (condition) - X=1 returns true if reload pressed, X=0, returns true if reload not pressed.
-plriscrouching=x (condition) - X=1. returns true if player crouched, x=0 returns true if player not crouching
+plriscrouching (condition) -  returns true if player crouched
 plrisonground=x (condition) - X=1 and player is on ground returns true, X=0 and player is not on ground returns true.
-plrisjumping=x (condition) x=1 returns true if player is jumping, x=0 returns true if player is not jumping.
+plrisjumping (condition) returns true if player is jumping
 
 swaptoalt - swaps to alt fire on the current weapon
 firemode=x (condition) - returns true if current firemode=x, 0=normal, 1=alt fire mode
@@ -249,6 +249,10 @@ damageby=X (condition) where X is either a weapon path (e.g. ww2/colt45)
  or the string "collision", "melee", "indirect", "flak" or "falling".
  or X= the slot number the weapon is carried in.
 plrdamagemult=x where x is a multiplier for the current damage caused by the player.
+plrnotzoomed (condition) - returns true if player is not zoomed
+plrnotrunning (condition) - returns true if player is not running
+plrnotjumping (condition) - returns true if player is not jumping
+plrnotcrouched (condition) - returns true if player is not crouched
 
 V1.1.8
 ------
