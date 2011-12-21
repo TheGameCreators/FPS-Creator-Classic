@@ -1836,6 +1836,10 @@ Rem Scene commander conditions
 #constant AICONDSPAWNSLEFT 899
 #constant AICONDSPAWNSGREATER 900
 #constant AICONDSHOTBY 901
+#constant AICONDNOTZOOMED 902
+#constant AICONDPLRNOTRUNNING 903
+#constant AICONDPLRNOTCROUCHING 904
+#constant AICONDPLRNOTJUMPING 905
 
 #constant AICONDLAST 950
 
@@ -11750,11 +11754,15 @@ conword$(AICONDWEAPONINSLOT)="weaponinslot"
 conword$(AICONDCURRENTWEAPON)="currentweapon"
 Rem Scene Commander, V1.19 beta 2
 conword$(AICONDPLRRUNNING)="plrisrunning"
+conword$(AICONDPLRNOTRUNNING)="plrnotrunning"
 conword$(AICONDPLRCROUCHING)="plriscrouching"
+conword$(AICONDPLRNOTCROUCHING)="plrnotcrouching"
 conword$(AICONDZOOMED)="plriszoomed"
+conword$(AICONDNOTZOOMED)="plrnotzoomed"
 conword$(AICONDPLRUSINGRELOAD)="plrisusingreload"
 conword$(AICONDPLRONGROUND)="plrisonground"
 conword$(AICONDPLRJUMPING)="plrisjumping"
+conword$(AICONDPLRNOTJUMPING)="plrnotjumping"
 conword$(AICONDFIREMODE)="firemode"
 conword$(AICONDONRADAR)="onradar"
 conword$(AICONDLASTFIRED)="plrlastfired"
@@ -14059,18 +14067,21 @@ if temp=conda then airesult=1
 endcase
 
 case AICONDAIRGREATER:
+airesult=0
 conda=aiconditionseq(seq).valuea
 condb=airleft
 if conda>condb then airesult=1
 endcase
 
 case AICONDAIRLESSER:
+airesult=0
 conda=aiconditionseq(seq).valuea
 condb=airleft
 if conda<condb then airesult=1
 endcase
 
-case AICONDAIREQUAL:
+case AICONDAIREQUAL:airesult=0
+
 conda=aiconditionseq(seq).valuea
 condb=airleft
 if conda=condb then airesult=1
@@ -14227,54 +14238,66 @@ case AICONDISIMMUNE:
 
      case AICONDPLRRUNNING:
 
-    if isrunning<>0 and aiconditionseq(seq).valuea=1
+    airesult=0
+    if isrunning<>0
     airesult=1
     endif
 
-    if isrunning=0 and aiconditionseq(seq).valuea=0
+    endcase
+
+    case AICONDPLRNOTRUNNING:
+    airesult=0
+    if isrunning=0
     airesult=1
     endif
 
     endcase
 
     case AICONDPLRCROUCHING:
-
-    if crouchmode<>0 and aiconditionseq(seq).valuea=1
+    airesult=0
+    if crouchmode<>0
     airesult=1
     endif
 
-   if crouchmode=0 and aiconditionseq(seq).valuea=0
-   airesult=1
-   endif
-
-
     endcase
 
+    case AICONDPLRNOTCROUCHING:
+   airesult=0
+   if crouchmode=0
+   airesult=1
+   endif
+
+   endcase
+
    case AICONDZOOMED:
-
-   if gunzoommode<>0 and aiconditionseq(seq).valuea=1
+   airesult=0
+   if gunzoommode<>0
    airesult=1
    endif
 
-   if gunzoommode=0 and aiconditionseq(seq).valuea=0
+   endcase
+
+   case AICONDNOTZOOMED:
+   airesult=0
+   if gunzoommode=0
    airesult=1
    endif
-
 
    endcase
 
    case AICONDPLRUSINGRELOAD:
+   airesult=1
    if aiconditionseq(seq).valuea>1 then aiconditionseq(seq).valuea=1
    if plrkeyR<>aiconditionseq(seq).valuea then airesult=0
    endcase
 
    case AICONDPLRONGROUND:
-
+      airesult=0
         if abs(grav#)<5.5 and jumpaction=0 and physuspendgravity=0 and aiconditionseq(seq).valuea=1
          airesult=1
          endif
 
-        if abs(grav#)>5.5 and jumpaction=0 and physuspendgravity=0 and aiconditionseq(seq).valuea=1
+        if abs(grav#)>5.5 and jumpaction=0 and physuspendgravity=0 and aiconditionseq(seq).valuea=0
         airesult=1
         endif
 
@@ -14282,19 +14305,23 @@ case AICONDISIMMUNE:
     endcase
 
    case AICONDPLRJUMPING:
-
-    if jumpaction<>0 and aiconditionseq(seq).valuea=1
+      airesult=0
+    if jumpaction<>0
     airesult=1
     endif
 
-   if jumpaction=0 and aiconditionseq(seq).valuea=0
+    endcase
+
+   case AICONDPLRNOTJUMPING:
+   airesult=0
+   if jumpaction=0
    airesult=1
    endif
 
    endcase
 
    case AICONDFIREMODE:
-
+   airesult=0
    if firemode=aiconditionseq(seq).valuea
    airesult=1
    endif
@@ -14304,7 +14331,6 @@ case AICONDISIMMUNE:
    case AICONDONRADAR:
 
    airesult=0
-
    if (aiconditionseq(seq).valuea=1 and entityelement(e).onradar=1) or (aiconditionseq(seq).valuea=0 and entityelement(e).onradar=0)
    airesult=1
    endif
@@ -14338,7 +14364,7 @@ case AICONDISIMMUNE:
    endcase
 
 case AICONDRADARGREATER:
-
+airesult=0
 temprange=aiconditionseq(seq).valuea
 tempmode=aiconditionseq(seq).valueb
 
@@ -14348,7 +14374,7 @@ if tempmode=0 and entityelement(e).radardistance>temprange then airesult=1
 endcase
 
 case AICONDRADAREQUAL:
-
+airesult=0
 temprange=aiconditionseq(seq).valuea
 tempmode=aiconditionseq(seq).valueb
 
@@ -14358,7 +14384,7 @@ if tempmode=0 and entityelement(e).radardistance<>temprange then airesult=1
 endcase
 
 case AICONDENTITYPLRGREATER:
-
+airesult=0
 conda=aiconditionseq(seq).valuea
 
 
@@ -14373,7 +14399,7 @@ condb=entityelement(e).y-object position y(physicsplayerborble)
 endcase
 
 case AICONDENTITYPLRLESSER:
-
+airesult=0
 conda=aiconditionseq(seq).valuea
 
 
@@ -14431,7 +14457,7 @@ endif
 endcase
 
 case AICONDFLASHING:
-
+airesult=0
 conda=aiconditionseq(seq).valuea
 
 if spotflash=0 and conda=0
@@ -14446,7 +14472,7 @@ endcase
 
 Rem Scene Commander- based on code supplied by Ched80 - used with permission.
 case AICONDSPAWNSLEFT:
-
+airesult=0
 condb=aiconditionseq(seq).valueb
 tte=entityelement(e).spawn.leaderid
 conda=aiconditionseq(seq).valuea
@@ -14455,7 +14481,7 @@ if condb=0 and conda<>entityelement(tte).spawn.upto then airesult=1
 endcase
 Rem Scene Commander- based on code supplied by Ched80 - used with permission.
 case AICONDSPAWNSGREATER:
-
+airesult=0
 condb=aiconditionseq(seq).valueb
 tte=entityelement(e).spawn.leaderid
 conda=aiconditionseq(seq).valuea
@@ -39538,7 +39564,7 @@ if camerapicked>0
    taddx#=camvelx# : taddy#=camvely# : taddz#=camvelz#
 
 
-   rem scene commander edit
+   rem scene commander edit -
 
    if firemode(gunid,firemode).settings.gravitygun=0 or firemode(gunid,firemode).settings.magnet=0
    ode set linear velocity camerapicked, taddx#+sin(camera angle y())*throwdistance#,taddy#+tthrowheight#,taddz#+cos(camera angle y())*throwdistance#
