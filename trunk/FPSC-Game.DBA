@@ -1840,6 +1840,10 @@ Rem Scene commander conditions
 #constant AICONDPLRNOTRUNNING 903
 #constant AICONDPLRNOTCROUCHING 904
 #constant AICONDPLRNOTJUMPING 905
+#constant AICONDPLRNOTUSINGRELOAD 906
+#constant AICONDNOTONRADAR 907
+#constant AICONDPLRCARRYING 908
+#constant AICONDPLRNOTCARRYING 906
 
 #constant AICONDLAST 950
 
@@ -4503,6 +4507,8 @@ _main_game_core:
  `
  rem Update screen
  if keystate(28) then gotintodes=0
+
+ `text 200,200,str$(player(plrid).state.firingmode)
 
  `text 200,200,str$(firemode)
 
@@ -11779,6 +11785,10 @@ conword$(AICONDFLASHING)="flashing"
 conword$(AICONDSPAWNSLEFT)="spawnsleft"
 conword$(AICONDSPAWNSGREATER)="spawnsgreater"
 conword$(AICONDSHOTBY)="damageby"
+conword$(AICONDPLRNOTUSINGRELOAD)="plrnotusingreload"
+conword$(AICONDNOTONRADAR)="notonradar"
+conword$(AICONDPLRCARRYING)="plrcarrying"
+conword$(AICONDPLRNOTCARRYING)="plrnotcarrying"
 
 rem Set all action keywords
 dim actword$(AIACTLAST)
@@ -14286,9 +14296,20 @@ case AICONDISIMMUNE:
    endcase
 
    case AICONDPLRUSINGRELOAD:
+
+   airesult=0
+   if player(1).state.firingmode=2
    airesult=1
-   if aiconditionseq(seq).valuea>1 then aiconditionseq(seq).valuea=1
-   if plrkeyR<>aiconditionseq(seq).valuea then airesult=0
+   endif
+   endcase
+
+   case AICONDPLRNOTUSINGRELOAD:
+
+   airesult=0
+   if player(1).state.firingmode<>2
+   airesult=1
+   endif
+
    endcase
 
    case AICONDPLRONGROUND:
@@ -14331,7 +14352,16 @@ case AICONDISIMMUNE:
    case AICONDONRADAR:
 
    airesult=0
-   if (aiconditionseq(seq).valuea=1 and entityelement(e).onradar=1) or (aiconditionseq(seq).valuea=0 and entityelement(e).onradar=0)
+   if entityelement(e).onradar=1
+   airesult=1
+   endif
+
+   endcase
+
+   case AICONDNOTONRADAR:
+
+   airesult=0
+   if entityelement(e).onradar=0
    airesult=1
    endif
 
@@ -14531,6 +14561,25 @@ case AICONDSHOTBY:
       endif
    endif
 
+
+   endcase
+
+   case AICONDPLRCARRYING:
+
+   airesult=0
+   if camerapicked<>0
+   airesult=1
+   endif
+
+
+   endcase
+
+   case AICONDPLRNOTCARRYING:
+
+   airesult=0
+   if camerapicked<>0
+   airesult=1
+   endif
 
    endcase
 
@@ -22954,6 +23003,7 @@ rem cinematic hands <<<<
  endif
  Rem Reload key
  if plrkeyRheld=1 and plrkeyR=0 then plrkeyRheld=0
+
  tpool=firemode(gunid,firemode).settings.poolindex
  if tpool=0 then ammo=weaponclipammo(weaponammoindex+ammooffset) else ammo=ammopool(tpool).ammo
 
@@ -38175,7 +38225,13 @@ if keystate(plrkeyC)=1 and crouchonkey=1 then plrkeyC=1 else plrkeyC=0
 
 Rem end change
 if keystate(plrkeyZ)=1 then plrkeyZ=1 else plrkeyZ=0
-if keystate(plrkeyR)=1 then plrkeyR=1 else plrkeyR=0
+
+
+   if keystate(plrkeyR)=1
+   plrkeyR=1
+   else
+   plrkeyR=0
+   endif
 Rem Scene Commander edit
 if keystate(plrkeySPACE)=1 and jumponkey=1 then plrkeySPACE=1 else plrkeySPACE=0
 if keystate(plrkeyRETURN)=1 then plrkeyRETURN=1 else plrkeyRETURN=0
@@ -38193,25 +38249,32 @@ rem U71 - Contoller
 if gxbox=1 : rem define in a config later
  `
  rem Hard Code XBOX360 controls to optional player controls
+ if walkonkeys=1
  if joystick y()<-500 then plrkeyW=1
  if joystick y()>500 then plrkeyS=1
  if joystick x()<-500 then plrkeyA=1
  if joystick x()>500 then plrkeyD=1
- if joystick fire c()=1 then plrkeyR=1
- if joystick fire a()=1 then plrkeySPACE=1
+ endif
+
+ if joystick fire c()=1
+   plrkeyR=1
+   else
+   plrkeyR=0
+   endif
+ if joystick fire a()=1 and jumponkey=1  then plrkeySPACE=1
  if joystick fire d()=1  then plrkeyRETURN=1
  if gxboxcontrollertype=0
   rem XBOX360 Controller
-  if joystick fire x(8)=1 then plrkeyC=1
+  if joystick fire x(8)=1 and crouchonkey=1then plrkeyC=1
   if joystick fire x(9)=1 then plrkeyZ=1
-  if joystick z()>500 then plrkeySHIFT=1
+  if joystick z()>500 and runkeys=1  then plrkeySHIFT=1
  endif
  if gxboxcontrollertype=1
   rem Dual Action
-  if joystick fire x(10)=1 then plrkeyC=1
+  if joystick fire x(10)=1 and crouchonkey=1 then plrkeyC=1
   if joystick fire x(11)=1 then plrkeyZ=1
-  if joystick fire x(4)=1 then plrkeySHIFT=1
-  if joystick fire x(6)=1 then plrkeySHIFT=1
+  if joystick fire x(4)=1 and runkeys=1 then plrkeySHIFT=1
+  if joystick fire x(6)=1 and runkeys=1 then plrkeySHIFT=1
  endif
  `
 endif
