@@ -253,6 +253,8 @@ plrnotzoomed (condition) - returns true if player is not zoomed
 plrnotrunning (condition) - returns true if player is not running
 plrnotjumping (condition) - returns true if player is not jumping
 plrnotcrouched (condition) - returns true if player is not crouched
+plrnotusingreload (condition) - returns true if player is not pressing reload
+notonradar (condition) - returns true if entity is not on the radar
 
 V1.1.8
 ------
