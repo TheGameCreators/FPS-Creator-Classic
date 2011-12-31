@@ -2329,6 +2329,7 @@ rem Scene Commander actions
 #constant AIACTPLRDAM 1584
 #constant AIACTDESTROYIN 1585
 #constant AIACTSETLISTKEY 1586
+#constant AIACTRAWTEXTVAR 1587
 
 #constant AIACTLAST 1600
 
@@ -12271,6 +12272,7 @@ actword$(AIACTLOGICBURST)="logicburst"
 actword$(AIACTPLRDAM)="plrdamagemult"
 actword$(AIACTDESTROYIN)="timedestroy"
 actword$(AIACTSETLISTKEY)="setlistkey"
+actword$(AIACTRAWTEXTVAR)="addrawvar"
 
 return
 
@@ -19850,7 +19852,54 @@ case AIACTSETVARRND:
     endif
     endcase
 
-    endselect
+
+
+case AIACTRAWTEXTVAR:
+      tempvalue=0
+      rem Plystire 109 - Merge this command with our system
+      if aiactionseq(seq).string2=""
+       if aivariablemode=0
+        tempvalue=aiglobals(aivariableindex)
+       else
+        tempvalue=ailocals(e,aivariableindex)
+       endif
+      else
+       rem Use the better system ;)
+       tvarfound=0
+       rem Using our strings from the parser, let's find the var the user wants to get
+       if left$(aiactionseq(seq).string1,1)="$"
+        tempvalue=getintervar(aiactionseq(seq).string1)
+        else
+        for uvar = 0 to array count(uservars(0))
+         if uservars(uvar).name = aiactionseq(seq).string1
+          rem Found the variable, let's set it
+          tempvalue=uservars(uvar).value
+          tvarfound=1
+          rem And Exit the For loop
+          exit
+         endif
+        next uvar
+        `
+        if tvarfound=0
+         for lvar = 0 to 99
+          if aiuserlocals(e,lvar).name = aiactionseq(seq).string1
+           rem Found the variable, let's set it
+           tempvalue=aiuserlocals(e,lvar).value
+           rem And Exit the For loop
+           exit
+          endif
+         next lvar
+        endif
+        `
+       endif
+      endif
+
+
+      grawtext$=grawtext$+str$(tempvalue)
+
+     endcase
+
+   endselect
 
 
     rem Scene commander actions end
