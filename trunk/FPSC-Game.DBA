@@ -50,7 +50,6 @@ perftimer() = *memptr
 
 delete dll Kernel32
 
-
 _start_engine:
 
 Rem Scene Commander globals
@@ -2329,6 +2328,7 @@ rem Scene Commander actions
 #constant AIACTLOGICBURST 1583
 #constant AIACTPLRDAM 1584
 #constant AIACTDESTROYIN 1585
+#constant AIACTSETLISTKEY 1586
 
 #constant AIACTLAST 1600
 
@@ -3219,7 +3219,7 @@ global glightatten : glightatten=16000
 global glightmaxsize : glightmaxsize=-1
 global glightboost : glightboost=4
 global glighttexsize : glighttexsize=1024
-global glightquality : glightquality=40
+global glightquality : glightquality=80
 global glightblurmode : glightblurmode=1
 global glightthreadmax : glightthreadmax=4
 global gdynamiclightingstate : gdynamiclightingstate=0
@@ -3887,7 +3887,9 @@ set text font "Verdana"
 rem Init app (lee - 140310 - sync rate was 38)
 `sync on : sync rate 0 : autocam off : disable systemkeys
 rem scene commander performance
-sync on : sync rate 80 : autocam off : disable systemkeys `- new cap to fix animation issues
+sync on : sync rate 80
+
+ : autocam off : disable systemkeys `- new cap to fix animation issues
 hide mouse : backdrop off : disable escapekey
 
 rem If Game is NOT IN TEST MODE, default is full screen shown
@@ -4509,8 +4511,6 @@ _main_game_core:
  if keystate(28) then gotintodes=0
 
  `text 200,200,str$(player(plrid).state.firingmode)
-
- `text 200,200,str$(firemode)
 
 rem scene commander new air commands
 
@@ -9059,6 +9059,8 @@ if entityelement(e).fireweapon=1
 
        Rem Hockeykid - 020410 - Create blood splat if hit
        Rem Hockeykid - 020410 - Ensure that the target is alive
+
+
        if entityelement(e).beenkilled=0
         decalid=entitydecal(entityelement(e).bankindex,1)
         if decalid>0
@@ -9073,14 +9075,16 @@ if entityelement(e).fireweapon=1
          tix#=tix#/tdd# : tiy#=tiy#/tdd# : tiz#=tiz#/tdd#
          rem find point of impact
          tix#=tix#*(dmgdist#-10.0)
-         tiy#=tiy#*(dmgdist#-10.0)
+         rem Scene Commander blood fix
+         tiy#=rnd(12)
          tiz#=tiz#*(dmgdist#-10.0)
-
 
 
          rem create a splat decal
          decalscalemodx=0 : rem FPSCV101 - fix
          decalorient=0 : decalx=tdamagex#+tix# : decaly=((entityelement(e).y+(object size y(entityelement(e).obj)/2))-rnd(6))+tiy# : decalz=tdamagez#+tiz#
+
+
 
          originatore=-1 : gosub _decalelement_create
         endif
@@ -9098,6 +9102,7 @@ if entityelement(e).fireweapon=1
         add static scorch tscorchsize3#,tscorchtype3
         remend
        endif
+
        gosub _entity_deducthealth : e=stte
        tentid=entityelement(e).bankindex
        entid=entityelement(e).bankindex
@@ -11193,7 +11198,6 @@ _entity_deducthealth:
  rem takes TDAMAGE,TDIR and TIMPACTTYPE
  tresult=0 : tentid=entityelement(e).bankindex
 
-
  rem AirMod - Update Last Hit Pos
  if obj > 0
   if entityprofile(tentid).headlimb<>-1
@@ -12266,6 +12270,7 @@ actword$(AIACTFLASHRANGE)="setflashrange"
 actword$(AIACTLOGICBURST)="logicburst"
 actword$(AIACTPLRDAM)="plrdamagemult"
 actword$(AIACTDESTROYIN)="timedestroy"
+actword$(AIACTSETLISTKEY)="setlistkey"
 
 return
 
@@ -15759,19 +15764,19 @@ Rem Scene Commander
       memovingy#=(aiactionseq(seq).value/100.0)
      endcase
      case AIACTPLRMOVEDOWN:
-      memovingy#=(aiactionseq(seq).value/100.0)*-1
+      memovingy#=-(aiactionseq(seq).value/100.0)
      endcase
      case AIACTPLRMOVEEAST:
       memovingx#=(aiactionseq(seq).value/100.0)
      endcase
      case AIACTPLRMOVEWEST:
-      memovingx#=(aiactionseq(seq).value/100.0)*-1
+      memovingx#=-(aiactionseq(seq).value/100.0)
      endcase
      case AIACTPLRMOVENORTH:
       memovingz#=(aiactionseq(seq).value/100.0)
      endcase
      case AIACTPLRMOVESOUTH:
-      memovingz#=(aiactionseq(seq).value/100.0)*-1
+      memovingz#=-(aiactionseq(seq).value/100.0)
      endcase
      case AIACTPLRMOVETO:
       foundte=aiactionseq(seq).value
@@ -15889,7 +15894,7 @@ Rem Scene Commander
      endcase
      case AIACTSUBHEALTH:
       tdamage=aiactionseq(seq).value
-      tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y  : tdamagex#=entityelement(e).y
+      tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y  : tdamagez#=entityelement(e).z
       obj=entityelement(e).obj
       entityelement(e).shotby=995
       gosub _entity_deducthealth
@@ -17482,7 +17487,6 @@ Rem Scene Commander
      case AIACTBLOODSPURT:
       tbloodspurtmode = aiactionseq(seq).value
       gosub _entity_doblood
-      `text 0,0,"BLOOD!"
      endcase
      case AIACTNOBULLETCOL:
       entityelement(e).nobulletcol=1
@@ -17820,7 +17824,7 @@ Rem Scene Commander
         tte=entityelement(e).actualtarget-1
         Rem do damage
         tdamagesource=0 : timpacttype=1 : tdamage=entityelement(e).darkai.meleedamage
-        tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y  : tdamagex#=entityelement(e).y
+        tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y  : tdamagez#=entityelement(e).z
         stte=e : e=tte : damagede=e
         entityelement(e).shotby=994
         gosub _entity_deducthealth
@@ -19837,6 +19841,14 @@ case AIACTSETVARRND:
    entityelement(e).spawn.life=timer()+(aiactionseq(seq).value*1000)
 
    endcase
+
+    case AIACTSETLISTKEY:
+
+    newkey=int(aiactionseq(seq).value)
+    if newkey>0 and newkey<12
+    listkey(newkey)=aiactionseq(seq).valueb
+    endif
+    endcase
 
     endselect
 
@@ -35240,13 +35252,17 @@ if grealgameviewstate=0 and segobjusedformapeditor=0 and goptimizemode=1
   lm set light map name ""
   lm set light map file format 1 : rem DDS
   lm set light map folder "levelbank\testlevel\lightmaps\"
+  aa=glightquality/5
+  for lightloop=1 to aa
   quality#=glightquality/100.0
   if glightthreadmax=-2
    rem FPSCV105 - 090307 - new mode, to revert to non-thread approach (for some users stability)
    debugviewtext(277,strarr$(168))
    LM Build Light Maps glighttexsize,quality#,glightblurmode
+
   else
    LM Build Light Maps Thread glighttexsize,quality#,glightblurmode,glightthreadmax
+
    load dll "Kernel32.dll",1
    while LM Get Complete()=0
     debugviewtext(277,LM Get Status( )+"  "+str$(int(LM Get Percent()))+"%")
@@ -35254,6 +35270,11 @@ if grealgameviewstate=0 and segobjusedformapeditor=0 and goptimizemode=1
    endwhile
    delete dll 1
   endif
+
+  lm clear lights
+
+  next lightloop
+
   `
   rem close lightmapper
   LM Reset
@@ -38289,7 +38310,7 @@ case 2
 gunzoommode=1
 endcase
 case 3
-plrkeyR=1
+player(1).state.firingmode=2
 endcase
 case 4
 plrkeyC=1
@@ -53521,6 +53542,7 @@ if file exist(tfile$)=1
     tryfield$="controllerhint" : if field$=tryfield$ then gcontrollerhint=value1
     tryfield$="vrmode" : if field$=tryfield$ then gvrmode=value1
     tryfield$="vrmodemag" : if field$=tryfield$ then gvrmodemag=value1
+
     tryfield$="mousesensitivity" : if field$=tryfield$ then gmousesensitivity=value1
     tryfield$="usefloor" : if field$=tryfield$ then gusefloorstate=value1
     `V109 BETA8 - 060508 - leave these for main SETUP.INI to control (otherwise hidden in FPG)
@@ -53911,6 +53933,7 @@ _interface_savebuildgame:
  setuparr$(i)="controllerhint="+str$( gcontrollerhint ) : inc i
  setuparr$(i)="vrmode="+str$( gvrmode ) : inc i
  setuparr$(i)="vrmodemag="+str$( gvrmodemag ) : inc i
+
  setuparr$(i)="mousesensitivity="+str$( gmousesensitivity ) : inc i
  setuparr$(i)="lightmapping="+str$(glightmappingstate) : inc i
  setuparr$(i)="lightmapshadows="+str$(glightshadowsstate) : inc i
@@ -54328,6 +54351,7 @@ setuparr$(i)="dividetexturesize="+str$( gdividetexturesize ) : inc i
 setuparr$(i)="controllerhint="+str$( gcontrollerhint ) : inc i
 setuparr$(i)="vrmode="+str$( gvrmode ) : inc i
 setuparr$(i)="vrmodemag="+str$( gvrmodemag ) : inc i
+
 setuparr$(i)="mousesensitivity="+str$( gmousesensitivity ) : inc i
 setuparr$(i)="producelogfiles="+str$( gproducelogfiles ) : inc i
 setuparr$(i)="hsrmode="+str$( ghsrmode ) : inc i
