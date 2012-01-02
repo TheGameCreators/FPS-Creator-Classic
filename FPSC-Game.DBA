@@ -15016,7 +15016,7 @@ Rem Scene Commander
       if aivariableindex<0 then aivariableindex=0
       if aivariableindex>99 then aivariableindex=99
      endcase
-     case AIACTINCVAR:
+     case AIACTSETVAR:
       rem Plystire 109 - Merge this command with our system
       if aiactionseq(seq).string2=""
        if aivariablemode=0
@@ -15057,68 +15057,86 @@ Rem Scene Commander
      endcase
 
       case AIACTINCVAR:
-      rem Using our strings from the parser, let's find the var the user wants to set
-      if left$(aiactionseq(seq).string1,1)="$"
-       ttt=getintervar(aiactionseq(seq).string1)
-       ttt=ttt+aiactionseq(seq).valueb
-       setintervar(aiactionseq(seq).string1,ttt)
+      rem Plystire 109 - Merge this command with our system
+      if aiactionseq(seq).string2=""
+       if aivariablemode=0
+        inc aiglobals(aivariableindex),aiactionseq(seq).value
+       else
+        inc ailocals(e,aivariableindex),aiactionseq(seq).value
+       endif
       else
-       tvarfound=0
-       for uvar = 0 to array count(uservars(0))
-        if uservars(uvar).name = aiactionseq(seq).string1
-         rem Found the variable, let's add to it
-         inc uservars(uvar).value, aiactionseq(seq).valueb
-         rem And Exit the For loop
-         tvarfound=1
-         exit
-        endif
-       next uvar
-       `
-       if tvarfound=0
-        for lvar = 0 to 99
-         if aiuserlocals(e,lvar).newsystem=1 and aiuserlocals(e,lvar).name = aiactionseq(seq).string1
+       rem Using our strings from the parser, let's find the var the user wants to set
+       if left$(aiactionseq(seq).string1,1)="$"
+        ttt=getintervar(aiactionseq(seq).string1)
+        ttt=ttt+aiactionseq(seq).valueb
+        setintervar(aiactionseq(seq).string1,ttt)
+       else
+        tvarfound=0
+        for uvar = 0 to array count(uservars(0))
+         if uservars(uvar).name = aiactionseq(seq).string1
           rem Found the variable, let's add to it
-          inc aiuserlocals(e,lvar).value, aiactionseq(seq).valueb
+          inc uservars(uvar).value, aiactionseq(seq).valueb
           rem And Exit the For loop
           tvarfound=1
           exit
          endif
-        next lvar
+        next uvar
+        `
+        if tvarfound=0
+         for lvar = 0 to 99
+          if aiuserlocals(e,lvar).newsystem=1 and aiuserlocals(e,lvar).name = aiactionseq(seq).string1
+           rem Found the variable, let's add to it
+           inc aiuserlocals(e,lvar).value, aiactionseq(seq).valueb
+           rem And Exit the For loop
+           tvarfound=1
+           exit
+          endif
+         next lvar
+        endif
+        `
        endif
-       `
       endif
      endcase
 
      case AIACTDECVAR:
-      rem Using our strings from the parser, let's find the var the user wants to set
-      if left$(aiactionseq(seq).string1,1)="$"
-       ttt=getintervar(aiactionseq(seq).string1)
-       ttt=ttt-aiactionseq(seq).valueb
-       setintervar(aiactionseq(seq).string1,ttt)
+      rem Plystire 109 - Merge this command with our system
+      if aiactionseq(seq).string2=""
+       if aivariablemode=0
+        dec aiglobals(aivariableindex),aiactionseq(seq).value
+       else
+        dec ailocals(e,aivariableindex),aiactionseq(seq).value
+       endif
       else
-       tvarfound=0
-       for uvar = 0 to array count(uservars(0))
-        if uservars(uvar).name = aiactionseq(seq).string1
-         rem Found the variable, let's subtract from it
-         dec uservars(uvar).value, aiactionseq(seq).valueb
-         rem And Exit the For loop
-         tvarfound=1
-         exit
-        endif
-       next uvar
-       `
-       if tvarfound=0
-        for lvar = 0 to 99
-         if aiuserlocals(e,lvar).newsystem=1 and aiuserlocals(e,lvar).name = aiactionseq(seq).string1
-          rem Found the variable, let's add to it
-          dec aiuserlocals(e,lvar).value, aiactionseq(seq).valueb
+       rem Using our strings from the parser, let's find the var the user wants to set
+       if left$(aiactionseq(seq).string1,1)="$"
+        ttt=getintervar(aiactionseq(seq).string1)
+        ttt=ttt-aiactionseq(seq).valueb
+        setintervar(aiactionseq(seq).string1,ttt)
+       else
+        tvarfound=0
+        for uvar = 0 to array count(uservars(0))
+         if uservars(uvar).name = aiactionseq(seq).string1
+          rem Found the variable, let's subtract from it
+          dec uservars(uvar).value, aiactionseq(seq).valueb
           rem And Exit the For loop
           tvarfound=1
           exit
          endif
-        next lvar
+        next uvar
+        `
+        if tvarfound=0
+         for lvar = 0 to 99
+          if aiuserlocals(e,lvar).newsystem=1 and aiuserlocals(e,lvar).name = aiactionseq(seq).string1
+           rem Found the variable, let's add to it
+           dec aiuserlocals(e,lvar).value, aiactionseq(seq).valueb
+           rem And Exit the For loop
+           tvarfound=1
+           exit
+          endif
+         next lvar
+        endif
+        `
        endif
-       `
       endif
      endcase
 
@@ -60599,6 +60617,7 @@ _create_blood:
  endif
  middlebody=0
 return
+
 
 
 
