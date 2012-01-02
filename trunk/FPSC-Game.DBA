@@ -9084,16 +9084,13 @@ if entityelement(e).fireweapon=1
          tiy#=rnd(12)
          tiz#=tiz#*(dmgdist#-10.0)
 
-
          rem create a splat decal
          decalscalemodx=0 : rem FPSCV101 - fix
          decalorient=0 : decalx=tdamagex#+tix# : decaly=((entityelement(e).y+(object size y(entityelement(e).obj)/2))-rnd(6))+tiy# : decalz=tdamagez#+tiz#
 
-
-
          originatore=-1 : gosub _decalelement_create
         endif
-        remstart
+        
         rem blood splat
         tscorchtype3=8+rnd(3)
         tscorchsize3#=10.0+((abs(dst#-dist#)/100.0)*(20.0+rnd(20)))
@@ -9105,7 +9102,7 @@ if entityelement(e).fireweapon=1
          tempraytofloor#=static raycast(tempx#,tempy#+25,tempz#,tempx#,tempy#-125,tempz#)
         endif
         add static scorch tscorchsize3#,tscorchtype3
-        remend
+
        endif
 
        gosub _entity_deducthealth : e=stte
