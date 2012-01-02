@@ -2337,6 +2337,9 @@ rem Scene Commander actions
 #constant AIACTRAWTEXTVAR 1587
 #constant AIACTSIN 1588
 #constant AIACTCOS 1589
+#constant AIACTSCALEHUDX 1590
+#constant AIACTSCALEHUDY 1591
+#constant AIACTCHANGEHUDALPHA 1592
 
 #constant AIACTLAST 1600
 
@@ -2993,6 +2996,12 @@ type hudtype
  width as integer
  height as integer
  imagefile$ as string
+ rem scene commander scale hud
+ scalex as integer
+ scaley as integer
+ update as integer
+ rem Scene Commander
+ alpha as integer
  rem V118 - 110810 - knxrb - Hud Layers
  layer as integer
 endtype
@@ -12282,6 +12291,9 @@ actword$(AIACTSETLISTKEY)="setlistkey"
 actword$(AIACTRAWTEXTVAR)="addrawvar"
 actword$(AIACTSIN)="sin"
 actword$(AIACTCOS)="cos"
+actword$(AIACTSCALEHUDX)="scalehudx"
+actword$(AIACTSCALEHUDY)="scalehudy"
+actword$(AIACTCHANGEHUDALPHA)="changehudalpha"
 
 return
 
@@ -20037,6 +20049,44 @@ case AIACTRAWTEXTVAR:
       endif
      endcase
 
+      case AIACTSCALEHUDX:
+
+      temp$=aiactionseq(seq).string1
+      for thudid=1 to hudmax
+       if lower$(hud(thudid).name$)=lower$(temp$)
+        hud(thudid).scalex=aiactionseq(seq).valueb:hud(thudid).update=1
+        exit
+       endif
+      next thudid
+
+      endcase
+
+      case AIACTSCALEHUDY:
+
+      temp$=aiactionseq(seq).string1
+      for thudid=1 to hudmax
+       if lower$(hud(thudid).name$)=lower$(temp$)
+        hud(thudid).scaley=aiactionseq(seq).valueb:hud(thudid).update=1
+        exit
+       endif
+      next thudid
+
+      endcase
+
+      case AIACTCHANGEHUDALPHA:
+
+      temp$=aiactionseq(seq).string1
+         tempalpha=aiactionseq(seq).valueb
+         if tempalpha<0 then tempalpha=0
+         if tempalpha>255 then tempalpha=255
+      for thudid=1 to hudmax
+       if lower$(hud(thudid).name$)=lower$(temp$)
+        hud(thudid).alpha=tempalpha:hud(thudid).update=2
+        exit
+       endif
+      next thudid
+
+      endcase
 
    endselect
 
@@ -36221,6 +36271,7 @@ _ai_hud_view:
  if gmultiplayergame=0
   rem FPGC - 020810 - but only for single player
   for hudid=1 to hudmax
+
    if hud(hudid).maintype=1 or hud(hudid).maintype=4 or hud(hudid).maintype=6 or hud(hudid).maintype=7
     if hud(hudid).typemode=1 and playerstartlives=0 then hud(hudid).hide=1
     if hud(hudid).typemode=2 and playerstartstrength=0 then hud(hudid).hide=1
@@ -36230,6 +36281,24 @@ _ai_hud_view:
  `
  rem Fill HUD with data based on type
  for hudid=1 to hudmax
+
+      Rem Scene Commander, rescale sprite if it's changed
+
+     if hud(hudid).update=1
+      if sprite exist(hudid)=1
+      stretch sprite hudid,hud(hudid).scalex,hud(hudid).scaley
+      hud(hudid).update=0
+      endif
+     endif
+
+      Rem Scene Commander updated hud alpha if changed.
+
+     if hud(hudid).update=2
+      if sprite exist(hudid)=1
+      set sprite alpha hudid,hud(hudid).alpha
+      hud(hudid).update=0
+      endif
+     endif
   `
   rem STATUS or NUMERIC
   if hud(hudid).maintype=4 or hud(hudid).maintype=6
@@ -37075,7 +37144,11 @@ if thudi>hudmax
  rem New HUD
  inc hudmax : hudid=hudmax
  dim hud(hudmax) as hudtype
- `
+
+   rem Scene Commander scales default
+   hud(hudid).scalex=100
+   hud(hudid).scaley=100
+   hud(hudia).alpha=255
  rem HUD Type
  hud(hudid).maintype=0
  if workhudmake$="display"
@@ -44108,6 +44181,10 @@ a#=flashrange: write float 1,a#
    a#=saveloadgamehud(thudid).width : write float 1,a#
    a#=saveloadgamehud(thudid).height : write float 1,a#
    a$=saveloadgamehud(thudid).imagefile$ : write string 1,a$
+      Rem Scene Commander
+   a#=saveloadgamehud(thudid).scalex : write float 1,a#
+   a#=saveloadgamehud(thudid).scaley : write float 1,a#
+   a#=saveloadgamehud(thudid).alpha : write float 1,a#
   next thudid
  endif
  if version>=117
@@ -44431,6 +44508,10 @@ read float 1,a#:flashrange=a#
    read float 1,a# : saveloadgamehud(thudid).width=a#
    read float 1,a# : saveloadgamehud(thudid).height=a#
    read string 1,a$ : saveloadgamehud(thudid).imagefile$=a$
+   rem scene commander
+   read float 1,a# : saveloadgamehud(thudid).scalex=a#
+   read float 1,a# : saveloadgamehud(thudid).scaley=a#
+   read float 1,a# : saveloadgamehud(thudid).alpha=a#
   next thudid
  endif
  if version>=117
