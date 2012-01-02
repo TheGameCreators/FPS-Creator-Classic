@@ -268,6 +268,9 @@ Added blood of floor for character V character
 sin=x y - set variable X to sin of Y
 cos=x y - set variable X to cos of Y
 damagetimegreater=x - returns true of last entity damage time greater than X
+scalehudx=X Y - rescales hud named X's X scale to Y
+scalehudy=X Y - rescales hud named X's Y scale to Y
+changehudalpha=X Y - changes hud X to alpha Y
 
 
 V1.1.8
