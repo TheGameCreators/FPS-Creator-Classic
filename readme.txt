@@ -234,6 +234,7 @@ entityfloorlower=x (condition) - returns true if the entity is X floors lower th
 plrpickon=x, x=1 then allow player pick up with right click
 plrpickrange=x, sets the range at which the player can pick up an entity with right click
 
+
 V15
 
 emitflash - Emits a flash from an entity
@@ -255,6 +256,19 @@ plrnotjumping (condition) - returns true if player is not jumping
 plrnotcrouched (condition) - returns true if player is not crouched
 plrnotusingreload (condition) - returns true if player is not pressing reload
 notonradar (condition) - returns true if entity is not on the radar
+
+
+V16
+Fix usefullaim issue
+Tweaks
+
+V17
+addrawvar=X where X=var name or number. Adds the named variable to the current rawtext string.
+Added blood of floor for character V character
+sin=x y - set variable X to sin of Y
+cos=x y - set variable X to cos of Y
+damagetimegreater=x - returns true of last entity damage time greater than X
+
 
 V1.1.8
 ------
