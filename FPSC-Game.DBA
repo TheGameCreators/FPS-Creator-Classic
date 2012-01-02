@@ -2330,6 +2330,8 @@ rem Scene Commander actions
 #constant AIACTDESTROYIN 1585
 #constant AIACTSETLISTKEY 1586
 #constant AIACTRAWTEXTVAR 1587
+#constant AIACTSIN 1588
+#constant AIACTCOS 1589
 
 #constant AIACTLAST 1600
 
@@ -4713,6 +4715,8 @@ culling()
   else
    precama#=camangy#
   endif
+
+
   rem FPGC - 250210 - new stereo eye positioning (correct this time)
   rem position left eye camera and do main render
   gosub _main_calceyes
@@ -12273,6 +12277,8 @@ actword$(AIACTPLRDAM)="plrdamagemult"
 actword$(AIACTDESTROYIN)="timedestroy"
 actword$(AIACTSETLISTKEY)="setlistkey"
 actword$(AIACTRAWTEXTVAR)="addrawvar"
+actword$(AIACTSIN)="sin"
+actword$(AIACTCOS)="cos"
 
 return
 
@@ -14988,7 +14994,7 @@ Rem Scene Commander
       if aivariableindex<0 then aivariableindex=0
       if aivariableindex>99 then aivariableindex=99
      endcase
-     case AIACTSETVAR:
+     case AIACTINCVAR:
       rem Plystire 109 - Merge this command with our system
       if aiactionseq(seq).string2=""
        if aivariablemode=0
@@ -15027,20 +15033,73 @@ Rem Scene Commander
        endif
       endif
      endcase
-     case AIACTINCVAR:
-      if aivariablemode=0
-       aiglobals(aivariableindex)=aiglobals(aivariableindex)+aiactionseq(seq).value
+
+      case AIACTINCVAR:
+      rem Using our strings from the parser, let's find the var the user wants to set
+      if left$(aiactionseq(seq).string1,1)="$"
+       ttt=getintervar(aiactionseq(seq).string1)
+       ttt=ttt+aiactionseq(seq).valueb
+       setintervar(aiactionseq(seq).string1,ttt)
       else
-       ailocals(e,aivariableindex)=ailocals(e,aivariableindex)+aiactionseq(seq).value
+       tvarfound=0
+       for uvar = 0 to array count(uservars(0))
+        if uservars(uvar).name = aiactionseq(seq).string1
+         rem Found the variable, let's add to it
+         inc uservars(uvar).value, aiactionseq(seq).valueb
+         rem And Exit the For loop
+         tvarfound=1
+         exit
+        endif
+       next uvar
+       `
+       if tvarfound=0
+        for lvar = 0 to 99
+         if aiuserlocals(e,lvar).newsystem=1 and aiuserlocals(e,lvar).name = aiactionseq(seq).string1
+          rem Found the variable, let's add to it
+          inc aiuserlocals(e,lvar).value, aiactionseq(seq).valueb
+          rem And Exit the For loop
+          tvarfound=1
+          exit
+         endif
+        next lvar
+       endif
+       `
       endif
      endcase
+
      case AIACTDECVAR:
-      if aivariablemode=0
-       aiglobals(aivariableindex)=aiglobals(aivariableindex)-aiactionseq(seq).value
+      rem Using our strings from the parser, let's find the var the user wants to set
+      if left$(aiactionseq(seq).string1,1)="$"
+       ttt=getintervar(aiactionseq(seq).string1)
+       ttt=ttt-aiactionseq(seq).valueb
+       setintervar(aiactionseq(seq).string1,ttt)
       else
-       ailocals(e,aivariableindex)=ailocals(e,aivariableindex)-aiactionseq(seq).value
+       tvarfound=0
+       for uvar = 0 to array count(uservars(0))
+        if uservars(uvar).name = aiactionseq(seq).string1
+         rem Found the variable, let's subtract from it
+         dec uservars(uvar).value, aiactionseq(seq).valueb
+         rem And Exit the For loop
+         tvarfound=1
+         exit
+        endif
+       next uvar
+       `
+       if tvarfound=0
+        for lvar = 0 to 99
+         if aiuserlocals(e,lvar).newsystem=1 and aiuserlocals(e,lvar).name = aiactionseq(seq).string1
+          rem Found the variable, let's add to it
+          dec aiuserlocals(e,lvar).value, aiactionseq(seq).valueb
+          rem And Exit the For loop
+          tvarfound=1
+          exit
+         endif
+        next lvar
+       endif
+       `
       endif
      endcase
+
      Rem Hockeykid - Expand on Plystire's variable system to allow for local variables
      case AIACTDIMLOCALVAR:
       rem Let's find an UNUSED variable and set it to the name given
@@ -19898,6 +19957,73 @@ case AIACTRAWTEXTVAR:
       grawtext$=grawtext$+str$(tempvalue)
 
      endcase
+
+      case AIACTSIN:
+      rem Using our strings from the parser, let's find the var the user wants to set
+      if left$(aiactionseq(seq).string1,1)="$"
+       ttt=getintervar(aiactionseq(seq).string1)
+       ttt=sin(ttt)
+       setintervar(aiactionseq(seq).string1,ttt)
+      else
+       tvarfound=0
+       for uvar = 0 to array count(uservars(0))
+        if uservars(uvar).name = aiactionseq(seq).string1
+         rem Found the variable, let's wrap it's value
+         uservars(uvar).value = sin(uservars(uvar).value)
+         rem And Exit the For loop
+         tvarfound=1
+         exit
+        endif
+       next uvar
+       `
+       if tvarfound=0
+        for lvar = 0 to 99
+         if aiuserlocals(e,lvar).newsystem=1 and aiuserlocals(e,lvar).name = aiactionseq(seq).string1
+          rem Found the variable, let's add to it
+          aiuserlocals(e,lvar).value=sin(aiuserlocals(e,lvar).value)
+          rem And Exit the For loop
+          tvarfound=1
+          exit
+         endif
+        next lvar
+       endif
+       `
+      endif
+     endcase
+
+      case AIACTCOS:
+      rem Using our strings from the parser, let's find the var the user wants to set
+      if left$(aiactionseq(seq).string1,1)="$"
+       ttt=getintervar(aiactionseq(seq).string1)
+       ttt=cos(ttt)
+       setintervar(aiactionseq(seq).string1,ttt)
+      else
+       tvarfound=0
+       for uvar = 0 to array count(uservars(0))
+        if uservars(uvar).name = aiactionseq(seq).string1
+         rem Found the variable, let's wrap it's value
+         uservars(uvar).value = cos(uservars(uvar).value)
+         rem And Exit the For loop
+         tvarfound=1
+         exit
+        endif
+       next uvar
+       `
+       if tvarfound=0
+        for lvar = 0 to 99
+         if aiuserlocals(e,lvar).newsystem=1 and aiuserlocals(e,lvar).name = aiactionseq(seq).string1
+          rem Found the variable, let's add to it
+          aiuserlocals(e,lvar).value=cos(aiuserlocals(e,lvar).value)
+          rem And Exit the For loop
+          tvarfound=1
+          exit
+         endif
+        next lvar
+       endif
+       `
+      endif
+     endcase
+
 
    endselect
 
