@@ -485,6 +485,8 @@ type saveloadgamepositionentitytype
  alttextureused as integer
  rem V118 - 120810 - knxrb - etimer fix from Scene Commander
  etimer as integer
+ lastdamagetimer as integer
+ lastdamagepaused as integer
  animatespeed as float rem (markblosser)
  entitydammult as integer rem Scene Commander
  ishidden as integer rem Scene Commander
@@ -1472,6 +1474,8 @@ type entitytype
  ttarget as integer
  etimer as integer Rem Hockeykid - 250210 - added entity variable for etimer
  etimerpaused as integer rem V118 - 120810 - knxrb - etimer fix from Scene Commander
+ lastdamagetimer as integer
+ lastdamagepaused as integer
  editorfixed as integer
  servercontrolled as integer
  fakeplrindex as integer
@@ -1843,6 +1847,7 @@ Rem Scene commander conditions
 #constant AICONDNOTONRADAR 907
 #constant AICONDPLRCARRYING 908
 #constant AICONDPLRNOTCARRYING 906
+#constant AICONDLASTDAMAGETIME 907
 
 #constant AICONDLAST 950
 
@@ -9090,7 +9095,7 @@ if entityelement(e).fireweapon=1
 
          originatore=-1 : gosub _decalelement_create
         endif
-        
+
         rem blood splat
         tscorchtype3=8+rnd(3)
         tscorchsize3#=10.0+((abs(dst#-dist#)/100.0)*(20.0+rnd(20)))
@@ -11199,7 +11204,7 @@ _entity_deducthealth:
  `
  rem takes TDAMAGE,TDIR and TIMPACTTYPE
  tresult=0 : tentid=entityelement(e).bankindex
-
+   entityelement(e).lastdamagetimer=timer()
  rem AirMod - Update Last Hit Pos
  if obj > 0
   if entityprofile(tentid).headlimb<>-1
@@ -11795,6 +11800,7 @@ conword$(AICONDPLRNOTUSINGRELOAD)="plrnotusingreload"
 conword$(AICONDNOTONRADAR)="notonradar"
 conword$(AICONDPLRCARRYING)="plrcarrying"
 conword$(AICONDPLRNOTCARRYING)="plrnotcarrying"
+conword$(AICONDLASTDAMAGETIME)="damagetimegreater"
 
 rem Set all action keywords
 dim actword$(AIACTLAST)
@@ -14592,6 +14598,13 @@ case AICONDSHOTBY:
    endif
 
    endcase
+
+   case AICONDLASTDAMAGETIME:
+      airesult=0
+     conda=timer()-entityelement(e).lastdamagetimer
+     condb=aiconditionseq(seq).valuea
+     if conda>condb then airesult=1
+    endcase
 
 
    endselect
@@ -17447,6 +17460,8 @@ Rem Scene Commander
       for lsi=1 to entityelementmax
        rem V118 - 120810 - knxrb - etimer fix from Scene Commander
        entityelement(lsi).etimerpaused=entityelement(lsi).etimer
+       entityelement(lsi).lastdamagepaused=entityelement(lsi).lastdamagetimer
+
        if entityelement(lsi).firesoundloop>0
         if sound exist(entityelement(lsi).firesoundloop)=1
          pause sound entityelement(lsi).firesoundloop
@@ -17465,6 +17480,7 @@ Rem Scene Commander
       for lsi=1 to entityelementmax
        rem V118 - 120810 - knxrb - etimer fix from Scene Commander
        entityelement(lsi).etimer=entityelement(lsi).etimerpaused
+       entityelement(lsi).lastdamagetimer=entityelement(lsi).lastdamagepaused
        if entityelement(lsi).firesoundloop>0
         if sound exist(entityelement(lsi).firesoundloop)=1
          resume sound entityelement(lsi).firesoundloop
@@ -43902,6 +43918,7 @@ _saveload_savegame:
    a#=saveloadgamepositionentity(lsi).collisionactive : write float 1,a#
    rem V118 - 120810 - knxrb - etimer fix from Scene Commander
    a#=saveloadgamepositionentity(lsi).etimer : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).lastdamagetimer : write float 1,a#
    a#=saveloadgamepositionentity(lsi).animatespeed : write float 1,a#  rem (markblosser)
    a#=saveloadgamepositionentity(lsi).entitydammult: write float 1,a# rem Scene commander
    a#=saveloadgamepositionentity(lsi).ishidden: write float 1,a# rem Scene commander
@@ -44222,6 +44239,7 @@ _saveload_loadgame:
    read float 1,a# : saveloadgamepositionentity(lsi).collisionactive=a#
    rem V118 - 120810 - knxrb - etimer fix from Scene Commander
    read float 1,a# : saveloadgamepositionentity(lsi).etimer=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).lastdamagetimer=a#
    read float 1,a# : saveloadgamepositionentity(lsi).animatespeed=a#  rem (markblosser)
    read float 1,a# : saveloadgamepositionentity(lsi).entitydammult=a# rem Scene commander
    read float 1,a# : saveloadgamepositionentity(lsi).ishidden=a# rem Scene commander
