@@ -271,6 +271,10 @@ damagetimegreater=x - returns true of last entity damage time greater than X
 scalehudx=X Y - rescales hud named X's X scale to Y
 scalehudy=X Y - rescales hud named X's Y scale to Y
 changehudalpha=X Y - changes hud X to alpha Y
+jamchance=X.0 (gunspec) = percentage chance of a gun jammed due to overheat (Reloading clears jam)
+overheatafter=x (gunspec) = the number of shots fired before the chance of jamming becomes active.
+cooldown=x (gunspec) = time in millisecs between shots to completely prevent jamming
+currentweaponjammed (condition) = returns true if the current weapon is jammed.
 
 
 V1.1.8
