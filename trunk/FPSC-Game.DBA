@@ -656,6 +656,9 @@ Global waterred : waterred=255
 Global watergreen : watergreen=255
 Global waterblue : waterblue=255
 Global excludewatercams : excludewatercams=0
+Rem Scene Commander
+Global watercurrent=0
+Global waterflow=1
 
 rem logic control
 global logicprioritycount=0
@@ -2341,6 +2344,8 @@ rem Scene Commander actions
 #constant AIACTSCALEHUDX 1590
 #constant AIACTSCALEHUDY 1591
 #constant AIACTCHANGEHUDALPHA 1592
+#constant AIACTWATERFLOW 1593
+#constant AIACTWATERCURRENT 1594
 
 #constant AIACTLAST 1600
 
@@ -2512,6 +2517,7 @@ shotsbeforejam as integer
 shotsfired as integer
 cooldown as integer
 cooltimer as integer
+nosubmergedfire as integer
 rem scene commnader end
  bulletamount as integer
  currentbullet as integer
@@ -4686,6 +4692,15 @@ return
 _main_sync:
 
 culling()
+
+if watercurrent<>0
+   if playerunderwater=1
+      moveplrx#=sin(watercurrent)*waterflow
+      moveplrz#=cos(watercurrent)*waterflow
+   endif
+endif
+
+
 
  rem FPGC - 280610 - moved entire SYNC sequence to subroutine so PAUSE mode can call it too
  if gvrmode<>0
@@ -8020,8 +8035,23 @@ tonestealperaiphase=0
 tonestealperaiphasedist#=99999
 logicpriorityfurthest#=0
 for e=1 to entityelementlist
- entid=entityelement(e).bankindex
- obj=entityelement(e).obj
+
+rem Move entity if underwater
+entid=entityelement(e).bankindex
+obj=entityelement(e).obj
+
+if obj>0
+   if watercurrent<>0
+      tempwaterpos=object position y(obj)+(object size y(obj)/2.0)
+      if tempwaterpos<(waterheight#+(object size y(obj)/2.0))
+      oldvelx#=sin(watercurrent)*(waterflow*2)
+      oldvely#=ODE GET BODY LINEAR VELOCITY Y(obj)
+      oldvelz#=cos(watercurrent)*(waterflow*2)
+      ode set linear velocity obj,oldvelx#,oldvely#,oldvelz#
+      endif
+   endif
+endif
+
  rem AirMod - Added for Advanced Blood
  gosub _entity_controlblood
  obje=e
@@ -12302,6 +12332,9 @@ actword$(AIACTCOS)="cos"
 actword$(AIACTSCALEHUDX)="scalehudx"
 actword$(AIACTSCALEHUDY)="scalehudy"
 actword$(AIACTCHANGEHUDALPHA)="changehudalpha"
+actword$(AIACTWATERFLOW)="waterflow"
+actword$(AIACTWATERCURRENT)="watercurrent"
+
 
 return
 
@@ -19334,7 +19367,7 @@ Rem Scene Commander
    case AIACTPLRACTION:
 
      temp=aiactionseq(seq).value
-      if temp>0 and temp<11
+      if temp>0 and temp<12
       playeraction=temp
       endif
 
@@ -20122,6 +20155,14 @@ case AIACTRAWTEXTVAR:
        endif
       next thudid
 
+      endcase
+
+      case AIACTWATERFLOW:
+      waterflow=aiactionseq(seq).value
+      endcase
+
+      case AIACTWATERCURRENT:
+      watercurrent=wrapvalue(aiactionseq(seq).value)
       endcase
 
    endselect
@@ -23279,6 +23320,10 @@ if firemode(gunid,firemode).settings.cooldown<>0
    endif
 endif
 
+if firemode(gunid,firemode).settings.nosubmergedfire=1 and playerunderwater=1
+   player(plrid).state.firingmode=0
+endif
+
 
  rem cinematic hands <<<<
  rem AirMod - Blocking Move >>>
@@ -25851,7 +25896,6 @@ for l=0 to 299
    `
    rem GUN SETTINGS
 
-
    if field$="weaponisammo" then gun(gunid).settings.weaponisammo=value1
    if field$="melee key" then gun(gunid).settings.meleekey=value1
    Rem This whole section is to easily allow alternate fire mode to use these commands
@@ -25872,6 +25916,7 @@ for l=0 to 299
       if field$=alt$+"jamchance" then firemode(gunid,x).settings.jamchance=value1
       if field$=alt$+"overheatafter" then firemode(gunid,x).settings.shotsbeforejam=value1
       if field$=alt$+"cooldown" then firemode(gunid,x).settings.cooldown=value1
+      if field$=alt$+"nosubmergedfire" then firemode(gunid,x).settings.nosubmergedfire=value1
 
       rem Scene Commander end.
 
@@ -38674,6 +38719,11 @@ tmouseclick=1
 endcase
 case 10
 tmouseclick=2
+endcase
+case 11
+if gunid>0
+firemode(gunid,firemode).settings.jammed=1
+endif
 endcase
 
 
