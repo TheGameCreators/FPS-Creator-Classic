@@ -35651,36 +35651,27 @@ if grealgameviewstate=0 and segobjusedformapeditor=0 and goptimizemode=1
    LM Add Directional Light glightsunx,glightsuny,glightsunz,glightsunr/100.0,glightsung/100.0,glightsunb/100.0
   endif
   `
-  rem settings
+rem settings
   LM Boost Curved Surface Quality glightmaxsize,(glightboost*1.0)
   `
   rem start the light mapping thread
   lm set light map name ""
   lm set light map file format 1 : rem DDS
   lm set light map folder "levelbank\testlevel\lightmaps\"
-  aa=glightquality/5
-  for lightloop=1 to aa
   quality#=glightquality/100.0
   if glightthreadmax=-2
    rem FPSCV105 - 090307 - new mode, to revert to non-thread approach (for some users stability)
-   debugviewtext(277,strarr$(168))
+   debugviewtext(270,strarr$(168))
    LM Build Light Maps glighttexsize,quality#,glightblurmode
-
   else
    LM Build Light Maps Thread glighttexsize,quality#,glightblurmode,glightthreadmax
-
    load dll "Kernel32.dll",1
    while LM Get Complete()=0
-    debugviewtext(277,LM Get Status( )+"  "+str$(int(LM Get Percent()))+"%")
+    debugviewtext(276,LM Get Status( )+"  "+str$(int(LM Get Percent()))+"%")
     call dll 1,"Sleep",1
    endwhile
    delete dll 1
   endif
-
-  lm clear lights
-
-  next lightloop
-
   `
   rem close lightmapper
   LM Reset
