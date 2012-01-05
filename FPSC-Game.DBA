@@ -1848,6 +1848,7 @@ Rem Scene commander conditions
 #constant AICONDPLRCARRYING 908
 #constant AICONDPLRNOTCARRYING 906
 #constant AICONDLASTDAMAGETIME 907
+#constant AICONDCURRENTJAMMED 908
 
 #constant AICONDLAST 950
 
@@ -2505,6 +2506,12 @@ gravitygun as integer
 gravitystrength as integer
 magnet as integer
 magnetstrength as integer
+jamchance as float
+jammed as integer
+shotsbeforejam as integer
+shotsfired as integer
+cooldown as integer
+cooltimer as integer
 rem scene commnader end
  bulletamount as integer
  currentbullet as integer
@@ -11810,6 +11817,7 @@ conword$(AICONDNOTONRADAR)="notonradar"
 conword$(AICONDPLRCARRYING)="plrcarrying"
 conword$(AICONDPLRNOTCARRYING)="plrnotcarrying"
 conword$(AICONDLASTDAMAGETIME)="damagetimegreater"
+conword$(AICONDCURRENTJAMMED)="currentweaponjammed"
 
 rem Set all action keywords
 dim actword$(AIACTLAST)
@@ -14618,6 +14626,16 @@ case AICONDSHOTBY:
      if conda>condb then airesult=1
     endcase
 
+   case AICONDCURRENTJAMMED:
+
+      airesult=0
+      if gunid>0
+         if firemode(gunid,firemode).settings.jammed=1
+         airesult=1
+         endif
+      endif
+
+   endcase
 
    endselect
    `
@@ -23222,6 +23240,46 @@ if player(plrid).health>0 or playerstartstrength=0
         lastfired=gunid
         endif
     endif
+
+Rem Scene Commander - weapon jammed
+
+   if player(plrid).state.firingmode=1 and firemode(gunid,firemode).settings.jammed=0
+      jamtemp#=firemode(gunid,firemode).settings.jamchance
+
+if firemode(gunid,firemode).settings.shotsfired>firemode(gunid,firemode).settings.shotsbeforejam
+      if jamtemp#<>0
+         if rnd(100)<jamtemp#
+         firemode(gunid,firemode).settings.jammed=1
+            if gun(gunid).settings.alternate=0
+            sndid=gunsound(gunid,3).soundid
+            else
+            sndid=gunsound(gunid,3).altsoundid
+            endif
+            play sound sndid
+         endif
+      endif
+   endif
+endif
+
+if firemode(gunid,firemode).settings.jammed=1
+   player(plrid).state.firingmode=0
+   firemode(gunid,firemode).settings.shotsfired=0
+endif
+
+if player(plrid).state.firingmode=1
+inc firemode(gunid,firemode).settings.shotsfired,1
+firemode(gunid,firemode).settings.cooltimer=timer()
+endif
+
+Rem Scene Commander - cool down?
+if firemode(gunid,firemode).settings.cooldown<>0
+   tempcool=timer()-firemode(gunid,firemode).settings.cooltimer
+   if tempcool>firemode(gunid,firemode).settings.cooldown
+   firemode(gunid,firemode).settings.shotsfired=0
+   endif
+endif
+
+
  rem cinematic hands <<<<
  rem AirMod - Blocking Move >>>
  rem v118 - 110511 - cinematic hands (terry cox) >>>>
@@ -25811,6 +25869,11 @@ for l=0 to 299
       if field$=alt$+"gravitystrength" then firemode(gunid,x).settings.gravitystrength=value1
 
       if field$=alt$+"emptyreloadonly" then firemode(gunid,x).settings.emptyreloadonly=value1
+      if field$=alt$+"jamchance" then firemode(gunid,x).settings.jamchance=value1
+      if field$=alt$+"overheatafter" then firemode(gunid,x).settings.shotsbeforejam=value1
+      if field$=alt$+"cooldown" then firemode(gunid,x).settings.cooldown=value1
+
+      rem Scene Commander end.
 
     if field$=alt$+"muzzlesize" then firemode(gunid,x).settings.muzzlesize#=value1
     if field$=alt$+"muzzlecolorr" then firemode(gunid,x).settings.muzzlecolorr=value1
@@ -38616,6 +38679,12 @@ endcase
 
 endselect
 playeraction=0
+
+Rem Free weapon jam if reload used
+if player(1).state.firingmode=2
+   firemode(gunid,firemode).settings.jammed=0
+   firemode(gunid,firemode).settings.shotsfired=0
+endif
 
 Rem Scene commander end.
 
