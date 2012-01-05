@@ -2346,6 +2346,8 @@ rem Scene Commander actions
 #constant AIACTCHANGEHUDALPHA 1592
 #constant AIACTWATERFLOW 1593
 #constant AIACTWATERCURRENT 1594
+#constant AIACTREMOVEWEAPON 1595
+#constant AIACTGIVEWEAPON 1596
 
 #constant AIACTLAST 1600
 
@@ -12334,7 +12336,8 @@ actword$(AIACTSCALEHUDY)="scalehudy"
 actword$(AIACTCHANGEHUDALPHA)="changehudalpha"
 actword$(AIACTWATERFLOW)="waterflow"
 actword$(AIACTWATERCURRENT)="watercurrent"
-
+actword$(AIACTREMOVEWEAPON)="removeplrweapon"
+actword$(AIACTGIVEWEAPON)="giveplrweapon"
 
 return
 
@@ -20164,6 +20167,45 @@ case AIACTRAWTEXTVAR:
       case AIACTWATERCURRENT:
       watercurrent=wrapvalue(aiactionseq(seq).value)
       endcase
+
+      case AIACTREMOVEWEAPON:
+
+      if len(aiactionseq(seq).string1)=1
+         whichslot=aiactionseq(seq).value
+               if gunid=weaponslot(whichslot).got then gunmode=31
+               weaponslot(whichslot).got=0:weaponclipammo(whichslot)=0:weaponammo(whichslot)=0:weaponslot(whichslot).pref=0
+         else
+         findgun$=lower$(aiactionseq(seq).string1)
+         gosub _gun_findweaponindexbyname
+            if foundgunid>0
+            for f=1 to 10
+                if weaponslot(f).got=foundgunid
+                if gunid=weaponslot(f).got then gunmode=31
+                weaponslot(f).got=0:weaponclipammo(f)=0:weaponammo(f)=0:weaponslot(forceslot).pref=0
+
+                endif
+               next f
+            endif
+         endif
+     endcase
+
+
+      case AIACTGIVEWEAPON:
+      findgun$=lower$(aiactionseq(seq).string1)
+      gosub _gun_findweaponindexbyname
+      done=0
+      if foundgunid>0
+         weaponindex=foundgunid
+            for pint=1 to 10
+            if weaponslot(pint).got=0 and done=0
+                  gosub _player_obtainaweapon
+                  done=1
+            endif
+            next pint
+      endif
+
+     endcase
+
 
    endselect
 
