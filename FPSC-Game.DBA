@@ -44199,6 +44199,7 @@ _saveload_savegame:
    a#=saveloadgamepositionentity(lsi).entitydammult: write float 1,a# rem Scene commander
    a#=saveloadgamepositionentity(lsi).ishidden: write float 1,a# rem Scene commander
    a#=saveloadgamepositionentity(lsi).cullstate: write float 1,a# rem Scene commander
+   a#=saveloadgamepositionentity(lsi).isimmune: write float 1,a# rem Scene commander
   next lsi
   rem Weapons
   for lsi=0 to 20
@@ -44350,6 +44351,8 @@ a#=flashr: write float 1,a#
 a#=flashg: write float 1,a#
 a#=flashb: write float 1,a#
 a#=flashrange: write float 1,a#
+a#=playerdammult#: write float 1,a#
+a#=resetonreload: write float 1,a#
 
   for lsi=0 to entityelementmax
    a#=saveloadgamepositionentity(lsi).orx : write float 1,a#
@@ -44524,6 +44527,7 @@ _saveload_loadgame:
    read float 1,a# : saveloadgamepositionentity(lsi).entitydammult=a# rem Scene commander
    read float 1,a# : saveloadgamepositionentity(lsi).ishidden=a# rem Scene commander
    read float 1,a# : saveloadgamepositionentity(lsi).cullstate=a# rem Scene commander
+   read float 1,a# : saveloadgamepositionentity(lsi).isimmune=a# rem Scene commander
   next lsi
   rem Weapons
   dim saveloadgamepositionweaponslot(20) as saveloadgamepositionweaponslottype
@@ -44676,6 +44680,8 @@ read float 1,a#:flashr=a#
 read float 1,a#:flashg=a#
 read float 1,a#:flashb=a#
 read float 1,a#:flashrange=a#
+read float 1,a#:playerdammult#=a#
+read float 1,a#:resetonreload=a#
 
   for lsi=0 to entityelementmax
    read float 1,a# : saveloadgamepositionentity(lsi).orx=a#
