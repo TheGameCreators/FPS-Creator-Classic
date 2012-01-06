@@ -158,6 +158,7 @@ global flashb=255
 global flashrange=600
 global spotflash=0
 global playerdammult#=0.0
+global resetonreload=0
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
@@ -494,6 +495,7 @@ type saveloadgamepositionentitytype
  onradar as integer rem Scene Commander
  radardistance as integer
  shotby as integer
+ isimmune as integer
 endtype
 type saveloadgamepositionweaponslottype
  pref got invpos
@@ -1629,6 +1631,7 @@ type entitytype
  SP3 as integer
  NECK as integer
  shotby as integer
+ isimmune as integer
 endtype
 rem Entity Breadcrumbs Data
 type entitybreadcrumbstype
@@ -1852,6 +1855,8 @@ Rem Scene commander conditions
 #constant AICONDPLRNOTCARRYING 906
 #constant AICONDLASTDAMAGETIME 907
 #constant AICONDCURRENTJAMMED 908
+#constant AICONDENTITYISIMMUNE 909
+#constant AICONDENTITYISNOTIMMUNE 910
 
 #constant AICONDLAST 950
 
@@ -2348,6 +2353,8 @@ rem Scene Commander actions
 #constant AIACTWATERCURRENT 1594
 #constant AIACTREMOVEWEAPON 1595
 #constant AIACTGIVEWEAPON 1596
+#constant AIACTENTITYSETIMMUNE 1597
+#constant AIACTRESETONRELOAD 1598
 
 #constant AIACTLAST 1600
 
@@ -11237,6 +11244,9 @@ _entity_deducthealth:
  `
  rem takes TDAMAGE,TDIR and TIMPACTTYPE
  tresult=0 : tentid=entityelement(e).bankindex
+      if entityelement(e).isimmune=1
+         tdamage=0
+      endif
    entityelement(e).lastdamagetimer=timer()
  rem AirMod - Update Last Hit Pos
  if obj > 0
@@ -11835,6 +11845,8 @@ conword$(AICONDPLRCARRYING)="plrcarrying"
 conword$(AICONDPLRNOTCARRYING)="plrnotcarrying"
 conword$(AICONDLASTDAMAGETIME)="damagetimegreater"
 conword$(AICONDCURRENTJAMMED)="currentweaponjammed"
+conword$(AICONDENTITYISIMMUNE)="isentityimmune"
+conword$(AICONDENTITYISNOTIMMUNE)="isentitynotimmune"
 
 rem Set all action keywords
 dim actword$(AIACTLAST)
@@ -12323,6 +12335,8 @@ actword$(AIACTWATERFLOW)="waterflow"
 actword$(AIACTWATERCURRENT)="watercurrent"
 actword$(AIACTREMOVEWEAPON)="removeplrweapon"
 actword$(AIACTGIVEWEAPON)="giveplrweapon"
+actword$(AIACTENTITYSETIMMUNE)="entitysetimmune"
+actword$(AIRESETONRELOAD)="resetglobalsonload"
 
 return
 
@@ -12330,7 +12344,9 @@ _ai_reset_presaveposition:
 
 rem V109BETA5 - reset globals on new game
 rem V113BETA4 - only reset GLOBALs BEFORE loading a saved position
+if resetonreload=1
 for n=0 to 99 : aiglobals(n)=0 : next n
+endif
 
 return
 
@@ -14655,6 +14671,23 @@ case AICONDSHOTBY:
          airesult=1
          endif
       endif
+
+   endcase
+
+   case AICONDENTITYISIMMUNE:
+
+      airesult=0
+      if entityelement(e).isimmune=1
+         airesult=0
+      endif
+
+   endcase
+
+   case AICONDENTITYISNOTIMMUNE
+   airesult=0
+   if entityelement(e).isimmune=0
+      airesult=1
+   endif
 
    endcase
 
@@ -20190,6 +20223,21 @@ case AIACTRAWTEXTVAR:
       endif
 
      endcase
+
+      case AIACTENTITYSETIMMUNE:
+
+      entityelement(e).isimmune=aiactionseq(seq).value
+
+      endcase
+
+      case AIACTRESETONRELOAD:
+
+      if aiactionseq(seq).value>1 then aiactionseq(seq).value=1
+      if aiactionseq(seq).value<0 then aiactionseq(seq).value=0
+
+      resetonreload=aiactionseq(seq).value
+
+      endcase
 
 
    endselect
