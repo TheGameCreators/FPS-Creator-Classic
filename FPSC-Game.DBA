@@ -161,7 +161,7 @@ global playerdammult#=0.0
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
-dim fpsstore(30):for f=1 to 30:fpsstore(f)=80:next f
+dim fpsstore(80):for f=1 to 80:fpsstore(f)=80:next f
 
 if exeroot$<>"" then set dir exeroot$
 rem Special build flags for 'genre' switch
@@ -8003,12 +8003,12 @@ rem maintain constant game speed -timer based - Scene Commander rewrite for smoo
 timeelapsed#=timebasepercycle#
 fpsstore(nextave)=timeelapsed#
 temptime#=0
-for ave=1 to 30
+for ave=1 to 80
 temptime#=temptime#+fpsstore(ave)
 next ave
-timeelasped#=temptime#/30
+timeelasped#=temptime#/80
 timeelasped#=(timeelasped#/100)*timescale
-inc nextave,1:if nextave>30 then nextave=1
+inc nextave,1:if nextave>80 then nextave=1
 rem maintain constant game speed
 `timeelapsed#=(1.0/50.0)*(timer()-timestamp) : timestamp=timer()
 
@@ -9528,21 +9528,6 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
   rem Restart spawn cycle
 
    entid=entityelement(e).bankindex
-   newscale=entityprofile(entid).scale
-
-  for li = 2 to 13
-
-       alterlimbscale(te,li,newscale)
-
-      next li
-
-      tadj#=object collision center y(obj)
-
-      applyscalefactor#=(object size y(obj)/100.0)
-      tadj#=tadj#*applyscalefactor#
-
-     entityelement(e).spawn.y=entityelement(e).spawn.y+tadj#
-
 
   entityelement(e).spawn.leadercount=entityelement(e).spawn.delay+rnd(entityelement(e).spawn.delayrandom)
   rem Hockeykid - 080611 - Won't work, throw-ragdoll scripts do not allow for the character to get back up!
@@ -9636,7 +9621,7 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
       entityelement(te).force.active=0
       entityelement(te).logiccount=0
       entityelement(te).blockedby=0
-      `
+
       rem rest ragdoll
       rem Hockeykid - 080611 - Won't work, throw-ragdoll scripts do not allow for the character to get back up!
       `if entityelement(te).ragdollon=1 then ode destroy ragdoll entityelement(te).obj : entityelement(te).ragdollon=0
@@ -19873,8 +19858,8 @@ case AIACTSETVARRND:
 
       tadj#=object collision center y(obj)
 
-      applyscalefactor#=(object size y(obj)/100.0)
-      tadj#=tadj#*applyscalefactor#
+      applyscalefactor#=(newscale/100.0)
+      tadj#=tadj#*applyscalefactor#-15
 
      entityelement(e).y=entityelement(e).y+tadj#
      position object obj,entityelement(e).x,entityelement(e).y+tadj#,entityelement(e).z
