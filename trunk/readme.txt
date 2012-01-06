@@ -276,6 +276,18 @@ overheatafter=x (gunspec) = the number of shots fired before the chance of jammi
 cooldown=x (gunspec) = time in millisecs between shots to completely prevent jamming
 currentweaponjammed (condition) = returns true if the current weapon is jammed.
 
+V18
+Added new player action playeraction=11 which jams current gun
+nosubmergedfire=x (gunspec) - prevents the weapon firing while underwater.
+waterflow=x - sets the force of water flow effecting the player and entities if in water
+watercurrent=x - sets the direction in angles of the water flow.
+removeplrweapon=x where x is either the slot number or the weapon path e.g. scifi\autoslug - removes the weapon from the player, freeing the slot.
+giveplrweapon=x where x is the path of the weapon e.g. scifi\autoslug. The weapon must exist somewhere in the level or will fail silently.
+entitysetimmune=x - where x=1 set the entity to be immune from damage, x=0 set to receive damage
+isentityimmune (condition) - returns true if current entity is immune
+isentitynotimmune (condition)- returns true if current entity is not immune
+resetglobalsonreload=x - x=0, carries default global variables over to the next level. X=1 resets default global variables on loading.
+
 
 V1.1.8
 ------
