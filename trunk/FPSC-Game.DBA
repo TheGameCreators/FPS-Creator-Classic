@@ -161,6 +161,9 @@ global playerdammult#=0.0
 global resetonreload=0
 global ecam=0
 global lastcam=0
+global custstart=0
+global custend=0
+
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
@@ -2360,6 +2363,7 @@ rem Scene Commander actions
 #constant AIACTENTITYCAM 1599
 #constant AIACTPLAYERCAM 1600
 #constant AIACTLASTCAM 1601
+#constant AIACTCUSTGUNANIM 1602
 
 #constant AIACTLAST 1610
 
@@ -4720,7 +4724,6 @@ if watercurrent<>0
       moveplrz#=cos(watercurrent)*waterflow
    endif
 endif
-
 
 
  rem FPGC - 280610 - moved entire SYNC sequence to subroutine so PAUSE mode can call it too
@@ -12352,7 +12355,7 @@ actword$(AIACTRESETONRELOAD)="resetglobalsonload"
 actword$(AIACTENTITYCAM)="entitycam"
 actword$(AIACTPLAYERCAM)="playercam"
 actword$(AIACTLASTCAM)="lastcam"
-
+actword$(AIACTCUSTGUNANIM)="playgunanimation"
 
 return
 
@@ -20277,6 +20280,17 @@ case AIACTRAWTEXTVAR:
 
       endcase
 
+      case AIACTCUSTGUNANIM:
+
+      custstart=aiactionseq(seq).value
+      custend=aiactionseq(seq).valueb
+
+      if gunid>0
+         gunmode=9998
+      endif
+
+      endcase
+
 
    endselect
 
@@ -24300,6 +24314,19 @@ return
 
 _gun_control:
 
+if gunmode=9998
+   gunmode=9999
+   show object currentgunobj
+   set object interpolation currentgunobj,100
+   play object currentgunobj,custstart,custend
+
+endif
+
+if gunmode=9999
+   if object frame(currentgunobj)>custend then gunmode=5
+endif
+
+
 rem AirMod - Gun Lag :D >>>
 if gunzoommode <> 0
  gunlagspeed# = firemode(gunid,firemode).settings.zoomgunlagSpeed
@@ -24604,6 +24631,7 @@ if gunburst<=0
 endif
 `
 rem gun idle control ((4*0.75)=3.0)
+
 if gunmode=5
  gunmode=6
  guninterp=4
@@ -24744,6 +24772,11 @@ if gunmode=35
  autoloadgun=gunselectionafterhide
  gunselectionlockdown=0
  gunmode=5
+ Rem Scene commander
+ if runwhenaway=1
+   runwhenaway=2
+ endif
+
 endif
 
 rem gun blocking control
