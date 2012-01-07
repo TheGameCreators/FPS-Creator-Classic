@@ -159,6 +159,8 @@ global flashrange=600
 global spotflash=0
 global playerdammult#=0.0
 global resetonreload=0
+global ecam=0
+global lastcam=0
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
@@ -2355,8 +2357,11 @@ rem Scene Commander actions
 #constant AIACTGIVEWEAPON 1596
 #constant AIACTENTITYSETIMMUNE 1597
 #constant AIACTRESETONRELOAD 1598
+#constant AIACTENTITYCAM 1599
+#constant AIACTPLAYERCAM 1600
+#constant AIACTLASTCAM 1601
 
-#constant AIACTLAST 1600
+#constant AIACTLAST 1610
 
 rem V109 BETA3 - 210408 - AI variables
 global aivariablemode : aivariablemode=0 : rem 0-global, 1-local
@@ -4699,6 +4704,13 @@ if gunid>0 and crosshairon=0
 return
 
 _main_sync:
+
+rem using entity cam
+
+if ecam<>0
+position camera entityelement(ecam).x,entityelement(ecam).y,entityelement(ecam).z
+rotate camera entityelement(ecam).rx,entityelement(ecam).ry,entityelement(ecam).rz
+endif
 
 culling()
 
@@ -12337,6 +12349,10 @@ actword$(AIACTREMOVEWEAPON)="removeplrweapon"
 actword$(AIACTGIVEWEAPON)="giveplrweapon"
 actword$(AIACTENTITYSETIMMUNE)="entitysetimmune"
 actword$(AIACTRESETONRELOAD)="resetglobalsonload"
+actword$(AIACTENTITYCAM)="entitycam"
+actword$(AIACTPLAYERCAM)="playercam"
+actword$(AIACTLASTCAM)="lastcam"
+
 
 return
 
@@ -20236,6 +20252,28 @@ case AIACTRAWTEXTVAR:
       if aiactionseq(seq).value<0 then aiactionseq(seq).value=0
 
       resetonreload=aiactionseq(seq).value
+
+      endcase
+
+      case AIACTENTITYCAM:
+
+      lastcam=ecam
+      ecam=e
+
+      endcase
+
+      case AIACTPLAYERCAM:
+
+      lastcam=ecam
+      ecam=0
+
+      endcase
+
+      case AIACTLASTCAM:
+
+      spare=lastcam
+      ecam=lastcam
+      lastcam=spare
 
       endcase
 
