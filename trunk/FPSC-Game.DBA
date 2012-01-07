@@ -24323,7 +24323,7 @@ if gunmode=9998
 endif
 
 if gunmode=9999
-   if object frame(currentgunobj)>custend then gunmode=5
+   if object frame(currentgunobj)>=custend then gunmode=5
 endif
 
 
