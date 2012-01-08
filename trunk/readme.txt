@@ -287,7 +287,17 @@ entitysetimmune=x - where x=1 set the entity to be immune from damage, x=0 set t
 isentityimmune (condition) - returns true if current entity is immune
 isentitynotimmune (condition)- returns true if current entity is not immune
 resetglobalsonreload=x - x=0, carries default global variables over to the next level. X=1 resets default global variables on loading.
-
+entitycam - moves camera to entity position, using entities rotation.
+playercam - restores camera to player
+lastcam - swaps to previous camera.
+playgunanimation=x y - where x is the animation start frame and y is the animation end frame.
+camrotationon=x if x=0 the camera uses the entities rotation, x=1 use user set rotation
+setcamoffsetx=x
+setcamoffsety=x
+setcamoffsetz=x
+setcamrotx=x
+setcamroty=x
+setcamrotz=x
 
 V1.1.8
 ------
