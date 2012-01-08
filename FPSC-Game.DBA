@@ -501,6 +501,13 @@ type saveloadgamepositionentitytype
  radardistance as integer
  shotby as integer
  isimmune as integer
+ camuse as integer
+ camoffsetx as integer
+ camoffsety as integer
+ camoffsetz as integer
+ camrotx as integer
+ camroty as integer
+ camrotz as integer
 endtype
 type saveloadgamepositionweaponslottype
  pref got invpos
@@ -1637,6 +1644,13 @@ type entitytype
  NECK as integer
  shotby as integer
  isimmune as integer
+ camuse as integer
+ camoffsetx as integer
+ camoffsety as integer
+ camoffsetz as integer
+ camrotx as integer
+ camroty as integer
+ camrotz as integer
 endtype
 rem Entity Breadcrumbs Data
 type entitybreadcrumbstype
@@ -2364,6 +2378,13 @@ rem Scene Commander actions
 #constant AIACTPLAYERCAM 1600
 #constant AIACTLASTCAM 1601
 #constant AIACTCUSTGUNANIM 1602
+#constant AIACTUSEENTROT 1603
+#constant AIACTSETCAMOFFSETX 1604
+#constant AIACTSETCAMOFFSETY 1605
+#constant AIACTSETCAMOFFSETZ 1606
+#constant AIACTSETCAMROTX 1607
+#constant AIACTSETCAMROTY 1608
+#constant AIACTSETCAMROTZ 1609
 
 #constant AIACTLAST 1610
 
@@ -4712,8 +4733,13 @@ _main_sync:
 rem using entity cam
 
 if ecam<>0
-position camera entityelement(ecam).x,entityelement(ecam).y,entityelement(ecam).z
-rotate camera entityelement(ecam).rx,entityelement(ecam).ry,entityelement(ecam).rz
+
+position camera entityelement(ecam).x+entityelement(ecam).camoffsetx,entityelement(ecam).y+entityelement(ecam).camoffsety,entityelement(ecam).z+entityelement(ecam).camoffsetz
+   if entityelement(ecam).camuse=0
+   rotate camera entityelement(ecam).rx,entityelement(ecam).ry,entityelement(ecam).rz
+   else
+   rotate camera entityelement(ecam).camrotx,entityelement(ecam).camroty,entityelement(ecam).camrotz
+   endif
 endif
 
 culling()
@@ -12356,6 +12382,13 @@ actword$(AIACTENTITYCAM)="entitycam"
 actword$(AIACTPLAYERCAM)="playercam"
 actword$(AIACTLASTCAM)="lastcam"
 actword$(AIACTCUSTGUNANIM)="playgunanimation"
+actword$(AIACTUSEENTROT)="camrotationon"
+actword$(AIACTSETCAMOFFSETX)="setcamoffsetx"
+actword$(AIACTSETCAMOFFSETY)="setcamoffsety"
+actword$(AIACTSETCAMOFFSETZ)="setcamoffsetz"
+actword$(AIACTSETCAMROTX)="setcamrotx"
+actword$(AIACTSETCAMROTY)="setcamroty"
+actword$(AIACTSETCAMROTZ)="setcamrotz"
 
 return
 
@@ -20290,6 +20323,49 @@ case AIACTRAWTEXTVAR:
       endif
 
       endcase
+
+case AIACTUSEENTROT:
+
+entityelement(e).camuse=aiactionseq(seq).value
+
+endcase
+
+case AIACTSETCAMOFFSETX:
+
+entityelement(e).camoffsetx=aiactionseq(seq).value
+
+endcase
+
+case AIACTSETCAMOFFSETY:
+
+entityelement(e).camoffsety=aiactionseq(seq).value
+
+endcase
+
+case AIACTSETCAMOFFSETZ:
+
+entityelement(e).camoffsetz=aiactionseq(seq).value
+
+endcase
+
+case AIACTSETCAMROTX:
+
+entityelement(e).camrotx=wrapvalue(aiactionseq(seq).value)
+
+endcase
+
+case AIACTSETCAMROTY:
+
+entityelement(e).camroty=wrapvalue(aiactionseq(seq).value)
+
+endcase
+
+case AIACTSETCAMROTZ:
+
+entityelement(e).camrotz=wrapvalue(aiactionseq(seq).value)
+
+endcase
+
 
 
    endselect
