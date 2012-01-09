@@ -44500,6 +44500,11 @@ a#=flashb: write float 1,a#
 a#=flashrange: write float 1,a#
 a#=playerdammult#: write float 1,a#
 a#=resetonreload: write float 1,a#
+a#=resetonreload=0
+a#=ecam: write float 1,a#
+a#=lastcam: write float 1,a#
+a#=custstart: write float 1,a#
+a#=custend: write float 1,a#
 
   for lsi=0 to entityelementmax
    a#=saveloadgamepositionentity(lsi).orx : write float 1,a#
@@ -44829,6 +44834,10 @@ read float 1,a#:flashb=a#
 read float 1,a#:flashrange=a#
 read float 1,a#:playerdammult#=a#
 read float 1,a#:resetonreload=a#
+read float 1,a#:ecam=a#
+read float 1,a#:lastcam=a#
+read float 1,a#:custstart=a#
+read float 1,a#:custend=a#
 
   for lsi=0 to entityelementmax
    read float 1,a# : saveloadgamepositionentity(lsi).orx=a#
