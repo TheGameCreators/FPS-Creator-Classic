@@ -3,7 +3,7 @@ rem FIRST PERSON GAME CREATOR GAME ENGINE - V1.20
 rem Copyright (c) 2005, 2010 The Game Creators Ltd
 rem
 rem Used Under Public License:
-rem  1. You CANNOT make 'game creation' or 'level editor' software with this code
+rem  1. You CANNOT mae 'game creation' or 'level editor' software with this code
 rem  2. You CANNOT make a 'game engine' for the purpose of selling it as an engine
 rem  3. You CAN make a GAME with this source code for the purpose of selling it
 rem
@@ -2386,6 +2386,7 @@ rem Scene Commander actions
 #constant AIACTSETCAMROTZ 1609
 #constant AIACTHIDELIMB 1610
 #constant AIACTSHOWLIMB 1611
+#constant AIACTPLAYPRESET 1612
 
 #constant AIACTLAST 1620
 
@@ -2726,6 +2727,15 @@ type gunactionstype
  from as gunanimtype
  Rem Hockeykid - Support for running animations
  run as gunanimtype
+ rem Scene commander
+ clearjam as gunanimtype
+ handpush as gunanimtype
+ handdead as gunanimtype
+ jammed as gunanimtype
+ handdoor as gunanimtype
+ swaptoalt as gunanimtype
+ handbutton as gunanimtype
+ handtake as gunanimtype
 endtype
 
 rem Gun Data Structure (is 10 our maximum for the entire game, ie weapon slots max?)
@@ -12393,6 +12403,7 @@ actword$(AIACTSETCAMROTZ)="setcamrotz"
 actword$(AIACTSCALELIMB)="scalelimb"
 actword$(AIACTHIDELIMB)="hidelimb"
 actword$(AIACTSHOWLIMB)="showlimb"
+actword$(AIACTPLAYPRESET)="presetgunanimation"
 
 return
 
@@ -20398,6 +20409,102 @@ endif
 
 endcase
 
+case AIACTPLAYPRESET:
+
+temp$=lower$(aiactionseq(seq).string1)
+custstart=0
+custend=0
+
+if gunid>0
+if temp$<>""
+
+   select temp$
+
+      case "fixjam"
+      custstart=firemode(gunid,firemode).action.clearjam.s
+      custend=firemode(gunid,firemode).action.clearjam.e
+      endcase
+
+      case "handpush"
+      custstart=firemode(gunid,firemode).action.handpush.s
+      custend=firemode(gunid,firemode).action.handpush.e
+      endcase
+
+      case "handdead"
+      custstart=firemode(gunid,firemode).action.handdead.s
+      custend=firemode(gunid,firemode).action.handdead.e
+      endcase
+
+      case "jammed"
+      custstart=firemode(gunid,firemode).action.jammed.s
+      custend=firemode(gunid,firemode).action.jammed.e
+      endcase
+
+      case "swaptoalt"
+      custstart=firemode(gunid,firemode).action.swaptoalt.s
+      custend=firemode(gunid,firemode).action.swaptoalt.e
+      endcase
+
+      case "handbutton"
+      custstart=firemode(gunid,firemode).action.handbutton.s
+      custend=firemode(gunid,firemode).action.handbutton.e
+      endcase
+
+      case "handtake"
+      custstart=firemode(gunid,firemode).action.handtake.s
+      custend=firemode(gunid,firemode).action.handtake.e
+      endcase
+
+      case "select"
+      custstart=firemode(gunid,firemode).action.show.s
+      custend=firemode(gunid,firemode).action.show.e
+      endcase
+
+      case "idle"
+      custstart=firemode(gunid,firemode).action.idle.s
+      custend=firemode(gunid,firemode).action.idle.e
+      endcase
+
+      case "move"
+      custstart=firemode(gunid,firemode).action.move.s
+      custend=firemode(gunid,firemode).action.move.e
+      endcase
+
+      case "run"
+      custstart=firemode(gunid,firemode).action.run.s
+      custend=firemode(gunid,firemode).action.run.e
+      endcase
+
+      case "startreload"
+      custstart=firemode(gunid,firemode).action.startreload.s
+      custend=firemode(gunid,firemode).action.startreload.e
+      endcase
+
+      case "endreload"
+      custstart=firemode(gunid,firemode).action.endreload.s
+      custend=firemode(gunid,firemode).action.endreload.e
+      endcase
+
+      case "cock"
+      custstart=firemode(gunid,firemode).action.cock.s
+      custend=firemode(gunid,firemode).action.cock.e
+      endcase
+
+
+   endselect
+
+
+endif
+
+if custstart<>0
+gunmode=9998
+endif
+
+endif
+
+
+endcase
+
 
    endselect
 
@@ -26259,6 +26366,14 @@ for l=0 to 299
     if field$=alt$+"keyframe ratio"
      if i=0 then keyframeratio=value1 else altkeyframeratio=value1
     endif
+      rem Scene Commander animations (based on Cyborg Arts animations)
+      if field$=alt$+"fix jam" then firemode(gunid,x).action.clearjam.s=value1 : firemode(gunid,x).action.clearjam.e=value2
+      if field$=alt$+"hand push" then firemode(gunid,x).action.handpush.s=value1 : firemode(gunid,x).action.handpush.e=value2
+      if field$=alt$+"hand dead" then firemode(gunid,x).action.handdead.s=value1 : firemode(gunid,x).action.handdead.e=value2
+      if field$=alt$+"jammed" then firemode(gunid,x).action.jammed.s=value1 : firemode(gunid,x).action.jammed.e=value2
+      if field$=alt$+"change firemode" then firemode(gunid,x).action.swaptoalt.s=value1 : firemode(gunid,x).action.swaptoalt.e=value2
+      if field$=alt$+"hand button" then firemode(gunid,x).action.handbutton.s=value1 : firemode(gunid,x).action.handbutton.e=value2
+      if field$=alt$+"hand take" then firemode(gunid,x).action.handtake.s=value1 : firemode(gunid,x).action.handtake.e=value2
     Rem Normal Animations
     if field$=alt$+"select" then firemode(gunid,x).action.show.s=value1 : firemode(gunid,x).action.show.e=value2
     if field$=alt$+"idle" then firemode(gunid,x).action.idle.s=value1 : firemode(gunid,x).action.idle.e=value2
@@ -38978,6 +39093,12 @@ Rem Free weapon jam if reload used
 if player(1).state.firingmode=2
    firemode(gunid,firemode).settings.jammed=0
    firemode(gunid,firemode).settings.shotsfired=0
+   rem play free jam animation if it exists
+      if firemode(gunid,firemode).action.clearjam.s<>0
+      custstart=firemode(gunid,firemode).action.clearjam.s
+      custend=firemode(gunid,firemode).action.clearjam.e
+      gunmode=9998
+      endif
 endif
 
 Rem Scene commander end.
