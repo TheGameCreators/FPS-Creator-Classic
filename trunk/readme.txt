@@ -299,6 +299,30 @@ setcamrotx=x
 setcamroty=x
 setcamrotz=x
 
+V18.5
+
+scalelimb=x y - scales limb X to scale y
+1 = head
+2 = left clavicle
+3 = right clavicle
+4 = left foot
+5 = right foot
+6 = left thigh
+7 = right thigh
+8 = left hand
+9 = right hand
+10 = left fore arm
+11 = right fore arm
+12 = left upper arm
+13 = right upper arm
+14 = spine base
+15 = spine middle
+16 = spine top
+17 = neck
+
+hidelimb=x - hides limb X
+showlimb=x - shows limb x
+
 V1.1.8
 ------
  
