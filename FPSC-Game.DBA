@@ -164,7 +164,6 @@ global lastcam=0
 global custstart=0
 global custend=0
 
-
 rem scene commander - average FPS for smoother movement
 global nextave=1
 dim fpsstore(80):for f=1 to 80:fpsstore(f)=80:next f
@@ -2385,8 +2384,10 @@ rem Scene Commander actions
 #constant AIACTSETCAMROTX 1607
 #constant AIACTSETCAMROTY 1608
 #constant AIACTSETCAMROTZ 1609
+#constant AIACTHIDELIMB 1610
+#constant AIACTSHOWLIMB 1611
 
-#constant AIACTLAST 1610
+#constant AIACTLAST 1620
 
 rem V109 BETA3 - 210408 - AI variables
 global aivariablemode : aivariablemode=0 : rem 0-global, 1-local
@@ -12389,6 +12390,9 @@ actword$(AIACTSETCAMOFFSETZ)="setcamoffsetz"
 actword$(AIACTSETCAMROTX)="setcamrotx"
 actword$(AIACTSETCAMROTY)="setcamroty"
 actword$(AIACTSETCAMROTZ)="setcamrotz"
+actword$(AIACTSCALELIMB)="scalelimb"
+actword$(AIACTHIDELIMB)="hidelimb"
+actword$(AIACTSHOWLIMB)="showlimb"
 
 return
 
@@ -20366,6 +20370,33 @@ entityelement(e).camrotz=wrapvalue(aiactionseq(seq).value)
 
 endcase
 
+case AIACTSCALELIMB:
+
+limbno=aiactionseq(seq).value
+limbscale=aiactionseq(seq).valueb
+if limbno>0 and limbno<18
+alterlimbscale(e,limbno,limbscale)
+endif
+
+endcase
+
+case AIACTHIDELIMB:
+
+limbno=aiactionseq(seq).value
+if limbno>0 and limbno<18
+alterlimbscale(e,limbno,0)
+endif
+
+endcase
+
+case AIACTSHOWLIMB:
+
+limbno=aiactionseq(seq).value
+if limbno>0 and limbno<18
+alterlimbscale(e,limbno,100)
+endif
+
+endcase
 
 
    endselect
@@ -44500,7 +44531,6 @@ a#=flashb: write float 1,a#
 a#=flashrange: write float 1,a#
 a#=playerdammult#: write float 1,a#
 a#=resetonreload: write float 1,a#
-a#=resetonreload=0
 a#=ecam: write float 1,a#
 a#=lastcam: write float 1,a#
 a#=custstart: write float 1,a#
