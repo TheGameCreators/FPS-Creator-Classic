@@ -323,6 +323,31 @@ scalelimb=x y - scales limb X to scale y
 hidelimb=x - hides limb X
 showlimb=x - shows limb x
 
+Added new gun animation options to fit with default weapons
+fix jam (gunspec animation)=X Y where x is the start animation and Y is the end animation
+hand push
+hand dead
+jammed
+change firemode
+hand button
+hand take
+presetgunanimation=x, plays a present gun animation, if it exists. where x= one of the following: (no action is taken if animation doesn't exist)
+
+fixjam
+handpush
+handdead
+jammed
+swaptoalt
+handbutton
+handtake
+select
+idle
+move
+run
+startreload
+endreload
+cock
+
 V1.1.8
 ------
  
