@@ -24535,6 +24535,7 @@ _gun_control:
 if gunmode=9998
    gunmode=9999
    show object currentgunobj
+   set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
    set object interpolation currentgunobj,100
    play object currentgunobj,custstart,custend
 
