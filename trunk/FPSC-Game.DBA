@@ -23630,8 +23630,8 @@ Rem Scene Commander - weapon jammed
       jamtemp#=firemode(gunid,firemode).settings.jamchance
 
 if firemode(gunid,firemode).settings.shotsfired>firemode(gunid,firemode).settings.shotsbeforejam
-      if jamtemp<>0
-         rndnum#=rnd(100)
+      if jamtemp#<>0
+         rndnum#=rnd(101)
          if rndnum#<jamtemp#
          firemode(gunid,firemode).settings.jammed=1
             if gun(gunid).settings.alternate=0
@@ -39102,7 +39102,6 @@ Rem Free weapon jam if reload used
 
 if player(1).state.firingmode=2
    plrreloading=1
-   firemode(gunid,firemode).settings.jammed=0
    firemode(gunid,firemode).settings.shotsfired=0
    rem play free jam animation if it exists
       if firemode(gunid,firemode).action.clearjam.s<>0 and firemode(gunid,firemode).settings.jammed=1
@@ -39111,6 +39110,7 @@ if player(1).state.firingmode=2
       custend=firemode(gunid,firemode).action.clearjam.e
       gunmode=9998
       endif
+   firemode(gunid,firemode).settings.jammed=0
 endif
 
 Rem Scene commander end.
