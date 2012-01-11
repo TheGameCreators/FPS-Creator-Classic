@@ -163,6 +163,7 @@ global ecam=0
 global lastcam=0
 global custstart=0
 global custend=0
+global plrreloading=0
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
@@ -14438,7 +14439,7 @@ case AICONDISIMMUNE:
    case AICONDPLRUSINGRELOAD:
 
    airesult=0
-   if player(1).state.firingmode=2
+   if plrreloading=1
    airesult=1
    endif
    endcase
@@ -14446,7 +14447,7 @@ case AICONDISIMMUNE:
    case AICONDPLRNOTUSINGRELOAD:
 
    airesult=0
-   if player(1).state.firingmode<>2
+   if plrreloading=0
    airesult=1
    endif
 
@@ -23629,8 +23630,9 @@ Rem Scene Commander - weapon jammed
       jamtemp#=firemode(gunid,firemode).settings.jamchance
 
 if firemode(gunid,firemode).settings.shotsfired>firemode(gunid,firemode).settings.shotsbeforejam
-      if jamtemp#<>0
-         if rnd(100)<jamtemp#
+      if jamtemp<>0
+         rndnum#=rnd(100)
+         if rndnum#<jamtemp#
          firemode(gunid,firemode).settings.jammed=1
             if gun(gunid).settings.alternate=0
             sndid=gunsound(gunid,3).soundid
@@ -23724,6 +23726,7 @@ rem cinematic hands <<<<
  else
   if (plrkeyR)=1 and gun(gunid).settings.ismelee<>2
    player(plrid).state.firingmode=2
+   plrreloading=1
    if gun(gunid).settings.ismelee=1 then gun(gunid).settings.ismelee=0
   endif
  endif
@@ -24331,6 +24334,7 @@ if gunmode<100
   if (weaponammo(weaponammoindex+ammooffset) < firemode(gunid,firemode).settings.reloadqty and firemode(gunid,firemode).settings.chamberedround=0) then gunfull = 0
 Rem Scene Commander
 if (weaponammo(weaponammoindex+ammooffset)>0 and firemode(gunid,firemode).settings.emptyreloadonly = 1) then gunfull=1
+if gunfull=1 then plrreloading=0
   rem V110 - 220508 - and also for when walking/running
   if gunmode<30
    `if gunclick=2 then gunmode=121
@@ -24573,7 +24577,6 @@ else
  gunOffsetY# = curvevalue(ty#,gunOffsetY#,firemode(gunid,firemode).settings.simplezoomspeed)
 endif
 rem AirMod - Done <<<
-
 
 rem gun position offset and rotation
 if plrzoomin#<>0.0
@@ -25063,6 +25066,7 @@ if gunshootnoammo=1
 endif
 Rem Player presses reload button but has no ammo (avoid model animation freezing)
 if gunreloadnoammo=1
+   plrreloading=0
  tpool=firemode(gunid,firemode).settings.poolindex
  if tpool=0 then ammo=weaponclipammo(weaponammoindex+ammooffset) else ammo=ammopool(tpool).ammo
  if ammo=0 or gun(gunid).settings.weaponisammo=1
@@ -25352,6 +25356,7 @@ endif
 rem gun reload and cock control
 if gunmode=121
  Rem AirMod - Chambered Round >>>
+ plrreloading=0
  gunchamber = 0
  if firemode(gunid,firemode).settings.chamberedround>0 then gunchamber = 1
  if weaponammo(weaponammoindex+ammooffset) = 0 then gunchamber = 0
@@ -25414,7 +25419,9 @@ if gunmode = 700
 endif
 if gunmode=701
  set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
- if object frame(currentgunobj)>=gstartreload.e then gunmode=703
+   if object frame(currentgunobj)>=gstartreload.e
+   gunmode=703
+   endif
 endif
 if gunmode=703
  play object currentgunobj,greloadloop.s,greloadloop.e
@@ -25427,6 +25434,7 @@ if gunmode=7031
 endif
 if gunmode=702 `and object frame(currentgunobj)>=gun(gunid).action.reloadloop.e
  rem actual reload
+   plrreloading=0
  tneedfromclip=firemode(gunid,firemode).settings.reloadqty+gunchamber-weaponammo(weaponammoindex+ammooffset)
  if tneedfromclip > 1 then tneedfromclip = 1
  tpool=firemode(gunid,firemode).settings.poolindex
@@ -25461,7 +25469,7 @@ if gunmode = 704
 endif
 if gunmode=705
  set object speed currentgunobj,timeelapsed#*genericgunanimspeed#
- if object frame(currentgunobj)>=gcock.e then gunmode=5
+ if object frame(currentgunobj)>=gcock.e then gunmode=5:plrreloading=0
 endif
 if gunmode = 706
  play object currentgunobj,gendreload.s,gendreload.e
@@ -25491,6 +25499,7 @@ if gunmode=124
 endif
 if gunmode=125
  rem actual reload
+   plrreloading=0
  tneedfromclip=firemode(gunid,firemode).settings.reloadqty-weaponammo(weaponammoindex+ammooffset)
  if gunchamber = 1 then tneedfromclip = tneedfromclip + 1
  tpool=firemode(gunid,firemode).settings.poolindex
@@ -39090,11 +39099,14 @@ endselect
 playeraction=0
 
 Rem Free weapon jam if reload used
+
 if player(1).state.firingmode=2
+   plrreloading=1
    firemode(gunid,firemode).settings.jammed=0
    firemode(gunid,firemode).settings.shotsfired=0
    rem play free jam animation if it exists
-      if firemode(gunid,firemode).action.clearjam.s<>0
+      if firemode(gunid,firemode).action.clearjam.s<>0 and firemode(gunid,firemode).settings.jammed=1
+      plrreloading=2
       custstart=firemode(gunid,firemode).action.clearjam.s
       custend=firemode(gunid,firemode).action.clearjam.e
       gunmode=9998
