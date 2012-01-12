@@ -2560,6 +2560,7 @@ shotsfired as integer
 cooldown as integer
 cooltimer as integer
 nosubmergedfire as integer
+addtimer as integer
 rem scene commnader end
  bulletamount as integer
  currentbullet as integer
@@ -4591,7 +4592,6 @@ _main_game_core:
  rem Update screen
  if keystate(28) then gotintodes=0
 
- `text 200,200,str$(player(plrid).state.firingmode)
 
 rem scene commander new air commands
 
@@ -23626,13 +23626,17 @@ if player(plrid).health>0 or playerstartstrength=0
 
 Rem Scene Commander - weapon jammed
 
-   if player(plrid).state.firingmode=1 and firemode(gunid,firemode).settings.jammed=0
-      jamtemp#=firemode(gunid,firemode).settings.jamchance
+if player(plrid).state.firingmode=1 and (timer()-firemode(gunid,firemode).settings.addtimer)>500
+inc firemode(gunid,firemode).settings.shotsfired,1
+firemode(gunid,firemode).settings.cooltimer=timer()
+firemode(gunid,firemode).settings.addtimer=timer()
+endif
 
-if firemode(gunid,firemode).settings.shotsfired>firemode(gunid,firemode).settings.shotsbeforejam
-      if jamtemp#<>0
-         rndnum#=rnd(101)
-         if rndnum#<jamtemp#
+   if player(plrid).state.firingmode=1 and firemode(gunid,firemode).settings.jammed=0
+      jamtemp=100-firemode(gunid,firemode).settings.jamchance
+      randomize timer()
+      chance=firemode(gunid,firemode).settings.shotsbeforejam+(rnd(jamtemp))
+      if firemode(gunid,firemode).settings.shotsfired>chance
          firemode(gunid,firemode).settings.jammed=1
             if gun(gunid).settings.alternate=0
             sndid=gunsound(gunid,3).soundid
@@ -23642,17 +23646,10 @@ if firemode(gunid,firemode).settings.shotsfired>firemode(gunid,firemode).setting
             play sound sndid
          endif
       endif
-   endif
-endif
 
 if firemode(gunid,firemode).settings.jammed=1
    player(plrid).state.firingmode=0
    firemode(gunid,firemode).settings.shotsfired=0
-endif
-
-if player(plrid).state.firingmode=1
-inc firemode(gunid,firemode).settings.shotsfired,1
-firemode(gunid,firemode).settings.cooltimer=timer()
 endif
 
 Rem Scene Commander - cool down?
@@ -23721,7 +23718,7 @@ rem cinematic hands <<<<
  tpool=firemode(gunid,firemode).settings.poolindex
  if tpool=0 then ammo=weaponclipammo(weaponammoindex+ammooffset) else ammo=ammopool(tpool).ammo
 
- if ammo=0 or firemode(gunid,firemode).settings.reloadqty=0 `or gun(gunid).settings.weaponisammo=1
+ if ammo=0 or firemode(gunid,firemode).settings.reloadqty=0  `or gun(gunid).settings.weaponisammo=1
   if (plrkeyR)=1 and plrkeyRheld=0 then gunreloadnoammo=1  : plrkeyRheld=1
  else
   if (plrkeyR)=1 and gun(gunid).settings.ismelee<>2
@@ -23730,6 +23727,11 @@ rem cinematic hands <<<<
    if gun(gunid).settings.ismelee=1 then gun(gunid).settings.ismelee=0
   endif
  endif
+endif
+
+rem scene commander - ensure weapon unjam if jammed
+if firemode(gunid,firemode).settings.jammed=1 and (plrkeyR)=1 and gun(gunid).settings.ismelee<>2
+player(plrid).state.firingmode=2
 endif
 
 rem U71 - Contoller
@@ -39112,6 +39114,8 @@ if player(1).state.firingmode=2
       gunmode=9998
       endif
    firemode(gunid,firemode).settings.jammed=0
+   firemode(gunid,firemode).settings.shotsfired=0
+
 endif
 
 Rem Scene commander end.
