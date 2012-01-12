@@ -23655,10 +23655,12 @@ endif
             else
             sndid=gunsound(gunid,3).altsoundid
             endif
-            if sound exist(sndid)
-            play sound sndid
-            endif
+            if sndid>0
+               if sound exist(sndid)
+               play sound sndid
+               endif
          endif
+            endif
       endif
 
 if firemode(gunid,firemode).settings.jammed=1
