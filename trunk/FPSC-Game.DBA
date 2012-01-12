@@ -14,6 +14,7 @@ rem plugins-licensed\DarkAI.dll
 rem plugins-licensed\LightMapper.dll
 rem plugins-user\DBProMultiplayerPlusDebug.dll
 rem plugins-user\DBProODEDebug.dll
+
 rem
 rem NOTE: If you are compiling with your OWN project DBPROJ (remember Display Settings=HIDDEN)
 rem
@@ -508,6 +509,7 @@ type saveloadgamepositionentitytype
  camrotx as integer
  camroty as integer
  camrotz as integer
+ positionchanged as integer
 endtype
 type saveloadgamepositionweaponslottype
  pref got invpos
@@ -1651,6 +1653,7 @@ type entitytype
  camrotx as integer
  camroty as integer
  camrotz as integer
+ positionchanged as integer
 endtype
 rem Entity Breadcrumbs Data
 type entitybreadcrumbstype
@@ -8098,9 +8101,18 @@ tonestealperaiphasedist#=99999
 logicpriorityfurthest#=0
 for e=1 to entityelementlist
 
+
 rem Move entity if underwater
 entid=entityelement(e).bankindex
 obj=entityelement(e).obj
+
+if entityelement(e).positionchanged=1
+   obj=entityelement(e).obj
+   if obj>0
+   position object obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
+   endif
+   entityelement(e).positionchanged=0
+endif
 
 if obj>0
    if watercurrent<>0
@@ -23643,7 +23655,9 @@ endif
             else
             sndid=gunsound(gunid,3).altsoundid
             endif
+            if sound exist(sndid)
             play sound sndid
+            endif
          endif
       endif
 
@@ -59053,12 +59067,24 @@ function setintervar(var$,alter#)
   endcase
   case "$EPX"
    entityelement(e).x=alter#
+   obj=entityelement(e).obj
+   if obj>0
+   position object obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
+   endif
   endcase
   case "$EPY"
    entityelement(e).y=alter#
+   obj=entityelement(e).obj
+   if obj>0
+   position object obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
+   endif
   endcase
   case "$EPZ"
    entityelement(e).z=alter#
+   obj=entityelement(e).obj
+   if obj>0
+   position object obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
+   endif
   endcase
   case "$EAX"
    entityelement(e).rx=alter#
