@@ -166,6 +166,7 @@ global custstart=0
 global custend=0
 global plrreloading=0
 global lockangle=9999
+global fieldoffire=45
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
@@ -20534,6 +20535,7 @@ endcase
 case  AIACTLOCKEMPLACEMENT:
 
 lockangle=entityelement(e).ry
+fieldoffire=aiactionseq(seq).value
 
 endcase
 
@@ -25311,8 +25313,8 @@ endif
 
 rem scene commander for static weapons
 if lockangle<>9999
-if camera angle y()<(lockangle-45) then rotate camera camera angle x(),(lockangle-45),camera angle z()
-if camera angle y()>(lockangle+135) then rotate camera camera angle x(),(lockangle+135),camera angle z()
+if camera angle y()<(lockangle-fieldoffire) then rotate camera camera angle x(),(lockangle-fieldoffire),camera angle z()
+if camera angle y()>(lockangle+fieldoffire) then rotate camera camera angle x(),(lockangle+fieldoffire),camera angle z()
 endif
 `
 rem FPGC = if equipment being used and LOCKCAMERA flag set, freeze out player
@@ -44725,6 +44727,8 @@ a#=ecam: write float 1,a#
 a#=lastcam: write float 1,a#
 a#=custstart: write float 1,a#
 a#=custend: write float 1,a#
+a#=lockangle: write float 1,a#
+a#=fieldoffire: write float 1,a#
 
   for lsi=0 to entityelementmax
    a#=saveloadgamepositionentity(lsi).orx : write float 1,a#
@@ -45058,6 +45062,8 @@ read float 1,a#:ecam=a#
 read float 1,a#:lastcam=a#
 read float 1,a#:custstart=a#
 read float 1,a#:custend=a#
+read float 1,a#:lockangle=a#
+read float 1,a#:fieldoffire=a#
 
   for lsi=0 to entityelementmax
    read float 1,a# : saveloadgamepositionentity(lsi).orx=a#
