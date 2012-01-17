@@ -167,6 +167,10 @@ global custend=0
 global plrreloading=0
 global lockangle=9999
 global fieldoffire=45
+global plrcamoffsetx=0
+global plrcamoffsety=0
+global plrcamoffsetz=0
+global plrcamoffseton=0
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
@@ -4599,6 +4603,10 @@ _main_game_core:
  rem Update screen
  if keystate(28) then gotintodes=0
 
+rem scene commander jump underwater fix
+if playerunderwater=1
+jumpaction=0
+endif
 
 rem scene commander new air commands
 
@@ -4828,14 +4836,28 @@ endif
   precamx#=camera position x()
   precamy#=camera position y()
   precamz#=camera position z()
-  position camera camera position x()+x vector4(13),camera position y()+y vector4(13),camera position z()+z vector4(13)
+
+rem scene commander player camera offsets if active
+   newoffsetx=0
+   newoffsety=0
+   newoffsetz=0
+
+   if plrcamoffseton<>0
+
+   newcamoffsetx=plrcamoffsetx
+   newcamoffsety=plrcamoffsety
+   newcamoffsetz=plrcamoffsetz
+
+   endif
+
+  position camera camera position x()+x vector4(13)+newcamoffsetx,camera position y()+y vector4(13)+newcamoffsety,camera position z()+z vector4(13)+newcamoffsetz
   if vrsidebysidestereo=1
    set camera view 0,0,screen width()/2,screen height()
    set sprite resize 0,0,0.5
   endif
   sync
   rem then relocate camera to right eye and render quickly
-  position camera camera position x()+x vector4(14),camera position y()+y vector4(14),camera position z()+z vector4(14)
+  position camera camera position x()+x vector4(14)+newcamoffsetx,camera position y()+y vector4(14)+newcamoffsety,camera position z()+z vector4(14)+newcamoffsetz
   rem re-paint all HUD graphics as they are rendered over regular 3D
   gosub _ai_hud_view
   if vrsidebysidestereo=1
@@ -4844,7 +4866,7 @@ endif
   endif
   fastsync
   rem restore camera position and rotation for engine flow
-  position camera precamx#,precamy#,precamz#
+  position camera precamx#+newcamoffsetx,precamy#+newcamoffsety,precamz#+newcamoffsetz
   rotate camera camangx#,camangy#,0
   `
  else
