@@ -221,7 +221,6 @@ global trackingcinematichandsloop as integer : trackingcinematichandsloop = 1
 global disableblockingbutton as boolean : disableblockingbutton = 0
 rem cinematic hands <<<<
 
-
 rem - Global array for string variables
 type uservar
  used as boolean
@@ -8141,7 +8140,7 @@ if entityelement(e).positionchanged=1
 endif
 
 if obj>0
-   if watercurrent<>0
+   if watercurrent<>0 and entityelement(e).eleprof.isimmobile<>1
       tempwaterpos=object position y(obj)+(object size y(obj)/2.0)
       if tempwaterpos<(waterheight#+(object size y(obj)/2.0))
       oldvelx#=sin(watercurrent)*(waterflow*2)
