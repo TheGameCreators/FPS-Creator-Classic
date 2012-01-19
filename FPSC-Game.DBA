@@ -515,6 +515,7 @@ type saveloadgamepositionentitytype
  camroty as integer
  camrotz as integer
  positionchanged as integer
+ cullimmobile as integer
 endtype
 type saveloadgamepositionweaponslottype
  pref got invpos
@@ -1659,6 +1660,7 @@ type entitytype
  camroty as integer
  camrotz as integer
  positionchanged as integer
+ cullimmobile as integer
 endtype
 rem Entity Breadcrumbs Data
 type entitybreadcrumbstype
@@ -2398,6 +2400,7 @@ rem Scene Commander actions
 #constant AIACTPLAYPRESET 1612
 #constant AIACTLOCKEMPLACEMENT 1613
 #constant AIACTFREEEMPLACEMENT 1614
+#constant AIACTCULLIMMOBILE 1615
 
 #constant AIACTLAST 1620
 
@@ -12444,6 +12447,7 @@ actword$(AIACTSHOWLIMB)="showlimb"
 actword$(AIACTPLAYPRESET)="presetgunanimation"
 actword$(AIACTLOCKEMPLACEMENT)="lockemplacement"
 actword$(AIACTFREEEMPLACEMENT)="freeemplacement"
+actword$(AIACTCULLIMMOBILE)="cullevenifimmobile"
 
 return
 
@@ -20563,6 +20567,15 @@ endcase
 case AIACTFREEEMPLACEMENT:
 
 lockangle=9999
+
+endcase
+
+case AIACTCULLIMMOBILE:
+
+if aiactionseq(seq).value<0 then aiactionseq(seq).value=0
+if aiactionseq(seq).value>1 then aiactionseq(seq).value=1
+
+entityelement(e).cullimmobile=aiactionseq(seq).value
 
 endcase
 
@@ -60991,10 +61004,14 @@ if entityelement(e).ishidden<>2
             Rem get is object on screen
                if object exist(obj) then seeit=object in screen(obj)
 
+                  if entityelement(e).eleprof.physics=3 and entityelement(e).eleprof.isimmobile=1 and entityelement(e).cullimmobile=1 then entityelement(e).eleprof.physics=99
+
                   rem doors and windows, characters and the dead excluded from the cull.
                   if object exist(obj) and (entityprofile(entid).ischaracter<>1 and entityelement(e).eleprof.physics<>3) or (entityprofile(entid).ischaracter=1  and entityelement(e).beenkilled<>0 and seeit=0)
 
          Rem get object distance
+
+                  if entityelement(e).eleprof.physics=99 and entityelement(e).eleprof.isimmobile=1 and entityelement(e).cullimmobile=1 then entityelement(e).eleprof.physics=3
 
                  tdx#=object position x(obj)-tcamx#
                  tdy#=object position y(obj)+(object size(obj)/2)-tcamy#
