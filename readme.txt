@@ -348,6 +348,12 @@ startreload
 endreload
 cock
 
+various fixes for culling
+lockemplacement - locks the player to a 45 degree fire arc
+freeemplacement - frees the player from the fire arc.
+cullevenifimmobile=x where x=1 system will include immobile object in cull system, normally exluded to account for windows and doors.
+
+
 V1.1.8
 ------
  
