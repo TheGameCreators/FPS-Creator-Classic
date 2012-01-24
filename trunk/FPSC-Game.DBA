@@ -516,6 +516,7 @@ type saveloadgamepositionentitytype
  camrotz as integer
  positionchanged as integer
  cullimmobile as integer
+ isanobjective as integer
 endtype
 type saveloadgamepositionweaponslottype
  pref got invpos
@@ -1661,6 +1662,7 @@ type entitytype
  camrotz as integer
  positionchanged as integer
  cullimmobile as integer
+ isanobjective as integer
 endtype
 rem Entity Breadcrumbs Data
 type entitybreadcrumbstype
@@ -19757,8 +19759,8 @@ case AIACTSETOBJECTIVE:
 
      turnoff=aiactionseq(seq).value
 
-     if turnoff<>0 then istheobjective=e
-     if turnoff=0 then istheobjective=0
+     if turnoff<>0 then entityelement(e).isanobjective=e
+     if turnoff=0 then entityelement(e).isanobjective=0
 
      if madeobjective=0
       if sprite exist(objectiveobject)=1
@@ -32587,7 +32589,7 @@ if object exist(obj)=1
    if entityelement(e).eleprof.usingeffect>0
     entityelement(e).eleprof.uniqueelement=1
     `
-    rem FPSCV105RC3 - illumination shader does not work with static entity (due to missing LM code)
+    rem FPSCV105RC3 - illumination shader does not work with static entity (due to missing LM9 code)
     tttfile$=lower$(entityelement(e).eleprof.effect$)
     ttt$="illuminationent.fx"
     if lower$(right$(tttfile$,len(ttt$)))=ttt$
@@ -37278,6 +37280,35 @@ next cLayer : rem V118 - 110810 - knxrb - Hud Layers
   `
  next hudid
 
+rem Compass - Scene commander, original code used with permission (knxrb).
+
+if compassOn = 1
+   if madeCompass = 0
+      makecompass()
+      madeCompass = 1
+   endif
+
+ if compassSpin = 1
+      if sprite exist(compassobject)=1
+         rotate sprite compassobject,wrapvalue(-camera angle y())
+      endif
+   endif
+   if needleSpin = 1
+      if sprite exist(needleobject)=1
+         rotate sprite needleobject,wrapvalue(camera angle y())
+      endif
+   endif
+   if sprite exist(compassobject)=1
+
+      paste sprite compassobject,compassX,compassY
+   endif
+   if sprite exist(needleobject)=1
+
+      paste sprite needleobject,compassX,compassY
+   endif
+
+endif
+
  rem Radar Blip Dark AI - Scene commander
 
 rem Scene Commander, if radar used, and not made, make it.
@@ -37287,13 +37318,6 @@ makeradar()
 maderadar=1
 endif
 
-rem Compass - Scene commander, original code used with permission (knxrb).
-
-if compassOn = 1
-   if madeCompass = 0
-      makecompass()
-      madeCompass = 1
-   endif
 
  rem hide radar if it exists but is off
  if darkradar=0 and sprite exist(radarobject)=1
@@ -37379,6 +37403,12 @@ rem calculate player level for character radar cull
 
             endif
 
+         rem Check for objective display
+
+         if entityelement(e).isanobjective<>0
+         istheobjective=entityelement(e).isanobjective
+         displayobjective()
+         endif
 
     endif
    next e
@@ -37389,31 +37419,10 @@ rem calculate player level for character radar cull
   endif
 
 
-   if compassSpin = 1
-      if sprite exist(compassobject)=1
-         rotate sprite compassobject,wrapvalue(-camera angle y())
-      endif
-   endif
-   if needleSpin = 1
-      if sprite exist(needleobject)=1
-         rotate sprite needleobject,wrapvalue(camera angle y())
-      endif
-   endif
-   if sprite exist(compassobject)=1
-
-      paste sprite compassobject,compassX,compassY
-   endif
-   if sprite exist(needleobject)=1
-
-      paste sprite needleobject,compassX,compassY
-   endif
-
-endif
 
 
-rem Check for objective display
 
-displayobjective()
+
 
 rem display armour value
 
@@ -44604,6 +44613,8 @@ _saveload_savegame:
    a#=saveloadgamepositionentity(lsi).ishidden: write float 1,a# rem Scene commander
    a#=saveloadgamepositionentity(lsi).cullstate: write float 1,a# rem Scene commander
    a#=saveloadgamepositionentity(lsi).isimmune: write float 1,a# rem Scene commander
+   a#=saveloadgamepositionentity(lsi).isanobjective: write float 1,a# rem Scene commander
+
   next lsi
   rem Weapons
   for lsi=0 to 20
@@ -44938,6 +44949,7 @@ _saveload_loadgame:
    read float 1,a# : saveloadgamepositionentity(lsi).ishidden=a# rem Scene commander
    read float 1,a# : saveloadgamepositionentity(lsi).cullstate=a# rem Scene commander
    read float 1,a# : saveloadgamepositionentity(lsi).isimmune=a# rem Scene commander
+   read float 1,a# : saveloadgamepositionentity(lsi).isanobjective=a# rem Scene commander
   next lsi
   rem Weapons
   dim saveloadgamepositionweaponslot(20) as saveloadgamepositionweaponslottype
@@ -59145,24 +59157,12 @@ function setintervar(var$,alter#)
   endcase
   case "$EPX"
    entityelement(e).x=alter#
-   obj=entityelement(e).obj
-   if obj>0
-   position object obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
-   endif
   endcase
   case "$EPY"
    entityelement(e).y=alter#
-   obj=entityelement(e).obj
-   if obj>0
-   position object obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
-   endif
   endcase
   case "$EPZ"
    entityelement(e).z=alter#
-   obj=entityelement(e).obj
-   if obj>0
-   position object obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
-   endif
   endcase
   case "$EAX"
    entityelement(e).rx=alter#
@@ -61207,6 +61207,7 @@ endcase
 endif
 endif
 endfunction
+
 
 _create_blood:
  decalid=entitydecal(entityelement(damagede).bankindex,1)
