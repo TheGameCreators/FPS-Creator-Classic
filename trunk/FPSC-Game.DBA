@@ -31221,7 +31221,7 @@ if desc$<>""
    if object exist(entobj)=1
     perform checklist for object limbs entobj
     for tc=1 to checklist quantity()
-     if lower$(checklist string$(tc))="bip01_SP1"
+     if lower$(checklist string$(tc))="bip01_spine1"
       entityprofile(entid).spine=tc-1
       exit
      endif
