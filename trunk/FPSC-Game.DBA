@@ -9682,9 +9682,26 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
            if viscolmap(tx,ty,tz)=0
 
 
-            entityelement(te).y=entityelement(e).spawn.y+tdj#
+            entityelement(te).y=entityelement(e).spawn.y`+tdj#
             entityelement(te).x=tryx#
             entityelement(te).z=tryz#
+      ttryy#=entityelement(te).y
+      tettry=0
+
+      while tettry<25
+      if static volume(entityelement(te).x,ttryy#+33,entityelement(te).z,entityelement(te).x,ttryy#+32,entityelement(te).z,ellipseheight#)=0 then exit
+      ttryy#=ttryy#+1.0
+      inc tettry
+     endwhile
+     if tettry>=25
+      rem entity stuck - so make it immobile to shut down struggle!
+      entityelement(te).eleprof.isimmobile=1
+     else
+      rem entities can find floor initially (not playerstart,trigger,light,emission)
+      entityelement(te).y=ttryy#
+
+     position object obj,entityelement(te).x,entityelement(te).y,entityelement(te).z
+      endif
 
 
             tokay=1 : exit
@@ -9699,9 +9716,27 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
      else
 
       entityelement(te).x=entityelement(e).spawn.x
-      entityelement(te).y=entityelement(e).spawn.y+tadj#
+      entityelement(te).y=entityelement(e).spawn.y`+tadj#
       entityelement(te).z=entityelement(e).spawn.z
       tokay=1
+
+      ttryy#=entityelement(e).y
+      tettry=0
+
+      while tettry<25
+      if static volume(entityelement(te).x,ttryy#+33,entityelement(te).z,entityelement(te).x,ttryy#+32,entityelement(te).z,ellipseheight#)=0 then exit
+      ttryy#=ttryy#+1.0
+      inc tettry
+     endwhile
+     if tettry>=25
+      rem entity stuck - so make it immobile to shut down struggle!
+      entityelement(te).eleprof.isimmobile=1
+     else
+      rem entities can find floor initially (not playerstart,trigger,light,emission)
+      entityelement(te).y=ttryy#
+
+     position object obj,entityelement(te).x,entityelement(te).y,entityelement(te).z
+      endif
 
      endif
      `
