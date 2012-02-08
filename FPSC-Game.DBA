@@ -8525,7 +8525,8 @@ else
  endif
 endif
 if logicprioritymax#<2.0 then logicprioritymax#=2.0
-
+rem speed work
+incspeed#=(1.0/40.0)*(timer()-lastincrementspeedtime) : lastincrementspeedtime=timer()
 rem Go through all entities for VISUAL
 for e=1 to entityelementlist
  obj=entityelement(e).obj
@@ -59283,6 +59284,7 @@ function MakeWater()
  if file exist(path$+"Water.fx") then load effect path$+"Water.fx",waterfx,0 : set object effect waterobj,waterfx : addfiletocollection(path$+"Water.fx")
  set object transparency waterobj,1
  hide object waterobj
+ set object collision off waterobj
 endfunction
 
 function UpDateWater()
