@@ -20010,15 +20010,25 @@ case AIACTSETVARRND:
 
       next li
 
-      tadj#=object collision center y(obj)
+      ttryy#=entityelement(e).y
+      tettry=0
 
-      applyscalefactor#=(newscale/100.0)
-      tadj#=tadj#*applyscalefactor#-15
+      while tettry<25
+      if static volume(entityelement(e).x,ttryy#+33,entityelement(e).z,entityelement(e).x,ttryy#+32,entityelement(e).z,ellipseheight#)=0 then exit
+      ttryy#=ttryy#+1.0
+      inc tettry
+     endwhile
+     if tettry>=25
+      rem entity stuck - so make it immobile to shut down struggle!
+      entityelement(e).eleprof.isimmobile=1
+     else
+      rem entities can find floor initially (not playerstart,trigger,light,emission)
+      entityelement(e).y=ttryy#
 
-     entityelement(e).y=entityelement(e).y+tadj#
-     position object obj,entityelement(e).x,entityelement(e).y+tadj#,entityelement(e).z
+     position object obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
      entid=entityelement(e).bankindex
      entityprofile(entid).scale=newscale
+      endif
 
      endcase
 
@@ -31358,7 +31368,7 @@ if object exist(entobj)=1
    if object exist(entobj)=1
     perform checklist for object limbs entobj
     for tc=1 to checklist quantity()
-     if lower$(checklist string$(tc))="bip01_NECK"
+     if lower$(checklist string$(tc))="bip01_neck"
       entityelement(e).NECK = tc-1
       tc=checklist quantity()+1
      endif
@@ -31369,7 +31379,7 @@ if object exist(entobj)=1
    if object exist(entobj)=1
     perform checklist for object limbs entobj
     for tc=1 to checklist quantity()
-     if lower$(checklist string$(tc))="bip01_SP3"
+     if lower$(checklist string$(tc))="bip01_spine3"
       entityelement(e).SP3 = tc-1
       tc=checklist quantity()+1
      endif
@@ -31399,7 +31409,6 @@ if object exist(entobj)=1
    endif
 
 
- `
  rem assign physics weight and friction (if not set)
  if entityprofile(entid).physics<>0
   tfriction=(object size x(entobj)*75)+(object size y(entobj)*75)+(object size z(entobj)*75)
@@ -60992,8 +61001,8 @@ rem get player position
 
 for e=1 to entityelementlist
 
-rem only check entities not hidden by system
-if entityelement(e).ishidden<>2
+rem only check entities not hidden by system and those that are active
+if entityelement(e).ishidden<>2 and entityelement(e).activated=1
 
   obj=entityelement(e).obj
 
@@ -61179,14 +61188,14 @@ case 6
  endcase
 
  case 14
-  if limb exist(entityelement(en).obj,entityelement(en).SP1)
-  scale limb entityelement(en).obj,entityelement(en).SP1,ls,ls,ls
+  if limb exist(entityelement(en).obj,entityprofile(en).spine)
+  scale limb entityelement(en).obj,entityprofile(en).spine,ls,ls,ls
 
   endif
  endcase
  case 15
-  if limb exist(entityelement(en).obj,entityelement(en).spine2)
-  scale limb entityelement(en).obj,entityelement(en).spine2,ls,ls,ls
+  if limb exist(entityelement(en).obj,entityprofile(en).spine2)
+  scale limb entityelement(en).obj,entityprofile(en).spine2,ls,ls,ls
 
   endif
  endcase
