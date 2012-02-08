@@ -8750,8 +8750,27 @@ for e=1 to entityelementlist
      endif
      if entityelement(e).attachmentblobobj>0
       if object exist(entityelement(e).attachmentblobobj)=1
-       if entityelement(e).floorpositiony<50000.0
-        position object entityelement(e).attachmentblobobj,object position x(obj),object position y(obj)+tmvszyforobj#+entityelement(e).floorpositiony,object position z(obj)
+
+
+       `if entityelement(e).floorpositiony<50000.0
+        `position object entityelement(e).attachmentblobobj,object position x(obj),object position y(obj)+tmvszyforobj#+entityelement(e).floorpositiony,object position z(obj)
+if (gmultiplayergame=0 and entityelement(e).health>0) or (gmultiplayergame=1 and entityelement(e).collisionactive<>0)
+        dst#=static raycast(entityelement(e).x,entityelement(e).y+5,entityelement(e).z,entityelement(e).x,entityelement(e).y-50,entityelement(e).z)
+       else
+        dst#=0.0
+       endif
+       if dst#>0
+        dst#=dst#-5.0
+        tmvszy#=(object size y(obj)/2)*(entityprofile(entid).scale/100.0)
+        if gmultiplayergame=1
+         rem FPGC - 020810 - arena game does not use ODE characters, so place shadow at obj y base
+         tmvy#=object position y(obj)
+        else
+         tmvy#=object position y(obj)-tmvszy#
+        endif
+        rem X9 V109 - 14030 - Account for RAISEFACTOR when setting shadow position
+        `position object entityelement(e).attachmentblobobj,object position x(obj),(tmvy#-dst#)+0.5,object position z(obj)
+        position object entityelement(e).attachmentblobobj,object position x(obj),(tmvy#-dst#-entityprofile(entid).raisefactor)+0.5,object position z(obj)
         show object entityelement(e).attachmentblobobj
         tsc#=(100.0-dst#) : scale object entityelement(e).attachmentblobobj,tsc#,tsc#,tsc#
        else
@@ -23108,10 +23127,35 @@ _player_restart:
  mefrozentype=0
  mefrozen=0
  `
- rem Player Weapon default
+rem Player Weapon default
+ if gmultiplayergame=0  rem fixes ww2 default weapon showing in MP
  if gunzoommode=10 then gunzoommode=11
  autoloadgun=playerstarthasweapon
- `
+ endif
+
+rem if weapon, add bullets if any moved to fix weapon not starting
+ if playerstarthasweapon>0 and level=1
+  for tww=1 to 10
+   if weaponslot(tww).pref=playerstarthasweapon
+    tqty=firemode(playerstarthasweapon,0).settings.reloadqty
+    if playerstarthasweaponqty>=1
+     weaponammo(tww)=tqty
+     weaponammo(tww+10)=firemode(playerstarthasweapon,1).settings.reloadqty
+     if playerstarthasweaponqty>1
+      `weaponclipammo(tww)=(playerstarthasweaponqty-1)*tqty
+      `weaponclipammo(tww+10)=gun(playerstarthasweapon).settings.altreloadqty*(playerstarthasweaponqty-1)
+      tpool=firemode(playerstarthasweapon,0).settings.poolindex : altpool=firemode(playerstarthasweapon,1).settings.poolindex
+      if tpool=0 then weaponclipammo(tww)=(playerstarthasweaponqty-1)*tqty else ammopool(tpool).ammo=ammopool(tpool).ammo+(playerstarthasweaponqty-1)*tqty
+      if altpool=0 then weaponclipammo(tww+10)=firemode(playerstarthasweapon,1).settings.reloadqty*(playerstarthasweaponqty-1) else ammopool(altpool).ammo=ammopool(altpool).ammo+firemode(playerstarthasweapon,1).settings.reloadqty*(playerstarthasweaponqty-1)
+     endif
+    endif
+    tww=11 : exit
+   endif
+  next tww
+ endif
+
+ playerstarthasweapon=1
+
  rem Default position in center (borble uses this xyz for its position, then camera adjustment later)
  tvalueheight=11 : rem height from base of player start value to center of borble
  lastcamx#=playerstartx# : lastcamy#=playerstarty#+tvalueheight : lastcamz#=playerstartz#
@@ -23160,26 +23204,6 @@ _player_setup:
  rem Find player start location
  gosub _player_startpos
  `
- rem if weapon, add bullets if any
- if playerstarthasweapon>0 and level=1
-  for tww=1 to 10
-   if weaponslot(tww).pref=playerstarthasweapon
-    tqty=firemode(playerstarthasweapon,0).settings.reloadqty
-    if playerstarthasweaponqty>=1
-     weaponammo(tww)=tqty
-     weaponammo(tww+10)=firemode(playerstarthasweapon,1).settings.reloadqty
-     if playerstarthasweaponqty>1
-      `weaponclipammo(tww)=(playerstarthasweaponqty-1)*tqty
-      `weaponclipammo(tww+10)=gun(playerstarthasweapon).settings.altreloadqty*(playerstarthasweaponqty-1)
-      tpool=firemode(playerstarthasweapon,0).settings.poolindex : altpool=firemode(playerstarthasweapon,1).settings.poolindex
-      if tpool=0 then weaponclipammo(tww)=(playerstarthasweaponqty-1)*tqty else ammopool(tpool).ammo=ammopool(tpool).ammo+(playerstarthasweaponqty-1)*tqty
-      if altpool=0 then weaponclipammo(tww+10)=firemode(playerstarthasweapon,1).settings.reloadqty*(playerstarthasweaponqty-1) else ammopool(altpool).ammo=ammopool(altpool).ammo+firemode(playerstarthasweapon,1).settings.reloadqty*(playerstarthasweaponqty-1)
-     endif
-    endif
-    tww=11 : exit
-   endif
-  next tww
- endif
  `
  rem Reset some plater related states when restart
  gosub _player_resettrail
