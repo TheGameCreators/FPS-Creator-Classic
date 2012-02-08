@@ -1888,6 +1888,8 @@ Rem Scene commander conditions
 #constant AICONDCURRENTJAMMED 908
 #constant AICONDENTITYISIMMUNE 909
 #constant AICONDENTITYISNOTIMMUNE 910
+#constant AICONDPLRWEAPONIDLE 911
+#constant AICONDPLRWEAPONNOTIDLE 912
 
 #constant AICONDLAST 950
 
@@ -11942,6 +11944,8 @@ conword$(AICONDLASTDAMAGETIME)="damagetimegreater"
 conword$(AICONDCURRENTJAMMED)="currentweaponjammed"
 conword$(AICONDENTITYISIMMUNE)="isentityimmune"
 conword$(AICONDENTITYISNOTIMMUNE)="isentitynotimmune"
+conword$(AICONDPLRWEAPONIDLE)="plrweaponidle"
+conword$(AICONDPLRWEAPONNOTIDLE)="plrweaponnotidle"
 
 rem Set all action keywords
 dim actword$(AIACTLAST)
@@ -14796,10 +14800,30 @@ case AICONDSHOTBY:
 
    endcase
 
-   case AICONDENTITYISNOTIMMUNE
+   case AICONDENTITYISNOTIMMUNE:
    airesult=0
    if entityelement(e).isimmune=0
       airesult=1
+   endif
+
+   endcase
+
+   case AICONDPLRWEAPONIDLE:
+
+   airesult=0
+   if gunmode=5
+   airesult=1
+   endif
+
+   endcase
+
+   case AICONDPLRWEAPONNOTIDLE:
+
+   airesult=0
+   if gunid>0
+      if gunmode<>5
+      airesult=1
+      endif
    endif
 
    endcase
