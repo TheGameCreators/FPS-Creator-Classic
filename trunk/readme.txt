@@ -362,6 +362,10 @@ plrweaponnotidle (condition) - returns true if the player weapon is not idle.
 Speed tweak
 plraccuracymult=x. Modifiers the player accuracy by x%
 entityaccuracymult=x Modifiers the entity accuracy by x%
+debugcursor=x y
+debugvar=var name
+debugtext=text
+wireframe=x 1=wireframe mode, 0=solid.
 
 
 V1.1.8
