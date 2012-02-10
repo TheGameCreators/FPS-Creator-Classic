@@ -171,6 +171,7 @@ global plrcamoffsetx=0
 global plrcamoffsety=0
 global plrcamoffsetz=0
 global plrcamoffseton=0
+global playeraccmult#=1.0
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
@@ -496,6 +497,7 @@ type saveloadgamepositionentitytype
  physics as integer
  alttextureused as integer
  rem V118 - 120810 - knxrb - etimer fix from Scene Commander
+ etimerpaused as integer
  etimer as integer
  lastdamagetimer as integer
  lastdamagepaused as integer
@@ -517,6 +519,7 @@ type saveloadgamepositionentitytype
  positionchanged as integer
  cullimmobile as integer
  isanobjective as integer
+ entityacc as integer
 endtype
 type saveloadgamepositionweaponslottype
  pref got invpos
@@ -1663,6 +1666,7 @@ type entitytype
  positionchanged as integer
  cullimmobile as integer
  isanobjective as integer
+ entityacc as integer
 endtype
 rem Entity Breadcrumbs Data
 type entitybreadcrumbstype
@@ -2405,7 +2409,8 @@ rem Scene Commander actions
 #constant AIACTLOCKEMPLACEMENT 1613
 #constant AIACTFREEEMPLACEMENT 1614
 #constant AIACTCULLIMMOBILE 1615
-
+#constant AIACTPLRACC 1616
+#constant AIACTENTITYACC 1617
 #constant AIACTLAST 1620
 
 rem V109 BETA3 - 210408 - AI variables
@@ -9115,7 +9120,7 @@ if entityelement(e).fireweapon=1
    rem gun data for accuracy
    Rem Hockeykid - 010410 - Swapped to a float to work better with Plystire's accuracy system
    `trayaccuracy=gun(tgunid).settings.accuracy
-   trayaccuracy#=firemode(tgunid,0).settings.accuracy
+   trayaccuracy#=firemode(tgunid,0).settings.accuracy*entityelement(e).entityacc
    Rem Hockeykid - 10410 - Added iteratations for AI
    trayiter=1+firemode(tgunid,0).settings.iterate
    `
@@ -12509,6 +12514,8 @@ actword$(AIACTPLAYPRESET)="presetgunanimation"
 actword$(AIACTLOCKEMPLACEMENT)="lockemplacement"
 actword$(AIACTFREEEMPLACEMENT)="freeemplacement"
 actword$(AIACTCULLIMMOBILE)="cullevenifimmobile"
+actword$(AIACTPLRACC)="plraccuracymult"
+actword$(AIACTENTITYACC)="entityaccuracymult"
 
 return
 
@@ -17230,26 +17237,25 @@ Rem Scene Commander
      case AIACTWEBLINK:
       rem launch if it is a web site address, else silently fail
       weblinkaddress$=""
-      if aiactionseq(seq).value=-1
+      weblinkaddress$=aiactionseq(seq).string1
+      if weblinkaddress$="$0"
        weblinkaddress$=entityelement(e).eleprof.soundset$
       else
-       if aiactionseq(seq).value=-2
+       if weblinkaddress$="$1"
         weblinkaddress$=entityelement(e).eleprof.soundset1$
-       else
-        tstringindex=aiactionseq(seq).value
-        if tstringindex>0
-         weblinkaddress$=actstring$(tstringindex)
+      endif
+      endif
+        rem launch if it is a web site address, else silently fail
+        if weblinkaddress$<>""
+            if lower$( left$(weblinkaddress$,3) )="www"
+                weblinkaddress$ = "http:\\" + weblinkaddress$
+                window to back
+                execute file "iexplore.exe",weblinkaddress$,"C:\Program Files\Internet Explorer",1
+                window to front
+            endif
         endif
-       endif
-      endif
-      if weblinkaddress$<>""
-       if lower$(left$(weblinkaddress$,5))="http:"
-        window to back
-        execute file "iexplore.exe",weblinkaddress$,"C:\Program Files\Internet Explorer",1
-        window to front
-       endif
-      endif
      endcase
+
      `
      case AIACTEXPLODE:
       texplodable=entityelement(e).eleprof.explodable
@@ -20667,6 +20673,18 @@ if aiactionseq(seq).value<0 then aiactionseq(seq).value=0
 if aiactionseq(seq).value>1 then aiactionseq(seq).value=1
 
 entityelement(e).cullimmobile=aiactionseq(seq).value
+
+endcase
+
+case AIACTPLRACC:
+
+playeraccmult#=(aiactionseq(seq).value/100)
+
+endcase
+
+case AIACTENTITYACC:
+
+entityelement(e).entityacc=(aiactionseq(seq).value/100)
 
 endcase
 
@@ -25943,12 +25961,14 @@ if gunshoot=1
   `trayaccuracy=gun(gunid).settings.accuracy
   rem AirMod - Make gun more accurate so bullets don't fly to mars - EDIT: Additionally use simple zoom accuracy if selected
   if gunzoommode<>0 and firemode(gunid,firemode).settings.simplezoom <>0
-   trayaccuracy#=firemode(gunid,firemode).settings.simplezoomacc
+  `Rem Scene Commander adjusted for player accuracy modification
+  tempacc#=playeraccmult#/3.3
+   trayaccuracy#=firemode(gunid,firemode).settings.simplezoomacc/tempacc#
   else
    if (plrkeySHIFT)=1 and movement<>0 and firemode(gunid,firemode).settings.runaccuracy <> - 1
-    trayaccuracy#=firemode(gunid,firemode).settings.runaccuracy
+    trayaccuracy#=firemode(gunid,firemode).settings.runaccuracy/tempacc#
    else
-    trayaccuracy#=firemode(gunid,firemode).settings.accuracy
+    trayaccuracy#=firemode(gunid,firemode).settings.accuracy/tempacc#
    endif
   endif
   bulletdamage=firemode(gunid,firemode).settings.damage
@@ -44707,7 +44727,7 @@ _saveload_savegame:
    a#=saveloadgamepositionentity(lsi).cullstate: write float 1,a# rem Scene commander
    a#=saveloadgamepositionentity(lsi).isimmune: write float 1,a# rem Scene commander
    a#=saveloadgamepositionentity(lsi).isanobjective: write float 1,a# rem Scene commander
-
+   a#=saveloadgamepositionentity(lsi).entityacc: write float 1,a# rem Scene commander
   next lsi
   rem Weapons
   for lsi=0 to 20
@@ -44867,6 +44887,8 @@ a#=custstart: write float 1,a#
 a#=custend: write float 1,a#
 a#=lockangle: write float 1,a#
 a#=fieldoffire: write float 1,a#
+a#=playeraccmult#: write float 1,a#
+
 
   for lsi=0 to entityelementmax
    a#=saveloadgamepositionentity(lsi).orx : write float 1,a#
@@ -45043,6 +45065,7 @@ _saveload_loadgame:
    read float 1,a# : saveloadgamepositionentity(lsi).cullstate=a# rem Scene commander
    read float 1,a# : saveloadgamepositionentity(lsi).isimmune=a# rem Scene commander
    read float 1,a# : saveloadgamepositionentity(lsi).isanobjective=a# rem Scene commander
+   read float 1,a# : saveloadgamepositionentity(lsi).entityacc=a# rem Scene commander
   next lsi
   rem Weapons
   dim saveloadgamepositionweaponslot(20) as saveloadgamepositionweaponslottype
@@ -45203,6 +45226,7 @@ read float 1,a#:custstart=a#
 read float 1,a#:custend=a#
 read float 1,a#:lockangle=a#
 read float 1,a#:fieldoffire=a#
+read float 1,a#:playeraccmult#=a#
 
   for lsi=0 to entityelementmax
    read float 1,a# : saveloadgamepositionentity(lsi).orx=a#
@@ -45369,6 +45393,15 @@ _saveload_storesavedata:
   saveloadgamepositionentity(lsi).z=entityelement(lsi).z
   rem V118 - 120810 - knxrb - etimer fix from Scene Commander
   saveloadgamepositionentity(lsi).etimer=entityelement(lsi).etimerpaused
+  saveloadgamepositionentity(lsi).lastdamagetimer=entityelement(lsi).lastdamagetimer
+  saveloadgamepositionentity(lsi).animatespeed=entityelement(lsi).animatespeed rem (markblosser)
+  saveloadgamepositionentity(lsi).entitydammult=entityelement(lsi).entitydammult rem Scene commander
+  saveloadgamepositionentity(lsi).ishidden=entityelement(lsi).ishidden rem Scene commander
+  saveloadgamepositionentity(lsi).cullstate=entityelement(lsi).cullstate rem Scene commander
+  saveloadgamepositionentity(lsi).isimmune=entityelement(lsi).isimmune rem Scene commander
+  saveloadgamepositionentity(lsi).isanobjective=entityelement(lsi).isanobjective rem Scene commander
+  saveloadgamepositionentity(lsi).entityacc=entityelement(lsi).entityacc rem Scene commander
+
   tttobj=entityelement(lsi).obj
   if tttobj>0
    if object exist(tttobj)=1
@@ -45526,7 +45559,17 @@ _saveload_retrievesavedata:
    entityelement(lsi).beenkilled=saveloadgamepositionentity(lsi).beenkilled
    `
    rem V118 - 120810 - knxrb - etimer fix from Scene Commander
-   entityelement(lsi).etimer=timer()-saveloadgamepositionentity(lsi).etimer
+  entityelement(lsi).etimer=timer()-saveloadgamepositionentity(lsi).etimerpaused
+
+  entityelement(lsi).lastdamagetimer=saveloadgamepositionentity(lsi).lastdamagetimer
+  entityelement(lsi).animatespeed=saveloadgamepositionentity(lsi).animatespeed rem (markblosser)
+  entityelement(lsi).entitydammult=saveloadgamepositionentity(lsi).entitydammult rem Scene commander
+  entityelement(lsi).ishidden=saveloadgamepositionentity(lsi).ishidden rem Scene commander
+  entityelement(lsi).cullstate=saveloadgamepositionentity(lsi).cullstate rem Scene commander
+  entityelement(lsi).isimmune=saveloadgamepositionentity(lsi).isimmune rem Scene commander
+  entityelement(lsi).isanobjective= saveloadgamepositionentity(lsi).isanobjective rem Scene commander
+  entityelement(lsi).entityacc=saveloadgamepositionentity(lsi).entityacc rem Scene commander
+
    lsientid=entityelement(lsi).bankindex
    if entityprofile(lsientid).ischaracter=1
     rem leeadd - 111208 - v114b4 - introduce saving character positions and states
