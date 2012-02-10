@@ -2411,7 +2411,12 @@ rem Scene Commander actions
 #constant AIACTCULLIMMOBILE 1615
 #constant AIACTPLRACC 1616
 #constant AIACTENTITYACC 1617
-#constant AIACTLAST 1620
+#constant AIACTDEBUGCURSOR 1618
+#constant AIACTDEBUGVAR 1619
+#constant AIACTDEBUGTEXT 1620
+#constant AIACTWIREFRAME 1621
+
+#constant AIACTLAST 1630
 
 rem V109 BETA3 - 210408 - AI variables
 global aivariablemode : aivariablemode=0 : rem 0-global, 1-local
@@ -12516,6 +12521,10 @@ actword$(AIACTFREEEMPLACEMENT)="freeemplacement"
 actword$(AIACTCULLIMMOBILE)="cullevenifimmobile"
 actword$(AIACTPLRACC)="plraccuracymult"
 actword$(AIACTENTITYACC)="entityaccuracymult"
+actword$(AIACTDEBUGCURSOR)="debugcursor"
+actword$(AIACTDEBUGVAR)="debugvar"
+actword$(AIACTDEBUGTEXT)="debugtext"
+actword$(AIACTWIREFRAME)="wireframe"
 
 return
 
@@ -20687,6 +20696,59 @@ case AIACTENTITYACC:
 entityelement(e).entityacc=(aiactionseq(seq).value/100)
 
 endcase
+
+case AIACTDEBUGCURSOR:
+set cursor aiactionseq(seq).value,aiactionseq(seq).valueb
+endcase
+
+case AIACTDEBUGVAR:
+rem Using our strings from the parser, let's find the var the user wants to set
+      if left$(aiactionseq(seq).string1,1)="$"
+       ttt=getintervar(aiactionseq(seq).string1)
+      else
+       tvarfound=0
+       for uvar = 0 to array count(uservars(0))
+        if uservars(uvar).name = aiactionseq(seq).string1
+         rem Found the variable, let's wrap it's value
+         ttt=uservars(uvar).value
+         rem And Exit the For loop
+         tvarfound=1
+         exit
+        endif
+       next uvar
+       `
+       if tvarfound=0
+        for lvar = 0 to 99
+         if aiuserlocals(e,lvar).newsystem=1 and aiuserlocals(e,lvar).name = aiactionseq(seq).string1
+          rem Found the variable, let's add to it
+          ttt=aiuserlocals(e,lvar).value
+          rem And Exit the For loop
+          tvarfound=1
+          exit
+         endif
+        next lvar
+       endif
+       `
+      endif
+      print str$(ttt)
+endcase
+
+case AIACTDEBUGTEXT:
+print aiactionseq(seq).string1
+endcase
+
+case AIACTWIREFRAME:
+
+wirestate=aiactionseq(seq).value
+if wirestate<0 then wirestate=0
+if wirestate>0 then wirestate=1
+obj=entityelement(e).obj
+      if obj>0
+         set object wireframe obj,wirestate
+      endif
+
+endcase
+
 
 
    endselect
