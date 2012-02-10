@@ -2415,6 +2415,10 @@ rem Scene Commander actions
 #constant AIACTDEBUGVAR 1619
 #constant AIACTDEBUGTEXT 1620
 #constant AIACTWIREFRAME 1621
+#constant AIACTPLAYEROFFSETON 1622
+#constant AIACTPLAYEROFFSETX 1623
+#constant AIACTPLAYEROFFSETY 1624
+#constant AIACTPLAYEROFFSETZ 1625
 
 #constant AIACTLAST 1630
 
@@ -12525,6 +12529,10 @@ actword$(AIACTDEBUGCURSOR)="debugcursor"
 actword$(AIACTDEBUGVAR)="debugvar"
 actword$(AIACTDEBUGTEXT)="debugtext"
 actword$(AIACTWIREFRAME)="wireframe"
+actword$(AIACTPLAYEROFFSETON)="plrcamoffseton"
+actword$(AIACTPLAYEROFFSETX)="plrcamoffsetx"
+actword$(AIACTPLAYEROFFSETY)="plrcamoffsety"
+actword$(AIACTPLAYEROFFSETZ)="plrcamoffsetz"
 
 return
 
@@ -20749,6 +20757,33 @@ obj=entityelement(e).obj
 
 endcase
 
+
+case AIACTPLAYEROFFSETON:
+
+if aiactionseq(seq).value>1 then aiactionseq(seq).value=1
+if aiactionseq(seq).value<1 then aiactionseq(seq).value=0
+
+plrcamoffseton=aiactionseq(seq).value
+
+endcase
+
+case AIACTPLAYEROFFSETX:
+
+plrcamoffsetx=0
+
+endcase
+
+case AIACTPLAYEROFFSETY:
+
+plrcamoffsety=aiactionseq(seq).value
+
+endcase
+
+case AIACTPLAYEROFFSETZ:
+
+plrcamoffsetz=aiactionseq(seq).value
+
+endcase
 
 
    endselect
@@ -44950,6 +44985,10 @@ a#=custend: write float 1,a#
 a#=lockangle: write float 1,a#
 a#=fieldoffire: write float 1,a#
 a#=playeraccmult#: write float 1,a#
+a#=plrcamoffsetx:write float 1,a#
+a#=plrcamoffsety:write float 1,a#
+a#=plrcamoffsetz:write float 1,a#
+a#=plrcamoffseton:write float 1,a#
 
 
   for lsi=0 to entityelementmax
@@ -45289,6 +45328,10 @@ read float 1,a#:custend=a#
 read float 1,a#:lockangle=a#
 read float 1,a#:fieldoffire=a#
 read float 1,a#:playeraccmult#=a#
+read float 1,a#:plrcamoffsetx=a#
+read float 1,a#:plrcamoffsety=a#
+read float 1,a#:plrcamoffsetz=a#
+read float 1,a#:plrcamoffseton=a#
 
   for lsi=0 to entityelementmax
    read float 1,a# : saveloadgamepositionentity(lsi).orx=a#
