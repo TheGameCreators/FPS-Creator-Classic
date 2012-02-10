@@ -353,6 +353,16 @@ lockemplacement - locks the player to a 45 degree fire arc
 freeemplacement - frees the player from the fire arc.
 cullevenifimmobile=x where x=1 system will include immobile object in cull system, normally exluded to account for windows and doors.
 
+V19
+
+cull fix
+tweaks and fixes for scaling
+plrweaponidle (condition) - returns true if the player weapon is idle.
+plrweaponnotidle (condition) - returns true if the player weapon is not idle.
+Speed tweak
+plraccuracymult=x. Modifiers the player accuracy by x%
+entityaccuracymult=x Modifiers the entity accuracy by x%
+
 
 V1.1.8
 ------
