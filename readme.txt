@@ -366,6 +366,10 @@ debugcursor=x y
 debugvar=var name
 debugtext=text
 wireframe=x 1=wireframe mode, 0=solid.
+plrcamoffseton=x - 1 allows player camera offsetting.
+plrcamoffsetx=x - x player camera offset
+plrcamoffsety=x - y player camera offset
+plrcamoffsetz=x - z player camera offset
 
 
 V1.1.8
