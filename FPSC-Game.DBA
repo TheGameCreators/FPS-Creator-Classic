@@ -2593,6 +2593,7 @@ cooltimer as integer
 nosubmergedfire as integer
 addtimer as integer
 rem scene commnader end
+ modessharemags as integer
  bulletamount as integer
  currentbullet as integer
  bulletlimbsmax as integer
@@ -24711,6 +24712,8 @@ if gunid>0
  if object exist(currentgunobj)=1
   firemode=gun(gunid).settings.alternate
   ammooffset=firemode*10
+  rem Hockeykid 140212 - Primary and alt modes can share a mag
+  if gun(gunid).settings.modessharemags=1 then ammooffset=0
   `
   if gun(gunid).settings.bulletmod=1
    if object frame(currentgunobj)>=gun(gunid).settings.bulletreset and object frame(currentgunobj)<=gun(gunid).settings.bulletreset+5
@@ -25506,7 +25509,8 @@ if gunmode=104
  endif
 endif
 if gunmode=105
- if gautomatic.s>0 and firemode(gunid,firemode).settings.burst < 1 and gun(gunid).settings.alternate = 0
+ Rem Hockeykid 140212 - Should also work with altisray
+ if gautomatic.s>0 and firemode(gunid,firemode).settings.burst < 1 `and gun(gunid).settings.alternate = 0
   rem automatic weapons cannot resume firing right away
  else
   gunmustreleasefirst=1
@@ -26806,6 +26810,7 @@ for l=0 to 299
     if value2=0 then gun(gunid).settings.altswapkey2=-1
    endif
    if field$="addtospare" then gun(gunid).settings.addtospare=value1
+   if field$="shareloadedammo" then gun(gunid).settings.modessharemags=value1
    `
    if field$="bullethidemod" then gun(gunid).settings.bulletmod=value1
    if field$="bullethidereset" then gun(gunid).settings.bulletreset=value1
