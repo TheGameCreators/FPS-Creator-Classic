@@ -61238,15 +61238,23 @@ rem get player position
 
 
 for e=1 to entityelementlist
+entid=entityelement(e).bankindex
 
 rem only check entities not hidden by system and those that are active
-if entityelement(e).ishidden<>2 and entityelement(e).activated=1
+hiddenbackup=entityelement(e).ishidden
+
+if entityelement(e).activated=0 and entityelement(e).spawn.atstart=0
+ entityelement(e).ishidden=2
+ else
+   entityelement(e).ishidden=hiddenbackup
+ endif
+
+if entityelement(e).ishidden<>2
 
   obj=entityelement(e).obj
 
             if obj>0
 
-            entid=entityelement(e).bankindex
             seeit=0
             Rem get is object on screen
                if object exist(obj) then seeit=object in screen(obj)
