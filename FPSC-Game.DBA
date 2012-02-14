@@ -6129,7 +6129,7 @@ if segpartmax<>-1
   for p=tpstart to tpend
    ttthemeshtouse=segmentprofile(segid,p).meshid
    if ttthemeshtouse=0
-    if object exist(temporarymeshobject)=0 then make object sphere temporarymeshobject,5 : make mesh from object temporarymeshobject,temporarymeshobject
+    if object exist(temporarymeshobject)=0 then make object sphere temporarymeshobject,0 : make mesh from object temporarymeshobject,temporarymeshobject
     ttthemeshtouse=temporarymeshobject
    endif
    if object exist(segobj)=0
@@ -6153,7 +6153,7 @@ if segpartmax<>-1
      segmentprofile(segid,tp).meshid=loadinternalmesh(tfile$)
      ttthemeshtouse=segmentprofile(segid,tp).meshid
      if ttthemeshtouse=0
-      if object exist(temporarymeshobject)=0 then make object sphere temporarymeshobject,5 : make mesh from object temporarymeshobject,temporarymeshobject
+      if object exist(temporarymeshobject)=0 then make object sphere temporarymeshobject,0 : make mesh from object temporarymeshobject,temporarymeshobject
       ttthemeshtouse=temporarymeshobject
      endif
      add limb segobj,p,ttthemeshtouse
@@ -31737,7 +31737,6 @@ if file exist(tprofile$)=0
     if field$=tryfield$ then entityprofile(entid).spawndelay=value1
     tryfield$="spawnqty"
     if field$=tryfield$ then entityprofile(entid).spawnqty=value1
-    `
     rem entity orientation
     tryfield$="model"
     if field$=tryfield$ then entityprofile(entid).model$=value$
@@ -32034,6 +32033,7 @@ if file exist(tprofile$)=0
  endif
  `
  rem Spawn defaults
+
  entityprofile(entid).spawnatstart=1
  entityprofile(entid).spawndelayrandom=0
  entityprofile(entid).spawnqtyrandom=0
@@ -61312,7 +61312,7 @@ if entityelement(e).ishidden<>2
 
 
          rem close obj 'cullable'
-
+text object screen x(obj),object screen y(obj),str$(obj)
 
          endif
 
