@@ -61312,7 +61312,7 @@ if entityelement(e).ishidden<>2
 
 
          rem close obj 'cullable'
-text object screen x(obj),object screen y(obj),str$(obj)
+`text object screen x(obj),object screen y(obj),str$(obj)
 
          endif
 
