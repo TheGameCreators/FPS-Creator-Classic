@@ -24086,7 +24086,8 @@ if selkeystate>0 and gunzoommode=0 or altswapkeycalled=1
     if altswapkeycalled=1
      if gunid<>0
       if (gun(gunid).settings.alternateisflak = 1 or gun(gunid).settings.alternateisray = 1) and gunmode <= 100
-       if gun(gunid).settings.alternate = 1 then gunmode=2009 : gun(gunid).settings.alternate = 0 : else : gunmode=2007 : gun(gunid).settings.alternate = 1
+       Rem Hockeykid 150212 - reset gunburst variable so burst doesn't get confused when switching gunmodes
+       if gun(gunid).settings.alternate = 1 then gunmode=2009 : gun(gunid).settings.alternate = 0 : gunburst=0 : else : gunmode=2007 : gun(gunid).settings.alternate = 1 : gunburst=0
       endif
      endif
     endif
@@ -24762,7 +24763,10 @@ if autoloadgun<>-1
  autoloadgun=-1
  `
  rem If gun selection valid, load it
- if gun$<>"" then gosub _gun_selectandorload
+ if gun$<>""
+   firemode=0
+   gosub _gun_selectandorload
+ endif
 
  rem cause gun lighting to reset
  currentguncolr=-1 : gosub _lighting_applyplayerlighting
@@ -25506,6 +25510,9 @@ if gunmode=104
   endif
  else
   gunmode=105
+  Rem Hockeykid 150212 - reset variable so burst won't attempt to finish upon reloading
+  Rem should also stop alt mode from retaining primary burst mode settings
+  gunburst=0
  endif
 endif
 if gunmode=105
