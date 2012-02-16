@@ -25984,8 +25984,8 @@ for o=21 to 30
  if object visible(obj)=0 and gunsmoke=1
   ttsmokelimb=gun(gunid).settings.smokelimb
   if ttsmokelimb<=0 then ttsmokelimb=gun(gunid).settings.brasslimb
-  lx#=limb position x(currentgunobj,ttsmokelimb)+1.0-(rnd(20)/10.0)
-  smokely#(o)=limb position y(currentgunobj,ttsmokelimb)+1.0-(rnd(20)/10.0)+10.0 : rem V118 - 210211 - compensate for kick-back
+  lx#=limb position x(currentgunobj,ttsmokelimb)+1.0-(rnd(20)/10.0)+gunRecoilX#
+  smokely#(o)=limb position y(currentgunobj,ttsmokelimb)+1.0-(rnd(20)/10.0)+gunRecoilY#`+10.0 : rem V118 - 210211 - compensate for kick-back
   lz#=limb position z(currentgunobj,ttsmokelimb)+1.0-(rnd(20)/10.0)
   position object obj,lx#,smokely#(o),lz#
   show object obj
