@@ -17095,6 +17095,8 @@ Rem Scene Commander
      case AIACTSETPOSTEFFECT:
       effectfilename$=""
       effectfilename$="effectbank\postprocess\" +lower$(aiactionseq(seq).filename) + ".fx"
+      rem make sure post effect file exists
+      if file exist(effectfilename$)
       rem make sure post-processing object exists, if not, ignore effect
       if object exist (65536)=1
        select effectfilename$
@@ -17125,6 +17127,7 @@ Rem Scene Commander
         delete effect 65535
         load effect effectfilename$,65535,0
         set object effect 65536,65535
+      endif
       endif
      endcase
      case AIACTSKY:
