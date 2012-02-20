@@ -304,26 +304,10 @@ setcamrotz=x
 V18.5
 
 scalelimb=x y - scales limb X to scale y
-1 = head
-2 = left clavicle
-3 = right clavicle
-4 = left foot
-5 = right foot
-6 = left thigh
-7 = right thigh
-8 = left hand
-9 = right hand
-10 = left fore arm
-11 = right fore arm
-12 = left upper arm
-13 = right upper arm
-14 = spine base
-15 = spine middle
-16 = spine top
-17 = neck
-
 hidelimb=x - hides limb X
 showlimb=x - shows limb x
+
+Limb scaling and hiding now requires the actual limb number of the model, this solves several imbalances and allows non-character models to be scaled.
 
 Added new gun animation options to fit with default weapons
 fix jam (gunspec animation)=X Y where x is the start animation and Y is the end animation
