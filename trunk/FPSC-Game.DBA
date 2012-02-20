@@ -502,7 +502,7 @@ type saveloadgamepositionentitytype
  lastdamagetimer as integer
  lastdamagepaused as integer
  animatespeed as float rem (markblosser)
- entitydammult as integer rem Scene Commander
+ entitydammult# as float rem Scene Commander
  ishidden as integer rem Scene Commander
  cullstate as integer rem Scene Commander
  onradar as integer rem Scene Commander
@@ -1632,7 +1632,7 @@ type entitytype
  hideshadow as integer
  floorpositiony as float
  animatespeed as float rem set animate command speed (markblosser)
- entitydammult as integer rem Scene Commander
+ entitydammult# as float rem Scene Commander
  ishidden as integer rem Scene Commander
  cullstate as integer rem Scene Commander
  onradar as integer rem Scene Commander
@@ -9227,7 +9227,7 @@ if entityelement(e).fireweapon=1
       tperc#=tperc#*0.5
      endif
      rem scene commander entity damage muliplier
-     tdamage#=bulletdamage#*tperc#*entityelement(e).entitydammult: tdamage=tdamage#
+     tdamage#=bulletdamage#*tperc#*entityelement(e).entitydammult#: tdamage=tdamage#
      if entityelement(e).actualtarget=1
       rem player was the target
       if tdamage>0 then gosub _player_takedamage
@@ -19965,7 +19965,7 @@ case AIACTSETVARRND:
 
      case AIACTEDAMMULT:
 
-     entityelement(e).entitydammult=aiactionseq(seq).value/100.0
+     entityelement(e).entitydammult#=aiactionseq(seq).value/100.0
 
      endcase
 
@@ -20555,27 +20555,69 @@ case AIACTSCALELIMB:
 
 limbno=aiactionseq(seq).value
 limbscale=aiactionseq(seq).valueb
-if limbno>0 and limbno<18
-alterlimbscale(e,limbno,limbscale)
+
+if obj>0
+  if object exist(obj)
+      if limb exist(obj,limbno)
+         if lower$(right$(limb name$(obj,limbno),4))="head"
+            limbno=1
+            alterlimbscale(e,limbno,limbscale)
+            else
+            scale limb obj,limbno,limbscale,limbscale,limbscale
+         endif
+      endif
+  endif
 endif
+
+ttryy#=entityelement(e).y
+      tettry=0
+
+      while tettry<25
+      if static volume(entityelement(e).x,ttryy#+33,entityelement(e).z,entityelement(e).x,ttryy#+32,entityelement(e).z,ellipseheight#)=0 then exit
+      ttryy#=ttryy#+1.0
+      inc tettry
+     endwhile
+     if tettry>=25
+      rem entity stuck - so make it immobile to shut down struggle!
+      entityelement(e).eleprof.isimmobile=1
+     else
+      rem entities can find floor initially (not playerstart,trigger,light,emission)
+      entityelement(e).y=ttryy#
+
+     position object obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
+
+     endif
 
 endcase
 
 case AIACTHIDELIMB:
 
 limbno=aiactionseq(seq).value
-if limbno>0 and limbno<18
-alterlimbscale(e,limbno,0)
+
+if obj>0
+  if object exist(obj)
+      if limb exist(obj,limbno)
+        scale limb obj,limbno,0,0,0
+      endif
+  endif
 endif
+
 
 endcase
 
 case AIACTSHOWLIMB:
 
 limbno=aiactionseq(seq).value
-if limbno>0 and limbno<18
-alterlimbscale(e,limbno,100)
+limbscale=aiactionseq(seq).valueb
+if limbscale=0 then limbscale=100
+if obj>0
+  if object exist(obj)
+      if limb exist(obj,limbno)
+         scale limb obj,limbno,limbscale,limbscale,limbscale
+      endif
+  endif
 endif
+
 
 endcase
 
@@ -32690,7 +32732,7 @@ if file exist(elementsfilename$)=1
       rem FPGC - 300710 - older levels dont use particle override
       entityelement(e).eleprof.particleoverride=0
      endif
-     entityelement(e).entitydammult=1.0
+     entityelement(e).entitydammult#=1.0
     next e
    endif
   else
@@ -44834,7 +44876,7 @@ _saveload_savegame:
    a#=saveloadgamepositionentity(lsi).etimer : write float 1,a#
    a#=saveloadgamepositionentity(lsi).lastdamagetimer : write float 1,a#
    a#=saveloadgamepositionentity(lsi).animatespeed : write float 1,a#  rem (markblosser)
-   a#=saveloadgamepositionentity(lsi).entitydammult: write float 1,a# rem Scene commander
+   a#=saveloadgamepositionentity(lsi).entitydammult#: write float 1,a# rem Scene commander
    a#=saveloadgamepositionentity(lsi).ishidden: write float 1,a# rem Scene commander
    a#=saveloadgamepositionentity(lsi).cullstate: write float 1,a# rem Scene commander
    a#=saveloadgamepositionentity(lsi).isimmune: write float 1,a# rem Scene commander
@@ -45176,7 +45218,7 @@ _saveload_loadgame:
    read float 1,a# : saveloadgamepositionentity(lsi).etimer=a#
    read float 1,a# : saveloadgamepositionentity(lsi).lastdamagetimer=a#
    read float 1,a# : saveloadgamepositionentity(lsi).animatespeed=a#  rem (markblosser)
-   read float 1,a# : saveloadgamepositionentity(lsi).entitydammult=a# rem Scene commander
+   read float 1,a# : saveloadgamepositionentity(lsi).entitydammult#=a# rem Scene commander
    read float 1,a# : saveloadgamepositionentity(lsi).ishidden=a# rem Scene commander
    read float 1,a# : saveloadgamepositionentity(lsi).cullstate=a# rem Scene commander
    read float 1,a# : saveloadgamepositionentity(lsi).isimmune=a# rem Scene commander
@@ -45515,7 +45557,7 @@ _saveload_storesavedata:
   saveloadgamepositionentity(lsi).etimer=entityelement(lsi).etimerpaused
   saveloadgamepositionentity(lsi).lastdamagetimer=entityelement(lsi).lastdamagetimer
   saveloadgamepositionentity(lsi).animatespeed=entityelement(lsi).animatespeed rem (markblosser)
-  saveloadgamepositionentity(lsi).entitydammult=entityelement(lsi).entitydammult rem Scene commander
+  saveloadgamepositionentity(lsi).entitydammult#=entityelement(lsi).entitydammult# rem Scene commander
   saveloadgamepositionentity(lsi).ishidden=entityelement(lsi).ishidden rem Scene commander
   saveloadgamepositionentity(lsi).cullstate=entityelement(lsi).cullstate rem Scene commander
   saveloadgamepositionentity(lsi).isimmune=entityelement(lsi).isimmune rem Scene commander
@@ -45683,7 +45725,8 @@ _saveload_retrievesavedata:
 
   entityelement(lsi).lastdamagetimer=saveloadgamepositionentity(lsi).lastdamagetimer
   entityelement(lsi).animatespeed=saveloadgamepositionentity(lsi).animatespeed rem (markblosser)
-  entityelement(lsi).entitydammult=saveloadgamepositionentity(lsi).entitydammult rem Scene commander
+  entityelement(lsi).entitydammult#=saveloadgamepositionentity(lsi).entitydammult#
+    rem Scene commander
   entityelement(lsi).ishidden=saveloadgamepositionentity(lsi).ishidden rem Scene commander
   entityelement(lsi).cullstate=saveloadgamepositionentity(lsi).cullstate rem Scene commander
   entityelement(lsi).isimmune=saveloadgamepositionentity(lsi).isimmune rem Scene commander
