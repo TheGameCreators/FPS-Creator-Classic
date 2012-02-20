@@ -519,7 +519,7 @@ type saveloadgamepositionentitytype
  positionchanged as integer
  cullimmobile as integer
  isanobjective as integer
- entityacc as integer
+ entityacc as float
 endtype
 type saveloadgamepositionweaponslottype
  pref got invpos
@@ -2419,6 +2419,7 @@ rem Scene Commander actions
 #constant AIACTPLAYEROFFSETX 1623
 #constant AIACTPLAYEROFFSETY 1624
 #constant AIACTPLAYEROFFSETZ 1625
+#constant AIACTMUTATE 1626
 
 #constant AIACTLAST 1630
 
@@ -12534,6 +12535,7 @@ actword$(AIACTPLAYEROFFSETON)="plrcamoffseton"
 actword$(AIACTPLAYEROFFSETX)="plrcamoffsetx"
 actword$(AIACTPLAYEROFFSETY)="plrcamoffsety"
 actword$(AIACTPLAYEROFFSETZ)="plrcamoffsetz"
+actword$(AIACTMUTATE)="mutate"
 
 return
 
@@ -20829,6 +20831,47 @@ case AIACTPLAYEROFFSETZ:
 
 plrcamoffsetz=aiactionseq(seq).value
 
+endcase
+
+case AIACTMUTATE:
+
+tempscale=aiactionseq(seq).value
+maxscale=aiactionseq(seq).valueb
+
+if obj>0
+   if object exist(obj)
+      perform checklist for object limbs obj
+      if checklist quantity()>0
+      mutations=rnd(10)+5
+         for f=1 to mutations
+            tlimb=rnd(checklist quantity())
+            if limb exist(obj,tlimb)
+               limbscale=rnd(maxscale)+tempscale
+               scale limb obj,timb,limbscale,limbscale,limbscale
+            endif
+         next f
+      endif
+   endif
+endif
+
+ttryy#=entityelement(e).y
+      tettry=0
+
+      while tettry<25
+      if static volume(entityelement(e).x,ttryy#+33,entityelement(e).z,entityelement(e).x,ttryy#+32,entityelement(e).z,ellipseheight#)=0 then exit
+      ttryy#=ttryy#+1.0
+      inc tettry
+     endwhile
+     if tettry>=25
+      rem entity stuck - so make it immobile to shut down struggle!
+      entityelement(e).eleprof.isimmobile=1
+     else
+      rem entities can find floor initially (not playerstart,trigger,light,emission)
+      entityelement(e).y=ttryy#
+
+     position object obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
+
+     endif
 endcase
 
 
