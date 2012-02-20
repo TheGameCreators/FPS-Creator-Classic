@@ -23943,7 +23943,6 @@ if showgamemenu=1 then tmouseclick=0
 rem FPGC - 180610 - FPGC variant treats tmouseclick=1 as =2 (so if using equipment, revert to =1)
 if fpgcgenre=0 or firemode(gunid,firemode).settings.gravitygun<>0
  if currentgunobj>0
-
   if tmouseclick=2 then tmouseclick=1
  endif
 endif
@@ -40734,7 +40733,7 @@ if camerapickup=1
 endif
 rem if anything hides it, drop it
 if camerapicked>0
- if object visible(camerapicked)=0
+ if object visible(camerapicked)=0 or static raycast(object position x(camerapicked),object position y(camerapicked),object position z(camerapicked),object position x(camerapicked),object position y(camerapicked)+(object size y(camerapicked)/2)+20,object position z(camerapicked))
   camerapickedthrown=0
   cameradampen#=1.0
   cameraholding=0
