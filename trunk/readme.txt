@@ -14,6 +14,8 @@ V1.1.9 BETA4
 V1.1.9
 ------
 
+Note:Version numbers for V119 refer to internal source code references. E.g. V15 is a internal code references.
+
 playfullvideo=x – X=1, plays the full version of the next video called by video=x, preventing the player interrupting the playback.
 plrwobble=x – sets the amount of 'wobble' affecting the player as they move around.
 plrdeath=x –where X equal the direction of fall for the player
@@ -370,7 +372,8 @@ plrcamoffseton=x - 1 allows player camera offsetting.
 plrcamoffsetx=x - x player camera offset
 plrcamoffsety=x - y player camera offset
 plrcamoffsetz=x - z player camera offset
-
+further tweaks to culling.
+fix to segment debug sphere issue.
 
 V1.1.8
 ------
