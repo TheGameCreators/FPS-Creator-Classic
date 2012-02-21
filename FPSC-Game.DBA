@@ -519,6 +519,8 @@ type saveloadgamepositionentitytype
  positionchanged as integer
  cullimmobile as integer
  isanobjective as integer
+ objectiveradarrange as integer
+ objectivecurrentrange as integer
  entityacc as float
 endtype
 type saveloadgamepositionweaponslottype
@@ -1666,6 +1668,8 @@ type entitytype
  positionchanged as integer
  cullimmobile as integer
  isanobjective as integer
+ objectiveradarrange as integer
+ objectivecurrentrange as integer
  entityacc as integer
 endtype
 rem Entity Breadcrumbs Data
@@ -1894,6 +1898,8 @@ Rem Scene commander conditions
 #constant AICONDENTITYISNOTIMMUNE 910
 #constant AICONDPLRWEAPONIDLE 911
 #constant AICONDPLRWEAPONNOTIDLE 912
+#constant AICONDOBJECTRANGELESS 913
+#constant AICONDOBJECTRANGEGREATER 914
 
 #constant AICONDLAST 950
 
@@ -2420,6 +2426,7 @@ rem Scene Commander actions
 #constant AIACTPLAYEROFFSETY 1624
 #constant AIACTPLAYEROFFSETZ 1625
 #constant AIACTMUTATE 1626
+#constant AIACTOBJECTRANGE 1627
 
 #constant AIACTLAST 1630
 
@@ -12017,6 +12024,8 @@ conword$(AICONDENTITYISIMMUNE)="isentityimmune"
 conword$(AICONDENTITYISNOTIMMUNE)="isentitynotimmune"
 conword$(AICONDPLRWEAPONIDLE)="plrweaponidle"
 conword$(AICONDPLRWEAPONNOTIDLE)="plrweaponnotidle"
+conword$(AICONDOBJECTRANGELESS)="objectiverangelesser"
+conword$(AICONDOBJECTRANGEGREATER)="objectiverangegreater"
 
 rem Set all action keywords
 dim actword$(AIACTLAST)
@@ -12536,6 +12545,7 @@ actword$(AIACTPLAYEROFFSETX)="plrcamoffsetx"
 actword$(AIACTPLAYEROFFSETY)="plrcamoffsety"
 actword$(AIACTPLAYEROFFSETZ)="plrcamoffsetz"
 actword$(AIACTMUTATE)="mutate"
+actword$(AIACTOBJECTRANGE)="setobjectiverange"
 
 return
 
@@ -13243,6 +13253,7 @@ Rem Scene Commander
      `if tentitya#<0.0 then tentitya#=tentitya#+360.0
      `if tentitya#>=360.0 then tentitya#=tentitya#-360.0
      if (tentitya#>0-tmp and tentitya#<0+tmp) or (tentitya#>360-tmp and tentitya#<360+tmp)
+      airesult=1
       rem player facing entity
      else
       airesult=0
@@ -14906,6 +14917,30 @@ case AICONDSHOTBY:
       if gunmode<>5
       airesult=1
       endif
+   endif
+
+   endcase
+
+   case AICONDOBJECTRANGELESS:
+
+   airesult=0
+
+   if entityelement(e).objectivecurrentrange<aiconditionseq(seq).valuea
+
+   airesult=1
+
+   endif
+
+   endcase
+
+   case AICONDOBJECTRANGEGREATER:
+
+   airesult=0
+
+   if entityelement(e).objectivecurrentrange>aiconditionseq(seq).valuea
+
+   airesult=1
+
    endif
 
    endcase
@@ -20872,6 +20907,13 @@ ttryy#=entityelement(e).y
      position object obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
 
      endif
+endcase
+
+case AIACTOBJECTRANGE:
+
+if aiactionseq(seq).value<0 then aiactionseq(seq).value=70
+entityelement(e).objectiveradarrange=aiactionseq(seq).value
+
 endcase
 
 
@@ -37645,6 +37687,8 @@ rem calculate player level for character radar cull
 
           for e=1 to entityelementlist
 
+          if entityelement(e).objectiveradarrange=0 then entityelement(e).objectiveradarrange=70
+
          if entityelement(e).health>0
          tentid=entityelement(e).bankindex
 
@@ -44923,6 +44967,7 @@ _saveload_savegame:
    a#=saveloadgamepositionentity(lsi).cullstate: write float 1,a# rem Scene commander
    a#=saveloadgamepositionentity(lsi).isimmune: write float 1,a# rem Scene commander
    a#=saveloadgamepositionentity(lsi).isanobjective: write float 1,a# rem Scene commander
+   a#=saveloadgamepositionentity(lsi).objectiveradarrange: write float 1,a# rem Scene commander
    a#=saveloadgamepositionentity(lsi).entityacc: write float 1,a# rem Scene commander
   next lsi
   rem Weapons
@@ -45265,6 +45310,7 @@ _saveload_loadgame:
    read float 1,a# : saveloadgamepositionentity(lsi).cullstate=a# rem Scene commander
    read float 1,a# : saveloadgamepositionentity(lsi).isimmune=a# rem Scene commander
    read float 1,a# : saveloadgamepositionentity(lsi).isanobjective=a# rem Scene commander
+   read float 1,a# : saveloadgamepositionentity(lsi).objectiveradarrange=a# rem Scene commander
    read float 1,a# : saveloadgamepositionentity(lsi).entityacc=a# rem Scene commander
   next lsi
   rem Weapons
@@ -45604,6 +45650,7 @@ _saveload_storesavedata:
   saveloadgamepositionentity(lsi).cullstate=entityelement(lsi).cullstate rem Scene commander
   saveloadgamepositionentity(lsi).isimmune=entityelement(lsi).isimmune rem Scene commander
   saveloadgamepositionentity(lsi).isanobjective=entityelement(lsi).isanobjective rem Scene commander
+  saveloadgamepositionentity(lsi).objectiveradarrange=entityelement(lsi).objectiveradarrange rem Scene commander
   saveloadgamepositionentity(lsi).entityacc=entityelement(lsi).entityacc rem Scene commander
 
   tttobj=entityelement(lsi).obj
@@ -45773,6 +45820,8 @@ _saveload_retrievesavedata:
   entityelement(lsi).cullstate=saveloadgamepositionentity(lsi).cullstate rem Scene commander
   entityelement(lsi).isimmune=saveloadgamepositionentity(lsi).isimmune rem Scene commander
   entityelement(lsi).isanobjective= saveloadgamepositionentity(lsi).isanobjective rem Scene commander
+  entityelement(lsi).objectiveradarrange=saveloadgamepositionentity(lsi).objectiveradarrange rem Scene commander
+
   entityelement(lsi).entityacc=saveloadgamepositionentity(lsi).entityacc rem Scene commander
 
    lsientid=entityelement(lsi).bankindex
@@ -61288,8 +61337,9 @@ for hudid=1 to hudmax
 
       if howfar<>1 then howfar=howfar*2
 
-      if howfar>80 then howfar=80
       if howfar<1 then howfar=1
+      entityelement(istheobjective).objectivecurrentrange=howfar
+      if howfar>entityelement(istheobjective).objectiveradarrange then exitfunction
       rem calculate player and objective level for objective mode=2
       playerlevel=int(object position y(physicsplayerborble))/100
       if playerlevel<0 then playerlevel=0
@@ -61305,7 +61355,6 @@ for hudid=1 to hudmax
       rrr#=funangle#-camera angle y()
 
       if sprite exist(objectiveobject)=1
-
 
          if objectivemode=1 or (objectivemode=2 and playerlevel=objectivelevel)
          show sprite objectiveobject
