@@ -172,6 +172,7 @@ global plrcamoffsety=0
 global plrcamoffsetz=0
 global plrcamoffseton=0
 global playeraccmult#=1.0
+global eplayercam=0
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
@@ -458,6 +459,10 @@ type saveloadgamepositionentitytype
  x as float
  y as float
  z as float
+ rem scene commander, entity moved via $EPX etc
+ jx as float
+ jy as float
+ jz as float
  rx as float
  ry as float
  rz as float
@@ -1530,6 +1535,10 @@ type entitytype
  x as float
  y as float
  z as float
+rem scene commander, entity moved via $EPX etc
+ jx as float
+ jy as float
+ jz as float
  rx as float
  ry as float
  rz as float
@@ -2427,6 +2436,8 @@ rem Scene Commander actions
 #constant AIACTPLAYEROFFSETZ 1625
 #constant AIACTMUTATE 1626
 #constant AIACTOBJECTRANGE 1627
+#constant AIACTLINKTOPLAYER 1628
+#constant AIACTFREEFROMPLAYER 1629
 
 #constant AIACTLAST 1630
 
@@ -4785,6 +4796,34 @@ if gunid>0 and crosshairon=0
 return
 
 _main_sync:
+
+rem attach entity to camera using entity offsets
+
+if eplayercam<>0
+
+ x1#=object position x(physicsplayerborble)
+ y1#=object position y(physicsplayerborble)
+ z1#=object position z(physicsplayerborble)
+
+ text 20,200,str$(eplayercam)
+
+ text 200,60,str$(entityelement(eplayercam).x)
+ text 200,80,str$(entityelement(eplayercam).y)
+ text 200,100,str$(entityelement(eplayercam).z)
+
+entityelement(eplayercam).x=x1#+entityelement(eplayercam).camoffsetx
+entityelement(eplayercam).y=y1#+entityelement(eplayercam).camoffsety
+entityelement(eplayercam).z=z1#+entityelement(eplayercam).camoffsetz
+
+
+text 200,120,str$(entityelement(eplayercam).x)
+ text 200,140,str$(entityelement(eplayercam).y)
+ text 200,160,str$(entityelement(eplayercam).z)
+
+
+position object entityelement(eplayercam).obj,entityelement(eplayercam).x,entityelement(eplayercam).y,entityelement(eplayercam).z
+
+endif
 
 rem using entity cam
 
@@ -8156,18 +8195,25 @@ tonestealperaiphasedist#=99999
 logicpriorityfurthest#=0
 for e=1 to entityelementlist
 
-
-rem Move entity if underwater
 entid=entityelement(e).bankindex
 obj=entityelement(e).obj
 
 if entityelement(e).positionchanged=1
-   obj=entityelement(e).obj
+
    if obj>0
+   entityelement(e).x=entityelement(e).jx
+   entityelement(e).y=entityelement(e).jy
+   entityelement(e).z=entityelement(e).jz
+
    position object obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
-   endif
+
    entityelement(e).positionchanged=0
+   gosub _ode_setupewithphysics
+   set object collision on obj
+   endif
 endif
+
+rem Move entity if underwater
 
 if obj>0
    if watercurrent<>0 and entityelement(e).eleprof.isimmobile<>1
@@ -12546,6 +12592,8 @@ actword$(AIACTPLAYEROFFSETY)="plrcamoffsety"
 actword$(AIACTPLAYEROFFSETZ)="plrcamoffsetz"
 actword$(AIACTMUTATE)="mutate"
 actword$(AIACTOBJECTRANGE)="setobjectiverange"
+actword$(AIACTLINKTOPLAYER)="linktoplayer"
+actword$(AIACTFREEFROMPLAYER)="freefromplayer"
 
 return
 
@@ -20913,6 +20961,24 @@ case AIACTOBJECTRANGE:
 
 if aiactionseq(seq).value<0 then aiactionseq(seq).value=70
 entityelement(e).objectiveradarrange=aiactionseq(seq).value
+
+endcase
+
+case AIACTLINKTOPLAYER:
+
+eplayercam=e
+gosub _ode_switchoffe
+endcase
+
+case AIACTFREEFROMPLAYER:
+
+eplayercam=0
+gosub _ode_setupewithphysics
+if obj>0
+   if object exist(obj)
+   set object collision on obj
+   endif
+endif
 
 endcase
 
@@ -59546,13 +59612,25 @@ function setintervar(var$,alter#)
    entityelement(e).currentammo=alter#
   endcase
   case "$EPX"
-   entityelement(e).x=alter#
+   gosub _ode_switchoffe
+   entityelement(e).positionchanged=1
+   entityelement(e).jx=alter#
+   entityelement(e).jy=entityelement(e).y
+   entityelement(e).jz=entityelement(e).z
   endcase
   case "$EPY"
-   entityelement(e).y=alter#
+   gosub _ode_switchoffe
+   entityelement(e).positionchanged=1
+   entityelement(e).jx=entityelement(e).x
+   entityelement(e).jy=alter#
+   entityelement(e).jz=entityelement(e).z
   endcase
   case "$EPZ"
-   entityelement(e).z=alter#
+   gosub _ode_switchoffe
+   entityelement(e).positionchanged=1
+   entityelement(e).jx=entityelement(e).x
+   entityelement(e).jy=entityelement(e).y
+   entityelement(e).jz=alter#
   endcase
   case "$EAX"
    entityelement(e).rx=alter#
