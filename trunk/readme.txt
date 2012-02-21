@@ -358,6 +358,16 @@ plrcamoffsety=x - y player camera offset
 plrcamoffsetz=x - z player camera offset
 further tweaks to culling.
 fix to segment debug sphere issue.
+Entity damage multiplier tweaks.
+Mutate=x y - mutates the character/object limbs between scale X and Y
+Improvements to player carry and gravity gun, objects now dropped if attempts made to life throw ceiling/objects.
+
+V20
+
+setobjectiverange=x - sets the range an objective marker is dropped from the radar
+objectiverangelesser=x (condition) - returns true if the entity is an objective and it's range is less than x
+objectiverangegreater=x (condition) - returns true if the entity is an objective and it's range is greater than x
+			
 
 V1.1.8
 ------
