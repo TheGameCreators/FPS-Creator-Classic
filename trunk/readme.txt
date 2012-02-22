@@ -367,7 +367,71 @@ V20
 setobjectiverange=x - sets the range an objective marker is dropped from the radar
 objectiverangelesser=x (condition) - returns true if the entity is an objective and it's range is less than x
 objectiverangegreater=x (condition) - returns true if the entity is an objective and it's range is greater than x
-			
+linktoplayer - attach the current entity to the player cam using the entities camera offsets
+freefromplayer - free the entity from the player cam and leave at last cords.
+Added Team Death Match/Lemur V2 - Special thanks to Plystire for this code - I aim to improve this code at a later date.
+
+To use Lemur you'll need to add additional options to the FPSC setup.ini located in your final built game folder. 
+
+aunt1=I Can Smell You!
+taunt2=Is That Fear I Smell?
+taunt3=Victory Is Mine!!
+taunt4=I Got You Sucka!
+taunt5=Time you got ya arse in gear!
+taunt6=You Play Worse Then My Grandma And She's On Oxygen!
+taunt7=Eat Lead Sucka!
+taunt8=What? No Bullets??
+taunt9=The Object Of The Game Is To Kill, Not Die!
+taunt10=Who Taught You How To Shoot?
+taunt11=Your Resistance Is Futile!
+taunt12=You Just Got Spanked!
+taunt13=Uninstall Now Before Your Feelings Get Hurt!
+taunt14=Listen To The Sound Of PAIN!
+taunt15=Didn't Your Momma Teach You Not To Play With Guns?
+taunt16=I AM Your Daddy's Hero!
+taunt17=What? Lead Poisoning? HAH!
+taunt18=Should I Play Blindfolded?
+taunt19=That's DOCTOR Death To You Sir!
+taunt20=What? You Lose Something? Maybe A Life?
+taunt21=Sorry Babe, I Just Had To.
+taunt22=Whoops!!My Bad!!HAHA NOT!
+taunt23=You Are Probably The Worst Player I've Ever Beaten!!
+taunt24=And You Call THAT Skill?
+taunt25=Why Do You Keep Dying? Is It Me??
+taunt26=What Do You Say You Give Up Now And Save Yourself The Embarassment!!!
+taunt27=Daddy Likes!!!
+taunt28=This Ain't No O.K. Corral, Put 'Em UP!!
+taunt29=I Must Be Your Bus Driver, Because I Just Took You To School!
+taunt30=Somebody Better Call The Meat Wagon!!!
+autoswaptrue=1
+messagetime=3000
+serverhostname= FPSC v119 Beta
+allowscope=1
+allowchat=1
+alwaysrun=0 - also works in single player mod
+autoswaptrue=X where X=1on and X =0 off (autochange gun)
+allowsscope=X where X=1on and X =0 off
+allowchat=X where X=1 on and X =0 off
+alwaysrun=X= 1(run,shift is walk) or X =0(walk,shift is run.)
+matchtype=X= 0 for a standard deathmatch or X=1 for Team death match
+
+Death Match settings :
+matchtype=0
+Make your game as normal making sure all character's have different names. You may have a maximum of 16 characters for a deathmatch
+game.
+
+Team death Match settings :
+
+matchtype =1
+Make your game as normal, making sure to give each character in a team the same unique character name. e.g. You could call all the
+characters in team 1 Bob, all the characters in team 2 Tina, all the characters in team 3 Ronald, etc.
+
+You may have as many teams as you like, up to a maximum of 16 characters in total.
+
+v21
+
+
+						
 
 V1.1.8
 ------
