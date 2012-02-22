@@ -2460,6 +2460,7 @@ rem Scene Commander actions
 #constant AIACTFREEFROMPLAYER 1629
 #constant AIACTOBJMET 1630
 #constant AIACTALWAYSRUN 1631
+#constant AIACTFINDFLOOR 1632
 
 #constant AIACTLAST 1640
 
@@ -4848,20 +4849,11 @@ if eplayercam<>0
  y1#=object position y(physicsplayerborble)
  z1#=object position z(physicsplayerborble)
 
- text 20,200,str$(eplayercam)
-
- text 200,60,str$(entityelement(eplayercam).x)
- text 200,80,str$(entityelement(eplayercam).y)
- text 200,100,str$(entityelement(eplayercam).z)
 
 entityelement(eplayercam).x=x1#+entityelement(eplayercam).camoffsetx
 entityelement(eplayercam).y=y1#+entityelement(eplayercam).camoffsety
 entityelement(eplayercam).z=z1#+entityelement(eplayercam).camoffsetz
 
-
-text 200,120,str$(entityelement(eplayercam).x)
- text 200,140,str$(entityelement(eplayercam).y)
- text 200,160,str$(entityelement(eplayercam).z)
 
 
 position object entityelement(eplayercam).obj,entityelement(eplayercam).x,entityelement(eplayercam).y,entityelement(eplayercam).z
@@ -12645,6 +12637,7 @@ actword$(AIACTLINKTOPLAYER)="linktoplayer"
 actword$(AIACTFREEFROMPLAYER)="freefromplayer"
 actword$(AIACTALWAYSRUN)="alwaysrun"
 actword$(AIACTOBJMET)="objmet"
+actword$(AIACTFINDFLOOR)="findfloor"
 
 return
 
@@ -21036,6 +21029,32 @@ endcase
 case AIACTALWAYSRUN:
 
 alwaysrun=aiactionseq(seq).value
+
+endcase
+
+case AIACTFINDFLOOR:
+
+if obj>0
+   if object exist(obj)
+ttryy#=entityelement(e).y
+      tettry=0
+
+      while tettry<25
+      if static volume(entityelement(e).x,ttryy#+33,entityelement(e).z,entityelement(e).x,ttryy#+32,entityelement(e).z,ellipseheight#)=0 then exit
+      ttryy#=ttryy#+1.0
+      inc tettry
+     endwhile
+     if tettry>=25
+      rem entity stuck - so make it immobile to shut down struggle!
+      entityelement(e).eleprof.isimmobile=1
+     else
+      rem entities can find floor initially (not playerstart,trigger,light,emission)
+      entityelement(e).y=ttryy#
+     endif
+
+     position object obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
+   endif
+endif
 
 endcase
 
