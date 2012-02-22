@@ -399,7 +399,21 @@ global localipaddress$ : localipaddress$=""
 global serveripaddress$ : serveripaddress$=""
 global playername$ : playername$=""
 global soundfrequencymodifier : soundfrequencymodifier=0
-`
+Rem Team Death Match - Code used by kind permission on Plystire.
+global showkills$ as byte
+global allowscope$ as byte
+global allowchat$ as byte
+global serverhostname as string
+global alwaysrun as boolean
+global cap as boolean
+cap =0
+global multi_match_type as byte
+type team_frag
+   teamname as string
+   teamscore as integer
+endtype
+dim team_frags(0) as team_frag
+empty array team_frags(0)
 rem V109 BETA3 - added to control change to player jump height
 global playerdefaultjumpheight : playerdefaultjumpheight=50
 `
@@ -705,7 +719,12 @@ global mshotfirst=0
 global mshotmemlargest=0
 global lastmshoti=0
 global lastmshotmem=0
-
+rem TDM - Plystire
+global r# as byte
+global g# as byte
+global b# as byte
+global autoswap as byte
+global messagetime as integer
 rem workload counters
 dim wshot(400,4)
 dim wshotmax(4)
@@ -849,6 +868,7 @@ global currentFPGtype as integer : currentFPGtype=currentSMFPGtype
 global currentFPG$ : currentFPG$=currentSMFPG$
 
 rem Other structres
+dim taunt$ ( 30 ) `TDM - Plystire
 dim gunslots$ ( 10 )
 dim listkey ( 32 )
 dim list$( 100 )
@@ -2438,8 +2458,10 @@ rem Scene Commander actions
 #constant AIACTOBJECTRANGE 1627
 #constant AIACTLINKTOPLAYER 1628
 #constant AIACTFREEFROMPLAYER 1629
+#constant AIACTOBJMET 1630
+#constant AIACTALWAYSRUN 1631
 
-#constant AIACTLAST 1630
+#constant AIACTLAST 1640
 
 rem V109 BETA3 - 210408 - AI variables
 global aivariablemode : aivariablemode=0 : rem 0-global, 1-local
@@ -3383,7 +3405,7 @@ global guniquesignature as DWORD : guniquesignature=0
 global ggameobjectivetype : ggameobjectivetype=0
 global ggameobjectivevalue : ggameobjectivevalue=0
 global goneshotkills : goneshotkills=0
-global numberofplayers : numberofplayers=8
+global numberofplayers : numberofplayers=16
 global gspawnrandom : gspawnrandom=0
 global guniquegamecode$ : guniquegamecode$=""
 global guseuniquelynamedentities : guseuniquelynamedentities=0
@@ -3485,6 +3507,14 @@ if lower$(tcommandline$)="-b"
      if len(value2$)>0 then value2=val(value2$) else value2=-1
      `
      rem collect data from fields in setup file
+     Rem TDM - Plystire
+      tryfield$="matchtype" : if field$=tryfield$ then multi_match_type=value1
+      tryfield$="serverhostname" : if field$=tryfield$ then serverhostname=value$
+      rem all multiplayer taunts
+      for num=1 to 30
+     tryfield$="taunt"+str$(num)
+     if field$=tryfield$ then taunt$(num)=value$
+    next num
      tryfield$="path" : if field$=tryfield$ then gbuildpath$=value$
      tryfield$="name" : if field$=tryfield$ then gbuildname$=value$
      `
@@ -3647,7 +3677,16 @@ if file exist(tfile$)=1
     tryfield$="gamewon" : if field$=tryfield$ then gamewonfpi$=value$
     tryfield$="gameover" : if field$=tryfield$ then gameoverfpi$=value$
     tryfield$="levelfpi1" : if field$=tryfield$ then loadingfpi$=value$ : levelfpiinsetup=l
-    `
+    ` rem lemur
+      tryfield$="hudr" : if field$=tryfield$ then r#=value1
+      tryfield$="hudg" : if field$=tryfield$ then g#=value1
+      tryfield$="hudb" : if field$=tryfield$ then b#=value1
+      tryfield$="autoswaptrue" : if field$=tryfield$ then autoswap=value1
+      tryfield$="messagetime" : if field$=tryfield$ then messagetime=value1
+      tryfield$="allowscope" : if field$=tryfield$ then allowscope$=value1
+      tryfield$="serverhostname" : if field$=tryfield$ then serverhostname=value$
+      tryfield$="alwaysrun" : if field$=tryfield$ then alwaysrun=value1
+      tryfield$="matchtype" : if field$=tryfield$ then multi_match_type=value1
     rem Levels
     if field$="levelmax" then glevelmax=value1
     if glevelmax>0
@@ -3675,7 +3714,11 @@ if file exist(tfile$)=1
      tryfield$="slot"+str$(num)
      if field$=tryfield$ then gunslots$(num)=value$
     next num
-    `
+    `rem all multiplayer taunts - TDM - Plystire
+    for num=1 to 30
+     tryfield$="taunt"+str$(num)
+     if field$=tryfield$ then taunt$(num)=value$
+    next num
     rem localization data
     tryfield$="language" : if field$=tryfield$ then language$=value$
     `
@@ -5325,7 +5368,10 @@ else
    gtalkytoaster=1 : clear entry buffer
   endif
   if gtalkytoaster=1
-   set cursor 0,tylinevalue
+   rem TDM - Plystire
+      set cursor 0,tylinevalue
+      print "ENTER 1 - 30 TO USE TAUNTS"
+      set cursor 0,tylinevalue - 1
    rem V118 - 090810 - knxrb - Edited below line to allow for backspace to remove characters from talk messages before sending.
    `print "TALK>";entry$();
    print "TALK>";entry$(1);
@@ -5336,6 +5382,9 @@ else
    rem V118 - 090810 - knxrb - Edited below line to allow for backspace to remove characters from talk messages before sending.
    `tmessage$=entry$()
    tmessage$=entry$(1)
+   Rem TDM - Plystire.
+   ttaunt = val(tmessage$)
+   if ttaunt > 0 and ttaunt <= 30 then tmessage$ = taunt$(ttaunt)
    MULTIPLAYER SEND FROM PLAYER dwLocalPlayerID
    MULTIPLAYER SEND MESSAGE STRING ">>"+tmessage$,0x0080
    clear entry buffer
@@ -12594,6 +12643,8 @@ actword$(AIACTMUTATE)="mutate"
 actword$(AIACTOBJECTRANGE)="setobjectiverange"
 actword$(AIACTLINKTOPLAYER)="linktoplayer"
 actword$(AIACTFREEFROMPLAYER)="freefromplayer"
+actword$(AIACTALWAYSRUN)="alwaysrun"
+actword$(AIACTOBJMET)="objmet"
 
 return
 
@@ -20979,6 +21030,12 @@ if obj>0
    set object collision on obj
    endif
 endif
+
+endcase
+
+case AIACTALWAYSRUN:
+
+alwaysrun=aiactionseq(seq).value
 
 endcase
 
@@ -37584,6 +37641,19 @@ next cLayer : rem V118 - 110810 - knxrb - Hud Layers
     set text size 24
     rem list of players
     tylinevalue=hud(hudid).posy
+    if multi_match_type > 0
+    center text hud(hudid).posx,tylinevalue,"Winning Team: "+characterlist$(characterchosen(winnerel))+" MVP: "+multiplayername$(mvpel)+" Kills: "+str$(frags(mvpel))
+   inc tylinevalue,30
+    for el=1 to multiplayermax
+     if multiplayeridlink(el)<>1
+      center text hud(hudid).posx,tylinevalue,characterlist$(characterchosen(el))+" Player: "+multiplayername$(el)+" Kills: "+str$(frags(el))
+      inc tylinevalue,30
+     endif
+    next el
+   else
+
+    center text hud(hudid).posx,tylinevalue,"Winner: "+multiplayername$(winnerel)+" Kills: "+str$(frags(winnerel))
+inc tylinevalue,30
     for el=1 to multiplayermax
      if multiplayeridlink(el)<>1
       center text hud(hudid).posx,tylinevalue,multiplayername$(el)+"    "+str$(frags(el))
@@ -37591,6 +37661,7 @@ next cLayer : rem V118 - 110810 - knxrb - Hud Layers
      endif
     next el
    endif
+  endif
   endif
   `
  next hudid
@@ -37922,6 +37993,10 @@ _ai_gamelist_add:
  action$="action=add&"
  serverid$="server_id="+guniquegamecode$+"&"
  ip$="ip="+addip$+"&" : ipfromadd$=ip$
+ if multi_match_type = 0 then typeofmatch$="DM"
+ if multi_match_type = 1 then typeofmatch$="TDM"
+ if multi_match_type = 2 then typeofmatch$="OBJ"
+ title$="title="+serverhostname+" "+typeofmatch$+"&"
  title$="title="+addname$+"&"
  data$="data=none"
  HTTP CONNECT strarr$(619)
@@ -38557,6 +38632,11 @@ copy file "FPSC-Game.exe",dest$
 rem create a setup.ini file here reflecting game
 dim setuparr$(999)
 setupfile$=exepath$+exename$+"\setup.ini" : i=0
+setuparr$(i)="gametype=0" : inc i
+setuparr$(i)=" serverhostname= FPSC Arena" : inc i
+for num=1 to 30
+setuparr$(i)="taunt"+str$(num)+"="+str$(listkey(num)) : inc i
+next num
 setuparr$(i)="[GAMERUN]" : inc i
 setuparr$(i)="realgameview=1" : inc i
 setuparr$(i)="dynamiclighting="+str$(gdynamiclightingstate) : inc i
@@ -38610,6 +38690,9 @@ setuparr$(i)="gamewon="+gamewonfpi$ : inc i
 setuparr$(i)="gameover="+gameoverfpi$ : inc i
 for num=1 to 11
  setuparr$(i)="key"+str$(num)+"="+str$(listkey(num)) : inc i
+next num
+for num=1 to 30
+ setuparr$(i)="taunt"+str$(num)+"="+str$(listkey(num)) : inc i
 next num
 for num=1 to 9
  setuparr$(i)="slot"+str$(num)+"="+gunslots$(num) : inc i
@@ -39772,6 +39855,11 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
    basespeed#=55 : isrunning=1
   else
    basespeed#=35 : isrunning=0
+  endif
+  if (plrkeySHIFT)=alwaysrun or (plrkeySHIFT2)=alwaysrun
+   basespeed#=35: isrunning=0
+  else
+   basespeed#=55: isrunning=1
   endif
   rem AirMod - Slow player for simple zoom
   if (gunzoommode <> 0 and firemode(gunid,firemode).settings.simplezoom <> 0) then basespeed#=35-(20*firemode(gunid,firemode).settings.zoomwalkspeed) : isrunning=0
@@ -42049,8 +42137,8 @@ _multi_earlyinit:
  for t=20+0 to 20+(16*5) : r=make vector3(t) : next t
  `
  rem Memblock allocations for vary-byte tranfser
- mb_move=101 : make memblock mb_move, 48
- mb_write=102 : make memblock mb_write, 48
+ mb_move=101 : make memblock mb_move, 93
+ mb_write=102 : make memblock mb_write, 93
  `
 return
 
@@ -42599,7 +42687,9 @@ _multi_control:
      if multiplayeridlink(el)<>1 and te>0
       plrindex=multiplayerplrindex(el)
       tobj=entityelement(te).obj
-      if showfpsinrealgame=1 then print multiplayername$(el);" ";str$(frags(el));" (";statelag(el);")"
+     if showfpsinrealgame=1 and multi_match_type > 0 then print multiplayername$(el);" Team: ";characterlist$(characterchosen(el));" Frags: ";str$(frags(el));" Ping: ";statelag(el)
+     if showfpsinrealgame=1 and multi_match_type = 0 then print multiplayername$(el);" Frags: ";str$(frags(el));" Ping: ";statelag(el)
+
       if showfpsinrealgame=2 then print " - H:";player(plrindex).health;" - TE:";te;" ";tobj;" ";multiplayername$(el);
       if tobj>0
        entityelement(te).x=statex(el)
@@ -42709,6 +42799,13 @@ _multi_control:
            endif
           endif
           if stateraycastpace(el)>0
+         if characterlist$(characterchosen(el)) = characterlist$(characterchosen(iLocalEL)) and multi_match_type > 0
+            ink rgb(0,255,0),0
+           else
+            ink rgb(255,0,0),0
+           endif
+           center text object screen x(tobj),object screen y(tobj),multiplayername$(el)+"   Team: "+characterlist$(characterchosen(el))
+           ink rgb(255,255,255),0
            center text object screen x(tobj),object screen y(tobj),multiplayername$(el)
           endif
          else
@@ -43835,15 +43932,58 @@ _server:
  endif
  if ggameobjectivetype=2
   rem server ends game when a player reaches desired frags
-  if tnumberofcurrentplayers>1
+rem Altered below section of code to allow Team based match frags to total up team frags and not individual frags
+ if tnumberofcurrentplayers>1
+if multi_match_type <> 0
+     empty array team_frags(0)
+     array insert at top team_frags(0)
+   endif
    for el=1 to multiplayeridlinkmax
     if multiplayeridlink(el)<>1
-     if frags(el)>=ggameobjectivevalue
-      tbroadcastresult=el
-      exit
+ rem check "multi_match_type" to determine if single player or team needs to get to designated
+     rem frag limit
+     if multi_match_type = 0
+        rem Free For All match, count individual frags
+        if frags(el)>=ggameobjectivevalue
+         tbroadcastresult=el
+         exit
+        endif
+     else
+        rem Team based match, check all players and tally up "team" score
+           tfound = 0
+           for i = 0 to array count(team_frags(0))
+              if characterlist$(characterchosen(el)) = team_frags(i).teamname
+                 inc team_frags(i).teamscore, frags(el)
+                 tfound = 1
+                 exit
+              endif
+           next i
+           if tfound = 0
+               rem create an array spot for this team
+               array insert at top team_frags(0)
+               team_frags(0).teamname = characterlist$(characterchosen(el))
+               team_frags(0).teamscore = frags(el)
+           endif
      endif
     endif
    next el
+if multi_match_type <> 0
+      twinnerfound = 0
+      for i = 0 to array count(team_frags(0))
+          if team_frags(i).teamscore >= ggameobjectivevalue
+             for el1 = 1 to multiplayeridlinkmax
+               if multiplayeridlink(el1) <> 1
+                  if characterlist$(characterchosen(el1)) = team_frags(i).teamname
+                     tbroadcastresult = el1
+                     twinnerfound = 1
+                     exit
+                  endif
+               endif
+             next el1
+          endif
+          if twinnerfound = 1 then exit
+      next i
+   endif
   endif
  endif
  if ggameobjectivetype=3
@@ -43863,6 +44003,10 @@ _server:
  if tbroadcastresult>0
   rem and then broadcast to clients
   winnerel=tbroadcastresult
+ mvpel = winnerel
+  for tel = 0 to multiplayeridlinkmax
+   if frags(tel) > frags(mvpel) then mvpel = tel
+  next
   gosub _multi_informallplayersofcomplete
   rem announce as winner/loser directly
   gosub _multi_declarewinorlose
@@ -44260,7 +44404,9 @@ _multi_dealdamagedirect:
     rem only if you did not kill yourself
     if sourceel<>el then frags(sourceel)=frags(sourceel)+1
     `
-    rem only need to send frag to the guy who wants to know what he has
+    if characterlist$(characterchosen(sourceel))= characterlist$(characterchosen(el)) then frags(sourceel)=frags(sourceel)-2
+    if frags(sourceel) < 0 then frags(sourceel) = 0
+        rem only need to send frag to the guy who wants to know what he has
     MULTIPLAYER SEND FROM PLAYER multiplayeridlink(iLocalEL)
     write memblock byte 102, 0, 205
     write memblock byte 102, 1, frags(sourceel)
@@ -44558,7 +44704,10 @@ _multi_andwho:
     if characterlist(tcl)=0 then ink rgb(255,255,255),0 else ink rgb(64,64,64),0
     center text (screen width()/2)-1,(gap#*5)+((tcl-1)*gap#)-1,t$
    next tcl
-   k$=inkey$() : if k$>="1" and k$<="8" then characterchoice=(asc(k$)-asc("0"))
+   Rem Scene Commander - changed for TDM - Plystire
+ set cursor 0,tylinevalue
+   print "Choose a Character> ";entry$(1);
+k$=entry$(1): if val(k$)>=1 and val(k$)<=16 and returnkey()=1 then characterchoice=(val(k$))
    sync
   until characterchoice>=1 and characterchoice<=numberofplayers
  else
@@ -44629,11 +44778,21 @@ return
 _multi_declarewinorlose:
  `
  rem uses winnerel to determine winner identity
- if winnerel=iLocalEL
-  tserverendsreason=2
+rem changed below line so teammates of player with winning kill will also get "YOU WIN" hud
+rem changed for TDM
+if multi_match_type > 0
+    if characterlist$(characterchosen(winnerel))=characterlist$(characterchosen(iLocalEL))
+     tserverendsreason=2
+    else
+     tserverendsreason=3
+    endif
  else
-  tserverendsreason=3
- endif
+    if winnerel=iLocalEL
+     tserverendsreason=2
+    else
+     tserverendsreason=3
+    endif
+    endif
  gosub _multi_serverendedgame
  mpgameinprogress=0
  continueokay=1
