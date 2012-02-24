@@ -541,6 +541,7 @@ type saveloadgamepositionentitytype
  objectiveradarrange as integer
  objectivecurrentrange as integer
  entityacc as float
+ soundplaying as float
 endtype
 type saveloadgamepositionweaponslottype
  pref got invpos
@@ -1700,6 +1701,7 @@ rem scene commander, entity moved via $EPX etc
  objectiveradarrange as integer
  objectivecurrentrange as integer
  entityacc as integer
+ soundplaying as float
 endtype
 rem Entity Breadcrumbs Data
 type entitybreadcrumbstype
@@ -1929,6 +1931,8 @@ Rem Scene commander conditions
 #constant AICONDPLRWEAPONNOTIDLE 912
 #constant AICONDOBJECTRANGELESS 913
 #constant AICONDOBJECTRANGEGREATER 914
+#constant AICONDSOUNDPLAYING 915
+#constant AICONDSOUNDNOTPLAYING 915
 
 #constant AICONDLAST 950
 
@@ -2460,7 +2464,6 @@ rem Scene Commander actions
 #constant AIACTFREEFROMPLAYER 1629
 #constant AIACTOBJMET 1630
 #constant AIACTALWAYSRUN 1631
-#constant AIACTFINDFLOOR 1632
 
 #constant AIACTLAST 1640
 
@@ -12113,6 +12116,8 @@ conword$(AICONDPLRWEAPONIDLE)="plrweaponidle"
 conword$(AICONDPLRWEAPONNOTIDLE)="plrweaponnotidle"
 conword$(AICONDOBJECTRANGELESS)="objectiverangelesser"
 conword$(AICONDOBJECTRANGEGREATER)="objectiverangegreater"
+conword$(AICONDSOUNDPLAYING)="soundplaying"
+conword$(AICONDSOUNDNOTPLAYING)="soundnotplaying"
 
 rem Set all action keywords
 dim actword$(AIACTLAST)
@@ -12637,7 +12642,6 @@ actword$(AIACTLINKTOPLAYER)="linktoplayer"
 actword$(AIACTFREEFROMPLAYER)="freefromplayer"
 actword$(AIACTALWAYSRUN)="alwaysrun"
 actword$(AIACTOBJMET)="objmet"
-actword$(AIACTFINDFLOOR)="findfloor"
 
 return
 
@@ -15035,6 +15039,28 @@ case AICONDSHOTBY:
 
    endif
 
+   endcase
+
+   case AICONDSOUNDPLAYING:
+
+   if entityelement(e).soundplaying>0
+      if sound playing(entityelement(e).soundplaying)=1
+      airesult=1
+      else
+      airesult=0
+      endif
+   endif
+   endcase
+
+case AICONDSOUNDNOTPLAYING:
+
+   if entityelement(e).soundplaying>0
+      if sound playing(entityelement(e).soundplaying)=1
+      airesult=0
+      else
+      airesult=1
+      endif
+   endif
    endcase
 
    endselect
@@ -21032,32 +21058,6 @@ alwaysrun=aiactionseq(seq).value
 
 endcase
 
-case AIACTFINDFLOOR:
-
-if obj>0
-   if object exist(obj)
-ttryy#=entityelement(e).y
-      tettry=0
-
-      while tettry<25
-      if static volume(entityelement(e).x,ttryy#+33,entityelement(e).z,entityelement(e).x,ttryy#+32,entityelement(e).z,ellipseheight#)=0 then exit
-      ttryy#=ttryy#+1.0
-      inc tettry
-     endwhile
-     if tettry>=25
-      rem entity stuck - so make it immobile to shut down struggle!
-      entityelement(e).eleprof.isimmobile=1
-     else
-      rem entities can find floor initially (not playerstart,trigger,light,emission)
-      entityelement(e).y=ttryy#
-     endif
-
-     position object obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
-   endif
-endif
-
-endcase
-
 
    endselect
 
@@ -22810,6 +22810,7 @@ function playinternalBC3dsound(id,x#,y#,z#,strength#)
    broadcast3dsound(x#,y#,z#,strength#,0)
    position sound id,x#/10.0,y#/3.0,z#/10.0
    play sound id
+   entityelement(e).soundplaying=id
   endif
  endif
 endfunction
@@ -22819,6 +22820,7 @@ function playinternal3dsound(id,x#,y#,z#)
   if sound exist(id)=1
    position sound id,x#/10.0,y#/3.0,z#/10.0
    play sound id
+   entityelement(e).soundplaying=id
   endif
  endif
 endfunction
@@ -22827,7 +22829,7 @@ function loopinternal3dsound(id,x#,y#,z#)
  if id>0
   if sound exist(id)=1
    position sound id,x#/10.0,y#/3.0,z#/10.0
-   if sound playing(id)=0 then loop sound id
+   if sound playing(id)=0 then loop sound id:entityelement(e).soundplaying=id
   endif
  endif
 endfunction
@@ -45380,6 +45382,7 @@ a#=plrcamoffseton:write float 1,a#
 
 
   for lsi=0 to entityelementmax
+   a#=saveloadgamepositionentity(lsi).soundplaying : write float 1,a#
    a#=saveloadgamepositionentity(lsi).orx : write float 1,a#
    a#=saveloadgamepositionentity(lsi).ory : write float 1,a#
    a#=saveloadgamepositionentity(lsi).orz : write float 1,a#
@@ -45723,6 +45726,8 @@ read float 1,a#:plrcamoffsetz=a#
 read float 1,a#:plrcamoffseton=a#
 
   for lsi=0 to entityelementmax
+
+   read float 1,a# : saveloadgamepositionentity(lsi).soundplaying=a#
    read float 1,a# : saveloadgamepositionentity(lsi).orx=a#
    read float 1,a# : saveloadgamepositionentity(lsi).ory=a#
    read float 1,a# : saveloadgamepositionentity(lsi).orz=a#
