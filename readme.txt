@@ -6,15 +6,12 @@ You can find the latest FAQ at http://code.google.com/p/fpscreatorengine/wiki/FA
 History
 =======
 
-V1.1.9 BETA4
-------------
-
-* Thanks to The Zombie Killer for helping improve the anti-hacking featues of the FPSC Editor
-
 V1.1.9
 ------
 
 Note:Version numbers for V119 refer to internal source code references. E.g. V15 is a internal code references.
+* Thanks to The Zombie Killer for helping improve the anti-hacking featues of the FPSC Editor
+
 
 playfullvideo=x – X=1, plays the full version of the next video called by video=x, preventing the player interrupting the playback.
 plrwobble=x – sets the amount of 'wobble' affecting the player as they move around.
