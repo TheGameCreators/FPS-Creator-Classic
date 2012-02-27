@@ -173,6 +173,8 @@ global plrcamoffsetz=0
 global plrcamoffseton=0
 global playeraccmult#=1.0
 global eplayercam=0
+global hidecompass=0
+global hideradar=0
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
@@ -3521,6 +3523,12 @@ if lower$(tcommandline$)="-b"
     next num
      tryfield$="path" : if field$=tryfield$ then gbuildpath$=value$
      tryfield$="name" : if field$=tryfield$ then gbuildname$=value$
+     tryfield$="multiradar":if field$=tryfield$ then darkradar=value1
+     tryfield$="multicompass":if field$=tryfield$ then compasson=value1
+     tryfield$="multicompassx":if field$=tryfield$ then compassx=value1
+     tryfield$="multicompassy":if field$=tryfield$ then compassy=value1
+     tryfield$="multiradarx":if field$=tryfield$ then radarx=value1
+     tryfield$="multiradary":if field$=tryfield$ then radary=value1
      `
     endif
    endif
@@ -3681,7 +3689,7 @@ if file exist(tfile$)=1
     tryfield$="gamewon" : if field$=tryfield$ then gamewonfpi$=value$
     tryfield$="gameover" : if field$=tryfield$ then gameoverfpi$=value$
     tryfield$="levelfpi1" : if field$=tryfield$ then loadingfpi$=value$ : levelfpiinsetup=l
-    ` rem lemur
+    ` rem lemur - Plystire
       tryfield$="hudr" : if field$=tryfield$ then r#=value1
       tryfield$="hudg" : if field$=tryfield$ then g#=value1
       tryfield$="hudb" : if field$=tryfield$ then b#=value1
@@ -3691,6 +3699,12 @@ if file exist(tfile$)=1
       tryfield$="serverhostname" : if field$=tryfield$ then serverhostname=value$
       tryfield$="alwaysrun" : if field$=tryfield$ then alwaysrun=value1
       tryfield$="matchtype" : if field$=tryfield$ then multi_match_type=value1
+      tryfield$="multiradar":if field$=tryfield$ then darkradar=value1
+      tryfield$="multicompass"::if field$=tryfield$ then compasson=value1
+      tryfield$="multicompassx":if field$=tryfield$ then compassx=value1
+      tryfield$="multicompassy":if field$=tryfield$ then compassy=value1
+      tryfield$="multiradarx":if field$=tryfield$ then radarx=value1
+      tryfield$="multiradary":if field$=tryfield$ then radary=value1
     rem Levels
     if field$="levelmax" then glevelmax=value1
     if glevelmax>0
@@ -4856,8 +4870,6 @@ if eplayercam<>0
 entityelement(eplayercam).x=x1#+entityelement(eplayercam).camoffsetx
 entityelement(eplayercam).y=y1#+entityelement(eplayercam).camoffsety
 entityelement(eplayercam).z=z1#+entityelement(eplayercam).camoffsetz
-
-
 
 position object entityelement(eplayercam).obj,entityelement(eplayercam).x,entityelement(eplayercam).y,entityelement(eplayercam).z
 
@@ -37930,11 +37942,6 @@ rem calculate player level for character radar cull
   endif
 
 
-
-
-
-
-
 rem display armour value
 
 if armouron<>0
@@ -44714,6 +44721,7 @@ _multi_andwho:
  rem offer choice
  gap#=screen height()/20
  characterchoice=0
+ clear entry buffer
  if numberofplayers>=2
   repeat
    t$=strarr$(641)
