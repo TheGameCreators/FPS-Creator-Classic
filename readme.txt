@@ -430,9 +430,16 @@ You may have as many teams as you like, up to a maximum of 16 characters in tota
 
 v21
 
+soundplaying (condition) - returns true if the last sound called by the entity is still playing.
+soundnotplaying (condition) - returns true if the last sound called by the entity is not longer playing.
+multicompass (setup.ini) - activates compass for multiplayer
+multicompassx (setup.ini) - multiplayer compass x
+multicompassy (setup.ini) - multiplayer compass y
+multiradar (setup.ini)	- activates radar in multiplayer
+multiradarx (setup.ini) - multiplayer radar x
+multiradary (setup.ini) - multiplayer radar y	
 
 						
-
 V1.1.8
 ------
  
