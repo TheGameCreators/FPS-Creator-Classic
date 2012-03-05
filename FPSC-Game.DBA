@@ -167,9 +167,15 @@ global custend=0
 global plrreloading=0
 global lockangle=9999
 global fieldoffire=45
-global plrcamoffsetx=0
-global plrcamoffsety=0
-global plrcamoffsetz=0
+global plrcamoffsetx#=0.0
+global plrcamoffsety#=0.0
+global plrcamoffsetz#=0.0
+global plroffsetanglex#=0.0
+global plroffsetangley#=0.0
+global plroffsetanglez#=0.0
+global linkx=0
+global linky=0
+global linkz=0
 global plrcamoffseton=0
 global playeraccmult#=1.0
 global eplayercam=0
@@ -406,7 +412,7 @@ global showkills$ as byte
 global allowscope$ as byte
 global allowchat$ as byte
 global serverhostname as string
-global alwaysrun as boolean
+global alwaysrun as integer
 global cap as boolean
 cap =0
 global multi_match_type as byte
@@ -534,6 +540,9 @@ type saveloadgamepositionentitytype
  camoffsetx as integer
  camoffsety as integer
  camoffsetz as integer
+ offsetanglex as float
+ offsetangley as float
+ offsetanglez as float
  camrotx as integer
  camroty as integer
  camrotz as integer
@@ -543,7 +552,7 @@ type saveloadgamepositionentitytype
  objectiveradarrange as integer
  objectivecurrentrange as integer
  entityacc as float
- soundplaying as float
+ soundplaying as integer
 endtype
 type saveloadgamepositionweaponslottype
  pref got invpos
@@ -1694,6 +1703,9 @@ rem scene commander, entity moved via $EPX etc
  camoffsetx as integer
  camoffsety as integer
  camoffsetz as integer
+ offsetanglex as float
+ offsetangley as float
+ offsetanglez as float
  camrotx as integer
  camroty as integer
  camrotz as integer
@@ -1703,7 +1715,7 @@ rem scene commander, entity moved via $EPX etc
  objectiveradarrange as integer
  objectivecurrentrange as integer
  entityacc as integer
- soundplaying as float
+ soundplaying as integer
 endtype
 rem Entity Breadcrumbs Data
 type entitybreadcrumbstype
@@ -1934,7 +1946,7 @@ Rem Scene commander conditions
 #constant AICONDOBJECTRANGELESS 913
 #constant AICONDOBJECTRANGEGREATER 914
 #constant AICONDSOUNDPLAYING 915
-#constant AICONDSOUNDNOTPLAYING 915
+#constant AICONDSOUNDNOTPLAYING 916
 
 #constant AICONDLAST 950
 
@@ -2466,8 +2478,17 @@ rem Scene Commander actions
 #constant AIACTFREEFROMPLAYER 1629
 #constant AIACTOBJMET 1630
 #constant AIACTALWAYSRUN 1631
+#constant AIACTLINKENTITYROTX 1632
+#constant AIACTLINKENTITYROTY 1633
+#constant AIACTLINKENTITYROTZ 1634
+#constant AIACTPLROFFSETANGLEX 1635
+#constant AIACTPLROFFSETANGLEY 1636
+#constant AIACTPLROFFSETANGLEZ 1637
+#constant AIACTENTITYOFFSETANGLEX 1638
+#constant AIACTENTITYOFFSETANGLEY 1639
+#constant AIACTENTTIYOFFSETANGLEZ 1640
 
-#constant AIACTLAST 1640
+#constant AIACTLAST 1645
 
 rem V109 BETA3 - 210408 - AI variables
 global aivariablemode : aivariablemode=0 : rem 0-global, 1-local
@@ -4607,7 +4628,8 @@ _main_game_core:
     if gmultiplayergame=1 and multiplayerinitialised=0 then gosub _multi_start
    else
     if gametransitionscreencount<(screen height()/2)-30
-     position camera lastcamx#,lastcamy#,lastcamz#
+
+     position camera lastcamx#+newcamoffsetx,lastcamy#+newcamoffsety,lastcamz#+newcamoffsetz
      color backdrop rgb(0,0,64)
     endif
     set camera view 0,gametransitionscreencount,screen width(),gametransitionscreencount+(screen height()-(gametransitionscreencount*2))
@@ -4858,14 +4880,45 @@ return
 
 _main_sync:
 
+if ecam=0
+
+rem scene commander, final adjustments to camera if rotation offsets for player
+
+  if plroffsetanglex#<>0 or plroffsetangley#<>0 or plroffsetanglez#<>0
+  rotate camera 0,camera angle x(0)+plroffsetanglex#,camera angle y(0)+plroffsetangley#,camera angle z(0)+plroffsetanglez#
+  endif
+rem scene commander, player camera offsets
+   if plrcamoffseton<>0
+   position camera camera position x(0)+plrcamoffsetx#,camera position y(0)+plrcamoffsety#,camera position z(0)+plrcamoffsetz#
+   endif
+endif
 rem attach entity to camera using entity offsets
 
 if eplayercam<>0
 
+rem Scene commander, does entity use player rotation values?
+
+trotx=0
+troty=0
+trotz=0
+
+if linkx<>0
+xrotate object entityelement(eplayercam).obj,wrapvalue(camera angle x(0)+entityelement(eplayercam).offsetanglex)
+endif
+
+if linky<>0
+yrotate object entityelement(eplayercam).obj,wrapvalue(camera angle y(0)+entityelement(eplayercam).offsetangley)
+endif
+
+if linkz<>0
+zrotate object entityelement(eplayercam).obj,wrapvalue(camera angle z(0)+entityelement(eplayercam).offsetanglez)
+endif
+
+rem reposition entity
+
  x1#=object position x(physicsplayerborble)
  y1#=object position y(physicsplayerborble)
  z1#=object position z(physicsplayerborble)
-
 
 entityelement(eplayercam).x=x1#+entityelement(eplayercam).camoffsetx
 entityelement(eplayercam).y=y1#+entityelement(eplayercam).camoffsety
@@ -4881,9 +4934,9 @@ if ecam<>0
 
 position camera entityelement(ecam).x+entityelement(ecam).camoffsetx,entityelement(ecam).y+entityelement(ecam).camoffsety,entityelement(ecam).z+entityelement(ecam).camoffsetz
    if entityelement(ecam).camuse=0
-   rotate camera entityelement(ecam).rx,entityelement(ecam).ry,entityelement(ecam).rz
+   rotate camera wrapvalue(entityelement(ecam).rx+entityelement(ecam).offsetanglex),wrapvalue(entityelement(ecam).ry+entityelement(ecam).offsetangley),wrapvalue(entityelement(ecam).rz+entityelement(ecam).offsetanglez)
    else
-   rotate camera entityelement(ecam).camrotx,entityelement(ecam).camroty,entityelement(ecam).camrotz
+   rotate camera wrapvalue(entityelement(ecam).camrotx+entityelement(ecam).offsetanglex),wrapvalue(entityelement(ecam).camroty+entityelement(ecam).offsetanglex),wrapvalue(entityelement(ecam).camrotz+entityelement(ecam).offsetanglex)
    endif
 endif
 
@@ -4955,27 +5008,14 @@ endif
   precamy#=camera position y()
   precamz#=camera position z()
 
-rem scene commander player camera offsets if active
-   newoffsetx=0
-   newoffsety=0
-   newoffsetz=0
-
-   if plrcamoffseton<>0
-
-   newcamoffsetx=plrcamoffsetx
-   newcamoffsety=plrcamoffsety
-   newcamoffsetz=plrcamoffsetz
-
-   endif
-
-  position camera camera position x()+x vector4(13)+newcamoffsetx,camera position y()+y vector4(13)+newcamoffsety,camera position z()+z vector4(13)+newcamoffsetz
+  position camera camera position x()+x vector4(13),camera position y()+y vector4(13),camera position z()+z vector4(13)
   if vrsidebysidestereo=1
    set camera view 0,0,screen width()/2,screen height()
    set sprite resize 0,0,0.5
   endif
   sync
   rem then relocate camera to right eye and render quickly
-  position camera camera position x()+x vector4(14)+newcamoffsetx,camera position y()+y vector4(14)+newcamoffsety,camera position z()+z vector4(14)+newcamoffsetz
+  position camera camera position x()+x vector4(14),camera position y()+y vector4(14),camera position z()+z vector4(14)
   rem re-paint all HUD graphics as they are rendered over regular 3D
   gosub _ai_hud_view
   if vrsidebysidestereo=1
@@ -4984,9 +5024,9 @@ rem scene commander player camera offsets if active
   endif
   fastsync
   rem restore camera position and rotation for engine flow
-  position camera precamx#+newcamoffsetx,precamy#+newcamoffsety,precamz#+newcamoffsetz
+  position camera precamx#,precamy#,precamz#
   rotate camera camangx#,camangy#,0
-  `
+
  else
   Rem Exclude water from postprocess render
   if wateron=1 then hide object waterobj
@@ -5067,7 +5107,8 @@ rem scene commander player camera offsets if active
   Rem When water is off exclude the render of cameras 1 and 2
   if wateron=0 or excludewatercams=1 then sync mask %11111001
 
-  rem LightRay Addition
+
+ rem LightRay Addition
   rem LRMODUPDATE
   SyncAll()
   if gpostprocessing=0 or gpostprocessing=1 or gpostprocessing=2 then set current camera 0
@@ -12083,22 +12124,22 @@ conword$(AICONDAIREQUAL)="airequal"
 conword$(AICONDSAMEFLOORASPLR)="samefloorasplr"
 conword$(AICONDPLRFLOOREQUAL)="plrfloorequal"
 conword$(AICONDENTFLOOREQUAL)="entityfloorequal"
-conword$(AICONDISIMMUNE)="plrisimmune"
+conword$(AICONDISIMMUNE)="plrimmune"
 conword$(AICONDWEAPONSGREATER)="plrweaponsgreater"
 conword$(AICONDWEAPONSLESSER)="plrweaponslesser"
 conword$(AICONDWEAPONSEQUAL)="plrweaponsequal"
 conword$(AICONDWEAPONINSLOT)="weaponinslot"
 conword$(AICONDCURRENTWEAPON)="currentweapon"
 Rem Scene Commander, V1.19 beta 2
-conword$(AICONDPLRRUNNING)="plrisrunning"
+conword$(AICONDPLRRUNNING)="plrrunning"
 conword$(AICONDPLRNOTRUNNING)="plrnotrunning"
-conword$(AICONDPLRCROUCHING)="plriscrouching"
+conword$(AICONDPLRCROUCHING)="plrcrouching"
 conword$(AICONDPLRNOTCROUCHING)="plrnotcrouching"
-conword$(AICONDZOOMED)="plriszoomed"
+conword$(AICONDZOOMED)="plrzoomed"
 conword$(AICONDNOTZOOMED)="plrnotzoomed"
-conword$(AICONDPLRUSINGRELOAD)="plrisusingreload"
-conword$(AICONDPLRONGROUND)="plrisonground"
-conword$(AICONDPLRJUMPING)="plrisjumping"
+conword$(AICONDPLRUSINGRELOAD)="plrusingreload"
+conword$(AICONDPLRONGROUND)="plronground"
+conword$(AICONDPLRJUMPING)="plrjumping"
 conword$(AICONDPLRNOTJUMPING)="plrnotjumping"
 conword$(AICONDFIREMODE)="firemode"
 conword$(AICONDONRADAR)="onradar"
@@ -12122,8 +12163,8 @@ conword$(AICONDPLRCARRYING)="plrcarrying"
 conword$(AICONDPLRNOTCARRYING)="plrnotcarrying"
 conword$(AICONDLASTDAMAGETIME)="damagetimegreater"
 conword$(AICONDCURRENTJAMMED)="currentweaponjammed"
-conword$(AICONDENTITYISIMMUNE)="isentityimmune"
-conword$(AICONDENTITYISNOTIMMUNE)="isentitynotimmune"
+conword$(AICONDENTITYISIMMUNE)="entityimmune"
+conword$(AICONDENTITYISNOTIMMUNE)="entitynotimmune"
 conword$(AICONDPLRWEAPONIDLE)="plrweaponidle"
 conword$(AICONDPLRWEAPONNOTIDLE)="plrweaponnotidle"
 conword$(AICONDOBJECTRANGELESS)="objectiverangelesser"
@@ -12575,7 +12616,7 @@ actword$(AIACTSETVARRND)="setvarrnd"
 actword$(AIACTRANDOMIZE)="randomize"
 actword$(AIACTMAXSLOTS)="setmaxweapons"
 actword$(AIACTEDAMMULT)="entitydamagemult"
-actword$(AIACTPLRSTRENGTH)="playerstrength"
+actword$(AIACTPLRSTRENGTH)="plrstrength"
 
 actword$(AIACTCULLRANGE)="cullrange"
 actword$(AIACTCULLMODE)="cullmode"
@@ -12621,7 +12662,7 @@ actword$(AIACTGIVEWEAPON)="giveplrweapon"
 actword$(AIACTENTITYSETIMMUNE)="entitysetimmune"
 actword$(AIACTRESETONRELOAD)="resetglobalsonload"
 actword$(AIACTENTITYCAM)="entitycam"
-actword$(AIACTPLAYERCAM)="playercam"
+actword$(AIACTPLAYERCAM)="plrcam"
 actword$(AIACTLASTCAM)="lastcam"
 actword$(AIACTCUSTGUNANIM)="playgunanimation"
 actword$(AIACTUSEENTROT)="camrotationon"
@@ -12650,10 +12691,19 @@ actword$(AIACTPLAYEROFFSETY)="plrcamoffsety"
 actword$(AIACTPLAYEROFFSETZ)="plrcamoffsetz"
 actword$(AIACTMUTATE)="mutate"
 actword$(AIACTOBJECTRANGE)="setobjectiverange"
-actword$(AIACTLINKTOPLAYER)="linktoplayer"
-actword$(AIACTFREEFROMPLAYER)="freefromplayer"
-actword$(AIACTALWAYSRUN)="alwaysrun"
+actword$(AIACTLINKTOPLAYER)="linktoplr"
+actword$(AIACTFREEFROMPLAYER)="freefromplr"
+actword$(AIACTALWAYSRUN)="plralwaysrun"
 actword$(AIACTOBJMET)="objmet"
+actword$(AIACTLINKENTITYROTX)="linkxrotation"
+actword$(AIACTLINKENTITYROTY)="linkyrotation"
+actword$(AIACTLINKENTITYROTZ)="linkzrotation"
+actword$(AIACTPLROFFSETANGLEX)="plroffsetanglex"
+actword$(AIACTPLROFFSETANGLEY)="plroffsetangley"
+actword$(AIACTPLROFFSETANGLEZ)="plroffsetanglez"
+actword$(AIACTENTITYOFFSETANGLEX)="offsetanglex"
+actword$(AIACTENTITYOFFSETANGLEY)="offsetangley"
+actword$(AIACTENTTIYOFFSETANGLEZ)="offsetanglez"
 
 return
 
@@ -20982,19 +21032,19 @@ endcase
 
 case AIACTPLAYEROFFSETX:
 
-plrcamoffsetx=0
+plrcamoffsetx#=aiactionseq(seq).value
 
 endcase
 
 case AIACTPLAYEROFFSETY:
 
-plrcamoffsety=aiactionseq(seq).value
+plrcamoffsety#=aiactionseq(seq).value
 
 endcase
 
 case AIACTPLAYEROFFSETZ:
 
-plrcamoffsetz=aiactionseq(seq).value
+plrcamoffsetz#=aiactionseq(seq).value
 
 endcase
 
@@ -21068,7 +21118,69 @@ case AIACTALWAYSRUN:
 
 alwaysrun=aiactionseq(seq).value
 
+if alwaysrun>=1
+alwaysrun=1
+else
+alwaysrun=0
+endif
+
 endcase
+
+case AIACTLINKENTITYROTX:
+
+linkx=aiactionseq(seq).value
+
+endcase
+
+case AIACTLINKENTITYROTY:
+
+linky=aiactionseq(seq).value
+
+endcase
+
+case AIACTLINKENTITYROTZ:
+
+linkz=aiactionseq(seq).value
+
+endcase
+
+case AIACTPLROFFSETANGLEX:
+
+plroffsetanglex#=wrapvalue(aiactionseq(seq).value)
+
+endcase
+
+case AIACTPLROFFSETANGLEY:
+
+plroffsetangley#=wrapvalue(aiactionseq(seq).value)
+
+endcase
+
+case AIACTPLROFFSETANGLEZ:
+
+plroffsetanglez#=wrapvalue(aiactionseq(seq).value)
+
+endcase
+
+case AIACTENTITYOFFSETANGLEX:
+
+entityelement(e).offsetanglex=wrapvalue(aiactionseq(seq).value)
+
+endcase
+
+case AIACTENTITYOFFSETANGLEY:
+
+entityelement(e).offsetangley=wrapvalue(aiactionseq(seq).value)
+
+endcase
+
+case AIACTENTTIYOFFSETANGLEZ:
+
+entityelement(e).offsetanglez=wrapvalue(aiactionseq(seq).value)
+
+endcase
+
+
 
 
    endselect
@@ -23612,7 +23724,8 @@ rem if weapon, add bullets if any moved to fix weapon not starting
   camerapositionx=object position x(physicsplayerborble)
   camerapositiony=object position y(physicsplayerborble)+phyeyeheight#
   camerapositionz=object position z(physicsplayerborble)
-  position camera camerapositionx,camerapositiony,camerapositionz
+
+  position camera camerapositionx+newcamoffsetx,camerapositiony+newcamoffsety,camerapositionz+newcamoffsetz
  endif
  realcx#=camerapositionx : realcy#=camerapositiony : realcz#=camerapositionz
  `
@@ -39513,10 +39626,11 @@ _ode_playerrelocations:
    tdstx#=object position x(tobj)-tmex#
    tdstz#=object position z(tobj)-tmez#
    tdstt#=sqrt(abs(tdstx#*tdstx#)+abs(tdstz#*tdstz#))
-   position camera camerapositionx,meridinglifty#,camerapositionz
-   camerapositionx=camera position x()
-   camerapositiony=camera position y()
-   camerapositionz=camera position z()
+
+   position camera camerapositionx+newcamoffsetx,meridinglifty#+newcamoffsety,camerapositionz+newcamoffsetz
+   camerapositionx=camera position x()+newcamoffsetx
+   camerapositiony=camera position y()+newcamoffsety
+   camerapositionz=camera position z()+newcamoffsetz
    gosub _ode_playerborble
    if tdstt#>90
     meridinglift=0
@@ -39546,9 +39660,9 @@ _ode_playerrelocations:
   rotate camera 0,tranmeangley#,0
   cx#=camera position x() : cy#=camera position y() : cz#=camera position z()
   cox#=cx# : coy#=cy# : coz#=cz#
-  camerapositionx=camera position x()
-  camerapositiony=camera position y()
-  camerapositionz=camera position z()
+  camerapositionx=camera position x()+newcamoffsetx
+  camerapositiony=camera position y()+newcamoffsety
+  camerapositionz=camera position z()+newcamoffsetz
   gosub _ode_playerborble
   meridingtransporter=0
  endif
@@ -39884,11 +39998,10 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
   else
    basespeed#=35 : isrunning=0
   endif
-  if (plrkeySHIFT)=alwaysrun or (plrkeySHIFT2)=alwaysrun
-   basespeed#=35: isrunning=0
-  else
+  if alwaysrun=1
    basespeed#=55: isrunning=1
   endif
+
   rem AirMod - Slow player for simple zoom
   if (gunzoommode <> 0 and firemode(gunid,firemode).settings.simplezoom <> 0) then basespeed#=35-(20*firemode(gunid,firemode).settings.zoomwalkspeed) : isrunning=0
  endif
@@ -45383,9 +45496,9 @@ a#=custend: write float 1,a#
 a#=lockangle: write float 1,a#
 a#=fieldoffire: write float 1,a#
 a#=playeraccmult#: write float 1,a#
-a#=plrcamoffsetx:write float 1,a#
-a#=plrcamoffsety:write float 1,a#
-a#=plrcamoffsetz:write float 1,a#
+a#=plrcamoffsetx#:write float 1,a#
+a#=plrcamoffsety#:write float 1,a#
+a#=plrcamoffsetz#:write float 1,a#
 a#=plrcamoffseton:write float 1,a#
 
 
@@ -45728,9 +45841,9 @@ read float 1,a#:custend=a#
 read float 1,a#:lockangle=a#
 read float 1,a#:fieldoffire=a#
 read float 1,a#:playeraccmult#=a#
-read float 1,a#:plrcamoffsetx=a#
-read float 1,a#:plrcamoffsety=a#
-read float 1,a#:plrcamoffsetz=a#
+read float 1,a#:plrcamoffsetx#=a#
+read float 1,a#:plrcamoffsety#=a#
+read float 1,a#:plrcamoffsetz#=a#
 read float 1,a#:plrcamoffseton=a#
 
   for lsi=0 to entityelementmax
@@ -61457,7 +61570,8 @@ function SyncAll()
   rem render remaining cameras
   sync mask 2^1
   sync mask 2^0
-  set current camera 0 : sync
+  set current camera 0:sync
+
  endif
  `
  rem update light rays and bloom
@@ -61640,7 +61754,7 @@ rem end is o
     endfunction
 
     function culling()
-
+    
  rem if not just using FPSC default culling
 if cullmode<>0 and gmultiplayergame<>1
 
