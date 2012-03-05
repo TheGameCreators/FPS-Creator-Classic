@@ -19884,11 +19884,11 @@ armour=armour-a1
 endcase
 
 case AIACTARMX:
-armx=aiactionseq(seq).value
+armx=(gdisplaywidth/100.0)*aiactionseq(seq).value
 endcase
 
 case AIACTARMY:
-army=aiactionseq(seq).value
+army=(gdisplayheight/100.0)*aiactionseq(seq).value
 endcase
 
 case AIACTSETARM:
@@ -19934,13 +19934,13 @@ armour=aiactionseq(seq).value
 
       case AIACTSETAIRX:
 
-      airx=aiactionseq(seq).value
+      airx=(gdisplaywidth/100.0)*aiactionseq(seq).value
 
       endcase
 
       case AIACTSETAIRY:
 
-      airy=aiactionseq(seq).value
+      airy=(gdisplayheight/100.0)*aiactionseq(seq).value
 
       endcase
 
@@ -61754,7 +61754,7 @@ rem end is o
     endfunction
 
     function culling()
-    
+
  rem if not just using FPSC default culling
 if cullmode<>0 and gmultiplayergame<>1
 
