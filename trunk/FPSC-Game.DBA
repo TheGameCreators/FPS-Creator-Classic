@@ -179,8 +179,6 @@ global linkz=0
 global plrcamoffseton=0
 global playeraccmult#=1.0
 global eplayercam=0
-global hidecompass=0
-global hideradar=0
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
@@ -556,6 +554,7 @@ type saveloadgamepositionentitytype
 endtype
 type saveloadgamepositionweaponslottype
  pref got invpos
+ noselect
  weaponammo
  weaponclipammo
  weaponhud
@@ -2487,6 +2486,8 @@ rem Scene Commander actions
 #constant AIACTENTITYOFFSETANGLEX 1638
 #constant AIACTENTITYOFFSETANGLEY 1639
 #constant AIACTENTTIYOFFSETANGLEZ 1640
+#constant AIACTSHOWWEAPON 1641
+#constant AIACTNOSELECT 1642
 
 #constant AIACTLAST 1645
 
@@ -2988,6 +2989,7 @@ endtype
 rem Weapon Data Structure
 type weaponslottype
  pref got invpos
+ noselect
 endtype
 if leavegamedataalone=0
  dim weaponslot(10) as weaponslottype
@@ -8295,19 +8297,14 @@ for e=1 to entityelementlist
 entid=entityelement(e).bankindex
 obj=entityelement(e).obj
 
-if entityelement(e).positionchanged=1
+   rem scene commander, apply entity angle offsets
 
    if obj>0
-   entityelement(e).x=entityelement(e).jx
-   entityelement(e).y=entityelement(e).jy
-   entityelement(e).z=entityelement(e).jz
+   tempx#=entityelement(e).rx+entityelement(e).offsetanglex
+   tempy#=entityelement(e).ry+entityelement(e).offsetangley
+   tempz#=entityelement(e).rz+entityelement(e).offsetanglez
+   rotate object obj,tempx#,tempy#,tempz#
 
-   position object obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
-
-   entityelement(e).positionchanged=0
-   gosub _ode_setupewithphysics
-   set object collision on obj
-   endif
 endif
 
 rem Move entity if underwater
@@ -8317,7 +8314,7 @@ if obj>0
       tempwaterpos=object position y(obj)+(object size y(obj)/2.0)
       if tempwaterpos<(waterheight#+(object size y(obj)/2.0))
       oldvelx#=sin(watercurrent)*(waterflow*2)
-      oldvely#=ODE GET BODY LINEAR VELOCITY Y(obj)
+      oldvely#=ode get body linear velocity y(obj)
       oldvelz#=cos(watercurrent)*(waterflow*2)
       ode set linear velocity obj,oldvelx#,oldvely#,oldvelz#
       endif
@@ -12704,6 +12701,8 @@ actword$(AIACTPLROFFSETANGLEZ)="plroffsetanglez"
 actword$(AIACTENTITYOFFSETANGLEX)="offsetanglex"
 actword$(AIACTENTITYOFFSETANGLEY)="offsetangley"
 actword$(AIACTENTTIYOFFSETANGLEZ)="offsetanglez"
+actword$(AIACTSHOWWEAPON)="swapplrweapon"
+actword$(AIACTNOSELECT)="lockslot"
 
 return
 
@@ -15062,8 +15061,10 @@ case AICONDSHOTBY:
    case AICONDPLRWEAPONIDLE:
 
    airesult=0
-   if gunmode=5
-   airesult=1
+   if gunid>0
+      if gunmode>=31 and gunmode<=35
+      airesult=1
+      endif
    endif
 
    endcase
@@ -15072,7 +15073,7 @@ case AICONDSHOTBY:
 
    airesult=0
    if gunid>0
-      if gunmode<>5
+      if gunmode<31 or gunmode>35
       airesult=1
       endif
    endif
@@ -20480,8 +20481,6 @@ case AIACTSETVARRND:
     endif
     endcase
 
-
-
 case AIACTRAWTEXTVAR:
       tempvalue=0
       rem Plystire 109 - Merge this command with our system
@@ -21180,8 +21179,39 @@ entityelement(e).offsetanglez=wrapvalue(aiactionseq(seq).value)
 
 endcase
 
+case AIACTSHOWWEAPON:
 
+      tgunid=gunid
+      if len(aiactionseq(seq).string1)=1
+         whichslot=aiactionseq(seq).value
+            if weaponslot(whichslot).got<>0
+               tgunid=weaponslot(whichslot).got
+            endif
+         else
+         findgun$=lower$(aiactionseq(seq).string1)
+         gosub _gun_findweaponindexbyname
+            if foundgunid>0
+            for f=1 to 10
+                if weaponslot(f).got=foundgunid
+                  tgunid=weaponslot(f).got
+                endif
+               next f
+            endif
+         endif
 
+         player(plrid).command.newweapon=tgunid
+
+endcase
+
+case AIACTNOSELECT:
+
+temp=aiactionseq(seq).value
+if temp<1 then temp=1
+if temp>10 then temp=10
+
+weaponslot(temp).noselect=aiactionseq(seq).valueb
+
+endcase
 
    endselect
 
@@ -24451,7 +24481,9 @@ if selkeystate>0 and gunzoommode=0 or altswapkeycalled=1
     `
     rem Weapon select
     wepsel=0
-    `
+
+
+
     rem Keyboard input
     `if (k$>="1" and k$<="9") and altswapkeycalled=0
      `sel=(asc(k$)-asc("1")) : wepsel=1+sel
@@ -24464,14 +24496,20 @@ if selkeystate>0 and gunzoommode=0 or altswapkeycalled=1
     keyboardpress=selkeystate
     if selkeystate=11 then wepsel=-1
     if altswapkeycalled=1 then keyboardpress=-2 : wepsel=-2
-    `
+
     rem Actual weapon change
     if altswapkeycalled=0
      if wepsel>0
       weaponkeyselection=wepsel
-      weaponindex=weaponslot(weaponkeyselection).got
-      if weaponindex>0 then player(plrid).command.newweapon=weaponindex
-     endif
+         rem scene commander - prevent selection if slot locked out.
+         if weaponkeyselection>0
+            if weaponslot(weaponkeyselection).noselect=0
+               weaponindex=weaponslot(weaponkeyselection).got
+               if weaponindex>0 then player(plrid).command.newweapon=weaponindex
+            endif
+         endif
+      endif
+
      rem V118 - 180211 - ensure can only put weapon away when in idle mode
      if wepsel=-1 `and gunmode<=10
       if gunmode<31 or gunmode>35
@@ -24481,7 +24519,7 @@ if selkeystate>0 and gunzoommode=0 or altswapkeycalled=1
       endif
      endif
     endif
-    if altswapkeycalled=1
+    if altswapkeycalled=1 and weaponslot(weaponkeyselection).noselect=0
      if gunid<>0
       if (gun(gunid).settings.alternateisflak = 1 or gun(gunid).settings.alternateisray = 1) and gunmode <= 100
        Rem Hockeykid 150212 - reset gunburst variable so burst doesn't get confused when switching gunmodes
@@ -24522,15 +24560,17 @@ if gunselectionlockdown=0 and gunzoommode=0 and gun(gunid).settings.ismelee=0
  if tmz<>0 and preventplrselectinggun = 0
  rem cinematic hands <<<<
   tokay=0 : ttries=10
-  while tokay=0 and ttries>0
+
+   while tokay=0 and ttries>0
    if tmz<0 then weaponkeyselection=weaponkeyselection-1
    if tmz>0 then weaponkeyselection=weaponkeyselection+1
    if weaponkeyselection>10 then weaponkeyselection=1
    if weaponkeyselection<1 then weaponkeyselection=10
-   tweaponindex=weaponslot(weaponkeyselection).got
+   if weaponslot(weaponkeyselection).noselect=0 then tweaponindex=weaponslot(weaponkeyselection).got
    if tweaponindex>0 then tokay=1
    dec ttries
-  endwhile
+   endwhile
+
   if tokay=1
    rem change up or down
    weaponindex=weaponslot(weaponkeyselection).got
@@ -61754,6 +61794,7 @@ rem end is o
     endfunction
 
     function culling()
+
 
  rem if not just using FPSC default culling
 if cullmode<>0 and gmultiplayergame<>1
