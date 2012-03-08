@@ -20463,7 +20463,7 @@ case AIACTSETVARRND:
 
     case AIACTPLRDAM:
 
-    playerdammult#=aiactionseq(seq).value
+    playerdammult#=(aiactionseq(seq).value/100)
 
     endcase
 
@@ -26508,13 +26508,13 @@ if gunshoot=1
   rem AirMod - Make gun more accurate so bullets don't fly to mars - EDIT: Additionally use simple zoom accuracy if selected
   if gunzoommode<>0 and firemode(gunid,firemode).settings.simplezoom <>0
   `Rem Scene Commander adjusted for player accuracy modification
-  tempacc#=playeraccmult#/3.3
-   trayaccuracy#=firemode(gunid,firemode).settings.simplezoomacc/tempacc#
+  tempacc#=playeraccmult#
+   trayaccuracy#=firemode(gunid,firemode).settings.simplezoomacc*tempacc#
   else
    if (plrkeySHIFT)=1 and movement<>0 and firemode(gunid,firemode).settings.runaccuracy <> - 1
-    trayaccuracy#=firemode(gunid,firemode).settings.runaccuracy/tempacc#
+    trayaccuracy#=firemode(gunid,firemode).settings.runaccuracy*tempacc#
    else
-    trayaccuracy#=firemode(gunid,firemode).settings.accuracy/tempacc#
+    trayaccuracy#=firemode(gunid,firemode).settings.accuracy*tempacc#
    endif
   endif
   bulletdamage=firemode(gunid,firemode).settings.damage
