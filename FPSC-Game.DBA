@@ -179,6 +179,7 @@ global linkz=0
 global plrcamoffseton=0
 global playeraccmult#=1.0
 global eplayercam=0
+global playercollision=1
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
@@ -1534,6 +1535,7 @@ type entitytype
  curvcmz as integer
  spine as integer
  spiner as float
+ spineraim as float
  eyeoffset as integer
  aimoved as integer
  aimovex as float
@@ -1692,7 +1694,6 @@ rem scene commander, entity moved via $EPX etc
  RFA as integer
  LUA as integer
  RUA as integer
- SP1 as integer
  spine2 as integer
  SP3 as integer
  NECK as integer
@@ -2488,6 +2489,7 @@ rem Scene Commander actions
 #constant AIACTENTTIYOFFSETANGLEZ 1640
 #constant AIACTSHOWWEAPON 1641
 #constant AIACTNOSELECT 1642
+#constant AIACTPLRCOL 1643
 
 #constant AIACTLAST 1645
 
@@ -8834,13 +8836,26 @@ for e=1 to entityelementlist
      `
      Rem spine update
      entid=entityelement(e).bankindex
-     if entityelement(e).actualtarget=0
-      if entityelement(e).spiner>0 then dec entityelement(e).spiner,5
-      if entityelement(e).spiner<0 then entityelement(e).spiner=0
+    ` text object screen x(entityelement(e).obj),object screen y(entityelement(e).obj)-20,str$(entityelement(e).spiner)
+
+    if entityelement(e).actualtarget=0
+      entityelement(e).spineraim=0
+     `if entityelement(e).spiner>0 then dec entityelement(e).spiner,2
+    `if entityelement(e).spiner<0 then entityelement(e).spiner=0
      endif
      if entityprofile(entid).spine>-1 and entityprofile(entid).ischaracter=1 and entityprofile(entid).spine2>-1
-      rotation#=(entityelement(e).spiner/2.0)
+      `rotation#=(entityelement(e).spiner/2.0)
+      if int(entityelement(e).spiner)<>int(entityelement(e).spineraim)
+      if int(entityelement(e).spiner)>int(entityelement(e).spineraim)
+      entityelement(e).spiner=int(entityelement(e).spiner)-1
+      else
+      entityelement(e).spiner=int(entityelement(e).spiner)+1
+      endif
+      endif
+
+      rotation#=int(entityelement(e).spiner)
       Rem Handle Spine 1 Rotation
+     ` text object screen x(entityelement(e).obj),object screen y(entityelement(e).obj),str$(entityelement(e).spiner)
       Rotate Limb entityelement(e).obj,entityprofile(entid).spine,Limb Angle X(entityelement(e).obj,entityprofile(entid).spine),rotation#,Limb Angle Z(entityelement(e).obj,entityprofile(entid).spine)
       Rem Handle Spine 2 Rotation
       Rotate Limb entityelement(e).obj,entityprofile(entid).spine2,Limb Angle X(entityelement(e).obj,entityprofile(entid).spine2),rotation#,Limb Angle Z(entityelement(e).obj,entityprofile(entid).spine2)
@@ -12703,6 +12718,7 @@ actword$(AIACTENTITYOFFSETANGLEY)="offsetangley"
 actword$(AIACTENTTIYOFFSETANGLEZ)="offsetanglez"
 actword$(AIACTSHOWWEAPON)="swapplrweapon"
 actword$(AIACTNOSELECT)="lockslot"
+actword$(AIACTPLRCOL)="setplrcollision"
 
 return
 
@@ -14711,7 +14727,7 @@ case AICONDISIMMUNE:
 
     endcase
 
-    case AICONDPLRNOTCROUCHING:
+   case AICONDPLRNOTCROUCHING:
    airesult=0
    if crouchmode=0
    airesult=1
@@ -14736,9 +14752,8 @@ case AICONDISIMMUNE:
    endcase
 
    case AICONDPLRUSINGRELOAD:
-
    airesult=0
-   if plrreloading=1
+   if plrreloading<>0
    airesult=1
    endif
    endcase
@@ -18242,8 +18257,8 @@ Rem Scene Commander
       if ai entity exist(entityelement(e).obj)
        entid=entityelement(e).bankindex
        entityelement(e).darkai.useaim=aiactionseq(seq).value
-       if entityprofile(entid).spine=-1 or entityprofile(entid).spine2=-1 then entityelement(e).darkai.useaim=0
-       if entityelement(e).darkai.useaim=0 then entityelement(e).spiner=0
+       `if entityprofile(entid).spine=-1 or entityprofile(entid).spine2=-1 then entityelement(e).darkai.useaim=0
+       if entityelement(e).darkai.useaim=0 then entityelement(e).spineraim=0
       endif
      endcase
      case AIACTAIREMOVE:
@@ -18482,7 +18497,7 @@ Rem Scene Commander
           ex2#=entityelement(e).x : ey2#=entityelement(e).y : ez2#=entityelement(e).z
           ey1eyeoffset=phyeyeheight#+25
           Gosub _ai_find_angle
-          entityelement(e).spiner=entityangle#
+          entityelement(e).spineraim=entityangle#/2
          endif
          `
         else
@@ -18497,7 +18512,7 @@ Rem Scene Commander
            If entityelement(tte).eyeoffset=0 then entityelement(tte).eyeoffset=80
            ey1eyeoffset=(entityelement(tte).eyeoffset/2)
            Gosub _ai_find_angle
-           entityelement(e).spiner=entityangle#
+           entityelement(e).spineraim=entityangle#/2
           endif
          endif
          `
@@ -21210,6 +21225,12 @@ if temp<1 then temp=1
 if temp>10 then temp=10
 
 weaponslot(temp).noselect=aiactionseq(seq).valueb
+
+endcase
+
+case AIACTPLRCOL:
+
+playercollision=aiactionseq(seq).value
 
 endcase
 
@@ -36909,7 +36930,7 @@ cmz#=camera position z()
 
 rem Overall ellipse collision for camera
 tcameraeyey#=20.0
-if deactivatecollision=0
+if deactivatecollision=0 and playercollision=1
  if static volume(cox#,coy#-tcameraeyey#,coz#,cmx#,cmy#-tcameraeyey#,cmz#,1.0)=1
   cmx#=cox#+get static collision x()
   cmy#=coy#+get static collision y()
@@ -40342,7 +40363,7 @@ endif
 
 rem Ellipse Collision with static scene
 colmaterialtype=-1
-if deactivatecollision=0 and skipcol=0
+if deactivatecollision=0 and skipcol=0 and playercollision=1
  `
  rem check ellipse against movement
  ctx#=camerapositionx+(camvelx#/4.0)
@@ -41253,6 +41274,7 @@ _ode_sounds:
   ODE COLLISION GET MESSAGE
   phya=ODE GET OBJECT A() : phyb=ODE GET OBJECT B()
   `
+  if (phya=physicsplayerborble or phyb=physicsplayerborble) and playercollison=1
   rem player phyobject stood on another phy object
   tdownward#=0.0 : ttouchedobj=0 : toverallveldiff#=0
   if (phya=physicsplayerborble and phyb<>0) then tdownward#=ODE GET OBJECT A VELOCITY Y() : ttouchedobj=phyb : toverallveldiff#=abs(ODE GET OBJECT B VELOCITY X())+abs(ODE GET OBJECT B VELOCITY Y())+abs(ODE GET OBJECT B VELOCITY Z())
@@ -41479,6 +41501,8 @@ _ode_sounds:
     `
    endif
    `
+  endif
+
   endif
   `
  endwhile
@@ -59017,7 +59041,13 @@ _darkai_debug:
 return
 
 _ai_find_angle:
- fadist#=sqrt((ex1#-ex2#)^2 + (ez1#-ez2#)^2)
+
+tdx#=ex1#-ex2#
+tdy#=ey1#-ey2#
+tdz#=ez1#-ez2#
+
+ `fadist#=sqrt((ex1#-ex2#)^2 + (ez1#-ez2#)^2)
+ fadist#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
  if entityelement(e).eyeoffset=0 then entityelement(e).eyeoffset=80
  entityangle#=atanfull((ey1#+ey1eyeoffset)-(ey2#+entityelement(e).eyeoffset), fadist#)
 return
@@ -61795,6 +61825,7 @@ rem end is o
 
     function culling()
 
+   ` text 200,200,str$(plrreloading)
 
  rem if not just using FPSC default culling
 if cullmode<>0 and gmultiplayergame<>1
