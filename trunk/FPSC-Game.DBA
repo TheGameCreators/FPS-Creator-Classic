@@ -179,7 +179,7 @@ global linkz=0
 global plrcamoffseton=0
 global playeraccmult#=1.0
 global eplayercam=0
-global playercollision=1
+
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
@@ -2489,7 +2489,6 @@ rem Scene Commander actions
 #constant AIACTENTTIYOFFSETANGLEZ 1640
 #constant AIACTSHOWWEAPON 1641
 #constant AIACTNOSELECT 1642
-#constant AIACTPLRCOL 1643
 
 #constant AIACTLAST 1645
 
@@ -8836,7 +8835,6 @@ for e=1 to entityelementlist
      `
      Rem spine update
      entid=entityelement(e).bankindex
-    ` text object screen x(entityelement(e).obj),object screen y(entityelement(e).obj)-20,str$(entityelement(e).spiner)
 
     if entityelement(e).actualtarget=0
       entityelement(e).spineraim=0
@@ -9829,7 +9827,7 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
  if tpermitaspawn=1
   rem Restart spawn cycle
 
-   entid=entityelement(e).bankindex
+   `entid=entityelement(e).bankindex
 
   entityelement(e).spawn.leadercount=entityelement(e).spawn.delay+rnd(entityelement(e).spawn.delayrandom)
   rem Hockeykid - 080611 - Won't work, throw-ragdoll scripts do not allow for the character to get back up!
@@ -12718,7 +12716,6 @@ actword$(AIACTENTITYOFFSETANGLEY)="offsetangley"
 actword$(AIACTENTTIYOFFSETANGLEZ)="offsetanglez"
 actword$(AIACTSHOWWEAPON)="swapplrweapon"
 actword$(AIACTNOSELECT)="lockslot"
-actword$(AIACTPLRCOL)="setplrcollision"
 
 return
 
@@ -16293,9 +16290,12 @@ Rem Scene Commander
       else
        tokay=1
       endif
+
+
+
       rem markblosser - 102911 - breaks model pack 52 characters whose lives never reach 0, death is controlled purely in script
       `if entityprofile(entid).ischaracter=1 and entityprofile(entid).noragdoll=0 and entityelement(e).eleprof.lives<=0 and tokay=1
-      if entityprofile(entid).ischaracter=1 and entityprofile(entid).noragdoll=0 and entityelement(e).eleprof.lives<=1 and tokay=1
+      if entityprofile(entid).ischaracter=1 and entityprofile(entid).noragdoll=0 and entityelement(e).eleprof.lives<=1 and entityelement(e).health<=0 and tokay=1
        if entityelement(e).ragdollon=0
         entityelement(e).ragdollon=1
         ODE Create Ragdoll from bone model obj,0.6 : rem was 0.8 up to 171007 (was 0.6 on 300707)
@@ -21228,11 +21228,6 @@ weaponslot(temp).noselect=aiactionseq(seq).valueb
 
 endcase
 
-case AIACTPLRCOL:
-
-playercollision=aiactionseq(seq).value
-
-endcase
 
    endselect
 
@@ -36930,7 +36925,7 @@ cmz#=camera position z()
 
 rem Overall ellipse collision for camera
 tcameraeyey#=20.0
-if deactivatecollision=0 and playercollision=1
+if deactivatecollision=0
  if static volume(cox#,coy#-tcameraeyey#,coz#,cmx#,cmy#-tcameraeyey#,cmz#,1.0)=1
   cmx#=cox#+get static collision x()
   cmy#=coy#+get static collision y()
@@ -40363,7 +40358,7 @@ endif
 
 rem Ellipse Collision with static scene
 colmaterialtype=-1
-if deactivatecollision=0 and skipcol=0 and playercollision=1
+if deactivatecollision=0 and skipcol=0
  `
  rem check ellipse against movement
  ctx#=camerapositionx+(camvelx#/4.0)
