@@ -180,7 +180,6 @@ global plrcamoffseton=0
 global playeraccmult#=1.0
 global eplayercam=0
 
-
 rem scene commander - average FPS for smoother movement
 global nextave=1
 dim fpsstore(80):for f=1 to 80:fpsstore(f)=80:next f
@@ -480,7 +479,7 @@ type saveloadgamepositionentitytype
  x as float
  y as float
  z as float
- rem scene commander, entity moved via $EPX etc
+ rem scene commander, entity moved via $EPX etc - work in progress
  jx as float
  jy as float
  jz as float
@@ -897,11 +896,9 @@ global projectmodified : projectmodified=0
 
 rem File List Buffer Array (multipurpose)
 dim filelist$(0)
-
 `
 ` Global Data and Arrays
 `
-
 rem additional globals for BUILD GAME speed-ups
 global globalsmallsound=0 : rem used in BUILD GAME (set to soundid for small cloned sound) - 11/11/08
 global currentlyintheAISCIPTloader=0 : rem used in BUILD GAME (AI SCRIPT so ignore images from AI scripts during build)
@@ -1317,7 +1314,6 @@ type entitybloodtype
 endtype
 dim entityblood(100,BLOODMAX) as entitybloodtype
 rem AirMod - Done <<
-
 
 rem Waypoint Component of entity element
 type aiwaypointtype
@@ -9307,14 +9303,16 @@ if entityelement(e).fireweapon=1
        tttokay=1
       endif
      endif
-     if tttokay=1
+     if entityelement(tte).obj>0
+      if tttokay=1
       y2#=object position y(entityelement(tte).obj)
       x2#=object position x(entityelement(tte).obj)
       z2#=object position z(entityelement(tte).obj)
-     else
+      else
       y2#=object position y(physicsplayerborble)
       x2#=object position x(physicsplayerborble)
       z2#=object position z(physicsplayerborble)
+       endif
      endif
      tdx#=abs(x2#-x1#)
      tdy#=abs(y2#-y1#)
@@ -20349,10 +20347,20 @@ case AIACTSETVARRND:
 
       next li
 
-      ttryy#=entityelement(e).y
-      tettry=0
-
-      while tettry<25
+   entid=entityelement(e).bankindex
+   if entityprofile(entid).ischaracter=1 and entityelement(e).y>20
+    tettry=0 : tskip=0
+    ttryy#=entityelement(e).y-53
+    ellipseheight#=1.0
+    if entityelement(e).obj
+     if object exist(entityelement(e).obj)=1
+      if object size y(entityelement(e).obj)<50
+       tskip=1
+      endif
+     endif
+    endif
+    if tskip=0
+     while tettry<25
       if static volume(entityelement(e).x,ttryy#+33,entityelement(e).z,entityelement(e).x,ttryy#+32,entityelement(e).z,ellipseheight#)=0 then exit
       ttryy#=ttryy#+1.0
       inc tettry
@@ -20363,9 +20371,10 @@ case AIACTSETVARRND:
      else
       rem entities can find floor initially (not playerstart,trigger,light,emission)
       entityelement(e).y=ttryy#
-
-     position object obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
-     entid=entityelement(e).bankindex
+      entityelement(e).mover.inmotion=1
+      entityelement(e).mover.grav=0.0
+     endif
+    endif
      entityprofile(entid).scale=newscale
       endif
 
@@ -30134,7 +30143,7 @@ armour=armour-tdamage
 if armour>0 then t1=0
 if t1>0
 armour=0
-    endif
+endif
 endif
 endif
 
@@ -39425,7 +39434,18 @@ _ode_setupewithphysics:
 return
 
 _ode_applyphysicstoattachment:
+
+`rem scene commander, create new entity. - only if not last spawn - for next beta
+   `nextobj=tobj:tstore=tobj
+   `hide object tobj
+   `while object exist(nextobj)
+   `inc nextobj
+   `endwhile
+  ` clone object nextobj,tobj
+  ` tobj=nextobj
  ode create dynamic box tobj
+
+
  tfriction=(object size x(tobj)*75)+(object size y(tobj)*75)+(object size z(tobj)*75)
  tweight=(object size x(tobj)*25)+(object size y(tobj)*25)+(object size z(tobj)*25)
  tweight=(tweight/50)*50 : tfriction=(tfriction/50)*50
@@ -39436,6 +39456,7 @@ _ode_applyphysicstoattachment:
  ode set angular velocity tobj,0,0,0
  ode set gravity tobj,1
  ode set body rotation tobj,object angle x(tobj),object angle y(tobj),object angle z(tobj)
+ tobj=tstore
 return
 
 _ode_deleteentity:
