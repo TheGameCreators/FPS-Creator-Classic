@@ -9863,7 +9863,8 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
       tettry=0
 
       while tettry<25
-      if static volume(entityelement(te).x,ttryy#+33,entityelement(te).z,entityelement(te).x,ttryy#+32,entityelement(te).z,ellipseheight#)=0 then exit
+    tobj=entityelement(te).obj
+    if static raycast(object position x(tobj),ttryy#,object position z(tobj),object position x(tobj),ttryy#-((newscale+8)),object position z(tobj))=0 then exit
       ttryy#=ttryy#+1.0
       inc tettry
      endwhile
@@ -9874,7 +9875,7 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
       rem entities can find floor initially (not playerstart,trigger,light,emission)
       entityelement(te).y=ttryy#
 
-     position object obj,entityelement(te).x,entityelement(te).y,entityelement(te).z
+     position object tobj,entityelement(te).x,entityelement(te).y,entityelement(te).z
       endif
 
 
@@ -9898,7 +9899,8 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
       tettry=0
 
       while tettry<25
-      if static volume(entityelement(te).x,ttryy#+33,entityelement(te).z,entityelement(te).x,ttryy#+32,entityelement(te).z,ellipseheight#)=0 then exit
+     tobj=entityelement(te).obj
+    if static raycast(object position x(tobj),ttryy#,object position z(tobj),object position x(tobj),ttryy#-((newscale+8)),object position z(tobj))=0 then exit
       ttryy#=ttryy#+1.0
       inc tettry
      endwhile
@@ -9909,7 +9911,7 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
       rem entities can find floor initially (not playerstart,trigger,light,emission)
       entityelement(te).y=ttryy#
 
-     position object obj,entityelement(te).x,entityelement(te).y,entityelement(te).z
+     position object tobj,entityelement(te).x,entityelement(te).y,entityelement(te).z
       endif
 
      endif
@@ -20367,7 +20369,7 @@ case AIACTSETVARRND:
      ` if static volume(entityelement(e).x,ttryy#+33,entityelement(e).z,entityelement(e).x,ttryy#+32,entityelement(e).z,ellipseheight#)=0 then exit
      tobj=entityelement(e).obj
     if static raycast(object position x(tobj),ttryy#,object position z(tobj),object position x(tobj),ttryy#-((newscale+8)),object position z(tobj))=0 then exit
-      ttryy#=ttryy#+1.0
+      ttryy#=ttryy#+1.5
       inc tettry
      endwhile
      if tettry>=25
