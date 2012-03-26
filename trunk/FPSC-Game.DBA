@@ -20350,9 +20350,12 @@ case AIACTSETVARRND:
    entid=entityelement(e).bankindex
    if entityprofile(entid).ischaracter=1 and entityelement(e).y>20
     tettry=0 : tskip=0
-    ttryy#=entityelement(e).y-53
+
     ellipseheight#=1.0
     if entityelement(e).obj
+
+      ttryy#=entityelement(e).y`+(object size y(entityelement(e).obj)/2)
+
      if object exist(entityelement(e).obj)=1
       if object size y(entityelement(e).obj)<50
        tskip=1
@@ -20361,7 +20364,9 @@ case AIACTSETVARRND:
     endif
     if tskip=0
      while tettry<25
-      if static volume(entityelement(e).x,ttryy#+33,entityelement(e).z,entityelement(e).x,ttryy#+32,entityelement(e).z,ellipseheight#)=0 then exit
+     ` if static volume(entityelement(e).x,ttryy#+33,entityelement(e).z,entityelement(e).x,ttryy#+32,entityelement(e).z,ellipseheight#)=0 then exit
+     tobj=entityelement(e).obj
+    if static raycast(object position x(tobj),ttryy#,object position z(tobj),object position x(tobj),ttryy#-((newscale+8)),object position z(tobj))=0 then exit
       ttryy#=ttryy#+1.0
       inc tettry
      endwhile
