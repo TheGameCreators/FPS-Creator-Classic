@@ -10058,7 +10058,7 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
       rem reduce overall UPTO count
       entityelement(e).spawn.upto=entityelement(e).spawn.upto-1
       if entityelement(e).spawn.upto<=0
-       entityelement(e).spawn.upto=0
+      entityelement(e).spawn.upto=0
        exit
       endif
       `
@@ -20342,6 +20342,13 @@ case AIACTSETVARRND:
    maxscale=aiactionseq(seq).valueb
 
    newscale=rnd(maxscale)+tempscale
+
+   if entityelement(e).obj>0
+      if object exist(entityelement(e).obj)=1
+         newscale=newscale+object size y(entityelement(e).obj)
+         newscale=newscale/2
+      endif
+   endif
 
       for li = 2 to 13
 
