@@ -179,6 +179,8 @@ global linkz=0
 global plrcamoffseton=0
 global playeraccmult#=1.0
 global eplayercam=0
+rem Scene Commander V119, for later use.
+global timescale=100
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
@@ -1634,7 +1636,9 @@ rem scene commander, entity moved via $EPX etc
  shotdamage as integer
  shotdamagesource as integer
  shotdamagetype as integer
- delaydamagecount as integer
+ rem Scene Commander, changed for timer system
+ delaydamagecount as float
+ delaydamagetimer as float
  delaydamagesource as integer
  delaydamage as integer
  delayimpact as integer
@@ -2485,6 +2489,7 @@ rem Scene Commander actions
 #constant AIACTENTTIYOFFSETANGLEZ 1640
 #constant AIACTSHOWWEAPON 1641
 #constant AIACTNOSELECT 1642
+#constant AIACTDELAYTIMER 1643
 
 #constant AIACTLAST 1645
 
@@ -3400,7 +3405,7 @@ global glightatten : glightatten=16000
 global glightmaxsize : glightmaxsize=-1
 global glightboost : glightboost=4
 global glighttexsize : glighttexsize=1024
-global glightquality : glightquality=80
+global glightquality : glightquality=40
 global glightblurmode : glightblurmode=1
 global glightthreadmax : glightthreadmax=4
 global gdynamiclightingstate : gdynamiclightingstate=0
@@ -3709,7 +3714,7 @@ if file exist(tfile$)=1
     tryfield$="gamewon" : if field$=tryfield$ then gamewonfpi$=value$
     tryfield$="gameover" : if field$=tryfield$ then gameoverfpi$=value$
     tryfield$="levelfpi1" : if field$=tryfield$ then loadingfpi$=value$ : levelfpiinsetup=l
-    ` rem lemur - Plystire
+    ` rem TDM - Plystire
       tryfield$="hudr" : if field$=tryfield$ then r#=value1
       tryfield$="hudg" : if field$=tryfield$ then g#=value1
       tryfield$="hudb" : if field$=tryfield$ then b#=value1
@@ -4627,7 +4632,7 @@ _main_game_core:
     if gmultiplayergame=1 and multiplayerinitialised=0 then gosub _multi_start
    else
     if gametransitionscreencount<(screen height()/2)-30
-
+      rem Scene Commander - changes for player cam offsets.
      position camera lastcamx#+newcamoffsetx,lastcamy#+newcamoffsety,lastcamz#+newcamoffsetz
      color backdrop rgb(0,0,64)
     endif
@@ -8260,7 +8265,7 @@ for ave=1 to 80
 temptime#=temptime#+fpsstore(ave)
 next ave
 timeelasped#=temptime#/80
-timeelasped#=(timeelasped#/100)*timescale
+timeelasped#=(timeelasped#/100)*timescale: timestamp=timer()
 inc nextave,1:if nextave>80 then nextave=1
 rem maintain constant game speed
 `timeelapsed#=(1.0/50.0)*(timer()-timestamp) : timestamp=timer()
@@ -8507,13 +8512,13 @@ endif
    if entityprofile(entid).ischaracter=1
     `
     rem remove attached weapon physics if out of bounds
-    tobj=entityelement(e).attachmentobj
-    if tobj>0
-     if object position y(tobj)<-50
-      gosub _ode_deleteentity
-      hide object tobj
+   tobj=entityelement(e).attachmentobj
+   if tobj>0
+   if object position y(tobj)<-50
+    gosub _ode_deleteentity
+     hide object tobj
       position object tobj,-5000,-5000,-5000
-     endif
+    endif
     endif
     `
     rem FPGC - 100710 - on occasion, character can be killed off screen (no anim performed)
@@ -8523,7 +8528,7 @@ endif
     if obj>0
      tvweapobj=entityelement(e).attachmentobj
      if object exist(obj)=1
-      if object in screen(obj)=0 and entityelement(e).ragdollon=0
+      if object in screen(obj)=0 `and entityelement(e).ragdollon=0
        if tvweapobj>0
         if object exist(tvweapobj)=1
          unglue object tvweapobj
@@ -8548,9 +8553,9 @@ endif
        y1#=object position y(tdropobj)`limb position y(obj,entityprofile(entid).firespotlimb)
        z1#=object position z(tdropobj)`limb position z(obj,entityprofile(entid).firespotlimb)
       else
-       x1#=entityelement(e).x
-       y1#=entityelement(e).y
-       z1#=entityelement(e).z
+       x1#=limb position x(obj,entityprofile(entid).firespotlimb)`entityelement(e).x
+       y1#=limb position y(obj,entityprofile(entid).firespotlimb)`entityelement(e).y
+       z1#=limb position z(obj,entityprofile(entid).firespotlimb)`entityelement(e).z
       endif
       tdx#=x1#-mex# : tdy#=y1#-mey# : tdz#=z1#-mez#
       entityelement(e).plrdist=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
@@ -8589,11 +8594,14 @@ endif
        entityelement(e).currentweapon=0
        rem remove attached weapon from entity also
        tobj=entityelement(e).attachmentobj
+
+
        if tobj>0
-         gosub _ode_deleteentity
-         hide object tobj
-         position object tobj,-5000,-5000,-5000
+       gosub _ode_deleteentity
+       hide object tobj
+       position object tobj,-5000,-5000,-5000
        endif
+
       endif
      endif
     endif
@@ -10058,7 +10066,7 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
       rem reduce overall UPTO count
       entityelement(e).spawn.upto=entityelement(e).spawn.upto-1
       if entityelement(e).spawn.upto<=0
-      entityelement(e).spawn.upto=0
+       entityelement(e).spawn.upto=0
        exit
       endif
       `
@@ -11527,7 +11535,7 @@ _entity_resolveobjective:
  if tokay=1
   rem handle objective
   if gamewarmupcount=0
-   rem Only if game in ful swing
+   rem Only if game in full swing
    mi=entityelement(tleadere).eleprof.isobjective : if mi>0 then playerobjective(mi)=1
   endif
  endif
@@ -11536,8 +11544,13 @@ return
 _entity_delayeddeducthealth:
  `
  rem store damage to be dealt when delay runs out
- if entityelement(e).delaydamagecount=0
-  entityelement(e).delaydamagecount=10
+ if entityelement(e).delaydamagecount<=0
+  rem Scene Commander, if no set delay use 10 seconds.
+   if entityelement(e).delaydamagetimer>0.0
+      entityelement(e).delaydamagecount=entityelement(e).delaydamagetimer
+      else
+      entityelement(e).delaydamagecount=10
+    endif
   entityelement(e).delaydamagesource=tdamagesource
   entityelement(e).delaydamage=tdamage
   entityelement(e).delayimpact=timpacttype
@@ -11553,7 +11566,7 @@ _entity_controldelayeddamage:
  `
  rem count down to delayed damage (fuel exploding)
  if entityelement(e).delaydamagecount>0
-  entityelement(e).delaydamagecount=entityelement(e).delaydamagecount-1
+  entityelement(e).delaydamagecount=entityelement(e).delaydamagecount-1*timeelapsed#
   if entityelement(e).delaydamagecount=0
    tdamagesource=entityelement(e).delaydamagesource
    tdamage=entityelement(e).delaydamage
@@ -11654,11 +11667,15 @@ _entity_deducthealth:
       ai kill entity entityelement(e).obj
      endif
      rem V119 - 020711 - Hockeykid - make attachment object into a physics object
-     tobj=entityelement(e).attachmentobj
-     if tobj>0
-      if object exist(tobj) then gosub _ode_applyphysicstoattachment
+     `if entityelement(e).obj>0
+     ` if object in screen(entityelement(e).obj)=1
+         tobj=entityelement(e).attachmentobj
+         if tobj>0
+         if object exist(tobj) then gosub _ode_applyphysicstoattachment
+         endif
+     ` endif
+    ` endif
 
-     endif
      rem mission objective counter
      gosub _entity_resolveobjective
      rem dead perminantly
@@ -11846,9 +11863,11 @@ _entity_deducthealth:
       `
       rem FPGC - 230210 - if shutgun style damage (throw to floor), but ragdoll, ignore
       rem FPGC - 160511 - if nothrowscript set, ALWAYS ignore throw script (MB)
-      if entityelement(e).health<=0 and entityprofile(tentid).nothrowscript=0 or entityelement(e).health>0 and tresult=2
+      if (entityelement(e).health<=0 and entityprofile(tentid).nothrowscript=0) or (entityelement(e).health>0 and tresult=2)
+       `if (entityelement(e).health>0 and timpacttype=2 and tdestroyasragdoll=1) or entityprofile(tentid).nothrowscript=1
+       rem ignore
        rem Blast
-       if tdestroyasragdoll=1
+       if tdestroyasragdoll=1 and object in screen(entityelement(e).obj)<>0
         aifile$="people\throwragdollback.fpi"
         if tdir=1 then aifile$="people\throwragdollback.fpi"
         if tdir=2 then aifile$="people\throwragdollfore.fpi"
@@ -12716,6 +12735,7 @@ actword$(AIACTENTITYOFFSETANGLEY)="offsetangley"
 actword$(AIACTENTTIYOFFSETANGLEZ)="offsetanglez"
 actword$(AIACTSHOWWEAPON)="swapplrweapon"
 actword$(AIACTNOSELECT)="lockslot"
+actword$(AIACTDELAYTIMER)="setdamagedelay"
 
 return
 
@@ -16291,7 +16311,13 @@ Rem Scene Commander
        tokay=1
       endif
 
+      rem Scene Commander, no ragdoll if off screen.
 
+      if entityelement(e).obj>0
+         if tokay=1 and object in screen(entityelement(e).obj)=0
+         tokay=0
+         endif
+      endif
 
       rem markblosser - 102911 - breaks model pack 52 characters whose lives never reach 0, death is controlled purely in script
       `if entityprofile(entid).ischaracter=1 and entityprofile(entid).noragdoll=0 and entityelement(e).eleprof.lives<=0 and tokay=1
@@ -21237,7 +21263,7 @@ case AIACTSHOWWEAPON:
             endif
          endif
 
-         player(plrid).command.newweapon=tgunid
+         player(1).command.newweapon=tgunid
 
 endcase
 
@@ -21251,6 +21277,11 @@ weaponslot(temp).noselect=aiactionseq(seq).valueb
 
 endcase
 
+case AIACTDELAYTIMER:
+
+entityelement(e).delaydamagetimer=(aiactionseq(seq).value/1000)
+
+endcase
 
    endselect
 
@@ -32511,7 +32542,7 @@ if file exist(tprofile$)=0
   rem health packs have no physics by default for A compatibility
   if entityprofile(entid).ishealth<>0
    entityprofile(entid).physics=0
-  endif
+   endif
  else
   entityprofile(entid).physics=0
  endif
@@ -35549,7 +35580,7 @@ _gameflow_default:
   endif
   `
  endwhile
- `
+
  rem Instruct Map Editor To Relaunch and Reload Settings
  if gtestgamemodefromeditor=1
   rem Inform user of potentiall ylong delay while unloading
@@ -41521,13 +41552,14 @@ _ode_sounds:
       hide object phya
      endif
     endif
-    if phyb>0 and phyb<physicsuniverseobj
+
+   if phyb>0 and phyb<physicsuniverseobj
      if object in screen(phyb)=0
       rem remove from simulation if not in screen
       ode destroy object phyb
-      hide object phyb
-     endif
+     hide object phyb
     endif
+   endif
     `
    endif
    `
@@ -61891,7 +61923,7 @@ if entityelement(e).ishidden<>2
                   if entityelement(e).eleprof.physics=3 and entityelement(e).eleprof.isimmobile=1 and entityelement(e).cullimmobile=1 then entityelement(e).eleprof.physics=99
 
                   rem doors and windows, characters and the dead excluded from the cull.
-                  if object exist(obj) and (entityprofile(entid).ischaracter<>1 and entityelement(e).eleprof.physics<>3) or (entityprofile(entid).ischaracter=1  and entityelement(e).beenkilled<>0 and seeit=0)
+                  if object exist(obj) and (entityprofile(entid).ischaracter<>1 and entityelement(e).eleprof.physics<>3 and seeit=1)
 
          Rem get object distance
 
@@ -62091,6 +62123,7 @@ endcase
 endif
 endif
 endfunction
+
 
 
 _create_blood:
