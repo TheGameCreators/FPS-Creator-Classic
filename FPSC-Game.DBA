@@ -182,6 +182,7 @@ global eplayercam=0
 rem Scene Commander V119, for later use.
 global timescale=100
 
+
 rem scene commander - average FPS for smoother movement
 global nextave=1
 dim fpsstore(80):for f=1 to 80:fpsstore(f)=80:next f
@@ -2490,6 +2491,7 @@ rem Scene Commander actions
 #constant AIACTSHOWWEAPON 1641
 #constant AIACTNOSELECT 1642
 #constant AIACTDELAYTIMER 1643
+#constant AIACTCREATESPLASHSOUND 1644
 
 #constant AIACTLAST 1645
 
@@ -7450,8 +7452,9 @@ function debugviewtext(progress,gamedebugviewtext$)
        guiloadprogress = progress# : gosub _gui_run
       endif
    endif
+    if gdebugreportmodestate=0 then sync mask 0x1 : sync `S4real fix reflection problem with water.
  endif
- if gdebugreportmodestate=0 then sync
+ `if gdebugreportmodestate=0 then sync
  `
  rem Report On Progress Percentage
  if progress<>-1
@@ -9145,12 +9148,15 @@ _entity_makeasplash:
   decalalpha=velocity# : if decalalpha>50 then decalalpha=50
   originatore=0 : gosub _decalelement_create
   `
-  rem play splash sound
+  rem play splash sound - toggle spalsh sound on/off - Flatlander
+
+  if createsplashsound=1
   tmatindex=17 : tsoundtrigger=material(tmatindex).impactid
   tspd#=(material(tmatindex).freq*2)+rnd(material(tmatindex).freq)
   tsx#=decalx : tsy#=decaly : tsz#=decalz
   tvol#=velocity# : if tvol#>100 then tvol#=100
   gosub _ode_triggermaterialsound
+  endif
   `
  endif
  `
@@ -12736,6 +12742,7 @@ actword$(AIACTENTTIYOFFSETANGLEZ)="offsetanglez"
 actword$(AIACTSHOWWEAPON)="swapplrweapon"
 actword$(AIACTNOSELECT)="lockslot"
 actword$(AIACTDELAYTIMER)="setdamagedelay"
+actword$(AIACTCREATESPLASHSOUND)="createbulletsplashsound"
 
 return
 
@@ -21283,7 +21290,13 @@ entityelement(e).delaydamagetimer=(aiactionseq(seq).value/1000)
 
 endcase
 
+case AIACTCREATESPLASHSOUND:
+createsplashsound=aiactionseq(seq).value
+endcase
+
    endselect
+
+
 
 
     rem Scene commander actions end
@@ -24737,9 +24750,9 @@ if gotweapon=0
  else
   ws=gotweaponpref
  endif
- remstart
+
  rem switch to collected weapon
- if ws>0
+ if autoswap=1 and ws>0
   rem insert as slot weapon
   weaponslot(ws).got=weaponindex
   weaponslot(ws).invpos=weaponinvposition
@@ -24747,7 +24760,7 @@ if gotweapon=0
   weaponkeyselection=ws
   gotweapon=ws
  endif
- remend
+
  rem place details of weapon in slot
  if ws>0
   rem insert as slot weapon
