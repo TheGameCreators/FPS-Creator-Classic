@@ -33209,6 +33209,7 @@ if file exist(elementsfilename$)=1
       entityelement(e).eleprof.particleoverride=0
      endif
      entityelement(e).entitydammult#=1.0
+      entityelement(e).entityacc=1.0
     next e
    endif
   else
