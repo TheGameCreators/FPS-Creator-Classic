@@ -9312,11 +9312,15 @@ if entityelement(e).fireweapon=1
        tttokay=1
       endif
      endif
-
+         testobj=entityelement(tte).obj
       if tttokay=1
-      y2#=object position y(entityelement(tte).obj)
-      x2#=object position x(entityelement(tte).obj)
-      z2#=object position z(entityelement(tte).obj)
+       if testobj>0
+         if object exist(testobj)
+      y2#=object position y(testobj)
+      x2#=object position x(testobj)
+      z2#=object position z(testobj)
+         endif
+         endif
       else
       y2#=object position y(physicsplayerborble)
       x2#=object position x(physicsplayerborble)
