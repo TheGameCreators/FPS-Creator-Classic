@@ -51,8 +51,6 @@ perftimer() = *memptr
 
 delete dll Kernel32
 
-_start_engine:
-
 Rem Scene Commander globals
 
 rem wobble
@@ -179,14 +177,14 @@ global linkz=0
 global plrcamoffseton=0
 global playeraccmult#=1.0
 global eplayercam=0
-rem Scene Commander V119, for later use.
-global timescale=100
-
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
 dim fpsstore(80):for f=1 to 80:fpsstore(f)=80:next f
 
+Rem Scene Commander end variables
+
+_start_engine:
 if exeroot$<>"" then set dir exeroot$
 rem Special build flags for 'genre' switch
 global fpgchud$ : fpgchud$=""
@@ -482,10 +480,6 @@ type saveloadgamepositionentitytype
  x as float
  y as float
  z as float
- rem scene commander, entity moved via $EPX etc - work in progress
- jx as float
- jy as float
- jz as float
  rx as float
  ry as float
  rz as float
@@ -1567,10 +1561,6 @@ type entitytype
  x as float
  y as float
  z as float
-rem scene commander, entity moved via $EPX etc
- jx as float
- jy as float
- jz as float
  rx as float
  ry as float
  rz as float
@@ -3424,8 +3414,8 @@ global gusefloorstate : gusefloorstate=0
 global guseenvsoundsstate : guseenvsoundsstate=0
 global guseweaponsstate : guseweaponsstate=0
 global gindieditorstate : gindieditorstate=0
-global gdisplaywidth : gdisplaywidth=1024
-global gdisplayheight : gdisplayheight=768
+global gdisplaywidth : gdisplaywidth=sw
+global gdisplayheight : gdisplayheight=sh
 global gdisplaydepth : gdisplaydepth=32
 global gfullscreen : gfullscreen=0
 global gcontrollerhint : gcontrollerhint=0
@@ -4946,7 +4936,7 @@ position camera entityelement(ecam).x+entityelement(ecam).camoffsetx,entityeleme
    endif
 endif
 
-culling()
+`culling()
 
 if watercurrent<>0
    if playerunderwater=1
@@ -8268,7 +8258,7 @@ for ave=1 to 80
 temptime#=temptime#+fpsstore(ave)
 next ave
 timeelasped#=temptime#/80
-timeelasped#=(timeelasped#/100)*timescale: timestamp=timer()
+timeelasped#=(timeelasped#/100)*(timer()-timestamp): timestamp=timer()
 inc nextave,1:if nextave>80 then nextave=1
 rem maintain constant game speed
 `timeelapsed#=(1.0/50.0)*(timer()-timestamp) : timestamp=timer()
@@ -8298,7 +8288,10 @@ tonestealperaiphase=0
 tonestealperaiphasedist#=99999
 logicpriorityfurthest#=0
 for e=1 to entityelementlist
-
+Rem Scene Commander, calling culling per entity for performance increase.
+culling(e)
+rem Scene Commander - Ensure ismmobile entites are restored
+if entityelement(e).eleprof.physics=99 then entityelement(e).eleprof.physics=3
 entid=entityelement(e).bankindex
 obj=entityelement(e).obj
 
@@ -9301,6 +9294,8 @@ if entityelement(e).fireweapon=1
    rem gun data for accuracy
    Rem Hockeykid - 010410 - Swapped to a float to work better with Plystire's accuracy system
    `trayaccuracy=gun(tgunid).settings.accuracy
+   Rem Scene Commander - force accuracy if set to 0
+   if entityelement(e).entityacc=0 then entityelement(e).entityacc=1
    trayaccuracy#=firemode(tgunid,0).settings.accuracy*entityelement(e).entityacc
    Rem Hockeykid - 10410 - Added iteratations for AI
    trayiter=1+firemode(tgunid,0).settings.iterate
@@ -9317,7 +9312,7 @@ if entityelement(e).fireweapon=1
        tttokay=1
       endif
      endif
-     if entityelement(tte).obj>0
+
       if tttokay=1
       y2#=object position y(entityelement(tte).obj)
       x2#=object position x(entityelement(tte).obj)
@@ -9327,7 +9322,7 @@ if entityelement(e).fireweapon=1
       x2#=object position x(physicsplayerborble)
       z2#=object position z(physicsplayerborble)
        endif
-     endif
+
      tdx#=abs(x2#-x1#)
      tdy#=abs(y2#-y1#)
      tdz#=abs(z2#-z1#)
@@ -60062,25 +60057,13 @@ function setintervar(var$,alter#)
    entityelement(e).currentammo=alter#
   endcase
   case "$EPX"
-   gosub _ode_switchoffe
-   entityelement(e).positionchanged=1
-   entityelement(e).jx=alter#
-   entityelement(e).jy=entityelement(e).y
-   entityelement(e).jz=entityelement(e).z
+   entityelement(e).x=alter#
   endcase
   case "$EPY"
-   gosub _ode_switchoffe
-   entityelement(e).positionchanged=1
-   entityelement(e).jx=entityelement(e).x
-   entityelement(e).jy=alter#
-   entityelement(e).jz=entityelement(e).z
+   entityelement(e).y=alter#
   endcase
   case "$EPZ"
-   gosub _ode_switchoffe
-   entityelement(e).positionchanged=1
-   entityelement(e).jx=entityelement(e).x
-   entityelement(e).jy=entityelement(e).y
-   entityelement(e).jz=alter#
+   entityelement(e).z=alter#
   endcase
   case "$EAX"
    entityelement(e).rx=alter#
@@ -61899,7 +61882,7 @@ rem end is o
 
     endfunction
 
-    function culling()
+    function culling(e)
 
    ` text 200,200,str$(plrreloading)
 
@@ -61912,7 +61895,7 @@ rem get player position
  tcamz#=object position z(physicsplayerborble)
 
 
-for e=1 to entityelementlist
+`for e=1 to entityelementlist
 entid=entityelement(e).bankindex
 
 rem only check entities not hidden by system and those that are active
@@ -61997,7 +61980,7 @@ if entityelement(e).ishidden<>2
 
 endif
 
-  next e
+`  next e
 
   rem close if no culling
   endif
@@ -62176,6 +62159,7 @@ _create_blood:
  endif
  middlebody=0
 return
+
 
 
 
