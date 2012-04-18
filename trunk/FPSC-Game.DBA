@@ -260,7 +260,7 @@ rem Time stamp outside level scope reset
 global timestampactivitymax=0
 global timestampactivityflagged=0
 global timestampactivityindex=0
-`dim timestampactivity$(1000)
+dim timestampactivity$(1000)
 Rem Scene Commander performance
 global timebasepercycle# as float : timebasepercycle#=0
 global timebasepercyclestamp as DWORD : timebasepercyclestamp=timer()
@@ -35463,6 +35463,7 @@ _gameflow_default:
            `endif
           `endif
          `next o
+
          For lsi=1 to entityelementmax
          frobj=entityelement(lsi).obj
          if frobj>0
@@ -61931,8 +61932,6 @@ rem get player position
  tcamx#=object position x(physicsplayerborble)
  tcamy#=object position y(physicsplayerborble)
  tcamz#=object position z(physicsplayerborble)
-
-
 
 `for e=1 to entityelementlist
 entid=entityelement(e).bankindex
