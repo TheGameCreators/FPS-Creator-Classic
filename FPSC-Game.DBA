@@ -445,7 +445,11 @@ saveload as saveloadtype
 dim saveloadslot$(9)
 
 ` FPGC Pause Mode Globals
-dim frozenframes#(65535)
+`dim frozenframes#(65535)
+
+type frozen
+frames as integer
+endtype
 
 ` FPSCV10X Game Position Data Structure
 type saveloadgamepositiontype
@@ -548,6 +552,7 @@ type saveloadgamepositionentitytype
  objectivecurrentrange as integer
  entityacc as float
  soundplaying as integer
+ frozen as frozen
 endtype
 type saveloadgamepositionweaponslottype
  pref got invpos
@@ -1707,6 +1712,7 @@ type entitytype
  objectivecurrentrange as integer
  entityacc as integer
  soundplaying as integer
+ frozen as frozen
 endtype
 rem Entity Breadcrumbs Data
 type entitybreadcrumbstype
@@ -18033,17 +18039,25 @@ Rem Scene Commander
       showgamemenu=1
       `
       rem FPGC - 110809 - when in pause mode, freeze all 3D object frames (record here)
-      for o=1 to 65535
-       frozenframes#(o)=0.0
-       if object exist(o)=1
-        if object visible(o)=1
-         frozenframes#(o)=object frame(o)
-        endif
-       endif
-      next o
+      `for o=1 to 65535
+       `frozenframes#(o)=0.0
+      ` if object exist(o)=1
+        `if object visible(o)=1
+         `frozenframes#(o)=object frame(o)
+       ` endif
+       `endif
+    `  next o
       `
-      rem FPGC - 080710 - resume any paused soundloops
+      rem FPGC - 080710 - resume any paused soundloops and animations
       for lsi=1 to entityelementmax
+            frobj=entityelement(lsi).obj
+         if frobj>0
+            if object exist(frobj)
+             if object visible(frobj)=1
+               entityelement(lsi).frozen.frames=object frame(frobj)
+             endif
+            endif
+         endif
        rem V118 - 120810 - knxrb - etimer fix from Scene Commander
        entityelement(lsi).etimerpaused=entityelement(lsi).etimer
        entityelement(lsi).lastdamagepaused=entityelement(lsi).lastdamagetimer
@@ -18062,8 +18076,17 @@ Rem Scene Commander
       cleardelta=mousemovex() : cleardelta=mousemovey()
       tensureentitytimestampsupdated=1
       `
-      rem FPGC - 080710 - resume any paused soundloops
+      rem FPGC - 080710 - resume any paused soundloops and animations
       for lsi=1 to entityelementmax
+         frobj=entityelement(lsi).obj
+         if frobj>0
+            if object exist(frobj)
+             if object visible(frobj)=1
+               set object frame frobj,entityelement(lsi).frozen.frames
+             endif
+            endif
+         endif
+
        rem V118 - 120810 - knxrb - etimer fix from Scene Commander
        entityelement(lsi).etimer=entityelement(lsi).etimerpaused
        entityelement(lsi).lastdamagetimer=entityelement(lsi).lastdamagepaused
@@ -35379,7 +35402,7 @@ _gameflow_default:
      repeatsamelevel=0
      repeat
       `
-      rem Flag to control the repeat (multiaplayer)
+      rem Flag to control the repeat (multiplayer)
       if gmultiplayergame=1
        if repeatsamelevel<>0
         rem Game has been repeated, so reset some small elements to reproduce exact restart (quicker than reload)
@@ -35433,13 +35456,24 @@ _gameflow_default:
          gosub _main_game_core
         else
          rem FPGC - 110809 - when in pause mode, freeze all 3D object frames
-         for o=1 to 65535
-          if object exist(o)=1
-           if object visible(o)=1
-            set object frame o,frozenframes#(o)
-           endif
-          endif
-         next o
+         `for o=1 to 65535
+          `if object exist(o)=1
+           `if object visible(o)=1
+            `set object frame o,frozenframes#(o)
+           `endif
+          `endif
+         `next o
+         For lsi=1 to entityelementmax
+         frobj=entityelement(lsi).obj
+         if frobj>0
+            if object exist(frobj)
+             if object visible(frobj)=1
+               set object frame frobj,entityelement(lsi).frozen.frames
+             endif
+            endif
+         endif
+         next lsi
+
         endif
         gosub _screen_control
         if vrsidebysidestereo=1 then gosub _vrstereotogglescreen
