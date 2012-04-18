@@ -260,7 +260,7 @@ rem Time stamp outside level scope reset
 global timestampactivitymax=0
 global timestampactivityflagged=0
 global timestampactivityindex=0
-dim timestampactivity$(1000)
+`dim timestampactivity$(1000)
 Rem Scene Commander performance
 global timebasepercycle# as float : timebasepercycle#=0
 global timebasepercyclestamp as DWORD : timebasepercyclestamp=timer()
@@ -61899,8 +61899,10 @@ rem get player position
  tcamz#=object position z(physicsplayerborble)
 
 
+
 `for e=1 to entityelementlist
 entid=entityelement(e).bankindex
+obj=entityelement(e).obj
 
 rem only check entities not hidden by system and those that are active
 hiddenbackup=entityelement(e).ishidden
@@ -61913,7 +61915,10 @@ if entityelement(e).activated=0 and entityelement(e).spawn.atstart=0
 
 if entityelement(e).ishidden<>2
 
-  obj=entityelement(e).obj
+   Rem Scene Commnader, do not cull if object in motion.
+   if int(ode get body linear velocity x(obj))<>0 or int(ode get body linear velocity y(obj))<>0 or int(ode get body linear velocity z(obj))<>0
+      exitfunction
+   endif
 
             if obj>0
 
