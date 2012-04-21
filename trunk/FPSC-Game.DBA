@@ -23256,6 +23256,7 @@ function addfiletocollection(filename$)
                endif
             endif
             filecollection$(chk)=sp$
+            tokay=0:exit
       endif
 
      endif
@@ -23265,9 +23266,8 @@ function addfiletocollection(filename$)
      array insert at bottom filecollection$()
      filecollection$()=filename$
      `
-     rem FPGC - 220210 - if .WAV, assume a LIPSYNC could be with it (even if ultimately not copied)
-     `if lower$(right$(filename$,4))=".wav" or
-     if lower$(right$(filename$,4))=".ogg"
+     rem FPGC - 220210 - if .WAV, of .OGG assume a LIPSYNC could be with it (even if ultimately not copied)
+     if lower$(right$(filename$,4))=".wav" or lower$(right$(filename$,4))=".ogg"
       lipsyncfilename$=left$(filename$,len(filename$)-4)+".lipsync"
       array insert at bottom filecollection$()
       filecollection$()=lipsyncfilename$
@@ -23288,9 +23288,10 @@ function addallfilestocollection(folder$)
  for c=1 to checklist quantity()
   file$=checklist string$(c)
   if file$<>"." and file$<>".."
-   if right$(lower$(file$),4)<>".tga" and right$(lower$(file$),4)<>".wav"
+   if right$(lower$(file$),4)<>".tga"
     rem all except raw TGA file
     addfiletocollection(folder$+"\"+file$)
+
    endif
   endif
  next c
