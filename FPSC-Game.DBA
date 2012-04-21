@@ -22948,10 +22948,11 @@ soundid=0
 rem No scan for existing - all sounds unique for overlay play
 t=soundbankmax+1
 if t>soundbankmax
- tspecialogg=0 : if right$(lower$(tfile$),4)=".ogg" then tspecialogg=1
+   tspecialogg=0 : if right$(lower$(tfile$),4)=".ogg" then tspecialogg=1
  if right$(lower$(tfile$),4)=".wav" or tspecialogg=1
+
   if file exist(tfile$)=1
-   `
+
    inc soundbankmax
    dim soundbank$(soundbankmax)
    soundid=soundbankoffset+soundbankmax
@@ -23243,7 +23244,20 @@ function addfiletocollection(filename$)
         filecollection$(chk)=filename$
         tokay=0 : exit
        endif
+
       endif
+      rem Scene Commander - memory reduction - if .wav and passing through here, convert - Not all wav's can be converted due to restrctions
+      if lower$(right$(filename$,4))=".ogg" or lower$(right$(filename$,4))=".wav"
+         sp$=lower$(left$(filecollection$(chk),len(filecollection$(chk))-4))+".ogg"
+            if lower$(right$(filecollection$(chk),4))=".wav"
+               if file exist(sp$)=0
+               a$=filecollection$(chk)
+               encode to ogg vorbis a$,sp$
+               endif
+            endif
+            filecollection$(chk)=sp$
+      endif
+
      endif
     next chk
     rem add file to collection
@@ -23252,7 +23266,8 @@ function addfiletocollection(filename$)
      filecollection$()=filename$
      `
      rem FPGC - 220210 - if .WAV, assume a LIPSYNC could be with it (even if ultimately not copied)
-     if lower$(right$(filename$,4))=".wav" or lower$(right$(filename$,4))=".ogg"
+     `if lower$(right$(filename$,4))=".wav" or
+     if lower$(right$(filename$,4))=".ogg"
       lipsyncfilename$=left$(filename$,len(filename$)-4)+".lipsync"
       array insert at bottom filecollection$()
       filecollection$()=lipsyncfilename$
@@ -23273,7 +23288,7 @@ function addallfilestocollection(folder$)
  for c=1 to checklist quantity()
   file$=checklist string$(c)
   if file$<>"." and file$<>".."
-   if right$(lower$(file$),4)<>".tga"
+   if right$(lower$(file$),4)<>".tga" and right$(lower$(file$),4)<>".wav"
     rem all except raw TGA file
     addfiletocollection(folder$+"\"+file$)
    endif
@@ -35463,7 +35478,6 @@ _gameflow_default:
            `endif
           `endif
          `next o
-
          For lsi=1 to entityelementmax
          frobj=entityelement(lsi).obj
          if frobj>0
@@ -61932,6 +61946,8 @@ rem get player position
  tcamx#=object position x(physicsplayerborble)
  tcamy#=object position y(physicsplayerborble)
  tcamz#=object position z(physicsplayerborble)
+
+
 
 `for e=1 to entityelementlist
 entid=entityelement(e).bankindex
