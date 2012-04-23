@@ -16024,6 +16024,7 @@ Rem Scene Commander
       entityelement(e).mover.moved=1
       entityelement(e).mover.run=0
      endcase
+
      case AIACTRUNFORE:
       tmpx#=entityelement(e).x : tmpz#=entityelement(e).z
       tmp#=(entityelement(e).eleprof.speed/100.0)*aiactionseq(seq).value
@@ -18053,9 +18054,7 @@ Rem Scene Commander
             frobj=entityelement(lsi).obj
          if frobj>0
             if object exist(frobj)
-             if object visible(frobj)=1
                entityelement(lsi).frozen.frames=object frame(frobj)
-             endif
             endif
          endif
        rem V118 - 120810 - knxrb - etimer fix from Scene Commander
@@ -18081,9 +18080,7 @@ Rem Scene Commander
          frobj=entityelement(lsi).obj
          if frobj>0
             if object exist(frobj)
-             if object visible(frobj)=1
                set object frame frobj,entityelement(lsi).frozen.frames
-             endif
             endif
          endif
 
@@ -24572,7 +24569,7 @@ rem cinematic hands <<<<
 endif
 
 rem scene commander - ensure weapon unjam if jammed
-if firemode(gunid,firemode).settings.jammed=1 and (plrkeyR)=1 and gun(gunid).settings.ismelee<>2 and firemode(gunid,firemode).settings.simplezoomanim<>0 and firemode(gunid,firemode).settings.simplezoom<>0
+if firemode(gunid,firemode).settings.jammed=1 and (plrkeyR)=1 and gun(gunid).settings.ismelee<>2 and firemode(gunid,firemode).settings.simplezoomanim=0 and firemode(gunid,firemode).settings.simplezoom=0
 player(plrid).state.firingmode=2
 endif
 
@@ -35483,9 +35480,7 @@ _gameflow_default:
          frobj=entityelement(lsi).obj
          if frobj>0
             if object exist(frobj)
-             if object visible(frobj)=1
                set object frame frobj,entityelement(lsi).frozen.frames
-             endif
             endif
          endif
          next lsi
@@ -61978,8 +61973,10 @@ if entityelement(e).ishidden<>2
 
                   if entityelement(e).eleprof.physics=3 and entityelement(e).eleprof.isimmobile=1 and entityelement(e).cullimmobile=1 then entityelement(e).eleprof.physics=99
 
+
                   rem doors and windows, characters and the dead excluded from the cull.
-                  if object exist(obj) and (entityprofile(entid).ischaracter<>1 and entityelement(e).eleprof.physics<>3 and seeit=1)
+                  `if object exist(obj) and (entityprofile(entid).ischaracter<>1 and entityelement(e).eleprof.physics<>3 and seeit=1)
+                  if seeit=1
 
          Rem get object distance
 
