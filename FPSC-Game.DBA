@@ -8851,9 +8851,9 @@ for e=1 to entityelementlist
       `rotation#=(entityelement(e).spiner/2.0)
       if int(entityelement(e).spiner)<>int(entityelement(e).spineraim)
       if int(entityelement(e).spiner)>int(entityelement(e).spineraim)
-      entityelement(e).spiner=int(entityelement(e).spiner)-1
+      entityelement(e).spiner=int(entityelement(e).spiner)-(1*timeelapsed#)
       else
-      entityelement(e).spiner=int(entityelement(e).spiner)+1
+      entityelement(e).spiner=int(entityelement(e).spiner)+(1*timeelapsed#)
       endif
       endif
 
