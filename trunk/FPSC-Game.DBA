@@ -177,6 +177,7 @@ global linkz=0
 global plrcamoffseton=0
 global playeraccmult#=1.0
 global eplayercam=0
+global setlinkastarget=0
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
@@ -2488,8 +2489,9 @@ rem Scene Commander actions
 #constant AIACTNOSELECT 1642
 #constant AIACTDELAYTIMER 1643
 #constant AIACTCREATESPLASHSOUND 1644
+#constant AIACTTARGETLINK 1645
 
-#constant AIACTLAST 1645
+#constant AIACTLAST 1648
 
 rem V109 BETA3 - 210408 - AI variables
 global aivariablemode : aivariablemode=0 : rem 0-global, 1-local
@@ -8851,9 +8853,9 @@ for e=1 to entityelementlist
       `rotation#=(entityelement(e).spiner/2.0)
       if int(entityelement(e).spiner)<>int(entityelement(e).spineraim)
       if int(entityelement(e).spiner)>int(entityelement(e).spineraim)
-      entityelement(e).spiner=int(entityelement(e).spiner)-(1*timeelapsed#)
+      entityelement(e).spiner=int(entityelement(e).spiner)-1
       else
-      entityelement(e).spiner=int(entityelement(e).spiner)+(1*timeelapsed#)
+      entityelement(e).spiner=int(entityelement(e).spiner)+1
       endif
       endif
 
@@ -9319,6 +9321,7 @@ if entityelement(e).fireweapon=1
       endif
      endif
          testobj=entityelement(tte).obj
+         rem scene commander fix, prevents occasional crash.
       if tttokay=1
        if testobj>0
          if object exist(testobj)
@@ -9326,7 +9329,7 @@ if entityelement(e).fireweapon=1
       x2#=object position x(testobj)
       z2#=object position z(testobj)
          endif
-         endif
+       endif
       else
       y2#=object position y(physicsplayerborble)
       x2#=object position x(physicsplayerborble)
@@ -12748,6 +12751,7 @@ actword$(AIACTSHOWWEAPON)="swapplrweapon"
 actword$(AIACTNOSELECT)="lockslot"
 actword$(AIACTDELAYTIMER)="setdamagedelay"
 actword$(AIACTCREATESPLASHSOUND)="createbulletsplashsound"
+actword$(AIACTTARGETLINK)="setlinkastarget"
 
 return
 
@@ -21311,6 +21315,12 @@ endcase
 
 case AIACTCREATESPLASHSOUND:
 createsplashsound=aiactionseq(seq).value
+endcase
+
+case AIACTTARGETLINK:
+
+setlinkastarget=aiactionseq(seq).value
+
 endcase
 
    endselect
