@@ -41393,7 +41393,7 @@ _ode_sounds:
   ODE COLLISION GET MESSAGE
   phya=ODE GET OBJECT A() : phyb=ODE GET OBJECT B()
   `
-  if (phya=physicsplayerborble or phyb=physicsplayerborble) and playercollison=1
+  if (phya=physicsplayerborble or phyb=physicsplayerborble)
   rem player phyobject stood on another phy object
   tdownward#=0.0 : ttouchedobj=0 : toverallveldiff#=0
   if (phya=physicsplayerborble and phyb<>0) then tdownward#=ODE GET OBJECT A VELOCITY Y() : ttouchedobj=phyb : toverallveldiff#=abs(ODE GET OBJECT B VELOCITY X())+abs(ODE GET OBJECT B VELOCITY Y())+abs(ODE GET OBJECT B VELOCITY Z())
@@ -45684,7 +45684,10 @@ a#=plrcamoffsetx#:write float 1,a#
 a#=plrcamoffsety#:write float 1,a#
 a#=plrcamoffsetz#:write float 1,a#
 a#=plrcamoffseton:write float 1,a#
-
+a#=waterheight#:write float 1,a#
+a#=oldwaterheight#:write float 1,a#
+a#=watercurrent:write float 1,a#
+a#=waterflow:write float 1,a#
 
   for lsi=0 to entityelementmax
    a#=saveloadgamepositionentity(lsi).soundplaying : write float 1,a#
@@ -46029,6 +46032,10 @@ read float 1,a#:plrcamoffsetx#=a#
 read float 1,a#:plrcamoffsety#=a#
 read float 1,a#:plrcamoffsetz#=a#
 read float 1,a#:plrcamoffseton=a#
+read float 1,a#:waterheight#=a#
+read float 1,a#:oldwaterheight#=a#
+read float 1,a#:watercurrent=a#
+read float 1,a#:waterflow=a#
 
   for lsi=0 to entityelementmax
 
@@ -59835,10 +59842,12 @@ _water_control:
  else
   waterdecalripple=0
  endif
- Rem Handle raising water and lowering water
+ Rem Handle raising water and lowering water - Scene Commander, rearranged to reduce test.
  tupdatewater=0
- if keystate(201) and gtestgamemodefromeditor=1 then inc waterheight# : watertimer=5 : ambiencetimer=0
- if keystate(209) and gtestgamemodefromeditor=1 then dec waterheight# : watertimer=5 : ambiencetimer=0
+ if gtestgamemodefromeditor=1
+ if keystate(201) then inc waterheight# : watertimer=5 : ambiencetimer=0
+ if keystate(209) then dec waterheight# : watertimer=5 : ambiencetimer=0
+ endif
  if waterheight#<1 then waterheight#=0
  if waterheight#<>oldwaterheight# then tupdatewater=1 : oldwaterheight#=waterheight# : position object waterobj,0,waterheight#,0
  `
@@ -61997,6 +62006,7 @@ if entityelement(e).ishidden<>2
                         rem never hide really close objects regardless
                         if howfar<150 or entityelement(e).cullstate=2 then sizeis=1000000
 
+
                               if sizeis<1000000
                               fade=abs(howfar-sizeis)
                               else
@@ -62014,8 +62024,6 @@ if entityelement(e).ishidden<>2
                               show object obj
                               entityelement(e).ishidden=0
                               endif
-
-
 
                            if howfar>=sizeis or entityelement(e).cullstate=3 or seeit=0
                            hide object obj
