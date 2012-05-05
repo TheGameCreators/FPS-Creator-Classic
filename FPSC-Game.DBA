@@ -4833,13 +4833,15 @@ if player(1).health>0 and justdone=0 then tiltondeath=0:rotate camera 0,0,camera
 
 Rem Scene commander
 Rem Show / Hide crosshair
-if gunid>0 and crosshairon=0
-    if gun(gunid).settings.crosshairimg>0 then hide object hudbankoffset+31
+if object exist(hudbankoffset+31)
+   if gunid>0 and crosshairon=0
+      if gun(gunid).settings.crosshairimg>0 then hide object hudbankoffset+31
    endif
 
    if gunid>0 and crosshairon=1
     if gun(gunid).settings.crosshairimg>0 then show object hudbankoffset+31
    endif
+endif
 
  gosub _main_sync
  `
@@ -9948,7 +9950,7 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
       entityelement(te).force.active=0
       entityelement(te).logiccount=0
       entityelement(te).blockedby=0
-  
+
 
       rem rest ragdoll
       rem Hockeykid - 080611 - Won't work, throw-ragdoll scripts do not allow for the character to get back up!
@@ -40563,8 +40565,11 @@ if deactivatecollision=0 and skipcol=0
    rem only influence of object beneath player borble
    if object position y(camerastoodonphyobj)<object position y(physicsplayerborble)
    Rem Scene Commnader, fix for new fps cap.
-    camvelx#=camvelx#+(camerastoodonphyobjmovingx#*80.0*timeelapsed#)
-    camvelz#=camvelz#+(camerastoodonphyobjmovingz#*80.0*timeelapsed#)
+    `camvelx#=camvelx#+(camerastoodonphyobjmovingx#*80.0*timeelapsed#)
+    `camvelz#=camvelz#+(camerastoodonphyobjmovingz#*80.0*timeelapsed#)
+
+   camvelx#=camvelx#+(camerastoodonphyobjmovingx#*screen fps()*timeelapsed#)
+   camvelz#=camvelz#+(camerastoodonphyobjmovingz#*screen fps()*timeelapsed#)
    endif
    lcamerastoodonphyobjmovingx#=object position x(camerastoodonphyobj)
    lcamerastoodonphyobjmovingz#=object position z(camerastoodonphyobj)
@@ -61660,7 +61665,10 @@ function SyncAll()
   if object exist(65123)=1 then hide object 65123
   if object exist(65124)=1 then hide object 65124
   hide object 99001
+  Rem Scene Commander - only deal with water plane if water is on.
+  if wateron=1
   hide object waterobj
+  endif
   `
   rem mask all hudbankoffset object for raycamera render
   for o=hudbankoffset to hudbankoffset+31
@@ -61684,7 +61692,10 @@ function SyncAll()
   if object exist(65123)=1 then show object 65123
   if object exist(65124)=1 then show object 65124
   show object 99001
+  Rem Scene Commander - only deal with water plane if water is on.
+  if wateron=1
   show object waterobj
+  endif
   `
   rem set new black effect technique
   for blackeffects=effectbankoffset to effectbankoffset+effectbankmax
