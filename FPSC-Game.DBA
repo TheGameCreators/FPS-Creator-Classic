@@ -8862,9 +8862,17 @@ for e=1 to entityelementlist
       rotation#=int(entityelement(e).spiner)
       Rem Handle Spine 1 Rotation
      ` text object screen x(entityelement(e).obj),object screen y(entityelement(e).obj),str$(entityelement(e).spiner)
-      Rotate Limb entityelement(e).obj,entityprofile(entid).spine,Limb Angle X(entityelement(e).obj,entityprofile(entid).spine),rotation#,Limb Angle Z(entityelement(e).obj,entityprofile(entid).spine)
+         if entityprofile(entid).spine>0
+            if limb exist(entityelement(e).obj,entityprofile(entid).spine)=1
+            Rotate Limb entityelement(e).obj,entityprofile(entid).spine,Limb Angle X(entityelement(e).obj,entityprofile(entid).spine),rotation#,Limb Angle Z(entityelement(e).obj,entityprofile(entid).spine)
+            endif
+         endif
       Rem Handle Spine 2 Rotation
-      Rotate Limb entityelement(e).obj,entityprofile(entid).spine2,Limb Angle X(entityelement(e).obj,entityprofile(entid).spine2),rotation#,Limb Angle Z(entityelement(e).obj,entityprofile(entid).spine2)
+         if entityprofile(entid).spine2>0
+            if limb exist(entityelement(e).obj,entityprofile(entid).spine2)=1
+            Rotate Limb entityelement(e).obj,entityprofile(entid).spine2,Limb Angle X(entityelement(e).obj,entityprofile(entid).spine2),rotation#,Limb Angle Z(entityelement(e).obj,entityprofile(entid).spine2)
+            endif
+         endif
      endif
      `
      rem any visual overlay info
@@ -9877,28 +9885,9 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
           if tx<=viscolx and ty<=viscoly and tz<=viscolz
            if viscolmap(tx,ty,tz)=0
 
-
-            entityelement(te).y=entityelement(e).spawn.y`+tdj#
+            entityelement(te).y=entityelement(e).spawn.y
             entityelement(te).x=tryx#
             entityelement(te).z=tryz#
-      ttryy#=entityelement(te).y
-      tettry=0
-
-      while tettry<25
-    tobj=entityelement(te).obj
-    if static raycast(object position x(tobj),ttryy#,object position z(tobj),object position x(tobj),ttryy#-((newscale+8)),object position z(tobj))=0 then exit
-      ttryy#=ttryy#+1.0
-      inc tettry
-     endwhile
-     if tettry>=25
-      rem entity stuck - so make it immobile to shut down struggle!
-      entityelement(te).eleprof.isimmobile=1
-     else
-      rem entities can find floor initially (not playerstart,trigger,light,emission)
-      entityelement(te).y=ttryy#
-
-     position object tobj,entityelement(te).x,entityelement(te).y,entityelement(te).z
-      endif
 
 
             tokay=1 : exit
@@ -9913,28 +9902,9 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
      else
 
       entityelement(te).x=entityelement(e).spawn.x
-      entityelement(te).y=entityelement(e).spawn.y`+tadj#
+      entityelement(te).y=entityelement(e).spawn.y
       entityelement(te).z=entityelement(e).spawn.z
       tokay=1
-
-      ttryy#=entityelement(e).y
-      tettry=0
-
-      while tettry<25
-     tobj=entityelement(te).obj
-    if static raycast(object position x(tobj),ttryy#,object position z(tobj),object position x(tobj),ttryy#-((newscale+8)),object position z(tobj))=0 then exit
-      ttryy#=ttryy#+1.0
-      inc tettry
-     endwhile
-     if tettry>=25
-      rem entity stuck - so make it immobile to shut down struggle!
-      entityelement(te).eleprof.isimmobile=1
-     else
-      rem entities can find floor initially (not playerstart,trigger,light,emission)
-      entityelement(te).y=ttryy#
-
-     position object tobj,entityelement(te).x,entityelement(te).y,entityelement(te).z
-      endif
 
      endif
      `
@@ -9978,6 +9948,7 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
       entityelement(te).force.active=0
       entityelement(te).logiccount=0
       entityelement(te).blockedby=0
+  
 
       rem rest ragdoll
       rem Hockeykid - 080611 - Won't work, throw-ragdoll scripts do not allow for the character to get back up!
@@ -20399,54 +20370,13 @@ case AIACTSETVARRND:
 
    newscale=rnd(maxscale)+tempscale
 
-   if entityelement(e).obj>0
-      if object exist(entityelement(e).obj)=1
-         newscale=newscale+object size y(entityelement(e).obj)
-         newscale=newscale/2
-      endif
-   endif
+     for li = 2 to 13
 
-      for li = 2 to 13
+      alterlimbscale(e,li,newscale)
 
-       alterlimbscale(e,li,newscale)
-
-      next li
+     next li
 
    entid=entityelement(e).bankindex
-   if entityprofile(entid).ischaracter=1 and entityelement(e).y>20
-    tettry=0 : tskip=0
-
-    ellipseheight#=1.0
-    if entityelement(e).obj
-
-      ttryy#=entityelement(e).y`+(object size y(entityelement(e).obj)/2)
-
-     if object exist(entityelement(e).obj)=1
-      if object size y(entityelement(e).obj)<50
-       tskip=1
-      endif
-     endif
-    endif
-    if tskip=0
-     while tettry<25
-     ` if static volume(entityelement(e).x,ttryy#+33,entityelement(e).z,entityelement(e).x,ttryy#+32,entityelement(e).z,ellipseheight#)=0 then exit
-     tobj=entityelement(e).obj
-    if static raycast(object position x(tobj),ttryy#,object position z(tobj),object position x(tobj),ttryy#-((newscale+8)),object position z(tobj))=0 then exit
-      ttryy#=ttryy#+1.5
-      inc tettry
-     endwhile
-     if tettry>=25
-      rem entity stuck - so make it immobile to shut down struggle!
-      entityelement(e).eleprof.isimmobile=1
-     else
-      rem entities can find floor initially (not playerstart,trigger,light,emission)
-      entityelement(e).y=ttryy#
-      entityelement(e).mover.inmotion=1
-      entityelement(e).mover.grav=0.0
-     endif
-    endif
-     entityprofile(entid).scale=newscale
-      endif
 
      endcase
 
@@ -40632,6 +40562,7 @@ if deactivatecollision=0 and skipcol=0
    camerastoodonphyobjmovingz#=object position z(camerastoodonphyobj)-lcamerastoodonphyobjmovingz#
    rem only influence of object beneath player borble
    if object position y(camerastoodonphyobj)<object position y(physicsplayerborble)
+   Rem Scene Commnader, fix for new fps cap.
     camvelx#=camvelx#+(camerastoodonphyobjmovingx#*80.0*timeelapsed#)
     camvelz#=camvelz#+(camerastoodonphyobjmovingz#*80.0*timeelapsed#)
    endif
