@@ -31790,7 +31790,8 @@ _entity_updatealttexture:
   else
    texture object obj,0,entityelement(e).eleprof.texaltdid
   endif
-  if entityelement(e).eleprof.usingeffect>0
+ Rem Scene commander - fix for corrupting of characters mesh during alt switch.
+  if entityelement(e).eleprof.usingeffect>0 and entityelement(e).eleprof.texaltdid=0
    if entityelement(e).eleprof.tex1id<>0 then texture object obj,1,entityelement(e).eleprof.tex1id
    if entityelement(e).eleprof.tex2id<>0 then texture object obj,2,entityelement(e).eleprof.tex2id
    if entityelement(e).eleprof.tex3id<>0 then texture object obj,3,entityelement(e).eleprof.tex3id
