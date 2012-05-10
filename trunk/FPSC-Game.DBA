@@ -177,7 +177,6 @@ global linkz=0
 global plrcamoffseton=0
 global playeraccmult#=1.0
 global eplayercam=0
-global setlinkastarget=0
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
@@ -12724,7 +12723,7 @@ actword$(AIACTSHOWWEAPON)="swapplrweapon"
 actword$(AIACTNOSELECT)="lockslot"
 actword$(AIACTDELAYTIMER)="setdamagedelay"
 actword$(AIACTCREATESPLASHSOUND)="createbulletsplashsound"
-actword$(AIACTTARGETLINK)="setlinkastarget"
+
 
 return
 
@@ -21262,11 +21261,6 @@ case AIACTCREATESPLASHSOUND:
 createsplashsound=aiactionseq(seq).value
 endcase
 
-case AIACTTARGETLINK:
-
-setlinkastarget=aiactionseq(seq).value
-
-endcase
 
    endselect
 
@@ -61971,8 +61965,8 @@ if entityelement(e).ishidden<>2
 
                      if entityelement(e).cullstate>3 then sizeis=entityelement(e).cullstate
                         rem never hide really close objects regardless
+                        if sizeis>hudfognear and hudfogon=1 then sizesis=hudfognear
                         if howfar<150 or entityelement(e).cullstate=2 then sizeis=1000000
-
 
                               if sizeis<1000000
                               fade=abs(howfar-sizeis)
@@ -61980,7 +61974,7 @@ if entityelement(e).ishidden<>2
                               fade=100
                               endif
 
-                              if howfar<80 then fade=100
+                              `if howfar<80 then fade=100
 
                            if entityelement(e).ishidden<>3
                               if fade<entityelement(e).ai.destalphafade and fade<101
