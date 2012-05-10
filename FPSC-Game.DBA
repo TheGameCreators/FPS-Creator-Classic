@@ -44410,6 +44410,7 @@ _client:
    dwLocalPlayerID=MULTIPLAYER GET PLAYER ID(0)
    dwStartJoinTime=timer()
    rem Trigger server to send all init states (priority)
+   MULTIPLAYER SEND FROM PLAYER dwLocalPlayerID
    write memblock byte 102, 0, 1
    MULTIPLAYER SEND MESSAGE memblock 102,0x0080,4
    inc guarenteedbytes,4 : inc unreliablebytes,0
