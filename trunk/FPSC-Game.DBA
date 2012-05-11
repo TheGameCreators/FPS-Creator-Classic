@@ -15556,7 +15556,7 @@ Rem Scene Commander
        tvarfound=0
        rem Using our strings from the parser, let's find the var the user wants to set
        if left$(aiactionseq(seq).string1,1)="$"
-        setintervar(aiactionseq(seq).string1,aiactionseq(seq).valueb)
+        setintervar(e,aiactionseq(seq).string1,aiactionseq(seq).valueb)
         else
         for uvar = 0 to array count(uservars(0))
          if uservars(uvar).name = aiactionseq(seq).string1
@@ -15594,9 +15594,9 @@ Rem Scene Commander
       else
        rem Using our strings from the parser, let's find the var the user wants to set
        if left$(aiactionseq(seq).string1,1)="$"
-        ttt=getintervar(aiactionseq(seq).string1)
+        ttt=getintervar(e,aiactionseq(seq).string1)
         ttt=ttt+aiactionseq(seq).valueb
-        setintervar(aiactionseq(seq).string1,ttt)
+        setintervar(e,aiactionseq(seq).string1,ttt)
        else
         tvarfound=0
         for uvar = 0 to array count(uservars(0))
@@ -15636,9 +15636,9 @@ Rem Scene Commander
       else
        rem Using our strings from the parser, let's find the var the user wants to set
        if left$(aiactionseq(seq).string1,1)="$"
-        ttt=getintervar(aiactionseq(seq).string1)
+        ttt=getintervar(e,aiactionseq(seq).string1)
         ttt=ttt-aiactionseq(seq).valueb
-        setintervar(aiactionseq(seq).string1,ttt)
+        setintervar(e,aiactionseq(seq).string1,ttt)
        else
         tvarfound=0
         for uvar = 0 to array count(uservars(0))
@@ -15708,9 +15708,9 @@ Rem Scene Commander
      case AIACTADDVAR:
       rem Using our strings from the parser, let's find the var the user wants to set
       if left$(aiactionseq(seq).string1,1)="$"
-       ttt=getintervar(aiactionseq(seq).string1)
+       ttt=getintervar(e,aiactionseq(seq).string1)
        ttt=ttt+aiactionseq(seq).valueb
-       setintervar(aiactionseq(seq).string1,ttt)
+       setintervar(e,aiactionseq(seq).string1,ttt)
       else
        tvarfound=0
        for uvar = 0 to array count(uservars(0))
@@ -15740,9 +15740,9 @@ Rem Scene Commander
      case AIACTSUBVAR:
       rem Using our strings from the parser, let's find the var the user wants to set
       if left$(aiactionseq(seq).string1,1)="$"
-       ttt=getintervar(aiactionseq(seq).string1)
+       ttt=getintervar(e,aiactionseq(seq).string1)
        ttt=ttt-aiactionseq(seq).valueb
-       setintervar(aiactionseq(seq).string1,ttt)
+       setintervar(e,aiactionseq(seq).string1,ttt)
       else
        tvarfound=0
        for uvar = 0 to array count(uservars(0))
@@ -15772,9 +15772,9 @@ Rem Scene Commander
      case AIACTMULVAR:
       rem Using our strings from the parser, let's find the var the user wants to set
       if left$(aiactionseq(seq).string1,1)="$"
-       ttt=getintervar(aiactionseq(seq).string1)
+       ttt=getintervar(e,aiactionseq(seq).string1)
        ttt=ttt*aiactionseq(seq).valueb
-       setintervar(aiactionseq(seq).string1,ttt)
+       setintervar(e,aiactionseq(seq).string1,ttt)
       else
        tvarfound=0
        for uvar = 0 to array count(uservars(0))
@@ -15804,9 +15804,9 @@ Rem Scene Commander
      case AIACTDIVVAR:
       rem Using our strings from the parser, let's find the var the user wants to set
       if left$(aiactionseq(seq).string1,1)="$"
-       ttt=getintervar(aiactionseq(seq).string1)
+       ttt=getintervar(e,aiactionseq(seq).string1)
        ttt=ttt/aiactionseq(seq).valueb
-       setintervar(aiactionseq(seq).string1,ttt)
+       setintervar(e,aiactionseq(seq).string1,ttt)
       else
        tvarfound=0
        for uvar = 0 to array count(uservars(0))
@@ -15836,9 +15836,9 @@ Rem Scene Commander
      case AIACTMODVAR:
       rem Using our strings from the parser, let's find the var the user wants to set
       if left$(aiactionseq(seq).string1,1)="$"
-       ttt=getintervar(aiactionseq(seq).string1)
+       ttt=getintervar(e,aiactionseq(seq).string1)
        ttt=ttt mod aiactionseq(seq).valueb
-       setintervar(aiactionseq(seq).string1,ttt)
+       setintervar(e,aiactionseq(seq).string1,ttt)
       else
        tvarfound=0
        for uvar = 0 to array count(uservars(0))
@@ -15868,9 +15868,9 @@ Rem Scene Commander
      case AIACTWRAPVAR:
       rem Using our strings from the parser, let's find the var the user wants to set
       if left$(aiactionseq(seq).string1,1)="$"
-       ttt=getintervar(aiactionseq(seq).string1)
+       ttt=getintervar(e,aiactionseq(seq).string1)
        ttt=wrapvalue(ttt)
-       setintervar(aiactionseq(seq).string1,ttt)
+       setintervar(e,aiactionseq(seq).string1,ttt)
       else
        tvarfound=0
        for uvar = 0 to array count(uservars(0))
@@ -20200,7 +20200,7 @@ case AIACTSETVARRND:
        rem Using our strings from the parser, let's find the var the user wants to set
        if left$(aiactionseq(seq).string1,1)="$"
        rndvalue=rnd(aiactionseq(seq).value)
-        setintervar(aiactionseq(seq).string1,rndvalue)
+        setintervar(e,aiactionseq(seq).string1,rndvalue)
         else
         for uvar = 0 to array count(uservars(0))
          if uservars(uvar).name = aiactionseq(seq).string1
@@ -20533,7 +20533,7 @@ case AIACTRAWTEXTVAR:
        tvarfound=0
        rem Using our strings from the parser, let's find the var the user wants to get
        if left$(aiactionseq(seq).string1,1)="$"
-        tempvalue=getintervar(aiactionseq(seq).string1)
+        tempvalue=getintervar(e,aiactionseq(seq).string1)
         else
         for uvar = 0 to array count(uservars(0))
          if uservars(uvar).name = aiactionseq(seq).string1
@@ -20567,9 +20567,9 @@ case AIACTRAWTEXTVAR:
       case AIACTSIN:
       rem Using our strings from the parser, let's find the var the user wants to set
       if left$(aiactionseq(seq).string1,1)="$"
-       ttt=getintervar(aiactionseq(seq).string1)
+       ttt=getintervar(e,aiactionseq(seq).string1)
        ttt=sin(ttt)
-       setintervar(aiactionseq(seq).string1,ttt)
+       setintervar(e,aiactionseq(seq).string1,ttt)
       else
        tvarfound=0
        for uvar = 0 to array count(uservars(0))
@@ -20600,9 +20600,9 @@ case AIACTRAWTEXTVAR:
       case AIACTCOS:
       rem Using our strings from the parser, let's find the var the user wants to set
       if left$(aiactionseq(seq).string1,1)="$"
-       ttt=getintervar(aiactionseq(seq).string1)
+       ttt=getintervar(e,aiactionseq(seq).string1)
        ttt=cos(ttt)
-       setintervar(aiactionseq(seq).string1,ttt)
+       setintervar(e,aiactionseq(seq).string1,ttt)
       else
        tvarfound=0
        for uvar = 0 to array count(uservars(0))
@@ -21012,7 +21012,7 @@ endcase
 case AIACTDEBUGVAR:
 rem Using our strings from the parser, let's find the var the user wants to set
       if left$(aiactionseq(seq).string1,1)="$"
-       ttt=getintervar(aiactionseq(seq).string1)
+       ttt=getintervar(e,aiactionseq(seq).string1)
       else
        tvarfound=0
        for uvar = 0 to array count(uservars(0))
@@ -59944,7 +59944,7 @@ _water_control:
  `
 return
 
-function getintervar(var$)
+function getintervar(e,var$)
  select var$
   case "$PH"
    temp=player(1).health
@@ -60047,7 +60047,7 @@ function getintervar(var$)
  endselect
 endfunction temp
 
-function setintervar(var$,alter#)
+function setintervar(e,var$,alter#)
  select var$
   case "$PH"
    player(1).health=alter#
