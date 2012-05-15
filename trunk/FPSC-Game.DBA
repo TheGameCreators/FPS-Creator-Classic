@@ -4947,12 +4947,7 @@ endif
 
 `culling()
 
-if watercurrent<>0
-   if playerunderwater=1
-      moveplrx#=sin(watercurrent)*waterflow
-      moveplrz#=cos(watercurrent)*waterflow
-   endif
-endif
+
 
 
  rem FPGC - 280610 - moved entire SYNC sequence to subroutine so PAUSE mode can call it too
@@ -40894,6 +40889,14 @@ if physicsplayerborble>0
    `endif
   endif
  endif
+endif
+
+Rem Scene Commander, moved for clarity and altered to allow for user adjustment
+if watercurrent<>0
+   if playerunderwater=1
+      moveplrx#=moveplrx#+sin(watercurrent)*waterflow
+      moveplrz#=moveplrz#+cos(watercurrent)*waterflow
+   endif
 endif
 
 rem apply new velocities for future movement
