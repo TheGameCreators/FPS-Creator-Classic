@@ -29415,8 +29415,20 @@ for f=1 to flakelementmax
   endif
  endif
  if flakelement(f).active=2
+ Rem Scene Commander fix for flak using correct decals
+
+   if flak(tflakid).exponfloorid>0
+       decalscalemodx=0:decalorient=0
+       decalx=tmpx1#:decaly=tmpy1#:decalz=tmpz1#:originatore=-1
+       decalid=flak(tflakid).exponfloorid
+        gosub _decalelement_create
+    endif
+
   rem hide flak object
+
+  tobj=flakelement(f).obj
   hide object tobj
+
   rem trigger exploder
   frox#=flakelement(f).xpos
   froy#=flakelement(f).ypos
@@ -29425,7 +29437,9 @@ for f=1 to flakelementmax
   rem make sound seem louder by moving it closer to player
   playinternal3dsound(flak(tflakid).sound.sndexplodeid,decalx,decaly,decalz)
   rem ONLY affect decal with ZBIAS if explosion that needs to be seen by player in full
+
   if object exist(tobj)=1 then enable object zbias tobj,-500.0,0.0
+
   rem initial blast creates scorch (in six directions)
   for tscdir=1 to 6
    remstart
