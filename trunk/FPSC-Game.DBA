@@ -1099,9 +1099,9 @@ dim olaylist(olaylistmax,50) as DWORD
 
 rem Default settings
 gridzoom#=1.0
-rem FPGC - new default is full no shroud (faster PC's these days)
-`shroudsize=5
-shroudsizedefaultsize=10
+rem FPGC - new default is full no shroud (faster PC's these days) - Scene commander, restored as causing crashes on some low end machines.
+shroudsize=5
+shroudsizedefaultsize=5
 shroudsize=shroudsizedefaultsize
 gridground=0
 gridselection=1
@@ -11430,12 +11430,13 @@ _entity_addforcesphere:
     endif
    endif
    rem suggest damage to entity if strong enough force
-   if tforce#>0.2 and forcedamageon<>0
+   if tforce#>0.2
     rem indirect damage is a hugely reduced value
-    if tdirectdamage=0 then tforce#=tforce#/50.0
+    if tdirectdamage=0 then tforce#=tforce#/50
     rem actual entity damage
     tdamagex#=entityelement(tte).x : tdamagey#=entityelement(tte).y : tdamagez#=entityelement(tte).z
     tdamage=tforce#*spheredamage
+    if forcedamageon=0 then tdamage=0
     tdamagesource=0 : timpacttype=3 : tdir=0
     ste=e : sttentid=tentid
     tentid=entityelement(tte).bankindex
@@ -11552,7 +11553,7 @@ _entity_controldelayeddamage:
  `
  rem count down to delayed damage (fuel exploding)
  if entityelement(e).delaydamagecount>0
-  entityelement(e).delaydamagecount=entityelement(e).delaydamagecount-1*timeelapsed#
+  entityelement(e).delaydamagecount=entityelement(e).delaydamagecount-1`*timeelapsed#
   if entityelement(e).delaydamagecount=0
    tdamagesource=entityelement(e).delaydamagesource
    tdamage=entityelement(e).delaydamage
@@ -29449,7 +29450,7 @@ for f=1 to flakelementmax
       gosub _decalelement_create
       newone=1
     endif
-
+ endif
   rem hide flak object
 
   tobj=flakelement(f).obj
@@ -29462,7 +29463,7 @@ for f=1 to flakelementmax
   froy#=flakelement(f).ypos
   froz#=flakelement(f).zpos
 
-  if newone=0 then gosub _part_triggerexplosion
+  if newone=0 and showflak=1 then gosub _part_triggerexplosion
 
   rem make sound seem louder by moving it closer to player
   playinternal3dsound(flak(tflakid).sound.sndexplodeid,decalx,decaly,decalz)
@@ -29471,6 +29472,7 @@ for f=1 to flakelementmax
   if object exist(tobj)=1 then enable object zbias tobj,-500.0,0.0
 
   rem initial blast creates scorch (in six directions)
+   if showflak=1
   for tscdir=1 to 6
    remstart
    if tscdir=1 then t=static raycast(decalx+0,decaly,decalz,decalx-200,decaly,decalz)
@@ -29481,6 +29483,7 @@ for f=1 to flakelementmax
    if tscdir=6 then t=static raycast(decalx,decaly,decalz+0,decalx,decaly,decalz+200)
    remend
    rem AirMod - Following Code replaces above code to fix scorch bug
+
    if tscdir=1 then t=static raycast(frox#+0,froy#,froz#,frox#-400,froy#,froz#) `200
    if tscdir=2 then t=static raycast(frox#+0,froy#,froz#,frox#+400,froy#,froz#)
    if tscdir=3 then t=static raycast(frox#,froy#+0,froz#,frox#,froy#-400,froz#)
