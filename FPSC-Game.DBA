@@ -177,6 +177,8 @@ global linkz=0
 global plrcamoffseton=0
 global playeraccmult#=1.0
 global eplayercam=0
+global showflak=1
+global decalrange=800
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
@@ -2489,6 +2491,7 @@ rem Scene Commander actions
 #constant AIACTDELAYTIMER 1643
 #constant AIACTCREATESPLASHSOUND 1644
 #constant AIACTTARGETLINK 1645
+#constant AIACTSHOWFLAK 1646
 
 #constant AIACTLAST 1648
 
@@ -2911,6 +2914,8 @@ type flakelementtype
  colz as float
  owner as integer
  isentity as integer
+ Rem Scene Commander fix for flagging air explosion for changed particles.
+ preexplode as integer
 endtype
 global flakelementmax=100
 dim flakelement(flakelementmax) as flakelementtype
@@ -11425,7 +11430,7 @@ _entity_addforcesphere:
     endif
    endif
    rem suggest damage to entity if strong enough force
-   if tforce#>0.2
+   if tforce#>0.2 and forcedamageon<>0
     rem indirect damage is a hugely reduced value
     if tdirectdamage=0 then tforce#=tforce#/50.0
     rem actual entity damage
@@ -11439,7 +11444,7 @@ _entity_addforcesphere:
     if entityprofile(tentid).ischaracter=1
      rem characters can shrug off some explosion force
      if tdamage<30 then timpacttype=1
-     if forcedamageon=0 then tdamage=0
+
       entityelement(e).shotby=996
      gosub _entity_deducthealth
     else
@@ -12718,7 +12723,7 @@ actword$(AIACTSHOWWEAPON)="swapplrweapon"
 actword$(AIACTNOSELECT)="lockslot"
 actword$(AIACTDELAYTIMER)="setdamagedelay"
 actword$(AIACTCREATESPLASHSOUND)="createbulletsplashsound"
-
+actword$(AIACTSHOWFLAK)="showflakexplosion"
 
 return
 
@@ -21256,6 +21261,14 @@ case AIACTCREATESPLASHSOUND:
 createsplashsound=aiactionseq(seq).value
 endcase
 
+case AIACTSHOWFLAK:
+
+showflak=aiactionseq(seq).value
+if showflak<0 then showflak=0
+if showflak>1 then showflak=1
+
+endcase
+
 
    endselect
 
@@ -29307,6 +29320,7 @@ for f=1 to flakelementmax
     dec flakelement(f).profile.lifespan,timeelapsed#
     if flakelement(f).profile.lifespan<=0
      flakelement(f).profile.lifespan=0
+     flakelement(f).preexplode=1
      tdetonate=1
      endoflife=1
     endif
@@ -29359,7 +29373,7 @@ for f=1 to flakelementmax
    gosub _entity_spherecollision
    if spheree<>-1
     if flakelement(f).owner=spheree
-     rem owners of flak are except
+     rem owners of flak are excempt
     else
      rem backtrack to leave collision
      flakelement(f).profile.xinc=flakelement(f).profile.xinc*-1
@@ -29386,11 +29400,12 @@ for f=1 to flakelementmax
       if tcollide=1 and flak(tflakid).noexplode=1 then bouncingonhit=1 : tdetonate=1
       playinternal3dsound(flak(tflakid).sound.sndbounceid,tmpx1#,tmpy1#,tmpz1#)
      else
-      rem detonate at last collision, add scorch
+      rem detonate at last collision, add scorch - Scene commander change for floor explosion
+      flakelement(f).preexplode=0
       tdetonate=1
      endif
     else
-     rem bouncing flak hasn't worked as it was intendede! This needs to be here so once there are no more bounces
+     rem bouncing flak hasn't worked as it was intended! This needs to be here so once there are no more bounces
      rem the object will detonate on next collision!
      if flakelement(f).profile.bounceonhit<=0
       if flak(tflakid).noexplode=1
@@ -29415,25 +29430,40 @@ for f=1 to flakelementmax
   endif
  endif
  if flakelement(f).active=2
- Rem Scene Commander fix for flak using correct decals
+ Rem Scene Commander fix for flak using correct decals - will use default of no flak specified in flak FPE
 
-   if flak(tflakid).exponfloorid>0
-       decalscalemodx=0:decalorient=0
-       decalx=tmpx1#:decaly=tmpy1#:decalz=tmpz1#:originatore=-1
-       decalid=flak(tflakid).exponfloorid
-        gosub _decalelement_create
+ newone=0
+ if showflak=1
+      decalscalemodx=0:decalorient=0
+      decalx=tmpx1#:decaly=tmpy1#:decalz=tmpz1#:originatore=-1
+   if flak(tflakid).expinairid>0 and flakelement(f).preexplode=1
+      decalid=flak(tflakid).expinairid
+      decalrange=10000
+      gosub _decalelement_create
+       newone=1
+   endif
+
+   if flak(tflakid).exponfloorid>0 and flakelement(f).preexplode=0
+      decalid=flak(tflakid).exponfloorid
+      decalrange=10000
+      gosub _decalelement_create
+      newone=1
     endif
 
   rem hide flak object
 
   tobj=flakelement(f).obj
+  if tobj>0
   hide object tobj
+  endif
 
   rem trigger exploder
   frox#=flakelement(f).xpos
   froy#=flakelement(f).ypos
   froz#=flakelement(f).zpos
-  gosub _part_triggerexplosion
+
+  if newone=0 then gosub _part_triggerexplosion
+
   rem make sound seem louder by moving it closer to player
   playinternal3dsound(flak(tflakid).sound.sndexplodeid,decalx,decaly,decalz)
   rem ONLY affect decal with ZBIAS if explosion that needs to be seen by player in full
@@ -29466,6 +29496,8 @@ for f=1 to flakelementmax
   tcolg=255
   tcolb=0
   gosub _lighting_spotflash
+  Rem Scene commander, end show explosion
+  endif
   rem start range of expanding explosion at zero
   flakelement(f).range=0
   rem create force of damage
@@ -29493,6 +29525,7 @@ for f=1 to flakelementmax
     tsz#=flakelement(sf).zpos-tz#
     d#=sqrt(abs(tsx#*tsx#)+abs(tsy#*tsy#)+abs(tsz#*tsz#))
     if d#<flakelement(f).range
+    flakelement(sf).preexplode=1
      rem explode the flak
      flakelement(sf).active=2
      flakelement(sf).range=0
@@ -29560,7 +29593,7 @@ for f=1 to flakelementmax
 
   endif
 
-  rem allow for falk to bounce of enemies and hurt them while continuing to bounce
+  rem allow for flak to bounce of enemies and hurt them while continuing to bounce
   if bouncingonhit=0 then flakelement(f).active=0 else flakelement(f).active=1
   bouncingonhit=0
 
@@ -29896,7 +29929,7 @@ tdxx=decalx-camera position x()
 tdyy=decaly-camera position y()
 tdzz=decalz-camera position z()
 tddd=sqrt(abs(tdxx*tdxx)+abs(tdyy*tdyy)+abs(tdzz*tdzz))
-if tddd>800 then return
+if tddd>decalrange then decalrange=800:return
 `
 for d=1 to decalelementmax
  if decalelement(d).active=0 then exit
@@ -45660,6 +45693,7 @@ a#=waterheight#:write float 1,a#
 a#=oldwaterheight#:write float 1,a#
 a#=watercurrent:write float 1,a#
 a#=waterflow:write float 1,a#
+a#=showflak:write float 1,a#
 
   for lsi=0 to entityelementmax
    a#=saveloadgamepositionentity(lsi).soundplaying : write float 1,a#
@@ -46008,6 +46042,7 @@ read float 1,a#:waterheight#=a#
 read float 1,a#:oldwaterheight#=a#
 read float 1,a#:watercurrent=a#
 read float 1,a#:waterflow=a#
+read float 1,a#:showflak=a#
 
   for lsi=0 to entityelementmax
 
