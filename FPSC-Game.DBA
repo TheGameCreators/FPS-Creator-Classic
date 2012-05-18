@@ -8296,13 +8296,35 @@ superstealpriority=0
 tonestealperaiphase=0
 tonestealperaiphasedist#=99999
 logicpriorityfurthest#=0
+Rem Scene Commander - track nearest character
+nearestcharacterdist=100000
+nearestold=nearestcharacterdist
 for e=1 to entityelementlist
+
+Rem Scene commander - increase player weight if character near to prevent playing being pushed from universe or trapping player behind allies.
+entid=entityelement(e).bankindex
+obj=entityelement(e).obj
+
+if entityprofile(entid).ischaracter=1 and entityelement(e).beenkilled=0 and (entityelement(e).active<>0 and entityelement(e).spawn.leader=0) and entityelement(e).beenkilled=0
+howfar2=edistance(e)
+
+ if howfar2<nearestcharacterdist then nearestcharacterdist=howfar2
+
+      if nearestcharacterdist<150
+      physicsplayerweight#=50000.0
+      ode set body mass physicsplayerborble,physicsplayerweight#
+      else
+      physicsplayerweight#=500.0
+      ode set body mass physicsplayerborble,physicsplayerweight#
+      endif
+
+endif
+
 Rem Scene Commander, calling culling per entity for performance increase.
 culling(e)
 rem Scene Commander - Ensure ismmobile entites are restored
 if entityelement(e).eleprof.physics=99 then entityelement(e).eleprof.physics=3
-entid=entityelement(e).bankindex
-obj=entityelement(e).obj
+
 
    rem scene commander, apply entity angle offsets
 
@@ -38115,7 +38137,6 @@ makeradar()
 maderadar=1
 endif
 
-
  rem hide radar if it exists but is off
  if darkradar=0 and sprite exist(radarobject)=1
  hide sprite radarobject
@@ -61958,8 +61979,6 @@ rem end is o
 
     function culling(e)
 
-   ` text 200,200,str$(plrreloading)
-
  rem if not just using FPSC default culling
 if cullmode<>0 and gmultiplayergame<>1
 
@@ -62012,6 +62031,7 @@ if entityelement(e).ishidden<>2
                  tdz#=object position z(obj)-tcamz#
 
                   howfar=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+
                   `size adjustment, arrived at through experimentation and is approximately cullmodi*100=1 segment
                   sizeis=int(object size(obj)/10)
                   rem cullmodi allows user adjustment to global entity culling
