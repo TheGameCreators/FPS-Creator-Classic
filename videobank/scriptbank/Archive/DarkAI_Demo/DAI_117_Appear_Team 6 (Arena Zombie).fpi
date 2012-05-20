@@ -1,0 +1,13 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = zombie enemy for DAI eval. demo.
+
+;Triggers
+
+:state=0:setalphafade=100,addaiteam=6,state=1
+:state=1:aiaddenemy=6 2|3|4|5|7,state=2
+:state=2:runfpidefault=1
+
+;End of Script
