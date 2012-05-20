@@ -1,0 +1,21 @@
+;//Requires v1.17+ DarkAI
+;Walking animations
+:state=2,strafingleft=1:animate=3
+:state=2,strafingright=1:animate=4
+:state=2,movingforwards=1:animate=2
+:state=2,movingbackwards=1:animate=2
+:state=2,idle=1:animate=1
+
+:state=0:setaiactive=1,alwaysactive=1,aiattackawareness=1
+
+
+:state=0,hasweapon=1:state=1
+:state=0,hasweapon=0:state=2,etimerstart
+
+:state=1,waypointstate=0:animate=2,runfore=5,waypointstart
+:state=1,waypointstate=3:animate=2,runfore=5,waypointnext
+:state=1,waypointstate=4:animate=2,runfore=5,waypointrandom
+:state=1,waypointstate=5:animate=2,runfore=5,waypointreverse
+
+:state=2,etimergreater=2500:aimoverandom,etimerstart
+;//End

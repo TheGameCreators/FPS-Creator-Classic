@@ -1,0 +1,24 @@
+
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Switch Activate (toggle on and off)
+
+;Triggers
+
+:state=0:dimvar=allsreset,setvar=allsreset 0,dimlocalvar=hasbeenreset,alwaysactive=1,hudreset,hudx=50,hudy=90,hudimagefine=gamecore\text\pressentertouse.tga,hudname=useswitchprompt,hudhide=1,hudmake=display,state=10
+:plrdistwithin=100,pickobject=1:hudshow=useswitchprompt,hudfadeout=useswitchprompt
+
+:state=10,plrdistwithin=100,pickobject=1,plrusingaction=1,varequal=nextsnum %sid:state=4,plrsound=$0,alttexture=1
+:state=10,plrdistwithin=100,pickobject=1,plrusingaction=1,varnotequal=nextsnum %sid:setvar=resetswitches 1,state=3
+
+:state=4,varnotequal=nextsnum %scount:addvar=nextsnum 1,state=3
+:state=4,varequal=nextsnum %scount:activateifused=1,state=5
+
+:varequal=resetswitches 1,varequal=hasbeenreset 0:setvar=hasbeenreset 1,setvar=nextsnum 1,addvar=allsreset 1,plrsound=$1,alttexture=0
+:state=3,plrusingaction=0,varequal=resetswitches 0:state=10
+:vargreater=allsreset %scount:setvar=resetswitches 0,setvar=allsreset 0,setvar=hasbeenreset 0
+:varequal=allsreset 0:setvar=hasbeenreset 0
+;End of Script
+
