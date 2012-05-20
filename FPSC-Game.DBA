@@ -341,6 +341,22 @@ type darkaitype
  coverz as float
 endtype
 
+rem Scene Commander - set up new animation textures
+global animationimagestart=666699
+type ani
+img as integer
+entid as integer
+speed as integer
+looped as integer
+endtype
+
+dim animations(10) as ani
+
+for f=1 to 10
+load image "videobank\blank.bmp",(animationimagestart+f)
+animations(f).img=animationimagestart+f
+next f
+
 Rem Hockeykid - 160310 - Dark AI path type
 Type pathtype
  id as integer
@@ -524,6 +540,7 @@ type saveloadgamepositionentitytype
  tsoundset1state as integer
  physics as integer
  alttextureused as integer
+ videotexture as integer
  rem V118 - 120810 - knxrb - etimer fix from Scene Commander
  etimerpaused as integer
  etimer as integer
@@ -1657,6 +1674,7 @@ type entitytype
  soundlooping as integer
  soundistalking as integer
  alttextureused as integer
+ videotexture as integer
  ragdollon as integer
  allowragdoll as integer
  reserve1 as integer
@@ -2492,8 +2510,17 @@ rem Scene Commander actions
 #constant AIACTCREATESPLASHSOUND 1644
 #constant AIACTTARGETLINK 1645
 #constant AIACTSHOWFLAK 1646
+#constant AIACTMAKEVIDEOTEXTURE 1647
+#constant AIACTUSEVIDEOTEXTURE 1648
+#constant AIACTDELETEVIDEOTEXTURE 1649
+#constant AIACTPAUSEVIDEOTEXTURE 1650
+#constant AIACTRESUMEVIDEOTEXTURE 1651
+#constant AIACTVIDEOTEXTURESPEED 1652
+#constant AIACTVIDEOTEXTUREVOLUME 1653
+#constant AIACTSTOPVIDEOTEXTURE 1654
 
-#constant AIACTLAST 1648
+
+#constant AIACTLAST 1655
 
 rem V109 BETA3 - 210408 - AI variables
 global aivariablemode : aivariablemode=0 : rem 0-global, 1-local
@@ -4227,6 +4254,11 @@ endif
 
 rem Reset file collector
 resetfilecollection()
+
+Rem Scene Commander - add blank video templates
+
+addfiletocollection("videobank\blank.bmp")
+
 
 rem FPGC - 200310 - initialise FULL SCREEN EFFECTS (camera one) (moved from above to allow file capture)
 gosub _postprocess_init
@@ -8317,6 +8349,14 @@ howfar2=edistance(e)
       physicsplayerweight#=500.0
       ode set body mass physicsplayerborble,physicsplayerweight#
       endif
+
+endif
+
+Rem Scene Commander, handle video textures
+
+If entityelement(e).videotexture<>0
+      if animation playing(entityelement(e).videotexture)=0 then play animation to image entityelement(e).videotexture,animations(entityelement(e).videotexture-9).img,0,0,512,512
+   texture object obj,animations(entityelement(e).videotexture-9).img
 
 endif
 
@@ -12747,6 +12787,14 @@ actword$(AIACTNOSELECT)="lockslot"
 actword$(AIACTDELAYTIMER)="setdamagedelay"
 actword$(AIACTCREATESPLASHSOUND)="createbulletsplashsound"
 actword$(AIACTSHOWFLAK)="showflakexplosion"
+actword$(AIACTMAKEVIDEOTEXTURE)="makevideotexture"
+actword$(AIACTUSEVIDEOTEXTURE)="usevideotexture"
+actword$(AIACTDELETEVIDEOTEXTURE)="deletevideotexture"
+actword$(AIACTPAUSEVIDEOTEXTURE)="pausevideotexture"
+actword$(AIACTRESUMEVIDEOTEXTURE)="resumevideotexture"
+actword$(AIACTVIDEOTEXTURESPEED)="setvideotexturespeed"
+actword$(AIACTVIDEOTEXTUREVOLUME)="setvideotexturevolume"
+actword$(AIACTSTOPVIDEOTEXTURE)="stopvideotexture"
 
 return
 
@@ -21291,6 +21339,121 @@ if showflak<0 then showflak=0
 if showflak>1 then showflak=1
 
 endcase
+
+case AIACTMAKEVIDEOTEXTURE:
+
+actual=aiactionseq(seq).valueb+9
+if actual>=10 or actual<=20
+
+tfile$=lower$(aiactionseq(seq).string1)
+
+   if file exist(tfile$)=1 and right$(lower$(tfile$),4)=".avi"
+
+   if animation exist(actual)=1
+   delete animation actual
+   endif
+
+   load animation tfile$,actual
+
+endif
+endif
+
+endcase
+
+case AIACTUSEVIDEOTEXTURE:
+
+actual=aiactionseq(seq).value+9
+if actual>=10 or actual<=20
+   if animation exist(actual)=1
+   entityelement(e).videotexture=actual
+   animations(actual-9).entid=e
+
+   endif
+
+endif
+
+endcase
+
+case AIACTDELETEVIDEOTEXTURE:
+
+actual=aiactionseq(seq).value+9
+if actual>=10 or actual<=20
+
+ if animation exist(actual)=1
+ delete animation actual
+   if animations(actual-9).entid<>0
+   entityelement(animations(actual-9).entid).videotexture=0
+   endif
+ endif
+endif
+
+endcase
+
+case AIACTPAUSEVIDEOTEXTURE:
+
+actual=aiactionseq(seq).value+9
+if actual>=10 or actual<=20
+
+ if animation exist(actual)=1
+ pause animation actual
+ endif
+endif
+
+endcase
+
+case AIACTRESUMEVIDEOTEXTURE:
+
+actual=aiactionseq(seq).value+9
+if actual>=10 or actual<=20
+
+ if animation exist(actual)=1
+ resume animation actual
+ endif
+endif
+
+endcase
+
+case AIACTVIDEOTEXTURESPEED:
+
+actual=aiactionseq(seq).value+9
+percent=aiactionseq(seq).valueb
+if actual>=10 or actual<=20
+
+ if animation exist(actual)=1
+ set animation speed actual,percent
+ endif
+endif
+
+endcase
+
+case AIACTVIDEOTEXTUREVOLUME:
+
+actual=aiactionseq(seq).value+9
+percent=aiactionseq(seq).valueb
+if actual>=10 or actual<=20
+
+ if animation exist(actual)=1
+ set animation volume actual,percent
+ endif
+endif
+
+endcase
+
+case AIACTSTOPVIDEOTEXTURE:
+
+actual=aiactionseq(seq).value+9
+if actual>=10 or actual<=20
+
+ if animation exist(actual)=1
+ stop animation actual
+      if animations(actual-9).entid<>0
+      entityelement(animations(actual-9).entid).videotexture=0
+      endif
+ endif
+endif
+
+endcase
+
 
 
    endselect
@@ -30288,7 +30451,7 @@ if (tdamage>0 and player(plrid).health>0 and playerstartstrength>0) or (playerst
   camflyforcex#=0 : camflyforcey#=0 : camflyforcez#=0
   camforcex#=0 : camforcey#=0 : camforcez#=0
  else
-  rem player grunts in hurt
+  rem player grunts if hurt
   tsnd=12+rnd(2)
   if playersound(tplrid,tsnd)>0
    broadcast3dsound(camera position x(),camera position y(),camera position z(),10.0,-1)
@@ -40594,6 +40757,7 @@ if deactivatecollision=0 and skipcol=0
  rem V118 - 070211 - if jumping, ray cast up to ensure we never penetrate the ceiling
  if jumpaction=1
   tdst#=static raycast(ctx#,cty#-5.0,ctz#,ctx#,cty#+15.0,ctz#)
+
   if tdst#<>0.0
    if tdst#<10.0
     if camvely#>0.0
@@ -41420,7 +41584,7 @@ _ode_sounds:
   rem collision event
   ODE COLLISION GET MESSAGE
   phya=ODE GET OBJECT A() : phyb=ODE GET OBJECT B()
-  `
+
   if (phya=physicsplayerborble or phyb=physicsplayerborble)
   rem player phyobject stood on another phy object
   tdownward#=0.0 : ttouchedobj=0 : toverallveldiff#=0
@@ -41455,7 +41619,7 @@ _ode_sounds:
     endif
    endif
   endif
-  `
+
   rem sounds processd here too
   bangobj=0
   bangcontact=0
@@ -41659,7 +41823,10 @@ _ode_sounds:
  if tdamagebybangcount>0
   dec tdamagebybangcount
  endif
+
+
  `
+
  rem also handle shadows
  gosub _ode_shadowcontrol
  `
@@ -61978,6 +62145,7 @@ rem end is o
     endfunction
 
     function culling(e)
+
 
  rem if not just using FPSC default culling
 if cullmode<>0 and gmultiplayergame<>1
