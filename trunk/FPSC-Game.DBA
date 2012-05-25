@@ -741,6 +741,9 @@ Rem Scene Commander
 Global watercurrent=0
 Global waterflow=1
 
+global createdestroymode
+global createdestroye
+
 rem logic control
 global logicprioritycount=0
 global logicprioritymax#=0.0
@@ -21388,6 +21391,7 @@ tfile$=lower$(aiactionseq(seq).string1)
    endif
 
    load animation tfile$,actual
+   addfiletocollection(tfile$)
 
 endif
 endif
@@ -21401,8 +21405,7 @@ if actual>=10 or actual<=20
    if animation exist(actual)=1
    entityelement(e).videotexture=actual
    animations(actual-9).entid=e
-   rem Scene Commander, force culling
-   entityelement(e).cullimmobile=1
+
 
    endif
 
@@ -38078,7 +38081,15 @@ for hudid=1 to hudmax
     endif
     if hud(hudid).text$<>"" and hud(hudid).image=0
      tfont$=hud(hudid).font$ : if tfont$<>"" and tfont$<>tlastfont$ then set text font tfont$ : tlastfont$=tfont$
+      Rem Scene Commander, if text hud font different from rawtext, force reset.
+      if tfont$<>grawtextfontlast$
+      grawtextlast$=""
+      endif
      tfontsize=hud(hudid).fontsize : if tfontsize<>0 and tfontsize<>tlastfontsize then set text size tfontsize : tlastfontsize=tfontsize
+      Rem Scene Commander, if text hud font size different from rawtext, force reset.
+      if grawtextsizelast<>tfontsize
+      grawtextsizelast=-1
+      endif
      center text hud(hudid).posx+(hud(hudid).sizex/2),(hud(hudid).posy+hud(hudid).sizey)+(hud(hudid).fadeout/5.0),hud(hudid).text$
     endif
    endif
@@ -38467,11 +38478,19 @@ endif
   if grawtextfont$<>grawtextfontlast$
    grawtextfontlast$=grawtextfont$
    set text font grawtextfont$
-  endif
+   Rem Scene Commander, if not same text font as hudtext force reset
+   if tfontlast$<>grawtextfont$
+      tfontlast$=""
+      endif
+   endif
   if grawtextsize<>grawtextsizelast
    grawtextsizelast=grawtextsize
    set text size grawtextsize
-  endif
+   Rem Scene Commander, if not same text size force reset hudtext size
+   if grawtextsize<>tfontsize
+   tlastfontsize=-1
+   endif
+   endif
   grawtextx#=screen width() : grawtextx#=(grawtextx#/100)*grawtextx
   grawtexty#=screen height() : grawtexty#=(grawtexty#/100)*grawtexty
   `
@@ -38760,7 +38779,7 @@ if thudi>hudmax
    rem Scene Commander scales default
    hud(hudid).scalex=100
    hud(hudid).scaley=100
-   hud(hudia).alpha=255
+   hud(hudid).alpha=255
  rem HUD Type
  hud(hudid).maintype=0
  if workhudmake$="display"
@@ -60348,23 +60367,29 @@ function setintervar(e,var$,alter#)
   case "$EA"
    entityelement(e).currentammo=alter#
   endcase
-  case "$EPX"
+case "$EPX"
    entityelement(e).x=alter#
+   updateposition=1
   endcase
   case "$EPY"
    entityelement(e).y=alter#
+   updateposition=1
   endcase
   case "$EPZ"
    entityelement(e).z=alter#
+   updateposition=1
   endcase
   case "$EAX"
    entityelement(e).rx=alter#
+   updaterotation=1
   endcase
   case "$EAY"
    entityelement(e).ry=alter#
+   updaterotation=1
   endcase
   case "$EAZ"
    entityelement(e).rz=alter#
+   updaterotation=1
   endcase
   Rem Scene Commander
   case "$ARM"
@@ -60403,6 +60428,23 @@ function setintervar(e,var$,alter#)
    camerapositionz=alter#
   endcase
  endselect
+
+if updateposition=1 or updaterotation=1
+  rem turn off collision
+  if entityelement(e).collisionactive=1 and entityelement(e).eleprof.physics=1
+   togglecol=1
+   createdestroymode=1 : createdestroye=e
+   gosub createdestroy_physics_e
+  endif
+ endif
+ if updateposition=1 then position object entityelement(e).obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
+ if updaterotation=1 then rotate object entityelement(e).obj,entityelement(e).rx,entityelement(e).ry,entityelement(e).rz
+ if updateposition=1 or updaterotation=1
+  if togglecol=1
+   createdestroymode=2 : createdestroye=e
+   gosub createdestroy_physics_e
+  endif
+ endif
 endfunction
 
 function MakeWater()
@@ -62462,6 +62504,64 @@ _create_blood:
  middlebody=0
 return
 
+createdestroy_physics_e:
+ if entityelement(createdestroye).obj<=0 then return
+ if object exist(entityelement(createdestroye).obj)=0 then return
+
+ tempe=e : e=createdestroye
+ tempobj=obj : obj=entityelement(e).obj
+ select createdestroymode
+  case 1:
+   entityelement(e).collisionactive=0
+   if entityelement(e).eleprof.physics<>0
+    gosub _ode_switchoffe
+   else
+    set object collision off obj
+   endif
+  endcase
+  case 2:
+   rem entity collision solid
+   entityelement(e).collisionactive=1
+   rem activate object collision
+   if entityelement(e).eleprof.physics<>0
+    gosub _ode_setupewithphysics
+    gosub _ode_ensureeisnotpenetrated
+   else
+    set object collision on obj
+   endif
+   rem ensure plr is pushed out of entity influence
+   tdx#=mex#-entityelement(e).x
+   tdz#=mez#-entityelement(e).z
+   tdd#=sqrt(abs(tdx#*tdx#)+abs(tdz#*tdz#))
+   if tdd#<30.0
+    tda#=atanfull(tdx#,tdz#)
+    camforcex#=newxvalue(entityelement(e).x,tda#,30.0)-camerapositionx
+    camforcez#=newzvalue(entityelement(e).z,tda#,30.0)-camerapositionz
+   endif
+   rem ensure ALL entities are pushed out of entity influence (this is why second door zoomed away)
+   for te=1 to entityelementlist
+    if entityelement(te).active=1 and entityelement(te).eleprof.physics<=2
+     if entityelement(te).eleprof.isimmobile=0
+      tdx#=entityelement(te).x-entityelement(e).x
+      tdz#=entityelement(te).z-entityelement(e).z
+      tdd#=sqrt(abs(tdx#*tdx#)+abs(tdz#*tdz#))
+      if tdd#<30.0
+       rem TE-entity within solid entity
+       tda#=atanfull(tdx#,tdz#)
+       entityelement(te).mover.dx=newxvalue(entityelement(e).x,tda#,30.0)
+       entityelement(te).mover.dz=newzvalue(entityelement(e).z,tda#,30.0)
+       entityelement(te).mover.dy=entityelement(e).y
+       entityelement(te).mover.moved=1
+       entityelement(te).mover.run=0
+      endif
+     endif
+    endif
+   next te
+  endcase
+ endselect
+ e=tempe
+ obj=tempobj
+return
 
 
 
