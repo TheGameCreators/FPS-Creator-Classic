@@ -16539,23 +16539,35 @@ Rem Scene Commander
      endcase
      case AIACTPLRMOVETO:
       foundte=aiactionseq(seq).value
+      norotate=aiactionseq(seq).valueb
       if foundte>0
        tranmex#=entityelement(foundte).x
        tranmey#=entityelement(foundte).y+75.0 : rem FPGC - 180610 - from 55 (stuck below gantry)
        tranmez#=entityelement(foundte).z
+       Rem Scene Commander addition, new Y value allows toggling of rotation on/off
+       if norotate=0
        tranmeangley#=entityelement(foundte).ry+180
+       else
+       tranmeangley#=camera angle y(0)
+       endif
        gosub _player_resettrail
        meridingtransporter=1
       endif
      endcase
      case AIACTPLRMOVEIFUSED:
       tname$=entityelement(e).eleprof.ifused$
+      norotate=aiactionseq(seq).value
       gosub _entity_findname
       if foundte>0
        tranmex#=entityelement(foundte).x
        tranmey#=entityelement(foundte).y+75.0 : rem FPGC - 180610 - from 55 (stuck below gantry)
        tranmez#=entityelement(foundte).z
+       Rem Scene Commander addition, new Y value allows toggling of rotation on/off
+       if norotate=0
        tranmeangley#=entityelement(foundte).ry+180
+       else
+       tranmeangley#=camera angle y(0)
+       endif
        gosub _player_resettrail
        meridingtransporter=1
       endif
