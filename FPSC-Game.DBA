@@ -354,10 +354,12 @@ endtype
 
 dim animations(10) as ani
 
+
 for f=1 to 10
 load image "videobank\blank.bmp",(animationimagestart+f)
 animations(f).img=animationimagestart+f
 next f
+
 
 Rem Hockeykid - 160310 - Dark AI path type
 Type pathtype
@@ -8361,6 +8363,7 @@ endif
 
 Rem Scene Commander, handle video textures
           `cullmodelast=cullmode
+
           If entityelement(e).videotexture<>0
           if object in screen(obj)=1
           if cullmodechange=0
@@ -8376,6 +8379,7 @@ Rem Scene Commander, handle video textures
           endif
          endif
          endif
+
 
          Rem scene commander, handle sudden changes in cullmode.
 
@@ -21396,7 +21400,11 @@ if actual>=10 or actual<=20
 
 tfile$=lower$(aiactionseq(seq).string1)
 
-   if file exist(tfile$)=1 and right$(lower$(tfile$),4)=".avi"
+tstring$=right$(lower$(tfile$),4)
+
+   if file exist(tfile$)=1
+
+   if tstring$=".avi" or tstring$=".wmv" or tstring$=".mpeg" or tstring$=".mpg" or tstring$=".mov" or tstring$=".qt"
 
    if animation exist(actual)=1
    delete animation actual
@@ -21405,6 +21413,7 @@ tfile$=lower$(aiactionseq(seq).string1)
    load animation tfile$,actual
    addfiletocollection(tfile$)
 
+endif
 endif
 endif
 
@@ -21423,6 +21432,7 @@ if actual>=10 or actual<=20
 
 endif
 
+
 endcase
 
 case AIACTDELETEVIDEOTEXTURE:
@@ -21438,9 +21448,11 @@ if actual>=10 or actual<=20
  endif
 endif
 
+
 endcase
 
 case AIACTPAUSEVIDEOTEXTURE:
+
 
 actual=aiactionseq(seq).value+9
 if actual>=10 or actual<=20
@@ -21450,9 +21462,11 @@ if actual>=10 or actual<=20
  endif
 endif
 
+
 endcase
 
 case AIACTRESUMEVIDEOTEXTURE:
+
 
 actual=aiactionseq(seq).value+9
 if actual>=10 or actual<=20
@@ -21462,9 +21476,11 @@ if actual>=10 or actual<=20
  endif
 endif
 
+
 endcase
 
 case AIACTVIDEOTEXTURESPEED:
+
 
 actual=aiactionseq(seq).value+9
 percent=aiactionseq(seq).valueb
@@ -21474,6 +21490,7 @@ if actual>=10 or actual<=20
  set animation speed actual,percent
  endif
 endif
+
 
 endcase
 
@@ -21502,6 +21519,7 @@ if actual>=10 or actual<=20
       endif
  endif
 endif
+
 
 endcase
 
