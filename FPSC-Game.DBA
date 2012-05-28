@@ -8386,7 +8386,7 @@ Rem Scene Commander, handle video textures
          if cullmodechange=1
             for change=1 to entityelementlist
             tobj=entityelement(change).obj
-            if entityelement(change).ishidden<>3
+            if entityelement(change).ishidden<2
                if tobj>0
                   if object exist(tobj)=1
                   set alpha mapping on tobj,100
