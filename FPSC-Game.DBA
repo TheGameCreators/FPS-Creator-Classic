@@ -8365,14 +8365,14 @@ Rem Scene Commander, handle video textures
           `cullmodelast=cullmode
 
           If entityelement(e).videotexture<>0
-          if object in screen(obj)=1
+          if animation playing(entityelement(e).videotexture)=0 then play animation to image entityelement(e).videotexture,animations(entityelement(e).videotexture-9).img,0,0,512,512
+          texture object obj,animations(entityelement(e).videotexture-9).img
           if cullmodechange=0
           cullmode=0
           cullmodechange=1
           endif
-          if animation playing(entityelement(e).videotexture)=0 then play animation to image entityelement(e).videotexture,animations(entityelement(e).videotexture-9).img,0,0,512,512
-          texture object obj,animations(entityelement(e).videotexture-9).img
-          else
+          if object in screen(obj)=0
+          gosub _entity_updatealttexture
           if cullmodechange=0
           cullmode=cullmodelast
           cullmodechange=1
@@ -8789,9 +8789,12 @@ rem V110 - 290508 - give more MS to entity logic (it is a drainer in X9)
 `if screen fps()>=30
 `if screen fps()>=25
 Rem Scene Commander, changed to reduce increasing entity usage hogging.
-if screen fps()>=40
+
+if screen fps()>=25
+currentmax#=screen fps()/10
  `X9 - 060208 - if logicprioritymax#<10.0
- if logicprioritymax#<5.0
+ `if logicprioritymax#<5.0
+ if logicprioritymax#<currentmax#
   rem better consistent frame rate if only five entities have close logic (for raycasting, etc)
   logicprioritymax#=logicprioritymax#+0.02
  endif
@@ -8815,7 +8818,7 @@ for e=1 to entityelementlist
  if entityelement(e).active=1 and entityelement(e).dormant=0
   if obj>0
    `
-   if object exist(obj)=1 and entityelement(e).plrdist<2000
+   if object exist(obj)=1 and entityelement(e).plrdist<1000
     `
     rem Operate spin and float system
     tspin#=0.0 : thover#=0.0
