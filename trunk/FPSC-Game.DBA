@@ -24685,6 +24685,11 @@ endif
       chance=firemode(gunid,firemode).settings.shotsbeforejam+(rnd(jamtemp))
       if firemode(gunid,firemode).settings.shotsfired>chance
          firemode(gunid,firemode).settings.jammed=1
+         rem Scene Commander, ensure weapon jams affect both modes if sharing ammo
+          if gun(gunid).settings.modessharemags=1
+          firemode(gunid,0).settings.jammed=1
+          firemode(gunid,1).settings.jammed=1
+          endif
             if gun(gunid).settings.alternate=0
             sndid=gunsound(gunid,3).soundid
             else
@@ -40302,6 +40307,11 @@ if player(1).state.firingmode=2
       endif
    firemode(gunid,firemode).settings.jammed=0
    firemode(gunid,firemode).settings.shotsfired=0
+   rem Scene Commander, ensure weapon unjams affect both modes if sharing ammo
+    if gun(gunid).settings.modessharemags=1
+    firemode(gunid,0).settings.jammed=0
+    firemode(gunid,1).settings.jammed=0
+    endif
 
 endif
 
