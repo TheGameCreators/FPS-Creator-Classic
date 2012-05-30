@@ -31173,12 +31173,12 @@ _lighting_managegloballightingreciever:
   `calculate distance from light
   ldist#=sqrt(abs(ldistx#*ldistx#)+abs(ldisty#*ldisty#)+abs(ldistz#*ldistz#))
   `
-  `rem light range gets a 1.5x multiplier when sent to lightmapper, need to extend light range 
+  `rem light range gets a 1.5x multiplier when sent to lightmapper, need to extend light range
   `here for correct attenuation of SurfColor - 1.2 seems to work ok - markblosser
   `then check to make sure player/entity is within light's range - if not, ignore
   if ldist#<=infinilight().range*1.2
     okaytolight=1
-  endif    
+  endif
   `
   if okaytolight=1
    `
@@ -31189,7 +31189,7 @@ _lighting_managegloballightingreciever:
    `using a linear falloff to attenuate light and weight cumulative average
     tlightpower#=((infinilight().range*1.2)-ldist#)/(infinilight().range*1.2)
     `
-    rem further weight lights within 1000(10 segment) radius of player/entity 
+    rem further weight lights within 1000(10 segment) radius of player/entity
     tplayercareabout#=1000.0
     `
     tlightrawstrength#=1.0-(ldist#/tplayercareabout#) : rem player can apprecirate/care about direction of light within this range
@@ -62602,6 +62602,7 @@ createdestroy_physics_e:
  e=tempe
  obj=tempobj
 return
+
 
 
 
