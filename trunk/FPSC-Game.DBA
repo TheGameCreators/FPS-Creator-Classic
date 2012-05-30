@@ -31150,7 +31150,7 @@ _lighting_managegloballightingreciever:
  `
  rem Reset ready to store strongest point
  totaltlightpower#=0
- rem markblosser -instead of using player position, use generic recxyz# position so we can figure out closest light to entity as well
+ rem markblosser -instead of using player position, use generic recxyz# position so entities can find their strongest light as well
  avlightposx#=recx# : avlightposy#=recy# : avlightposz#=recz#
  `avlightposx#=mex# : avlightposy#=mey# : avlightposz#=mez#
  avlightcolr#=0 : avlightcolg#=0 : avlightcolb#=0
@@ -31164,46 +31164,41 @@ _lighting_managegloballightingreciever:
  while array index valid(infinilight())
   `
   rem V118 - instantly skip a light if it is dynamic and the entity (if specified) has no effect (FF provides lighting)
-  okaytolight=1
-  rem V118 - 050210 - do we WANT to change the underlying behaviour - no
-  `if recentityindex>0 and infinilight().type=1
-  ` if entityelement(recentityindex).eleprof.usingeffect=0 then okaytolight=0
-  `endif
+  okaytolight=0
+  `
+  rem Collect position of light
+  ldistx#=infinilight().x-recx#
+  ldisty#=infinilight().y-recy#
+  ldistz#=infinilight().z-recz#
+  `calculate distance from light
+  ldist#=sqrt(abs(ldistx#*ldistx#)+abs(ldisty#*ldisty#)+abs(ldistz#*ldistz#))
+  `
+  `rem light range gets a 1.5x multiplier when sent to lightmapper, need to extend light range 
+  `here for correct attenuation of SurfColor - 1.2 seems to work ok - markblosser
+  `then check to make sure player/entity is within light's range - if not, ignore
+  if ldist#<=infinilight().range*1.2
+    okaytolight=1
+  endif    
+  `
   if okaytolight=1
    `
    rem for all lights
    if infinilight().islit=1
     `
-    rem Collect position of light
-    ldistx#=infinilight().x-recx#
-    ldisty#=infinilight().y-recy#
-    ldistz#=infinilight().z-recz#
-    ldist#=sqrt(abs(ldistx#*ldistx#)+abs(ldisty#*ldisty#)+abs(ldistz#*ldistz#))
+   `remember to extend light range a bit here -see above comment - markblosser
+   `using a linear falloff to attenuate light and weight cumulative average
+    tlightpower#=((infinilight().range*1.2)-ldist#)/(infinilight().range*1.2)
     `
-    rem Relative to overall distance (influence)
-    if ldist#<=infinilight().range
-     tlightpower#=cos((ldist#/infinilight().range)*90)
-    else
-     tlightpower#=0
-    endif
-    `
-    rem with range of player - markblosser - not using mex# to calculate tdiffx#, instead using recx# so entities can find nearest light too
+    rem further weight lights within 1000(10 segment) radius of player/entity 
     tplayercareabout#=1000.0
-    tdiffx#=recx#-infinilight().x
-    tdiffy#=recy#-infinilight().y
-    tdiffz#=recz#-infinilight().z
-    `tdiffx#=mex#-infinilight().x
-    `tdiffy#=mey#-infinilight().y
-    `tdiffz#=mez#-infinilight().z
-    tdiff#=sqrt(abs(tdiffx#*tdiffx#)+abs(tdiffy#*tdiffy#)+abs(tdiffz#*tdiffz#))
-    tlightrawstrength#=1.0-(tdiff#/tplayercareabout#) : rem player can apprecirate/care about direction of light within this range
+    `
+    tlightrawstrength#=1.0-(ldist#/tplayercareabout#) : rem player can apprecirate/care about direction of light within this range
     tlightrawstrength#=tlightrawstrength#*tlightpower#
     if tlightrawstrength#<0.0 then tlightrawstrength#=0.0
     if tlightrawstrength#>1.0 then tlightrawstrength#=1.0
-
-    if tdiff#<tplayercareabout#
+    if ldist#<tplayercareabout#
      `
-     rem Work out average light position based on player position
+     rem Work out average light position based on player/entity position
      avlightposx#=avlightposx#+(infinilight().x*tlightrawstrength#)
      avlightposy#=avlightposy#+(infinilight().y*tlightrawstrength#)
      avlightposz#=avlightposz#+(infinilight().z*tlightrawstrength#)
@@ -31217,10 +31212,10 @@ _lighting_managegloballightingreciever:
     endif
     `
     rem True entity colour
-    avlightcolr#=avlightcolr#+(infinilight().colrgb.r*tlightpower#)
-    avlightcolg#=avlightcolg#+(infinilight().colrgb.g*tlightpower#)
-    avlightcolb#=avlightcolb#+(infinilight().colrgb.b*tlightpower#)
-    avlightrange#=avlightrange#+(ldist#*tlightpower#)
+    avlightcolr#=avlightcolr#+(infinilight().colrgb.r*tlightrawstrength#)
+    avlightcolg#=avlightcolg#+(infinilight().colrgb.g*tlightrawstrength#)
+    avlightcolb#=avlightcolb#+(infinilight().colrgb.b*tlightrawstrength#)
+    avlightrange#=avlightrange#+(ldist#*tlightrawstrength#)
     `inc tqty
     `
    endif
