@@ -9530,6 +9530,19 @@ if entityelement(e).fireweapon=1
       rem player was the target
       if tdamage>0 then gosub _player_takedamage
       if player(1).health<=0 and playerstartstrength>0
+      rem Scene Commander, reset culled items on death to prevent 'transparent` entities on restart
+            for change=1 to entityelementlist
+            tobj=entityelement(change).obj
+            if entityelement(change).ishidden<2
+               if tobj>0
+                  if object exist(tobj)=1
+                  set alpha mapping on tobj,100
+                  show object tobj
+                  endif
+               endif
+            endif
+            next change
+
        rem hear the full sound of what killed you
        if tsndid>0
    rem Scene commander tilt on death
@@ -13001,7 +13014,7 @@ if aiindex>0
    endcase
    case "$CA"
     aiconditionseq(seq).valuea=-1
-    if gunid<>0 and gunid2=0
+    if gunid<>0
      aiconditionseq(seq).valuea=weaponammo(weaponammoindex)
     endif
    endcase
@@ -15474,14 +15487,14 @@ Rem Scene Commander
    endcase
    case "$A"
     aiactionseq(seq).valueb=-1
-    if gunid<>0 and gunid2=0
+    if gunid<>0
      aiactionseq(seq).valueb=weaponclipammo(weaponammoindex)+weaponammo(weaponammoindex)
     endif
    endcase
    case "$RAC"
     aiactionseq(seq).valueb=weaponammo(weaponammoindex)
    endcase
-   case "$AC"
+   case "$CA"
     aiactionseq(seq).valueb=-1
     if gunid<>0
      aiactionseq(seq).valueb=weaponammo(weaponammoindex)
