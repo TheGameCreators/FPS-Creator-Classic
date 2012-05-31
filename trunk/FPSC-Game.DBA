@@ -135,7 +135,7 @@ Rem Scene Commander water performance
 Global waterflec=400
 rem Scene Commander culling
 global cullmode=1
-global cullmodi=400
+global cullmodi=650
 global plrfootfall=1
 global forcealtswap=0
 global moveplrx#=0.0
@@ -8791,7 +8791,7 @@ rem V110 - 290508 - give more MS to entity logic (it is a drainer in X9)
 Rem Scene Commander, changed to reduce increasing entity usage hogging.
 
 if screen fps()>=25
-currentmax#=screen fps()/10
+currentmax#=screen fps()/10:if currentmax#>6.0 then currentmax#=6.0
  `X9 - 060208 - if logicprioritymax#<10.0
  `if logicprioritymax#<5.0
  if logicprioritymax#<currentmax#
