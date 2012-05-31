@@ -181,6 +181,8 @@ global showflak=1
 global decalrange=800
 global cullmodelast=cullmode
 global cullmodechange=0
+Rem Scene Commander - made global as otherwise it is being ignored in functions
+global weaponammoindex=0
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
