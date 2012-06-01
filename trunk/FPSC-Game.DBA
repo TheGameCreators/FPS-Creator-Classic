@@ -135,7 +135,7 @@ Rem Scene Commander water performance
 Global waterflec=400
 rem Scene Commander culling
 global cullmode=1
-global cullmodi=650
+global cullmodi=550
 global plrfootfall=1
 global forcealtswap=0
 global moveplrx#=0.0
@@ -356,9 +356,7 @@ endtype
 
 dim animations(10) as ani
 
-
 for f=1 to 10
-load image "videobank\blank.bmp",(animationimagestart+f)
 animations(f).img=animationimagestart+f
 next f
 
@@ -3514,6 +3512,7 @@ rem V118 - 140810 - knxrb - Disable Particles
 global gparticlesnotused : gparticlesnotused=0
 rem V118 - 160810 - knxrb - Auto Resolution
 global gautores : gautores=0
+global guseoggoff:guseoggoff=0
 
 rem Version Control - TEST GAME Mode
 global gtestgamemodefromeditor : gtestgamemodefromeditor=0
@@ -3681,6 +3680,7 @@ if file exist(tfile$)=1
     tryfield$="extracollisionbuilddisabled" : if field$=tryfield$ then gextracollisionbuilddisabled=value1
     tryfield$="alwaysconfirmsave" : if field$=tryfield$ then galwaysconfirmsave=value1
     tryfield$="simplifiedcharacterediting" : if field$=tryfield$ then gsimplifiedcharacterediting=value1
+    tryfield$="useoggoff" : if field$=tryfield$ then guseoggoff=value1
     `
     tryfield$="xbox"
     if field$=tryfield$
@@ -4265,9 +4265,6 @@ rem Reset file collector
 resetfilecollection()
 
 Rem Scene Commander - add blank video templates
-
-addfiletocollection("videobank\blank.bmp")
-
 
 rem FPGC - 200310 - initialise FULL SCREEN EFFECTS (camera one) (moved from above to allow file capture)
 gosub _postprocess_init
@@ -7616,12 +7613,12 @@ function debugviewtext(progress,gamedebugviewtext$)
  rem FPGC - 050510 - turns out virtual memory address fragmentation crashes apps exceeding 2GB
  if gsystemmemorycapoff=0
   vmsize=(system smem available(2)/1024)
-  if vmsize>1850
+  if vmsize>1950
    if thisisaonetimeglobalbeforethisbuildends=0
     do
      rem use a global to ensure this function does not call itself (recursively)
      thisisaonetimeglobalbeforethisbuildends=1
-     debugviewtext(-1,"Build process has exceed 1.85GB of virtual memory, using "+str$(vmsize)+"MB. Press CANCEL to abort this build!")
+     debugviewtext(-1,"Build process has exceed 1.95GB of virtual memory, using "+str$(vmsize)+"MB. Press CANCEL to abort this build!")
      sleep 10
     loop
     end
@@ -8369,19 +8366,22 @@ Rem Scene Commander, handle video textures
           If entityelement(e).videotexture<>0
           if animation playing(entityelement(e).videotexture)=0 then play animation to image entityelement(e).videotexture,animations(entityelement(e).videotexture-9).img,0,0,512,512
           texture object obj,animations(entityelement(e).videotexture-9).img
-          if cullmodechange=0
-          cullmode=0
-          cullmodechange=1
-          endif
+          `if cullmodechange=0
+          `cullmode=0
+          `cullmodechange=1
+          `endif
           if object in screen(obj)=0
           gosub _entity_updatealttexture
-          if cullmodechange=0
-          cullmode=cullmodelast
-          cullmodechange=1
-          endif
+          `if cullmodechange=0
+          `cullmode=cullmodelast
+          `cullmodechange=1
+          `endif
          endif
          endif
 
+         if cullmode<>cullmodelast and cullmodechange=0
+         cullmodechange=1
+         endif
 
          Rem scene commander, handle sudden changes in cullmode.
 
@@ -8398,6 +8398,7 @@ Rem Scene Commander, handle video textures
             endif
             next change
          cullmodechange=2
+         cullmodelast=cullmode
          endif
 
 Rem Scene Commander, calling culling per entity for performance increase.
@@ -23502,7 +23503,7 @@ function addfiletocollection(filename$)
       rem Scene Commander - memory reduction - if .wav and passing through here, convert - Not all wav's can be converted due to restrctions
       if lower$(right$(filename$,4))=".ogg" or lower$(right$(filename$,4))=".wav"
          sp$=lower$(left$(filecollection$(chk),len(filecollection$(chk))-4))+".ogg"
-            if lower$(right$(filecollection$(chk),4))=".wav"
+            if lower$(right$(filecollection$(chk),4))=".wav" and guseoggoff=0
                if file exist(sp$)=0
                a$=filecollection$(chk)
                encode to ogg vorbis a$,sp$
