@@ -3512,7 +3512,7 @@ rem V118 - 140810 - knxrb - Disable Particles
 global gparticlesnotused : gparticlesnotused=0
 rem V118 - 160810 - knxrb - Auto Resolution
 global gautores : gautores=0
-global guseoggoff:guseoggoff=0
+global guseoggoff:guseoggoff=1
 
 rem Version Control - TEST GAME Mode
 global gtestgamemodefromeditor : gtestgamemodefromeditor=0
