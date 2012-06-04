@@ -10,6 +10,7 @@ rem
 rem Requires DBPro Upgrade 7.5, and additionally requires:
 rem plugins-licensed\DBProGameFX.dll
 rem plugins-licensed\EnhancementsFREE.dll
+rem plugins-licensed\EnhancementsOV.dll
 rem plugins-licensed\DarkAI.dll
 rem plugins-licensed\LightMapper.dll
 rem plugins-user\DBProMultiplayerPlusDebug.dll
@@ -23523,6 +23524,7 @@ function addfiletocollection(filename$)
                encode to ogg vorbis a$,sp$
                endif
             endif
+            if guseoggoff=1 and lower$(right$(filename$,4))=".wav" then sp$=lower$(left$(filecollection$(chk),len(filecollection$(chk))-4))+".wav"
             filecollection$(chk)=sp$
             tokay=0:exit
       endif
