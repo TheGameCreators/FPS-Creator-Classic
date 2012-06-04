@@ -4675,7 +4675,7 @@ _main_game_core:
    else
     if gametransitionscreencount<(screen height()/2)-30
       rem Scene Commander - changes for player cam offsets.
-     position camera lastcamx#+newcamoffsetx,lastcamy#+newcamoffsety,lastcamz#+newcamoffsetz
+     position camera lastcamx#+plrcamoffsetx#,lastcamy#+plrcamoffsety#,lastcamz#+plrcamoffsetz#
      color backdrop rgb(0,0,64)
     endif
     set camera view 0,gametransitionscreencount,screen width(),gametransitionscreencount+(screen height()-(gametransitionscreencount*2))
@@ -4936,7 +4936,7 @@ rem scene commander, final adjustments to camera if rotation offsets for player
   rotate camera 0,camera angle x(0)+plroffsetanglex#,camera angle y(0)+plroffsetangley#,camera angle z(0)+plroffsetanglez#
   endif
 rem scene commander, player camera offsets
-   if plrcamoffseton<>0
+   if plrcamoffseton<>0 and showgamemenu=0
    position camera camera position x(0)+plrcamoffsetx#,camera position y(0)+plrcamoffsety#,camera position z(0)+plrcamoffsetz#
    endif
 endif
