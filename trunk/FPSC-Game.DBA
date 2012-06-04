@@ -2525,9 +2525,10 @@ rem Scene Commander actions
 #constant AIACTVIDEOTEXTURESPEED 1652
 #constant AIACTVIDEOTEXTUREVOLUME 1653
 #constant AIACTSTOPVIDEOTEXTURE 1654
+#constant AIACTSETBULLETCOL 1655
 
 
-#constant AIACTLAST 1655
+#constant AIACTLAST 1656
 
 rem V109 BETA3 - 210408 - AI variables
 global aivariablemode : aivariablemode=0 : rem 0-global, 1-local
@@ -12865,6 +12866,7 @@ actword$(AIACTRESUMEVIDEOTEXTURE)="resumevideotexture"
 actword$(AIACTVIDEOTEXTURESPEED)="setvideotexturespeed"
 actword$(AIACTVIDEOTEXTUREVOLUME)="setvideotexturevolume"
 actword$(AIACTSTOPVIDEOTEXTURE)="stopvideotexture"
+actword$(AIACTSETBULLETCOL)="setbulletcoloff"
 
 return
 
@@ -21574,6 +21576,10 @@ if actual>=10 or actual<=20
 endif
 
 
+endcase
+
+case AIACTSETBULLETCOL:
+entityelement(e).nobulletcol=aiactionseq(seq).value
 endcase
 
 
