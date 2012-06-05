@@ -24847,7 +24847,7 @@ rem cinematic hands <<<<
 endif
 
 rem scene commander - ensure weapon unjam if jammed
-if firemode(gunid,firemode).settings.jammed=1 and (plrkeyR)=1 and gun(gunid).settings.ismelee<>2 and firemode(gunid,firemode).settings.simplezoomanim=0 and firemode(gunid,firemode).settings.simplezoom=0
+if firemode(gunid,firemode).settings.jammed=1 and (plrkeyR)=1 and gun(gunid).settings.ismelee<>2 and firemode(gunid,firemode).settings.simplezoomanim=0 and firemode(gunid,firemode).settings.simplezoom=0 and gunzoommode=0
 player(plrid).state.firingmode=2
 endif
 
