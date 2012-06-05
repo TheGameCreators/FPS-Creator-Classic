@@ -8347,6 +8347,9 @@ Rem Scene commander - increase player weight if character near to prevent playin
 entid=entityelement(e).bankindex
 obj=entityelement(e).obj
 
+if obj>0
+if object size(obj)>42
+
 if entityprofile(entid).ischaracter=1 and entityelement(e).beenkilled=0 and (entityelement(e).active<>0 and entityelement(e).spawn.leader=0) and entityelement(e).beenkilled=0
 howfar2=edistance(e)
 
@@ -8368,6 +8371,9 @@ howfar2=edistance(e)
       endif
 
       endif
+
+endif
+endif
 
 
 Rem Scene Commander, handle video textures
