@@ -43476,8 +43476,6 @@ _multi_control:
             ink rgb(255,0,0),0
            endif
            center text object screen x(tobj),object screen y(tobj),multiplayername$(el)+"   Team: "+characterlist$(characterchosen(el))
-           ink rgb(255,255,255),0
-           center text object screen x(tobj),object screen y(tobj),multiplayername$(el)
           endif
          else
           stateraycastpace(el)=0
