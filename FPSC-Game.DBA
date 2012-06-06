@@ -353,6 +353,7 @@ img as integer
 entid as integer
 speed as integer
 looped as integer
+paused as integer
 endtype
 
 dim animations(10) as ani
@@ -3515,6 +3516,7 @@ global gparticlesnotused : gparticlesnotused=0
 rem V118 - 160810 - knxrb - Auto Resolution
 global gautores : gautores=0
 global guseoggoff:guseoggoff=1
+global gcapfpson: gcapfpson=0
 
 rem Version Control - TEST GAME Mode
 global gtestgamemodefromeditor : gtestgamemodefromeditor=0
@@ -3683,6 +3685,8 @@ if file exist(tfile$)=1
     tryfield$="alwaysconfirmsave" : if field$=tryfield$ then galwaysconfirmsave=value1
     tryfield$="simplifiedcharacterediting" : if field$=tryfield$ then gsimplifiedcharacterediting=value1
     tryfield$="useoggoff" : if field$=tryfield$ then guseoggoff=value1
+    tryfield$="cullmode" : if field$=tryfield$ then cullmode=value1
+    tryfield$="capfpson" : if field$=tryfield$ then gcapfpson=value1
     `
     tryfield$="xbox"
     if field$=tryfield$
@@ -5157,7 +5161,11 @@ endif
   rem LRMODUPDATE
   SyncAll()
   if gpostprocessing=0 or gpostprocessing=1 or gpostprocessing=2 then set current camera 0
-  if gpostprocessing=0 or gpostprocessing=1 or gpostprocessing=2 then sync
+  if gpostprocessing=0 or gpostprocessing=1 or gpostprocessing=2
+  if gcapfpson=0 then sync rate 0
+  sync
+  sync rate 80
+  endif
 
  endif
 return
@@ -7615,7 +7623,7 @@ function debugviewtext(progress,gamedebugviewtext$)
  rem FPGC - 050510 - turns out virtual memory address fragmentation crashes apps exceeding 2GB
  if gsystemmemorycapoff=0
   vmsize=(system smem available(2)/1024)
-  if vmsize>1950
+  if vmsize>1850
    if thisisaonetimeglobalbeforethisbuildends=0
     do
      rem use a global to ensure this function does not call itself (recursively)
@@ -8385,7 +8393,8 @@ Rem Scene Commander, handle video textures
           `if cullmodechange=0
           `cullmode=0
           `cullmodechange=1
-          `endif
+          `endif+
+
           if object in screen(obj)=0
           gosub _entity_updatealttexture
           `if cullmodechange=0
@@ -9374,7 +9383,9 @@ taddforcesphere=0
 
 rem Get AI Script for Entity Element
 aiindex=entityelement(e).ai.libindex
+if entityelement(e).active=1
 gosub _ai_control
+endif
 `
 rem Apply force if actioned
 if taddforcesphere>0
@@ -18213,6 +18224,15 @@ Rem Scene Commander
       inputpositionmouse(screen width()/2,(screen height()/4)*3)
       hudselectionmade=0 : ttemp=control_mouseclick()
       showgamemenu=1
+
+      for f=10 to 20
+      if animation exist(f)=1
+         if animation playing(f)=1
+         animations(f-9).paused=2
+         pause animation f
+         endif
+      endif
+      next f
       `
       rem FPGC - 110809 - when in pause mode, freeze all 3D object frames (record here)
       `for o=1 to 65535
@@ -18249,6 +18269,16 @@ Rem Scene Commander
       while control_mouseclick()<>0 : endwhile
       cleardelta=mousemovex() : cleardelta=mousemovey()
       tensureentitytimestampsupdated=1
+
+
+      for f=10 to 20
+      if animation exist(f)=1
+         if animations(f-9).paused=2
+         resume animation f
+         animations(f-9).paused=0
+         endif
+      endif
+      next f
       `
       rem FPGC - 080710 - resume any paused soundloops and animations
       for lsi=1 to entityelementmax
@@ -24748,7 +24778,7 @@ endif
       jamtemp=100-firemode(gunid,firemode).settings.jamchance
       randomize timer()
       chance=firemode(gunid,firemode).settings.shotsbeforejam+(rnd(jamtemp))
-      if firemode(gunid,firemode).settings.shotsfired>chance
+      if firemode(gunid,firemode).settings.shotsfired>chance and weaponammo(weaponammoindex)>1
          firemode(gunid,firemode).settings.jammed=1
          rem Scene Commander, ensure weapon jams affect both modes if sharing ammo
           if gun(gunid).settings.modessharemags=1
@@ -40954,6 +40984,7 @@ if deactivatecollision=0 and skipcol=0
     camerastoodonphyobj=0
    endif
   endif
+  remstart
   if camerastoodonphyobj<>0
    camerastoodonphyobjmovingx#=object position x(camerastoodonphyobj)-lcamerastoodonphyobjmovingx#
    camerastoodonphyobjmovingz#=object position z(camerastoodonphyobj)-lcamerastoodonphyobjmovingz#
@@ -40963,13 +40994,43 @@ if deactivatecollision=0 and skipcol=0
     `camvelx#=camvelx#+(camerastoodonphyobjmovingx#*80.0*timeelapsed#)
     `camvelz#=camvelz#+(camerastoodonphyobjmovingz#*80.0*timeelapsed#)
 
-   camvelx#=camvelx#+(camerastoodonphyobjmovingx#*(screen fps()*1.35)*timeelapsed#)
-   camvelz#=camvelz#+(camerastoodonphyobjmovingz#*(screen fps()*1.35)*timeelapsed#)
+   `camvelx#=camvelx#+(camerastoodonphyobjmovingx#*(screen fps()*1.35)*timeelapsed#)
+   `camvelz#=camvelz#+(camerastoodonphyobjmovingz#*(screen fps()*1.35)*timeelapsed#)
+
+   camvelx#=camvelx#+(camerastoodonphyobjmovingx#*timeelapsed#)
+   camvelz#=camvelz#+(camerastoodonphyobjmovingz#*timeelapsed#)
    endif
    lcamerastoodonphyobjmovingx#=object position x(camerastoodonphyobj)
    lcamerastoodonphyobjmovingz#=object position z(camerastoodonphyobj)
   endif
  endif
+
+ remend
+
+if camerastoodonphyobj<>0
+    if object exist(camerastoodonphyobj)=0 then camerastoodonphyobj=0
+   endif
+   if camerastoodonphyobj<>0
+
+    rem only influence of object beneath player borble
+    if object position y(camerastoodonphyobj)<object position y(physicsplayerborble)
+
+     if camerastoodrelativecoordinatex#=-1 or jumpaction<>0 or movement<>0
+      camerastoodrelativecoordinatex#=mex#-object position x(camerastoodonphyobj)
+      camerastoodrelativecoordinatez#=mez#-object position z(camerastoodonphyobj)
+     else
+      rem work out drift from original stood coordinate to where me is now
+      tshouldbex#=object position x(camerastoodonphyobj)+camerastoodrelativecoordinatex#
+      tshouldbez#=object position z(camerastoodonphyobj)+camerastoodrelativecoordinatez#
+      camvelx#=camvelx#+((tshouldbex#-mex#)*10)
+      camvelz#=camvelz#+((tshouldbez#-mez#)*10)
+     endif
+    endif
+
+   else
+    camerastoodrelativecoordinatex#=-1
+   endif
+  endif
  if tgravitydefeated=1
   if physicsdebug=1 then print "andgravitydefeated"
   rem a few cycles grace at start of level (avoid urg sound when retstart)
@@ -42206,6 +42267,7 @@ _ode_applyforce:
    ode set angular velocity tobj,sin(tda#)*(10*tspinforce#),0,cos(tda#)*(10*tspinforce#)
   endif
  endif
+
  `
 return
 
@@ -46041,6 +46103,11 @@ a#=watercurrent:write float 1,a#
 a#=waterflow:write float 1,a#
 a#=showflak:write float 1,a#
 
+for f=1 to 10
+a#=animations(f).paused
+write float 1,a#
+next f
+
   for lsi=0 to entityelementmax
    a#=saveloadgamepositionentity(lsi).soundplaying : write float 1,a#
    a#=saveloadgamepositionentity(lsi).orx : write float 1,a#
@@ -46389,6 +46456,11 @@ read float 1,a#:oldwaterheight#=a#
 read float 1,a#:watercurrent=a#
 read float 1,a#:waterflow=a#
 read float 1,a#:showflak=a#
+
+for f=1 to 10
+read float 1,a#
+animations(f).paused=a#
+next f
 
   for lsi=0 to entityelementmax
 
