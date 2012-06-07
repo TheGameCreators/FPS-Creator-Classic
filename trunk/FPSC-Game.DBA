@@ -136,7 +136,7 @@ Rem Scene Commander water performance
 Global waterflec=400
 rem Scene Commander culling
 global cullmode=1
-global cullmodi=550
+global cullmodi=850
 global plrfootfall=1
 global forcealtswap=0
 global moveplrx#=0.0
@@ -60549,7 +60549,7 @@ function setintervar(e,var$,alter#)
   case "$EA"
    entityelement(e).currentammo=alter#
   endcase
-case "$EPX"
+   case "$EPX"
    entityelement(e).x=alter#
    updateposition=1
   endcase
@@ -62476,7 +62476,7 @@ if entityelement(e).ishidden<>2
                               fade=100
                               endif
 
-                           if entityelement(e).ishidden<>3
+                           if entityelement(e).ishidden<>3 and entityelement(e).cullstate<>2
                               if fade<entityelement(e).ai.destalphafade and fade<101
                               set alpha mapping on obj,fade
                               endif
