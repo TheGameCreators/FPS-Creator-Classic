@@ -184,7 +184,7 @@ global cullmodelast=cullmode
 global cullmodechange=0
 Rem Scene Commander - made global as otherwise it is being ignored in functions
 global weaponammoindex=0
-
+global timeelapsed#=0.0
 rem scene commander - average FPS for smoother movement
 global nextave=1
 dim fpsstore(80):for f=1 to 80:fpsstore(f)=80:next f
@@ -8386,23 +8386,26 @@ endif
 
 Rem Scene Commander, handle video textures
           `cullmodelast=cullmode
-
+ if obj>0
           If entityelement(e).videotexture<>0
           if animation playing(entityelement(e).videotexture)=0 then play animation to image entityelement(e).videotexture,animations(entityelement(e).videotexture-9).img,0,0,512,512
-          texture object obj,animations(entityelement(e).videotexture-9).img
-          `if cullmodechange=0
-          `cullmode=0
-          `cullmodechange=1
-          `endif+
+          texture object obj,0,animations(entityelement(e).videotexture-9).img
+            if entityelement(e).eleprof.usingeffect>0
+            if entityelement(e).eleprof.tex1id<>0 then texture object obj,1,entityelement(e).eleprof.tex1id
+            if entityelement(e).eleprof.tex2id<>0 then texture object obj,2,entityelement(e).eleprof.tex2id
+            if entityelement(e).eleprof.tex3id<>0 then texture object obj,3,entityelement(e).eleprof.tex3id
+            rem FPSC - 210111 - force CPU animation for entities with specific limb identities
+            set object effect obj,entityelement(e).eleprof.usingeffect,1
+            else
+            set object effect obj,entityelement(e).eleprof.usingeffect,0
+            endif
+            objecteffect(obj)=entityelement(e).eleprof.usingeffect
+            else
+            rem FPGC - 100610 - fix issue which wipes 'material mode' when re-apply texture
+            set object diffuse obj,rgb(128,128,128)
+            endif
+    endif
 
-          if object in screen(obj)=0
-          gosub _entity_updatealttexture
-          `if cullmodechange=0
-          `cullmode=cullmodelast
-          `cullmodechange=1
-          `endif
-         endif
-         endif
 
          if cullmode<>cullmodelast and cullmodechange=0
          cullmodechange=1
@@ -15750,6 +15753,7 @@ Rem Scene Commander
           tvarfound=1
           rem And Exit the For loop
           exit
+
          endif
         next uvar
         `
@@ -16615,8 +16619,9 @@ Rem Scene Commander
       memovingz#=-(aiactionseq(seq).value/100.0)
      endcase
      case AIACTPLRMOVETO:
-      foundte=aiactionseq(seq).value
-      norotate=aiactionseq(seq).valueb
+      tname$=aiactionseq(seq).string1
+      norotate=aiactionseq(seq).value
+      gosub _entity_findname
       if foundte>0
        tranmex#=entityelement(foundte).x
        tranmey#=entityelement(foundte).y+75.0 : rem FPGC - 180610 - from 55 (stuck below gantry)
@@ -26763,7 +26768,7 @@ if gunflash=2
   hide object hudbankoffset+5
   hide object hudbankoffset+32
  endif
- dec gunflashcount,timeelapsed#
+ dec gunflashcount,timeelapsed#/2
  if gunflashcount<=0
   gunflash=3
  endif
@@ -30397,6 +30402,12 @@ _decalelement_control:
 rem Control all decal activity
 for f=1 to decalelementmax
  if decalelement(f).active=1
+   if screen fps()>120
+      decaltimeelapsed#=timeelapsed#*2
+   else
+      decaltimeelapsed#=timeelapsed#
+   endif
+
   rem update decal object
   tobj=decalelement(f).obj : tdetonate=0
   rem if decal not in visible screen, destroy for performance - off no code
@@ -30404,19 +30415,19 @@ for f=1 to decalelementmax
    rem possible movement
    if decalelement(f).orient=7
     rem FPGC - 300310 - decal based particle moves in 3D space
-    decalelement(f).xpos=decalelement(f).xpos+(((decalelement(f).particleix/100.0)*100.0)*timeelapsed#)
-    decalelement(f).ypos=decalelement(f).ypos+(((decalelement(f).particleiy/100.0)*100.0)*timeelapsed#)
-    decalelement(f).zpos=decalelement(f).zpos+(((decalelement(f).particleiz/100.0)*100.0)*timeelapsed#)
-    decalelement(f).xpos=decalelement(f).xpos+((decalelement(f).particle.linearmotionx/100.0)*timeelapsed#)
-    decalelement(f).ypos=decalelement(f).ypos+((decalelement(f).particle.linearmotiony/100.0)*timeelapsed#)
-    decalelement(f).zpos=decalelement(f).zpos+((decalelement(f).particle.linearmotionz/100.0)*timeelapsed#)
+    decalelement(f).xpos=decalelement(f).xpos+(((decalelement(f).particleix/100.0)*100.0)*decaltimeelapsed#)
+    decalelement(f).ypos=decalelement(f).ypos+(((decalelement(f).particleiy/100.0)*100.0)*decaltimeelapsed#)
+    decalelement(f).zpos=decalelement(f).zpos+(((decalelement(f).particleiz/100.0)*100.0)*decaltimeelapsed#)
+    decalelement(f).xpos=decalelement(f).xpos+((decalelement(f).particle.linearmotionx/100.0)*decaltimeelapsed#)
+    decalelement(f).ypos=decalelement(f).ypos+((decalelement(f).particle.linearmotiony/100.0)*decaltimeelapsed#)
+    decalelement(f).zpos=decalelement(f).zpos+((decalelement(f).particle.linearmotionz/100.0)*decaltimeelapsed#)
    endif
    rem animation
    decalid=decalelement(f).decalid
    rem next frame
    rem FPGC - 050710 - glass smash much slower than previous non-timer based system, so we speed it up!
-   `decalelement(f).framedelay=decalelement(f).framedelay+timeelapsed#
-   decalelement(f).framedelay=decalelement(f).framedelay+(timeelapsed#*2)
+   `decalelement(f).framedelay=decalelement(f).framedelay+decaltimeelapsed#
+   decalelement(f).framedelay=decalelement(f).framedelay+(decaltimeelapsed#*2)
    if decalelement(f).framedelay>=1
     decalelement(f).framedelay=0
     decalelement(f).frame=decalelement(f).frame+(decalelement(f).particle.lifeincrement/100.0)
