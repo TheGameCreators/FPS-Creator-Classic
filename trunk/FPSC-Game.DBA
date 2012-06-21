@@ -185,6 +185,7 @@ global cullmodechange=0
 Rem Scene Commander - made global as otherwise it is being ignored in functions
 global weaponammoindex=0
 global timeelapsed#=0.0
+global syncrate=140
 rem scene commander - average FPS for smoother movement
 global nextave=1
 dim fpsstore(80):for f=1 to 80:fpsstore(f)=80:next f
@@ -2528,9 +2529,10 @@ rem Scene Commander actions
 #constant AIACTVIDEOTEXTUREVOLUME 1653
 #constant AIACTSTOPVIDEOTEXTURE 1654
 #constant AIACTSETBULLETCOL 1655
+#constant AIACTSYNCRATE 1656
 
 
-#constant AIACTLAST 1656
+#constant AIACTLAST 1657
 
 rem V109 BETA3 - 210408 - AI variables
 global aivariablemode : aivariablemode=0 : rem 0-global, 1-local
@@ -4980,6 +4982,13 @@ entityelement(eplayercam).z=z1#+entityelement(eplayercam).camoffsetz
 
 position object entityelement(eplayercam).obj,entityelement(eplayercam).x,entityelement(eplayercam).y,entityelement(eplayercam).z
 
+if entityelement(eplayercam).attachmentobj>0
+      if object exist(entityelement(eplayercam).attachmentobj)=1
+
+       SET OBJECT TO OBJECT ORIENTATION entityelement(eplayercam).attachmentobj,entityelement(eplayercam).obj,1
+      endif
+   endif
+
 endif
 
 rem using entity cam
@@ -4989,6 +4998,8 @@ if ecam<>0
 position camera entityelement(ecam).x+entityelement(ecam).camoffsetx,entityelement(ecam).y+entityelement(ecam).camoffsety,entityelement(ecam).z+entityelement(ecam).camoffsetz
    if entityelement(ecam).camuse=0
    rotate camera wrapvalue(entityelement(ecam).rx+entityelement(ecam).offsetanglex),wrapvalue(entityelement(ecam).ry+entityelement(ecam).offsetangley),wrapvalue(entityelement(ecam).rz+entityelement(ecam).offsetanglez)
+
+
    else
    rotate camera wrapvalue(entityelement(ecam).camrotx+entityelement(ecam).offsetanglex),wrapvalue(entityelement(ecam).camroty+entityelement(ecam).offsetanglex),wrapvalue(entityelement(ecam).camrotz+entityelement(ecam).offsetanglex)
    endif
@@ -5162,9 +5173,9 @@ endif
   SyncAll()
   if gpostprocessing=0 or gpostprocessing=1 or gpostprocessing=2 then set current camera 0
   if gpostprocessing=0 or gpostprocessing=1 or gpostprocessing=2
-  if gcapfpson=0 then sync rate 0
+  if gcapfpson=0 then sync rate syncrate
   sync
-  sync rate 80
+  if gcapfpson=0 then sync rate 80
   endif
 
  endif
@@ -12888,6 +12899,7 @@ actword$(AIACTVIDEOTEXTURESPEED)="setvideotexturespeed"
 actword$(AIACTVIDEOTEXTUREVOLUME)="setvideotexturevolume"
 actword$(AIACTSTOPVIDEOTEXTURE)="stopvideotexture"
 actword$(AIACTSETBULLETCOL)="setbulletcoloff"
+actword$(AIACTSYNCRATE)="setsyncrate"
 
 return
 
@@ -18325,13 +18337,13 @@ Rem Scene Commander
      endcase
      rem AirMod - New Actions >>>
      case AIACTSETIFUSED:
-      tindex=aiactionseq(seq).value
-      taiactionstring$=actstring$(tindex)
+      `tindex=aiactionseq(seq).value
+      taiactionstring$=aiactionseq(seq).string1
       entityelement(e).eleprof.ifused$ = taiactionstring$
      endcase
      case AIACTSETUSEKEY:
-      tindex=aiactionseq(seq).value
-      taiactionstring$=actstring$(tindex)
+      `tindex=aiactionseq(seq).value
+      taiactionstring$=aiactionseq(seq).string1
       entityelement(e).eleprof.usekey$ = taiactionstring$
      endcase
      case AIACTRESETPLRWEAPONS:
@@ -21624,6 +21636,11 @@ case AIACTSETBULLETCOL:
 entityelement(e).nobulletcol=aiactionseq(seq).value
 endcase
 
+case AIACTSYNCRATE:
+
+syncrate=aiactionseq(seq).value
+
+endcase
 
 
    endselect
@@ -26768,7 +26785,7 @@ if gunflash=2
   hide object hudbankoffset+5
   hide object hudbankoffset+32
  endif
- dec gunflashcount,timeelapsed#/2
+ dec gunflashcount,timeelapsed#
  if gunflashcount<=0
   gunflash=3
  endif
@@ -46113,6 +46130,7 @@ a#=oldwaterheight#:write float 1,a#
 a#=watercurrent:write float 1,a#
 a#=waterflow:write float 1,a#
 a#=showflak:write float 1,a#
+a#=syncrate:write float 1,a#
 
 for f=1 to 10
 a#=animations(f).paused
@@ -46467,6 +46485,7 @@ read float 1,a#:oldwaterheight#=a#
 read float 1,a#:watercurrent=a#
 read float 1,a#:waterflow=a#
 read float 1,a#:showflak=a#
+read float 1,a#:syncrate=a#
 
 for f=1 to 10
 read float 1,a#
