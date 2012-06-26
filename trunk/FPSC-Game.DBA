@@ -62442,7 +62442,6 @@ rem end is o
 
     function culling(e,entid,obj)
 
-text 200,200,str$(weaponindex)
  rem if not just using FPSC default culling
 if gmultiplayergame<>1 and cullmode<>0
 
