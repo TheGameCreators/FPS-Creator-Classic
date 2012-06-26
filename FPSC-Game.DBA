@@ -20432,9 +20432,10 @@ case AIACTSETVARRND:
        tvarfound=0
        rem Using our strings from the parser, let's find the var the user wants to set
        if left$(aiactionseq(seq).string1,1)="$"
-       rndvalue=rnd(aiactionseq(seq).value)
+       rndvalue=rnd(aiactionseq(seq).valueb)
         setintervar(e,aiactionseq(seq).string1,rndvalue)
         else
+
         for uvar = 0 to array count(uservars(0))
          if uservars(uvar).name = aiactionseq(seq).string1
           rem Found the variable, let's set it
@@ -20442,11 +20443,14 @@ case AIACTSETVARRND:
           tvarfound=1
           rem And Exit the For loop
           exit
+
          endif
         next uvar
+
         `
         if tvarfound=0
          for lvar = 0 to 99
+         rndvalue=rnd(aiactionseq(seq).valueb)
           if aiuserlocals(e,lvar).name = aiactionseq(seq).string1
            rem Found the variable, let's set it
            aiuserlocals(e,lvar).value = rndvalue
@@ -20801,8 +20805,8 @@ case AIACTRAWTEXTVAR:
       rem Using our strings from the parser, let's find the var the user wants to set
       if left$(aiactionseq(seq).string1,1)="$"
        ttt=getintervar(e,aiactionseq(seq).string1)
-       ttt=sin(ttt)
-       setintervar(e,aiactionseq(seq).string1,ttt)
+       ttt1=sin(ttt)
+       setintervar(e,aiactionseq(seq).string1,ttt1)
       else
        tvarfound=0
        for uvar = 0 to array count(uservars(0))
@@ -20834,14 +20838,14 @@ case AIACTRAWTEXTVAR:
       rem Using our strings from the parser, let's find the var the user wants to set
       if left$(aiactionseq(seq).string1,1)="$"
        ttt=getintervar(e,aiactionseq(seq).string1)
-       ttt=cos(ttt)
-       setintervar(e,aiactionseq(seq).string1,ttt)
+       ttt1=cos(ttt)
+       setintervar(e,aiactionseq(seq).string1,ttt1)
       else
        tvarfound=0
        for uvar = 0 to array count(uservars(0))
         if uservars(uvar).name = aiactionseq(seq).string1
          rem Found the variable, let's wrap it's value
-         uservars(uvar).value = cos(uservars(uvar).value)
+          uservars(uvar).value = cos(uservars(uvar).value)
          rem And Exit the For loop
          tvarfound=1
          exit
@@ -20872,6 +20876,8 @@ case AIACTRAWTEXTVAR:
         exit
        endif
       next thudid
+
+
 
       endcase
 
@@ -62436,7 +62442,7 @@ rem end is o
 
     function culling(e,entid,obj)
 
-
+text 200,200,str$(weaponindex)
  rem if not just using FPSC default culling
 if gmultiplayergame<>1 and cullmode<>0
 
