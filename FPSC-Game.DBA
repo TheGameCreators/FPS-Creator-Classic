@@ -1980,8 +1980,9 @@ Rem Scene commander conditions
 #constant AICONDWATEREQUAL 917
 #constant AICONDWATERLESSER 918
 #constant AICONDWATERGREATER 919
+#constant AICONDWATERISON 920
 
-#constant AICONDLAST 920
+#constant AICONDLAST 921
 
 #constant AIACTNONE 0
 #constant AIACTDESTROY 1
@@ -12363,6 +12364,7 @@ conword$(AICONDSOUNDNOTPLAYING)="soundnotplaying"
 conword$(AICONDWATEREQUAL)="waterequal"
 conword$(AICONDWATERLESSER)="waterlesser"
 conword$(AICONDWATERGREATER)="watergreater"
+conword$(AICONDWATERISON)="waterison"
 
 rem Set all action keywords
 dim actword$(AIACTLAST)
@@ -15410,6 +15412,13 @@ endcase
 case AICONDWATERGREATER:
    airesult=0
    if waterheight#>aiconditionseq(seq).valuea
+   airesult=1
+   endif
+endcase
+
+case AICONDWATERISON
+   airesult=0
+   if wateron=aiconditionseq(seq).valuea
    airesult=1
    endif
 endcase
