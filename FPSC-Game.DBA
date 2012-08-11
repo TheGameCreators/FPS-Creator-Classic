@@ -186,6 +186,7 @@ Rem Scene Commander - made global as otherwise it is being ignored in functions
 global weaponammoindex=0
 global timeelapsed#=0.0
 global syncrate=140
+global plrdistance#=0.0
 rem scene commander - average FPS for smoother movement
 global nextave=1
 dim fpsstore(80):for f=1 to 80:fpsstore(f)=80:next f
@@ -579,6 +580,7 @@ type saveloadgamepositionentitytype
  entityacc as float
  soundplaying as integer
  frozen as frozen
+
 endtype
 type saveloadgamepositionweaponslottype
  pref got invpos
@@ -1743,6 +1745,7 @@ type entitytype
  entityacc as integer
  soundplaying as integer
  frozen as frozen
+ distance as integer
 endtype
 rem Entity Breadcrumbs Data
 type entitybreadcrumbstype
@@ -1974,8 +1977,11 @@ Rem Scene commander conditions
 #constant AICONDOBJECTRANGEGREATER 914
 #constant AICONDSOUNDPLAYING 915
 #constant AICONDSOUNDNOTPLAYING 916
+#constant AICONDWATEREQUAL 917
+#constant AICONDWATERLESSER 918
+#constant AICONDWATERGREATER 919
 
-#constant AICONDLAST 950
+#constant AICONDLAST 920
 
 #constant AIACTNONE 0
 #constant AIACTDESTROY 1
@@ -8370,7 +8376,9 @@ if obj>0
 if object size(obj)>42
 
 if entityprofile(entid).ischaracter=1 and entityelement(e).beenkilled=0 and (entityelement(e).active<>0 and entityelement(e).spawn.leader=0) and entityelement(e).beenkilled=0
-howfar2=edistance(e)
+
+edistance(e)
+howfar2=plrdistance#
 
       if howfar2<(object size z(obj)*2)
 
@@ -12352,6 +12360,9 @@ conword$(AICONDOBJECTRANGELESS)="objectiverangelesser"
 conword$(AICONDOBJECTRANGEGREATER)="objectiverangegreater"
 conword$(AICONDSOUNDPLAYING)="soundplaying"
 conword$(AICONDSOUNDNOTPLAYING)="soundnotplaying"
+conword$(AICONDWATEREQUAL)="waterequal"
+conword$(AICONDWATERLESSER)="waterlesser"
+conword$(AICONDWATERGREATER)="watergreater"
 
 rem Set all action keywords
 dim actword$(AIACTLAST)
@@ -13140,19 +13151,43 @@ Rem Scene Commander
 
    case "$DIS"
 
-   aiconditionseq(seq).valuea=edistance(e)
+   tcamx#=object position x(physicsplayerborble)
+   tcamy#=object position y(physicsplayerborble)
+   tcamz#=object position z(physicsplayerborble)
+
+   tdx#=entityelement(e).x-tcamx#
+   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdz#=entityelement(e).z-tcamz#
+   plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+   aiconditionseq(seq).valuea=plrdistance#
 
    endcase
 
    case "$DIF"
 
-   aiconditionseq(seq).valuea=(edistance(e)/100)*8.33
+   tcamx#=object position x(physicsplayerborble)
+   tcamy#=object position y(physicsplayerborble)
+   tcamz#=object position z(physicsplayerborble)
+
+   tdx#=entityelement(e).x-tcamx#
+   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdz#=entityelement(e).z-tcamz#
+   plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+   aiconditionseq(seq).valuea=(plrdistance#/100)*8.33
 
    endcase
 
    case "$DIM"
 
-    aiconditionseq(seq).valuea=(edistance(e)/100)*2.54
+   tcamx#=object position x(physicsplayerborble)
+   tcamy#=object position y(physicsplayerborble)
+   tcamz#=object position z(physicsplayerborble)
+
+   tdx#=entityelement(e).x-tcamx#
+   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdz#=entityelement(e).z-tcamz#
+   plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+    aiconditionseq(seq).valuea=(plrdistance#/100)*2.54
 
    endcase
 
@@ -13257,13 +13292,37 @@ Rem Scene Commander
    aiconditionseq(seq).valueb=maxslots
    endcase
    case "$DIS"
-   aiconditionseq(seq).valueb=edistance(e)
+tcamx#=object position x(physicsplayerborble)
+   tcamy#=object position y(physicsplayerborble)
+   tcamz#=object position z(physicsplayerborble)
+
+   tdx#=entityelement(e).x-tcamx#
+   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdz#=entityelement(e).z-tcamz#
+   plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+   aiconditionseq(seq).valueb=plrdistance#
    endcase
    case "$DIF"
-   aiconditionseq(seq).valueb=(edistance(e)/100)*8.33
+tcamx#=object position x(physicsplayerborble)
+   tcamy#=object position y(physicsplayerborble)
+   tcamz#=object position z(physicsplayerborble)
+
+   tdx#=entityelement(e).x-tcamx#
+   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdz#=entityelement(e).z-tcamz#
+   plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+   aiconditionseq(seq).valueb=(plrdistance#/100)*8.33
    endcase
    case "$DIM"
-    aiconditionseq(seq).valueb=(edistance(e)/100)*2.54
+   tcamx#=object position x(physicsplayerborble)
+   tcamy#=object position y(physicsplayerborble)
+   tcamz#=object position z(physicsplayerborble)
+
+   tdx#=entityelement(e).x-tcamx#
+   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdz#=entityelement(e).z-tcamz#
+   plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+    aiconditionseq(seq).valueb=(plrdistance#/100)*2.54
    endcase
 
   endselect
@@ -15334,6 +15393,27 @@ case AICONDSOUNDNOTPLAYING:
    endif
    endcase
 
+ case AICONDWATEREQUAL:
+   airesult=0
+   if aiconditionseq(seq).valuea=waterheight#
+   airesult=1
+   endif
+ endcase
+
+case AICONDWATERLESSER:
+   airesult=0
+   if waterheight#<aiconditionseq(seq).valuea
+   airesult=1
+   endif
+endcase
+
+case AICONDWATERGREATER:
+   airesult=0
+   if waterheight#>aiconditionseq(seq).valuea
+   airesult=1
+   endif
+endcase
+
    endselect
    `
    rem nw addition, if airesult prematurely zero can leave NOW
@@ -15520,19 +15600,41 @@ Rem Scene Commander
    endcase
    case "$DIS"
 
-   aiactionseq(seq).value=edistance(e)
+tcamx#=object position x(physicsplayerborble)
+   tcamy#=object position y(physicsplayerborble)
+   tcamz#=object position z(physicsplayerborble)
+
+   tdx#=entityelement(e).x-tcamx#
+   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdz#=entityelement(e).z-tcamz#
+   plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+   aiactionseq(seq).value=plrdistance#
 
    endcase
 
    case "$DIF"
+tcamx#=object position x(physicsplayerborble)
+   tcamy#=object position y(physicsplayerborble)
+   tcamz#=object position z(physicsplayerborble)
 
-   aiactionseq(seq).value=(edistance(e)/100)*8.33
+   tdx#=entityelement(e).x-tcamx#
+   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdz#=entityelement(e).z-tcamz#
+   plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+   aiactionseq(seq).value=(plrdistance#/100)*8.33
 
    endcase
 
    case "$DIM"
+tcamx#=object position x(physicsplayerborble)
+   tcamy#=object position y(physicsplayerborble)
+   tcamz#=object position z(physicsplayerborble)
 
-    aiactionseq(seq).value=(edistance(e)/100)*2.54
+   tdx#=entityelement(e).x-tcamx#
+   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdz#=entityelement(e).z-tcamz#
+   plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+    aiactionseq(seq).value=(plrdistance#/100)*2.54
 
    endcase
 
@@ -15639,21 +15741,41 @@ Rem Scene Commander
    endcase
 
    case "$DIS"
+tcamx#=object position x(physicsplayerborble)
+   tcamy#=object position y(physicsplayerborble)
+   tcamz#=object position z(physicsplayerborble)
 
-   aiconditionseq(seq).valueb=edistance(e)
-
+   tdx#=entityelement(e).x-tcamx#
+   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdz#=entityelement(e).z-tcamz#
+   plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+   aiconditionseq(seq).valueb=plrdistance#
 
    endcase
 
    case "$DIF"
+tcamx#=object position x(physicsplayerborble)
+   tcamy#=object position y(physicsplayerborble)
+   tcamz#=object position z(physicsplayerborble)
 
-   aiconditionseq(seq).valueb=(edistance(e)/100)*8.33
+   tdx#=entityelement(e).x-tcamx#
+   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdz#=entityelement(e).z-tcamz#
+   plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+   aiconditionseq(seq).valueb=(plrdistance#/100)*8.33
 
    endcase
 
    case "$DIM"
+tcamx#=object position x(physicsplayerborble)
+   tcamy#=object position y(physicsplayerborble)
+   tcamz#=object position z(physicsplayerborble)
 
-    aiconditionseq(seq).valueb=(edistance(e)/100)*2.54
+   tdx#=entityelement(e).x-tcamx#
+   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdz#=entityelement(e).z-tcamz#
+   plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+    aiconditionseq(seq).valueb=(plrdistance#/100)*2.54
 
    endcase
   endselect
@@ -24911,7 +25033,11 @@ rem cinematic hands <<<<
 endif
 
 rem scene commander - ensure weapon unjam if jammed
-if firemode(gunid,firemode).settings.jammed=1 and (plrkeyR)=1 and gun(gunid).settings.ismelee<>2 and firemode(gunid,firemode).settings.simplezoomanim=0 and firemode(gunid,firemode).settings.simplezoom=0 and gunzoommode=0
+if gunzoommode<>0
+plrkeyR=0
+endif
+
+if firemode(gunid,firemode).settings.jammed=1 and (plrkeyR)=1 and gun(gunid).settings.ismelee<>2 and firemode(gunid,firemode).settings.simplezoomanim=0 and firemode(gunid,firemode).settings.simplezoom=0
 player(plrid).state.firingmode=2
 endif
 
@@ -40419,7 +40545,7 @@ playeraction=0
 
 Rem Free weapon jam if reload used
 
-if player(1).state.firingmode=2
+if player(1).state.firingmode=2 and gunzoommode=0
    plrreloading=1
    firemode(gunid,firemode).settings.shotsfired=0
    rem play free jam animation if it exists
@@ -60513,20 +60639,41 @@ function getintervar(e,var$)
   endcase
 
    case "$DIS"
+tcamx#=object position x(physicsplayerborble)
+   tcamy#=object position y(physicsplayerborble)
+   tcamz#=object position z(physicsplayerborble)
 
-   temp=edistance(e)
+   tdx#=entityelement(e).x-tcamx#
+   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdz#=entityelement(e).z-tcamz#
+   plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+   temp=plrdistance#
 
    endcase
 
    case "$DIF"
+tcamx#=object position x(physicsplayerborble)
+   tcamy#=object position y(physicsplayerborble)
+   tcamz#=object position z(physicsplayerborble)
 
-   temp=(edistance(e)/100)*8.33
+   tdx#=entityelement(e).x-tcamx#
+   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdz#=entityelement(e).z-tcamz#
+   plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+   temp=(plrdistance#/100)*8.33
 
    endcase
 
    case "$DIM"
+tcamx#=object position x(physicsplayerborble)
+   tcamy#=object position y(physicsplayerborble)
+   tcamz#=object position z(physicsplayerborble)
 
-    temp=(edistance(e)/100)*2.54
+   tdx#=entityelement(e).x-tcamx#
+   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdz#=entityelement(e).z-tcamz#
+   plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+    temp=(plrdistance#/100)*2.54
 
    endcase
 
@@ -62451,6 +62598,7 @@ rem get player position
  tcamz#=object position z(physicsplayerborble)
 
 
+
 `for e=1 to entityelementlist
 `entid=entityelement(e).bankindex
 `obj=entityelement(e).obj
@@ -62473,6 +62621,8 @@ if entityelement(e).ishidden<>2
 
             if obj>0
 
+            `text object screen x(obj),object screen y(obj),str$(edistance(e))
+
             seeit=0
             Rem get is object on screen
                if object exist(obj) then seeit=object in screen(obj)
@@ -62491,7 +62641,7 @@ if entityelement(e).ishidden<>2
                  tdx#=object position x(obj)-tcamx#
                  tdy#=object position y(obj)+(object size(obj)/2)-tcamy#
                  tdz#=object position z(obj)-tcamz#
-
+                 `edistance(e)
                   howfar=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
 
                   `size adjustment, arrived at through experimentation and is approximately cullmodi*100=1 segment
@@ -62548,24 +62698,24 @@ endif
 
 endfunction
 
-function edistance(e)
+function edistance(te)
 
-entobj=entityelement(e).obj
+entobj=entityelement(te).obj
    if entobj>0 and physicsplayerborble>0
 
    tcamx#=object position x(physicsplayerborble)
    tcamy#=object position y(physicsplayerborble)
    tcamz#=object position z(physicsplayerborble)
 
-   tdx#=entityelement(e).x-tcamx#
-   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
-   tdz#=entityelement(e).z-tcamz#
-   dist=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+   tdx#=entityelement(te).x-tcamx#
+   tdy#=entityelement(te).y+(object size(entobj)/2)-tcamy#
+   tdz#=entityelement(te).z-tcamz#
+   plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
    else
-   dist=9999999
+   plrdistance#=9999999
    endif
 
-   endfunction dist
+   endfunction
 
 
 function alterlimbscale(en,lm,ls)
