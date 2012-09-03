@@ -31705,6 +31705,10 @@ for tef=1 to effectbankmax
  set vector4 1,tamb#,tamb#,tamb#,1.0
  set effect constant vector teffectid,"AmbiColor",1
  `
+ rem (markblosser) send scripted ambient color changes to shaders also
+ set vector4 1,hudambiencered,hudambiencegreen,hudambienceblue,1.0
+ set effect constant vector teffectid,"AmbiColorOverride",1
+ `
  rem (markblosser) - send spotflash light values to shader - light range is fixed at 600 in _lighting_spotflash:
  rem (markblosser) - SpotFlashPos.w is carrying the spotflash fadeout value
  set vector4 1,spotflashx#,spotflashy#,spotflashz#,spotfadeout#
