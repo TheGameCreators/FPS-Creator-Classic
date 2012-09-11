@@ -184,6 +184,7 @@ global cullmodelast=cullmode
 global cullmodechange=0
 Rem Scene Commander - made global as otherwise it is being ignored in functions
 global weaponammoindex=0
+global ammooffset=0
 global timeelapsed#=0.0
 global syncrate=140
 global plrdistance#=0.0
@@ -13060,27 +13061,27 @@ if aiindex>0
     aiconditionseq(seq).valuea=player(1).lives
    endcase
    case "$RA"
-    aiconditionseq(seq).valuea=weaponclipammo(weaponammoindex)+weaponammo(weaponammoindex)
+    aiconditionseq(seq).valuea=weaponclipammo(weaponammoindex+ammooffset)+weaponammo(weaponammoindex+ammooffset)
    endcase
    case "$A"
     aiconditionseq(seq).valuea=-1
     if gunid<>0
-     aiconditionseq(seq).valuea=weaponclipammo(weaponammoindex)+weaponammo(weaponammoindex)
+     aiconditionseq(seq).valuea=weaponclipammo(weaponammoindex+ammooffset)+weaponammo(weaponammoindex+ammooffset)
     endif
    endcase
    case "$RCA"
-    aiconditionseq(seq).valuea=weaponammo(weaponammoindex)
+    aiconditionseq(seq).valuea=weaponammo(weaponammoindex+ammooffset)
    endcase
    case "$CA"
     aiconditionseq(seq).valuea=-1
     if gunid<>0
-     aiconditionseq(seq).valuea=weaponammo(weaponammoindex)
+     aiconditionseq(seq).valuea=weaponammo(weaponammoindex+ammooffset)
     endif
     endcase
     case "$CLA"
     aiconditionseq(seq).valuea=-1
     if gunid<>0
-     aiconditionseq(seq).valuea=weaponclipammo(weaponammoindex)
+     aiconditionseq(seq).valuea=weaponclipammo(weaponammoindex+ammooffset)
     endif
    endcase
    case "$EH"
@@ -13203,27 +13204,27 @@ Rem Scene Commander
     aiconditionseq(seq).valueb=player(1).lives
    endcase
    case "$RA"
-    aiconditionseq(seq).valueb=weaponclipammo(weaponammoindex)+weaponammo(weaponammoindex)
+    aiconditionseq(seq).valueb=weaponclipammo(weaponammoindex+ammooffset)+weaponammo(weaponammoindex+ammooffset)
    endcase
    case "$A"
     aiconditionseq(seq).valueb=-1
     if gunid<>0
-     aiconditionseq(seq).valueb=weaponclipammo(weaponammoindex)+weaponammo(weaponammoindex)
+     aiconditionseq(seq).valueb=weaponclipammo(weaponammoindex+ammooffset)+weaponammo(weaponammoindex+ammooffset)
     endif
    endcase
    case "$RCA"
-    aiconditionseq(seq).valueb=weaponammo(weaponammoindex)
+    aiconditionseq(seq).valueb=weaponammo(weaponammoindex+ammooffset)
    endcase
    case "$CA"
     aiconditionseq(seq).valueb=-1
     if gunid<>0
-     aiconditionseq(seq).valueb=weaponammo(weaponammoindex)
+     aiconditionseq(seq).valueb=weaponammo(weaponammoindex+ammooffset)
     endif
    endcase
    case "$CLA"
     aiconditionseq(seq).valuea=-1
     if gunid<>0
-     aiconditionseq(seq).valueb=weaponclipammo(weaponammoindex)
+     aiconditionseq(seq).valueb=weaponclipammo(weaponammoindex+ammooffset)
     endif
    endcase
    case "$EH"
@@ -15517,27 +15518,27 @@ endcase
     aiactionseq(seq).value=player(1).lives
    endcase
    case "$RA"
-    aiactionseq(seq).value=weaponclipammo(weaponammoindex)+weaponammo(weaponammoindex)
+    aiactionseq(seq).value=weaponclipammo(weaponammoindex+ammooffset)+weaponammo(weaponammoindex+ammooffset)
    endcase
    case "$A"
     aiactionseq(seq).value=-1
     if gunid<>0
-     aiactionseq(seq).value=weaponclipammo(weaponammoindex)+weaponammo(weaponammoindex)
+     aiactionseq(seq).value=weaponclipammo(weaponammoindex+ammooffset)+weaponammo(weaponammoindex+ammooffset)
     endif
    endcase
    case "$RCA"
-    aiactionseq(seq).value=weaponammo(weaponammoindex)
+    aiactionseq(seq).value=weaponammo(weaponammoindex+ammooffset)
    endcase
    case "$CA"
     aiactionseq(seq).value=-1
     if gunid<>0
-     aiactionseq(seq).value=weaponammo(weaponammoindex)
+     aiactionseq(seq).value=weaponammo(weaponammoindex+ammooffset)
     endif
    endcase
    case "$CLA"
     aiactionseq(seq).value=-1
     if gunid<>0
-     aiactionseq(seq).value=weaponclipammo(weaponammoindex)
+     aiactionseq(seq).value=weaponclipammo(weaponammoindex+ammooffset)
     endif
    endcase
    case "$EH"
@@ -15658,27 +15659,27 @@ tcamx#=object position x(physicsplayerborble)
     aiactionseq(seq).valueb=player(1).lives
    endcase
    case "$RA"
-    aiactionseq(seq).valueb=weaponclipammo(weaponammoindex)+weaponammo(weaponammoindex)
+    aiactionseq(seq).valueb=weaponclipammo(weaponammoindex+ammooffset)+weaponammo(weaponammoindex+ammooffset)
    endcase
    case "$A"
     aiactionseq(seq).valueb=-1
     if gunid<>0
-     aiactionseq(seq).valueb=weaponclipammo(weaponammoindex)+weaponammo(weaponammoindex)
+     aiactionseq(seq).valueb=weaponclipammo(weaponammoindex+ammooffset)+weaponammo(weaponammoindex+ammooffset)
     endif
    endcase
    case "$RCA"
-    aiactionseq(seq).valueb=weaponammo(weaponammoindex)
+    aiactionseq(seq).valueb=weaponammo(weaponammoindex+ammooffset)
    endcase
    case "$CA"
     aiactionseq(seq).valueb=-1
     if gunid<>0
-     aiactionseq(seq).valueb=weaponammo(weaponammoindex)
+     aiactionseq(seq).valueb=weaponammo(weaponammoindex+ammooffset)
     endif
    endcase
    case "$CLA"
     aiactionseq(seq).valueb=-1
     if gunid<>0
-     aiactionseq(seq).valueb=weaponclipammo(weaponammoindex)
+     aiactionseq(seq).valueb=weaponclipammo(weaponammoindex+ammooffset)
     endif
    endcase
    case "$EH"
@@ -60598,17 +60599,17 @@ function getintervar(e,var$)
    temp=player(1).lives
   endcase
   case "$RCA"
-   temp=weaponammo(weaponammoindex)
+   temp=weaponammo(weaponammoindex+ammooffset)
   endcase
   case "$CA"
-   if gunid<>0
-    temp=weaponammo(weaponammoindex)
-   endif
+
+    temp=weaponammo(weaponammoindex+ammooffset)
+
   endcase
    case "$CLA"
-   if gunid<>0
-    temp=weaponclipammo(weaponammoindex)
-   endif
+
+    temp=weaponclipammo(weaponammoindex+ammooffset)
+
   endcase
   case "$EH"
    temp=entityelement(e).health
@@ -60652,7 +60653,7 @@ function getintervar(e,var$)
   endcase
 
    case "$DIS"
-tcamx#=object position x(physicsplayerborble)
+   tcamx#=object position x(physicsplayerborble)
    tcamy#=object position y(physicsplayerborble)
    tcamz#=object position z(physicsplayerborble)
 
@@ -60665,7 +60666,7 @@ tcamx#=object position x(physicsplayerborble)
    endcase
 
    case "$DIF"
-tcamx#=object position x(physicsplayerborble)
+   tcamx#=object position x(physicsplayerborble)
    tcamy#=object position y(physicsplayerborble)
    tcamz#=object position z(physicsplayerborble)
 
@@ -60678,7 +60679,7 @@ tcamx#=object position x(physicsplayerborble)
    endcase
 
    case "$DIM"
-tcamx#=object position x(physicsplayerborble)
+   tcamx#=object position x(physicsplayerborble)
    tcamy#=object position y(physicsplayerborble)
    tcamz#=object position z(physicsplayerborble)
 
@@ -60727,17 +60728,17 @@ function setintervar(e,var$,alter#)
    player(1).lives=alter#
   endcase
   case "$RCA"
-   weaponammo(weaponammoindex)=alter#
+   weaponammo(weaponammoindex+ammooffset)=int(alter#)
   endcase
   case "$CA"
-   if gunid<>0
-    weaponammo(weaponammoindex)=alter#
-   endif
+
+    weaponammo(weaponammoindex+ammooffset)=int(alter#)
+
   endcase
    case "$CLA"
-   if gunid<>0
-    weaponclipammo(weaponammoindex)=alter#
-   endif
+
+    weaponclipammo(weaponammoindex+ammooffset)=int(alter#)
+
   endcase
   case "$EH"
    entityelement(e).health=alter#
@@ -62602,6 +62603,7 @@ rem end is o
 
     function culling(e,entid,obj)
 
+   ` text 200,200,str$(weaponammo(weaponammoindex+ammooffset))
  rem if not just using FPSC default culling
 if gmultiplayergame<>1 and cullmode<>0
 
@@ -62942,6 +62944,7 @@ createdestroy_physics_e:
  e=tempe
  obj=tempobj
 return
+
 
 
 
