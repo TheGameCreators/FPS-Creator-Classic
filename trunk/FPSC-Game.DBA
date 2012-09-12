@@ -188,6 +188,7 @@ global ammooffset=0
 global timeelapsed#=0.0
 global syncrate=140
 global plrdistance#=0.0
+global entobj
 rem scene commander - average FPS for smoother movement
 global nextave=1
 dim fpsstore(80):for f=1 to 80:fpsstore(f)=80:next f
@@ -13163,7 +13164,7 @@ Rem Scene Commander
    tcamz#=object position z(physicsplayerborble)
 
    tdx#=entityelement(e).x-tcamx#
-   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdy#=entityelement(e).y-tcamy#
    tdz#=entityelement(e).z-tcamz#
    plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
    aiconditionseq(seq).valuea=plrdistance#
@@ -13177,7 +13178,7 @@ Rem Scene Commander
    tcamz#=object position z(physicsplayerborble)
 
    tdx#=entityelement(e).x-tcamx#
-   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdy#=entityelement(e).y-tcamy#
    tdz#=entityelement(e).z-tcamz#
    plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
    aiconditionseq(seq).valuea=(plrdistance#/100)*8.33
@@ -13191,7 +13192,7 @@ Rem Scene Commander
    tcamz#=object position z(physicsplayerborble)
 
    tdx#=entityelement(e).x-tcamx#
-   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdy#=entityelement(e).y-tcamy#
    tdz#=entityelement(e).z-tcamz#
    plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
     aiconditionseq(seq).valuea=(plrdistance#/100)*2.54
@@ -13304,7 +13305,7 @@ tcamx#=object position x(physicsplayerborble)
    tcamz#=object position z(physicsplayerborble)
 
    tdx#=entityelement(e).x-tcamx#
-   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdy#=entityelement(e).y-tcamy#
    tdz#=entityelement(e).z-tcamz#
    plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
    aiconditionseq(seq).valueb=plrdistance#
@@ -13315,7 +13316,7 @@ tcamx#=object position x(physicsplayerborble)
    tcamz#=object position z(physicsplayerborble)
 
    tdx#=entityelement(e).x-tcamx#
-   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdy#=entityelement(e).y-tcamy#
    tdz#=entityelement(e).z-tcamz#
    plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
    aiconditionseq(seq).valueb=(plrdistance#/100)*8.33
@@ -13326,7 +13327,7 @@ tcamx#=object position x(physicsplayerborble)
    tcamz#=object position z(physicsplayerborble)
 
    tdx#=entityelement(e).x-tcamx#
-   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdy#=entityelement(e).y-tcamy#
    tdz#=entityelement(e).z-tcamz#
    plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
     aiconditionseq(seq).valueb=(plrdistance#/100)*2.54
@@ -15614,12 +15615,12 @@ Rem Scene Commander
    endcase
    case "$DIS"
 
-tcamx#=object position x(physicsplayerborble)
+   tcamx#=object position x(physicsplayerborble)
    tcamy#=object position y(physicsplayerborble)
    tcamz#=object position z(physicsplayerborble)
 
    tdx#=entityelement(e).x-tcamx#
-   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdy#=entityelement(e).y-tcamy#
    tdz#=entityelement(e).z-tcamz#
    plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
    aiactionseq(seq).value=plrdistance#
@@ -15632,7 +15633,7 @@ tcamx#=object position x(physicsplayerborble)
    tcamz#=object position z(physicsplayerborble)
 
    tdx#=entityelement(e).x-tcamx#
-   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdy#=entityelement(e).y-tcamy#
    tdz#=entityelement(e).z-tcamz#
    plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
    aiactionseq(seq).value=(plrdistance#/100)*8.33
@@ -15645,7 +15646,7 @@ tcamx#=object position x(physicsplayerborble)
    tcamz#=object position z(physicsplayerborble)
 
    tdx#=entityelement(e).x-tcamx#
-   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdy#=entityelement(e).y-tcamy#
    tdz#=entityelement(e).z-tcamz#
    plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
     aiactionseq(seq).value=(plrdistance#/100)*2.54
@@ -15755,12 +15756,13 @@ Rem Scene Commander
    endcase
 
    case "$DIS"
-tcamx#=object position x(physicsplayerborble)
+
+   tcamx#=object position x(physicsplayerborble)
    tcamy#=object position y(physicsplayerborble)
    tcamz#=object position z(physicsplayerborble)
 
    tdx#=entityelement(e).x-tcamx#
-   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdy#=entityelement(e).y-tcamy#
    tdz#=entityelement(e).z-tcamz#
    plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
    aiconditionseq(seq).valueb=plrdistance#
@@ -15768,12 +15770,12 @@ tcamx#=object position x(physicsplayerborble)
    endcase
 
    case "$DIF"
-tcamx#=object position x(physicsplayerborble)
+   tcamx#=object position x(physicsplayerborble)
    tcamy#=object position y(physicsplayerborble)
    tcamz#=object position z(physicsplayerborble)
 
    tdx#=entityelement(e).x-tcamx#
-   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdy#=entityelement(e).y-tcamy#
    tdz#=entityelement(e).z-tcamz#
    plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
    aiconditionseq(seq).valueb=(plrdistance#/100)*8.33
@@ -15781,12 +15783,12 @@ tcamx#=object position x(physicsplayerborble)
    endcase
 
    case "$DIM"
-tcamx#=object position x(physicsplayerborble)
+   tcamx#=object position x(physicsplayerborble)
    tcamy#=object position y(physicsplayerborble)
    tcamz#=object position z(physicsplayerborble)
 
    tdx#=entityelement(e).x-tcamx#
-   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdy#=entityelement(e).y-tcamy#
    tdz#=entityelement(e).z-tcamz#
    plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
     aiconditionseq(seq).valueb=(plrdistance#/100)*2.54
@@ -60675,7 +60677,7 @@ function getintervar(e,var$)
    tcamz#=object position z(physicsplayerborble)
 
    tdx#=entityelement(e).x-tcamx#
-   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdy#=entityelement(e).y-tcamy#
    tdz#=entityelement(e).z-tcamz#
    plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
    temp=plrdistance#
@@ -60688,7 +60690,7 @@ function getintervar(e,var$)
    tcamz#=object position z(physicsplayerborble)
 
    tdx#=entityelement(e).x-tcamx#
-   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdy#=entityelement(e).y-tcamy#
    tdz#=entityelement(e).z-tcamz#
    plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
    temp=(plrdistance#/100)*8.33
@@ -60701,7 +60703,7 @@ function getintervar(e,var$)
    tcamz#=object position z(physicsplayerborble)
 
    tdx#=entityelement(e).x-tcamx#
-   tdy#=entityelement(e).y+(object size(entobj)/2)-tcamy#
+   tdy#=entityelement(e).y-tcamy#
    tdz#=entityelement(e).z-tcamz#
    plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
     temp=(plrdistance#/100)*2.54
