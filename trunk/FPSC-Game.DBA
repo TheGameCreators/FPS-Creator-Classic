@@ -29848,7 +29848,7 @@ Rem Scene commander, track if flak has moved
   tdetonate=0 : tcollide=0
   rem handle timer delay
   if flakelement(f).profile.lifespan>0
-   if flak(tflakid).noexplode=1 and flakelement(f).profile.explodeonhit>0 or flak(tflakid).noexplode=0
+   if (flak(tflakid).noexplode=1 and flakelement(f).profile.explodeonhit>0) or flak(tflakid).noexplode=0
     dec flakelement(f).profile.lifespan,timeelapsed#
     if flakelement(f).profile.lifespan<=0
      flakelement(f).profile.lifespan=0
@@ -29918,7 +29918,7 @@ Rem Scene commander, track if flak has moved
    endif
 rem scene commander, track if flak has moved, if not deactivate and hide. (not movement caused if flak generated too close of obstacle).
    if flakelement(f).lastx=flakelement(f).xpos and flakelement(f).lasty=flakelement(f).ypos and  flakelement(f).lastz=flakelement(f).zpos
-         flakelement(f).active=0
+         `flakelement(f).active=0
          hide object tobj
       `text object screen x(tobj),object screen y(tobj),"Stuck"
    endif
@@ -29948,11 +29948,15 @@ rem scene commander, track if flak has moved, if not deactivate and hide. (not m
      if flakelement(f).profile.bounceonhit<=0
       if flak(tflakid).noexplode=1
        tdetonate=1
+       Rem Scene commander - fix for non working grenades
       else
-       flakelement(f).active=5
-      endif
+        `
+           flakelement(f).active=1
+           show object tobj
+
      endif
     endif
+   endif
 
    endif
    `
@@ -29967,6 +29971,10 @@ rem scene commander, track if flak has moved, if not deactivate and hide. (not m
     flakelement(f).active=4
    endif
   endif
+ endif
+
+ if flakelement(f).active=5
+
  endif
  if flakelement(f).active=2
  Rem Scene Commander fix for flak using correct decals - will use default of no flak specified in flak FPE
@@ -30140,6 +30148,7 @@ rem scene commander, track if flak has moved, if not deactivate and hide. (not m
   bouncingonhit=0
 
  endif
+ remstart - Scene Commander edit to fix non working grenades
  if flakelement(f).active=5
 
   if flakelement(f).profile.lifespan>0
@@ -30151,6 +30160,7 @@ rem scene commander, track if flak has moved, if not deactivate and hide. (not m
   endif
 
  endif
+ remend
  `
 next f
 
