@@ -56,6 +56,11 @@ Rem Scene Commander globals
 
 rem wobble
 global wobble#=0.0
+Rem flashlight
+global flashlighton=0 as boolean
+global flashlightrange=350
+global flashlightred=255:flashlightgreen=255:flashlightblue=255
+
 rem new deaths
 global tiltondeath=0
 global tilton=0
@@ -2539,9 +2544,14 @@ rem Scene Commander actions
 #constant AIACTSTOPVIDEOTEXTURE 1654
 #constant AIACTSETBULLETCOL 1655
 #constant AIACTSYNCRATE 1656
+#constant AIACTFLASHLIGHT 1657
+#constant AIACTFLASHLIGHTRED 1658
+#constant AIACTFLASHLIGHTGREEN 1659
+#constant AIACTFLASHLIGHTBLUE 1660
+#constant AIACTFLASHLIGHTRANGE 1661
 
 
-#constant AIACTLAST 1657
+#constant AIACTLAST 1662
 
 rem V109 BETA3 - 210408 - AI variables
 global aivariablemode : aivariablemode=0 : rem 0-global, 1-local
@@ -2714,6 +2724,7 @@ cooltimer as integer
 nosubmergedfire as integer
 addtimer as integer
 mintimer as integer
+
 rem scene commnader end
  modessharemags as integer
  bulletamount as integer
@@ -4787,7 +4798,10 @@ _main_game_core:
  rem Measure overall performance counts
  inc gameperftotalcount, perftimer()-gameperftotalcountTOP
  gameperftotalcountTOP=perftimer()
- `
+
+ Rem Scene Commander flashlight
+ gosub _flashlight_control
+
  if wateron=1
   Gosub _water_control
  endif
@@ -12920,6 +12934,11 @@ actword$(AIACTVIDEOTEXTUREVOLUME)="setvideotexturevolume"
 actword$(AIACTSTOPVIDEOTEXTURE)="stopvideotexture"
 actword$(AIACTSETBULLETCOL)="setbulletcoloff"
 actword$(AIACTSYNCRATE)="setsyncrate"
+actword$(AIACTFLASHLIGHT)="flashlight"
+actword$(AIACTFLASHLIGHTRED)="flashlightred"
+actword$(AIACTFLASHLIGHTGREEN)="flashlightgreen"
+actword$(AIACTFLASHLIGHTBLUE)="flashlightblue"
+actword$(AIACTFLASHLIGHTRANGE)="flashlightrange"
 
 return
 
@@ -21787,6 +21806,48 @@ syncrate=aiactionseq(seq).value
 
 endcase
 
+case AIACTFLASHLIGHT:
+
+flashlighton=aiactionseq(seq).value
+
+endcase
+
+case AIACTFLASHLIGHTRED:
+
+tempcol=aiactionseq(seq).value
+if tempcol<0 then tempcol=0
+if tempcol>255 then tempcol=255
+
+flashlightred=tempcol
+
+endcase
+
+case AIACTFLASHLIGHTGREEN:
+
+tempcol=aiactionseq(seq).value
+if tempcol<0 then tempcol=0
+if tempcol>255 then tempcol=255
+
+flashlightgreen=tempcol
+
+endcase
+
+case AIACTFLASH
+LIGHTHBLUE:
+
+tempcol=aiactionseq(seq).value
+if tempcol<0 then tempcol=0
+if tempcol>255 then tempcol=255
+
+flashlightblue=tempcol
+
+endcase
+
+case AIACTFLASHLIGHTRANGE:
+
+flashlightrange=aiactionseq(seq).value
+
+endcase
 
    endselect
 
@@ -31213,7 +31274,7 @@ _lighting_setupdynamiclights:
 
 rem Create dynamic hardware lights
 if light exist(1)=1 then hide light 1
-for lightindex=2 to 7
+for lightindex=2 to 6
  if light exist(lightindex)=0
   make light lightindex
  endif
@@ -62983,6 +63044,42 @@ createdestroy_physics_e:
  e=tempe
  obj=tempobj
 return
+
+_flashlight_control:
+
+if light exist(7)=0
+make light 7
+set spot light 7,0,180
+hide light 7
+endif
+
+
+flashred=flashlightred
+flashgreen=flashlightgreen
+flashblue=flashlightblue
+flashrange=flashlightrange
+
+
+if flashlighton<>0
+
+set light range 7,flashrange
+color light 7,rgb(flashred,flashgreen,flashblue)
+
+position light 7,object position x(physicsplayerborble),object position y(physicsplayerborble),object position z(physicsplayerborble)
+rotate light 7, camera angle x(), camera angle y(), camera angle z()
+show light 7
+
+else
+hide light 7
+endif
+
+return
+
+
+
+
+
+
 
 
 
