@@ -24934,7 +24934,7 @@ Rem Scene Commander - weapon jammed
 
 if firemode(gunid,firemode).settings.jamchance<>0
 
-if player(plrid).state.firingmode=1 and (timer()-firemode(gunid,firemode).settings.addtimer)>500
+if (player(plrid).state.firingmode=1 or gunmode=105) and (timer()-firemode(gunid,firemode).settings.addtimer)>500
 inc firemode(gunid,firemode).settings.shotsfired,1
 firemode(gunid,firemode).settings.cooltimer=timer()
 firemode(gunid,firemode).settings.addtimer=timer()
@@ -26562,6 +26562,7 @@ if gunmode=105
  else
   gunmustreleasefirst=1
  endif
+
  if gfinish.s>0
   gunmode=106
   play object currentgunobj,gfinish.s,gfinish.e
@@ -40224,7 +40225,7 @@ _ode_playerborble:
   ode destroy object physicsplayerborble
   delete object physicsplayerborble
  endif
- make object sphere physicsplayerborble,38
+ make object sphere physicsplayerborble,35
  Rem Hockeykid - 250210 - Dark AI add player to ai system
  if darkaiplayer=0
   ai add player physicsplayerborble,0
