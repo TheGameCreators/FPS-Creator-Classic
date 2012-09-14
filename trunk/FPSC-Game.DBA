@@ -2713,6 +2713,7 @@ cooldown as integer
 cooltimer as integer
 nosubmergedfire as integer
 addtimer as integer
+mintimer as integer
 rem scene commnader end
  modessharemags as integer
  bulletamount as integer
@@ -24933,8 +24934,15 @@ if player(plrid).health>0 or playerstartstrength=0
 Rem Scene Commander - weapon jammed
 
 if firemode(gunid,firemode).settings.jamchance<>0
+Rem Scene Commander, added new gun spec to set the amount of minimum delay before jamming can occour.
 
-if (player(plrid).state.firingmode=1 or gunmode=105) and (timer()-firemode(gunid,firemode).settings.addtimer)>500
+if firemode(gunid,firemode).settings.mintimer<>0
+mintimer=firemode(gunid,firemode).settings.mintimer
+else
+mintimer=500
+endif
+
+if (player(plrid).state.firingmode=1 or gunmode=105) and (timer()-firemode(gunid,firemode).settings.addtimer)>mintimer
 inc firemode(gunid,firemode).settings.shotsfired,1
 firemode(gunid,firemode).settings.cooltimer=timer()
 firemode(gunid,firemode).settings.addtimer=timer()
@@ -27641,6 +27649,7 @@ for l=0 to 299
       if field$=alt$+"jamchance" then firemode(gunid,x).settings.jamchance=value1
       if field$=alt$+"overheatafter" then firemode(gunid,x).settings.shotsbeforejam=value1
       if field$=alt$+"cooldown" then firemode(gunid,x).settings.cooldown=value1
+      if field$=alt$+"jamtimer" then firemode(gunid,x).settings.mintimer=value1
       if field$=alt$+"nosubmergedfire" then firemode(gunid,x).settings.nosubmergedfire=value1
 
       rem Scene Commander end.
