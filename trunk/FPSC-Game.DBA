@@ -456,7 +456,7 @@ dim team_frags(0) as team_frag
 empty array team_frags(0)
 rem V109 BETA3 - added to control change to player jump height
 global playerdefaultjumpheight : playerdefaultjumpheight=50
-`
+
 rem V118 - store range, aspect and fov globally!
 global realrange# : realrange#=9000.0
 global realaspect# : realaspect#=4.0/3.0
@@ -32936,7 +32936,7 @@ if file exist(tprofile$)=0
     tryfield$="rotz"
     if field$=tryfield$ then entityprofile(entid).rotz=value1
     tryfield$="scale"
-    if field$=tryfield$ then entityprofile(entid).scale=value1
+    if field$=tryfield$ then entityprofile(entid).scale=value1+20
     tryfield$="fixnewy"
     if field$=tryfield$ then entityprofile(entid).fixnewy=value1
     tryfield$="raisefactor"
@@ -33016,7 +33016,12 @@ if file exist(tprofile$)=0
     if field$=tryfield$ then entityprofile(entid).phyalways=value1
     `
     tryfield$="ischaracter"
-    if field$=tryfield$ then entityprofile(entid).ischaracter=value1
+    if field$=tryfield$
+    entityprofile(entid).ischaracter=value1
+      if value1<>0
+         entityprofile(entid).scale=entityprofile(entid).scale+20`Rem Scene commander fix  causing misscaling due to new scale  system.
+      endif
+    endif
     tryfield$="cantakeweapon"
     if field$=tryfield$ then entityprofile(entid).cantakeweapon=value1
     tryfield$="isweapon"
@@ -40295,7 +40300,9 @@ _ode_playerborble:
   ode destroy object physicsplayerborble
   delete object physicsplayerborble
  endif
+
  make object sphere physicsplayerborble,35
+
  Rem Hockeykid - 250210 - Dark AI add player to ai system
  if darkaiplayer=0
   ai add player physicsplayerborble,0
@@ -42099,7 +42106,7 @@ _ode_sounds:
      if ttouchede<>lastttouchede
       rem player damage if entity moving at force (uses phyforcedamage)
       tdamage=((toverallveldiff#-ttspeedatwhichurt#)/10.0) : if tdamage<1 then tdamage=1
-      magnifydamage#=entityelement(ttouchede).eleprof.phyforcedamage/100.0
+      magnifydamage#=entityelement(ttouchede).eleprof.phyforcedamage/140.0
       tdamage=tdamage*magnifydamage# : gosub _player_takedamage
       lastttouchede=ttouchede
      endif
