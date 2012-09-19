@@ -11559,7 +11559,7 @@ _entity_spherecollision:
    spdist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
    obj=entityelement(e).obj
    if obj>0
-    if spdist#<object size(obj)*2
+    if spdist#<object size(obj)
      idist#=intersect object(obj,spherex#,spherey#,spherez#,spherenx#,sphereny#,spherenz#)
      if idist#>0 and idist#<=spdist#
       spheree=e : exit
@@ -14263,6 +14263,7 @@ tcamx#=object position x(physicsplayerborble)
     endcase
     `
     case AICONDRAYCAST:
+    remstart
      if obj=0
       airesult=0
      else
@@ -14283,6 +14284,24 @@ tcamx#=object position x(physicsplayerborble)
       if tmpy#>-50
        if static raycast(tmpx1#,tmpy#+tmpheight#,tmpz1#,tmpx2#,tmpy#+tmpheight#,tmpz2#)=0 then airesult=0
       endif
+     endif
+     remend
+
+     Rem Scene Commander, replaced RAYCAST code to fix reported false reporting error. Thanks to Terry for fix.
+      if obj=0
+      airesult=0
+     else
+      tmpx#=object position x(obj) : tmpy#=object position y(obj) : tmpz#=object position z(obj)
+      tmpa#=object angle y(obj) : tmpheight#=50
+      conda#=aiconditionseq(seq).valuea
+      condb#=aiconditionseq(seq).valueb
+      tmpx1#=tmpx#+(sin(tmpa#)*conda#)
+      tmpz1#=tmpz#+(cos(tmpa#)*conda#)
+      tmpx2#=tmpx#+(sin(tmpa#)*condb#)
+      tmpz2#=tmpz#+(cos(tmpa#)*condb#)
+      inc gameperfentities2
+      entityelement(e).raycastcount=0
+      if static raycast(tmpx1#,tmpy#+tmpheight#,tmpz1#,tmpx2#,tmpy#+tmpheight#,tmpz2#)=0 then airesult=0
      endif
     endcase
     case AICONDRAYCASTUP:
@@ -15648,7 +15667,7 @@ Rem Scene Commander
    endcase
 
    case "$DIF"
-tcamx#=object position x(physicsplayerborble)
+   tcamx#=object position x(physicsplayerborble)
    tcamy#=object position y(physicsplayerborble)
    tcamz#=object position z(physicsplayerborble)
 
@@ -15661,7 +15680,7 @@ tcamx#=object position x(physicsplayerborble)
    endcase
 
    case "$DIM"
-tcamx#=object position x(physicsplayerborble)
+   tcamx#=object position x(physicsplayerborble)
    tcamy#=object position y(physicsplayerborble)
    tcamz#=object position z(physicsplayerborble)
 
@@ -29989,6 +30008,7 @@ Rem Scene commander, track if flak has moved
    endif
 rem scene commander, track if flak has moved, if not deactivate and hide. (not movement caused if flak generated too close of obstacle).
    if flakelement(f).lastx=flakelement(f).xpos and flakelement(f).lasty=flakelement(f).ypos and  flakelement(f).lastz=flakelement(f).zpos
+
          `flakelement(f).active=0
          hide object tobj
       `text object screen x(tobj),object screen y(tobj),"Stuck"
