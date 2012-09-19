@@ -15760,19 +15760,19 @@ tcamx#=object position x(physicsplayerborble)
    endcase
 Rem Scene Commander
     case "$ARM"
-    aiconditionseq(seq).valueb=armour
+    aiactionseq(seq).valueb=armour
     endcase
     case "$AIR"
-    aiconditionseq(seq).valueb=airleft
+    aiactionseq(seq).valueb=airleft
     endcase
     case "$FPS"
-   aiconditionseq(seq).valueb=screen fps()
+   aiactionseq(seq).valueb=screen fps()
    endcase
    case "$WAT"
-   aiconditionseq(seq).valueb=waterheight#
+   aiactionseq(seq).valueb=waterheight#
    endcase
    case "$MAX"
-   aiconditionseq(seq).valueb=maxslots
+   aiactionseq(seq).valueb=maxslots
    endcase
 
    case "$DIS"
@@ -15785,7 +15785,7 @@ Rem Scene Commander
    tdy#=entityelement(e).y-tcamy#
    tdz#=entityelement(e).z-tcamz#
    plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
-   aiconditionseq(seq).valueb=plrdistance#
+   aiactionseq(seq).valueb=plrdistance#
 
    endcase
 
@@ -15798,7 +15798,7 @@ Rem Scene Commander
    tdy#=entityelement(e).y-tcamy#
    tdz#=entityelement(e).z-tcamz#
    plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
-   aiconditionseq(seq).valueb=(plrdistance#/100)*8.33
+   aiactionseq(seq).valueb=(plrdistance#/100)*8.33
 
    endcase
 
@@ -15811,7 +15811,7 @@ Rem Scene Commander
    tdy#=entityelement(e).y-tcamy#
    tdz#=entityelement(e).z-tcamz#
    plrdistance#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
-    aiconditionseq(seq).valueb=(plrdistance#/100)*2.54
+    aiactionseq(seq).valueb=(plrdistance#/100)*2.54
 
    endcase
   endselect
