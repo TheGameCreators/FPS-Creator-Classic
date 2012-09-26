@@ -11559,12 +11559,13 @@ _entity_spherecollision:
    spdist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
    obj=entityelement(e).obj
    if obj>0
-    if spdist#<object size(obj)
+   Rem Scene commander, object size check causing issues with flak/entity collision.
+    `if spdist#<object size(obj)
      idist#=intersect object(obj,spherex#,spherey#,spherez#,spherenx#,sphereny#,spherenz#)
      if idist#>0 and idist#<=spdist#
       spheree=e : exit
      endif
-    endif
+    `endif
    endif
   endif
  next e
@@ -15461,7 +15462,7 @@ case AICONDWATERGREATER:
    endif
 endcase
 
-case AICONDWATERISON
+case AICONDWATERISON:
    airesult=0
    if wateron=aiconditionseq(seq).valuea
    airesult=1
@@ -27213,7 +27214,7 @@ if gunshoot=1
   `
   rem Special ZOOMODE kill in multiplayer
   if gmultiplayergame=1
-   Rem don't allow a gun using iron sights to use the on shot kill
+   Rem don't allow a gun using iron sights to use the one shot kill
    if gunzoommode<>0 and firemode(gunid,firemode).settings.simplezoom=0
     bulletdamage=65500
    endif
@@ -27235,6 +27236,7 @@ if gunshoot=1
   `
   rem for some weapons, blunderbus style five-ray shot
   multiplayerdamagecollected=0
+
   for traycount=1 to trayiter
    `
    range#=firemode(gunid,firemode).settings.range
@@ -27249,7 +27251,7 @@ if gunshoot=1
    tca#=rnd(360000.0)/1000.0
    tcx#=cos(tca#) : tcy#=sin(tca#)
    tcm#=rnd(trayaccuracy#*1000.0)/1000.0 : tcx#=tcx#*tcm# : tcy#=tcy#*tcm#
-   rotate object hudbankoffset+3, camera angle x(0)+tcy#,camera angle y(0)+tcx#,camera angle z(0)
+   rotate object hudbankoffset+3, camera angle x()+tcy#,camera angle y()+tcx#,camera angle z()
    `move object hudbankoffset+3,gun(gunid).settings.range
    move object hudbankoffset+3,range#
    disable object zdepth hudbankoffset+3
@@ -27261,7 +27263,7 @@ if gunshoot=1
    bullethit=0 : bullethitstatic=0
    tbullethitmaterial=0 : tbullethitflesh=0
    bulletraytype=firemode(gunid,firemode).settings.damagetype
-   gunrange#=firemode(gunid,firemode).settings.range
+   gunrange#=range#`firemode(gunid,firemode).settings.range
    `
    rem raycastto entity
    gosub _entity_hasbulletrayhit
@@ -27281,7 +27283,7 @@ if gunshoot=1
     rem complete rayhit if wall not in way (must come right after _entity_hasbulletrayhit)
     gosub _entity_completerayhit
     `
-    rem bulletraytype (1-pierce, 2-shutgun)
+    rem bulletraytype (1-pierce, 2-shotgun)
     tix#=x#-x1# : tiy#=y#-y1# : tiz#=z#-z1#
     tnorm#=(abs(tix#)+abs(tiy#)+abs(tiz#))/3.0
     tix#=tix#/tnorm# : tiy#=tiy#/tnorm# : tiz#=tiz#/tnorm#
@@ -29476,6 +29478,16 @@ dim data$(100)
 filename$="gamecore\flak\"+flak$+"\flakspec.txt"
 load array filename$,data$()
 addfiletocollection(filename$)
+Rem Scene Commander - Check for sticky flak and add to collection if found - might not be best place for fix.
+tfile$="gamecore\flak\"+flak$+"\stick"
+tsur$=".dbo"
+if file exist (tfile$+tsur$)=1
+addfiletocollection(tfile$+tsur$) --------------------------------------------------------------------------------------
+   tsur$="_d2.dds"
+   if file exist (tfile$+tsur$)=1
+   addfiletocollection(tfile$+tsur$)
+   endif
+endif
 for l=0 to 99
  line$=data$(l)
  if len(line$)>0
@@ -29513,7 +29525,7 @@ for l=0 to 99
    if field$="explodeonhit" then flak(flakid).profile.explodeonhit=value1
    if field$="noexplosion" then flak(flakid).noexplode=value1
    if field$="blood" then flak(flakid).blood=value1
-   if field$="stick" then flak(flakid).stick=value1
+  +-  if field$="stick" then flak(flakid).stick=value1
    if field$="sticklife" then flak(flakid).sticklife=value1
    if field$="damage" then flak(flakid).profile.damage=value1
    `
@@ -29556,7 +29568,7 @@ return
 
 _flak_load:
 
-rem Load flak data
+             em Load flak data
 gosub _flak_loaddata
 
 rem Load flak models
@@ -29959,6 +29971,10 @@ Rem Scene commander, track if flak has moved
    tmpx2#=tmpx1#+(flakelement(f).profile.xinc*3.0)
    tmpy2#=tmpy1#+(flakelement(f).profile.yinc*3.0)
    tmpz2#=tmpz1#+(flakelement(f).profile.zinc*3.0)
+
+   tmpx2#=tmpx1#+(flakelement(f).profile.xinc)
+   tmpy2#=tmpy1#+(flakelement(f).profile.yinc)
+   tmpz2#=tmpz1#+(flakelement(f).profile.zinc)
    if static raycast(tmpx1#,tmpy1#,tmpz1#,tmpx2#,tmpy2#,tmpz2#)<>0
     `
     rem checklist now filled with collision feedback data
@@ -29971,6 +29987,7 @@ Rem Scene commander, track if flak has moved
     flakelement(f).xpos=checklist fvalue a(6)+flakelement(f).profile.xinc
     flakelement(f).ypos=checklist fvalue b(6)+flakelement(f).profile.yinc
     flakelement(f).zpos=checklist fvalue c(6)+flakelement(f).profile.zinc
+
     tcollide=2
     `
     rem collision bounce requires orientation
@@ -29998,18 +30015,19 @@ Rem Scene commander, track if flak has moved
      rem owners of flak are excempt
     else
      rem backtrack to leave collision
-     flakelement(f).profile.xinc=flakelement(f).profile.xinc*-1
-     flakelement(f).profile.zinc=flakelement(f).profile.zinc*-1
-     flakelement(f).xpos=flakelement(f).xpos+flakelement(f).profile.xinc
-     flakelement(f).ypos=flakelement(f).ypos+flakelement(f).profile.yinc
-     flakelement(f).zpos=flakelement(f).zpos+flakelement(f).profile.zinc
+    flakelement(f).profile.xinc=flakelement(f).profile.xinc*-1
+    flakelement(f).profile.zinc=flakelement(f).profile.zinc*-1
+    flakelement(f).xpos=flakelement(f).xpos+flakelement(f).profile.xinc
+    flakelement(f).ypos=flakelement(f).ypos+flakelement(f).profile.yinc
+    flakelement(f).zpos=flakelement(f).zpos+flakelement(f).profile.zinc
      tcollide=1
     endif
    endif
 rem scene commander, track if flak has moved, if not deactivate and hide. (not movement caused if flak generated too close of obstacle).
+`flak(tflakid).stick=1
    if flakelement(f).lastx=flakelement(f).xpos and flakelement(f).lasty=flakelement(f).ypos and  flakelement(f).lastz=flakelement(f).zpos
 
-         `flakelement(f).active=0
+         flakelement(f).active=4
          hide object tobj
       `text object screen x(tobj),object screen y(tobj),"Stuck"
    endif
@@ -30028,6 +30046,7 @@ rem scene commander, track if flak has moved, if not deactivate and hide. (not m
       flakelement(f).profile.bounceonhit=flakelement(f).profile.bounceonhit-1
       if tcollide=1 and flak(tflakid).noexplode=1 then bouncingonhit=1 : tdetonate=1
       playinternal3dsound(flak(tflakid).sound.sndbounceid,tmpx1#,tmpy1#,tmpz1#)
+
      else
       rem detonate at last collision, add scorch - Scene commander change for floor explosion
       flakelement(f).preexplode=0
@@ -30174,6 +30193,7 @@ rem scene commander, track if flak has moved, if not deactivate and hide. (not m
   next sf
  endif
  if flakelement(f).active=4
+ gosub _stickyflakplacement
   playinternal3dsound(flak(tflakid).sound.sndexplodeid,flakelement(f).xpos,flakelement(f).ypos,flakelement(f).zpos)
 
   rem hide flak object
@@ -30206,12 +30226,16 @@ rem scene commander, track if flak has moved, if not deactivate and hide. (not m
    else
     rem we hit a wall
     if flak(tflakid).stick=1
+      `gosub _stickyflakplacement
+
 
      for i=1 to flakelementmax
       if flakstick(i).used=0
        flakstick(i).used=1
        flakstick(i).flakid=tflakid
+
        flakstick(i).life=timer()
+
        flakstick(i).x=flakelement(f).xpos
        flakstick(i).y=flakelement(f).ypos
        flakstick(i).z=flakelement(f).zpos
@@ -30228,6 +30252,7 @@ rem scene commander, track if flak has moved, if not deactivate and hide. (not m
        exit
       endif
      next i
+
     endif
 
    endif
@@ -30266,7 +30291,9 @@ _flakstick_control:
   if flakstick(i).used=1
    flaki=i
    if object in screen(flakstick(i).obj) then gosub _lighting_applyflakstickcolor
-   if timer()-flakstick(i).life>=flak(flakstick(i).flakid).sticklife
+   `text object screen x(flakstick(i).obj),object screen y(flakstick(i).obj),str$(flak(flakstick(i).flakid).sticklife)
+  if timer()-flakstick(i).life>=flak(flakstick(i).flakid).sticklife
+
     flakstick(i).used=0
     delete object flakstick(i).obj
    endif
@@ -63102,6 +63129,34 @@ endif
 
 return
 
+_stickyflakplacement:
+
+         x1#=flakelement(f).xpos
+         y1#=flakelement(f).ypos
+         z1#=flakelement(f).zpos
+         position object hudbankoffset+3,x1#,y1#,z1#
+         tca#=rnd(360000.0)/1000.0
+         tcx#=cos(tca#) : tcy#=sin(tca#)
+         tcm#=rnd(trayaccuracy#*1000.0)/1000.0 : tcx#=tcx#*tcm# : tcy#=tcy#*tcm#
+         rotate object hudbankoffset+3, camera angle x()+tcy#,camera angle y()+tcx#,camera angle z()
+
+         move object hudbankoffset+3,50
+         disable object zdepth hudbankoffset+3
+         x2#=object position x(hudbankoffset+3)
+         y2#=object position y(hudbankoffset+3)
+         z2#=object position z(hudbankoffset+3)
+   `
+   `
+   rem raycast to surface (bullets path)
+   dstwallhit#=static raycast(x1#,y1#,z1#,x2#,y2#,z2#)
+   if dstwallhit#>0
+      flakelement(f).xpos=checklist fvalue a(6)
+      flakelement(f).ypos=checklist fvalue b(6)
+      flakelement(f).zpos=checklist fvalue c(6)
+      position object tobj,flakelement(f).xpos,flakelement(f).ypos,flakelement(f).zpos
+   endif
+
+return
 
 
 
