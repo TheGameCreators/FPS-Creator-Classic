@@ -565,6 +565,7 @@ type saveloadgamepositionentitytype
  entitydammult# as float rem Scene Commander
  ishidden as integer rem Scene Commander
  cullstate as integer rem Scene Commander
+ usefade as boolean rem Scene Commander
  onradar as integer rem Scene Commander
  radardistance as integer
  shotby as integer
@@ -1714,6 +1715,7 @@ type entitytype
  entitydammult# as float rem Scene Commander
  ishidden as integer rem Scene Commander
  cullstate as integer rem Scene Commander
+ usefade as boolean rem Scene Commander
  onradar as integer rem Scene Commander
  radardistance as integer
  Rem Scene Commander scaling/both limb and overall.
@@ -2549,9 +2551,10 @@ rem Scene Commander actions
 #constant AIACTFLASHLIGHTGREEN 1659
 #constant AIACTFLASHLIGHTBLUE 1660
 #constant AIACTFLASHLIGHTRANGE 1661
+#constant AIACTUSEFADE 1662
 
 
-#constant AIACTLAST 1662
+#constant AIACTLAST 1663
 
 rem V109 BETA3 - 210408 - AI variables
 global aivariablemode : aivariablemode=0 : rem 0-global, 1-local
@@ -12940,6 +12943,7 @@ actword$(AIACTFLASHLIGHTRED)="flashlightred"
 actword$(AIACTFLASHLIGHTGREEN)="flashlightgreen"
 actword$(AIACTFLASHLIGHTBLUE)="flashlightblue"
 actword$(AIACTFLASHLIGHTRANGE)="flashlightrange"
+actword$(AIACTUSEFADE)="usefade"
 
 return
 
@@ -21852,8 +21856,7 @@ flashlightgreen=tempcol
 
 endcase
 
-case AIACTFLASH
-LIGHTHBLUE:
+case AIACTFLASHLIGHTBLUE:
 
 tempcol=aiactionseq(seq).value
 if tempcol<0 then tempcol=0
@@ -21866,6 +21869,12 @@ endcase
 case AIACTFLASHLIGHTRANGE:
 
 flashlightrange=aiactionseq(seq).value
+
+endcase
+
+case AIACTUSEFADE:
+
+entityelement(e).usefade=aiactionseq(seq).value
 
 endcase
 
@@ -29482,7 +29491,7 @@ Rem Scene Commander - Check for sticky flak and add to collection if found - mig
 tfile$="gamecore\flak\"+flak$+"\stick"
 tsur$=".dbo"
 if file exist (tfile$+tsur$)=1
-addfiletocollection(tfile$+tsur$) --------------------------------------------------------------------------------------
+addfiletocollection(tfile$+tsur$)
    tsur$="_d2.dds"
    if file exist (tfile$+tsur$)=1
    addfiletocollection(tfile$+tsur$)
@@ -29525,7 +29534,7 @@ for l=0 to 99
    if field$="explodeonhit" then flak(flakid).profile.explodeonhit=value1
    if field$="noexplosion" then flak(flakid).noexplode=value1
    if field$="blood" then flak(flakid).blood=value1
-  +-  if field$="stick" then flak(flakid).stick=value1
+   if field$="stick" then flak(flakid).stick=value1
    if field$="sticklife" then flak(flakid).sticklife=value1
    if field$="damage" then flak(flakid).profile.damage=value1
    `
@@ -29568,7 +29577,7 @@ return
 
 _flak_load:
 
-             em Load flak data
+ rem Load flak data
 gosub _flak_loaddata
 
 rem Load flak models
@@ -46257,6 +46266,7 @@ _saveload_savegame:
    a#=saveloadgamepositionentity(lsi).entitydammult#: write float 1,a# rem Scene commander
    a#=saveloadgamepositionentity(lsi).ishidden: write float 1,a# rem Scene commander
    a#=saveloadgamepositionentity(lsi).cullstate: write float 1,a# rem Scene commander
+   a#=saveloadgamepositionentity(lsi).usefade: write float 1,a# rem Scene commander
    a#=saveloadgamepositionentity(lsi).isimmune: write float 1,a# rem Scene commander
    a#=saveloadgamepositionentity(lsi).isanobjective: write float 1,a# rem Scene commander
    a#=saveloadgamepositionentity(lsi).objectiveradarrange: write float 1,a# rem Scene commander
@@ -46611,6 +46621,7 @@ _saveload_loadgame:
    read float 1,a# : saveloadgamepositionentity(lsi).entitydammult#=a# rem Scene commander
    read float 1,a# : saveloadgamepositionentity(lsi).ishidden=a# rem Scene commander
    read float 1,a# : saveloadgamepositionentity(lsi).cullstate=a# rem Scene commander
+   read float 1,a# : saveloadgamepositionentity(lsi).usefade=a# rem Scene commander
    read float 1,a# : saveloadgamepositionentity(lsi).isimmune=a# rem Scene commander
    read float 1,a# : saveloadgamepositionentity(lsi).isanobjective=a# rem Scene commander
    read float 1,a# : saveloadgamepositionentity(lsi).objectiveradarrange=a# rem Scene commander
@@ -62783,8 +62794,18 @@ if entityelement(e).activated=0 and entityelement(e).spawn.atstart=0
 
 if entityelement(e).ishidden<>2
 
+`if obj<>0
+`text object screen x(obj),object screen y(obj),str$(ode get body linear velocity x(obj))
+`endif
+
+lx=ode get body linear velocity x(obj)
+ly=ode get body linear velocity y(obj)
+lz=ode get body linear velocity z(obj)
+
+
+
    Rem Scene Commnader, do not cull if object in motion.
-   if int(ode get body linear velocity x(obj))<>0 or int(ode get body linear velocity y(obj))<>0 or int(ode get body linear velocity z(obj))<>0
+   if int(lx)<>0 or int(ly)<>0 or int(lz)<>0
       exitfunction
    endif
 
@@ -62824,6 +62845,8 @@ if entityelement(e).ishidden<>2
                         if sizeis>hudfognear and hudfogon=1 then sizesis=hudfognear
                         if howfar<150 or entityelement(e).cullstate=2 then sizeis=1000000
 
+                           Rem Scene Commander, with newer culling additions, alpha fading isn't so important, so now isn't a default setting to improve performance.
+                         `  if entityelement(e).usefade=1
                               if sizeis<1000000
                               fade=abs(howfar-sizeis)
                               else
@@ -62832,8 +62855,12 @@ if entityelement(e).ishidden<>2
 
                            if entityelement(e).ishidden<>3 and entityelement(e).cullstate<>2
                               if fade<entityelement(e).ai.destalphafade and fade<101
-                              set alpha mapping on obj,fade
+                                 if entityelement(e).usefade=1
+                                 set alpha mapping on obj,fade
+                                 endif
                               endif
+                           endif
+
 
                            if howfar<sizeis
                               show object obj
@@ -62846,7 +62873,7 @@ if entityelement(e).ishidden<>2
                            entityelement(e).ishidden=1
                            endif
 
-                        endif
+                    `   
 
 
          rem close obj 'cullable'
