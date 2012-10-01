@@ -23816,25 +23816,41 @@ function addfiletocollection(filename$)
       if lower$(right$(filename$,4))=".ogg" or lower$(right$(filename$,4))=".wav"
          sp$=lower$(left$(filecollection$(chk),len(filecollection$(chk))-4))+".ogg"
             if lower$(right$(filecollection$(chk),4))=".wav" and guseoggoff=0
-               if left$(filename$,13)<>"gamecore\guns"
+               `if left$(filename$,13)<>"gamecore\guns"
                   if file exist(sp$)=0
                   a$=filecollection$(chk)
                   encode to ogg vorbis a$,sp$
+                  `filecollection$(chk)=sp$
+                  filename$=sp$
+                  tokay=1
                   endif
-               endif
+                  endif
+               `endif
             endif
-            if guseoggoff=1 and lower$(right$(filename$,4))=".wav" then sp$=lower$(left$(filecollection$(chk),len(filecollection$(chk))-4))+".wav"
-            filecollection$(chk)=sp$
-            tokay=0:exit
+
+
+      if guseoggoff=1 and lower$(right$(filename$,4))=".wav"
+      sp$=lower$(left$(filecollection$(chk),len(filecollection$(chk))-4))+".wav"
+         `filecollection$(chk)=sp$
+         filename$=sp$
+         tokay=1:exit
+
       endif
 
      endif
+
+
     next chk
     rem add file to collection
+
+    twav$=lower$(left$(filename$,len(filename$)-4))+".wav"
+    togg$=lower$(left$(filename$,len(filename$)-4))+".ogg"
+    if file exist(togg$) and filename$=twav$ and left$(twav$,8)<>"gamecore" then filename$=lower$(left$(filename$,len(filename$)-4))+".ogg"
     if tokay=1
      array insert at bottom filecollection$()
      filecollection$()=filename$
-     `
+
+
      rem FPGC - 220210 - if .WAV, of .OGG assume a LIPSYNC could be with it (even if ultimately not copied)
      if lower$(right$(filename$,4))=".wav" or lower$(right$(filename$,4))=".ogg"
       lipsyncfilename$=left$(filename$,len(filename$)-4)+".lipsync"
