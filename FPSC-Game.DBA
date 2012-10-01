@@ -183,7 +183,7 @@ global linkz=0
 global plrcamoffseton=0
 global playeraccmult#=1.0
 global eplayercam=0
-global showflak=1
+global showflak as boolean:showflak=1
 global decalrange=800
 global cullmodelast=cullmode
 global cullmodechange=0
@@ -588,6 +588,7 @@ type saveloadgamepositionentitytype
  entityacc as float
  soundplaying as integer
  frozen as frozen
+ usefade as boolean rem Scene Commander
 
 endtype
 type saveloadgamepositionweaponslottype
@@ -1325,6 +1326,7 @@ type entityprofiletype
  reserve3 as integer
  reserve4 as integer
  reserve5 as integer
+ custombiped as boolean
 endtype
 global animmax=200
 global footfallmax=200
@@ -1755,6 +1757,7 @@ type entitytype
  soundplaying as integer
  frozen as frozen
  distance as integer
+ usefade as boolean rem Scene Commander
 endtype
 rem Entity Breadcrumbs Data
 type entitybreadcrumbstype
@@ -3546,7 +3549,7 @@ rem V118 - 140810 - knxrb - Disable Particles
 global gparticlesnotused : gparticlesnotused=0
 rem V118 - 160810 - knxrb - Auto Resolution
 global gautores : gautores=0
-global guseoggoff:guseoggoff=1
+global guseoggoff:guseoggoff=0
 global gcapfpson: gcapfpson=0
 
 rem Version Control - TEST GAME Mode
@@ -7671,7 +7674,7 @@ function debugviewtext(progress,gamedebugviewtext$)
     do
      rem use a global to ensure this function does not call itself (recursively)
      thisisaonetimeglobalbeforethisbuildends=1
-     debugviewtext(-1,"Build process has exceed 1.95GB of virtual memory, using "+str$(vmsize)+"MB. Press CANCEL to abort this build!")
+     debugviewtext(-1,"Build process has exceed 1.85GB of virtual memory, using "+str$(vmsize)+"MB. Press CANCEL to abort this build!")
      sleep 10
     loop
     end
@@ -8399,7 +8402,7 @@ entid=entityelement(e).bankindex
 obj=entityelement(e).obj
 
 if obj>0
-if object size(obj)>42
+if object size(obj)>42 and entityprofile(entid).custombiped=0
 
 if entityprofile(entid).ischaracter=1 and entityelement(e).beenkilled=0 and (entityelement(e).active<>0 and entityelement(e).spawn.leader=0) and entityelement(e).beenkilled=0
 
@@ -9602,6 +9605,7 @@ if entityelement(e).fireweapon=1
       tperc#=tperc#*0.5
      endif
      rem scene commander entity damage muliplier
+     if entityelement(e).entitydammult#=0 then entityelement(e).entitydammult#=1.0
      tdamage#=bulletdamage#*tperc#*entityelement(e).entitydammult#: tdamage=tdamage#
      if entityelement(e).actualtarget=1
       rem player was the target
@@ -21685,8 +21689,7 @@ endcase
 case AIACTSHOWFLAK:
 
 showflak=aiactionseq(seq).value
-if showflak<0 then showflak=0
-if showflak>1 then showflak=1
+
 
 endcase
 
@@ -23809,12 +23812,15 @@ function addfiletocollection(filename$)
 
       endif
       rem Scene Commander - memory reduction - if .wav and passing through here, convert - Not all wav's can be converted due to restrctions
+      Rem 1.10.2012 - restored but now excludes gunspec sounds.
       if lower$(right$(filename$,4))=".ogg" or lower$(right$(filename$,4))=".wav"
          sp$=lower$(left$(filecollection$(chk),len(filecollection$(chk))-4))+".ogg"
             if lower$(right$(filecollection$(chk),4))=".wav" and guseoggoff=0
-               if file exist(sp$)=0
-               a$=filecollection$(chk)
-               encode to ogg vorbis a$,sp$
+               if left$(filename$,13)<>"gamecore\guns"
+                  if file exist(sp$)=0
+                  a$=filecollection$(chk)
+                  encode to ogg vorbis a$,sp$
+                  endif
                endif
             endif
             if guseoggoff=1 and lower$(right$(filename$,4))=".wav" then sp$=lower$(left$(filecollection$(chk),len(filecollection$(chk))-4))+".wav"
@@ -29981,9 +29987,9 @@ Rem Scene commander, track if flak has moved
    tmpy2#=tmpy1#+(flakelement(f).profile.yinc*3.0)
    tmpz2#=tmpz1#+(flakelement(f).profile.zinc*3.0)
 
-   tmpx2#=tmpx1#+(flakelement(f).profile.xinc)
-   tmpy2#=tmpy1#+(flakelement(f).profile.yinc)
-   tmpz2#=tmpz1#+(flakelement(f).profile.zinc)
+  ` tmpx2#=tmpx1#+(flakelement(f).profile.xinc)
+   `tmpy2#=tmpy1#+(flakelement(f).profile.yinc)
+   `tmpz2#=tmpz1#+(flakelement(f).profile.zinc)
    if static raycast(tmpx1#,tmpy1#,tmpz1#,tmpx2#,tmpy2#,tmpz2#)<>0
     `
     rem checklist now filled with collision feedback data
@@ -30064,7 +30070,7 @@ rem scene commander, track if flak has moved, if not deactivate and hide. (not m
     else
      rem bouncing flak hasn't worked as it was intended! This needs to be here so once there are no more bounces
      rem the object will detonate on next collision!
-     if flakelement(f).profile.bounceonhit<=0
+    ` if flakelement(f).profile.bounceonhit<=0
       if flak(tflakid).noexplode=1
        tdetonate=1
        Rem Scene commander - fix for non working grenades
@@ -30074,7 +30080,7 @@ rem scene commander, track if flak has moved, if not deactivate and hide. (not m
            show object tobj
 
      endif
-    endif
+  `  endif
    endif
 
    endif
@@ -30137,7 +30143,7 @@ rem scene commander, track if flak has moved, if not deactivate and hide. (not m
   if object exist(tobj)=1 then enable object zbias tobj,-500.0,0.0
 
   rem initial blast creates scorch (in six directions)
-   if showflak=1
+  if showflak=1
   for tscdir=1 to 6
    remstart
    if tscdir=1 then t=static raycast(decalx+0,decaly,decalz,decalx-200,decaly,decalz)
@@ -33078,6 +33084,10 @@ if file exist(tprofile$)=0
          entityprofile(entid).scale=entityprofile(entid).scale+20`Rem Scene commander fix  causing misscaling due to new scale  system.
       endif
     endif
+
+      tryfield$="custombiped"
+      if field$=tryfield$ then entityprofile(entid).custombiped=value1
+
     tryfield$="cantakeweapon"
     if field$=tryfield$ then entityprofile(entid).cantakeweapon=value1
     tryfield$="isweapon"
@@ -40357,7 +40367,7 @@ _ode_playerborble:
   delete object physicsplayerborble
  endif
 
- make object sphere physicsplayerborble,35
+ make object sphere physicsplayerborble,38
 
  Rem Hockeykid - 250210 - Dark AI add player to ai system
  if darkaiplayer=0
@@ -42162,7 +42172,7 @@ _ode_sounds:
      if ttouchede<>lastttouchede
       rem player damage if entity moving at force (uses phyforcedamage)
       tdamage=((toverallveldiff#-ttspeedatwhichurt#)/10.0) : if tdamage<1 then tdamage=1
-      magnifydamage#=entityelement(ttouchede).eleprof.phyforcedamage/140.0
+      magnifydamage#=entityelement(ttouchede).eleprof.phyforcedamage/100.0
       tdamage=tdamage*magnifydamage# : gosub _player_takedamage
       lastttouchede=ttouchede
      endif
@@ -62766,7 +62776,7 @@ rem end is o
 
     endfunction
 
-    function culling(e,entid,obj)
+function culling(e,entid,obj)
 
    ` text 200,200,str$(weaponammo(weaponammoindex+ammooffset))
  rem if not just using FPSC default culling
@@ -62794,14 +62804,10 @@ if entityelement(e).activated=0 and entityelement(e).spawn.atstart=0
 
 if entityelement(e).ishidden<>2
 
-`if obj<>0
-`text object screen x(obj),object screen y(obj),str$(ode get body linear velocity x(obj))
-`endif
 
 lx=ode get body linear velocity x(obj)
 ly=ode get body linear velocity y(obj)
 lz=ode get body linear velocity z(obj)
-
 
 
    Rem Scene Commnader, do not cull if object in motion.
@@ -62845,8 +62851,8 @@ lz=ode get body linear velocity z(obj)
                         if sizeis>hudfognear and hudfogon=1 then sizesis=hudfognear
                         if howfar<150 or entityelement(e).cullstate=2 then sizeis=1000000
 
-                           Rem Scene Commander, with newer culling additions, alpha fading isn't so important, so now isn't a default setting to improve performance.
-                         `  if entityelement(e).usefade=1
+                     Rem Scene Commander, with newer culling additions, alpha fading isn't so important, so now isn't a default setting to improve performance.
+                           if entityelement(e).usefade=1
                               if sizeis<1000000
                               fade=abs(howfar-sizeis)
                               else
@@ -62855,12 +62861,9 @@ lz=ode get body linear velocity z(obj)
 
                            if entityelement(e).ishidden<>3 and entityelement(e).cullstate<>2
                               if fade<entityelement(e).ai.destalphafade and fade<101
-                                 if entityelement(e).usefade=1
-                                 set alpha mapping on obj,fade
-                                 endif
+                              set alpha mapping on obj,fade
                               endif
                            endif
-
 
                            if howfar<sizeis
                               show object obj
@@ -62873,7 +62876,7 @@ lz=ode get body linear velocity z(obj)
                            entityelement(e).ishidden=1
                            endif
 
-                    `   
+                        endif
 
 
          rem close obj 'cullable'
