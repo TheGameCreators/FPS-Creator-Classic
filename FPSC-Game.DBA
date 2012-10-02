@@ -194,6 +194,7 @@ global timeelapsed#=0.0
 global syncrate=140
 global plrdistance#=0.0
 global entobj
+global spareselectkey=0
 rem scene commander - average FPS for smoother movement
 global nextave=1
 dim fpsstore(80):for f=1 to 80:fpsstore(f)=80:next f
@@ -21648,7 +21649,7 @@ case AIACTSHOWWEAPON:
       if len(aiactionseq(seq).string1)=1
          whichslot=aiactionseq(seq).value
             if weaponslot(whichslot).got<>0
-               tgunid=weaponslot(whichslot).got
+               tgunid=aiactionseq(seq).value
             endif
          else
          findgun$=lower$(aiactionseq(seq).string1)
@@ -21656,13 +21657,13 @@ case AIACTSHOWWEAPON:
             if foundgunid>0
             for f=1 to 10
                 if weaponslot(f).got=foundgunid
-                  tgunid=weaponslot(f).got
+                  tgunid=f
                 endif
                next f
             endif
          endif
 
-         player(1).command.newweapon=tgunid
+         spareselectkey=tgunid
 
 endcase
 
@@ -25184,9 +25185,16 @@ if gxbox=1 : rem define in a config later
 endif
 
 selkeystate=0
+if spareselectkey>0
+selkeystate=spareselectkey+1
+spareselectkey=0
+endif
+
+if selkeystate=0
 for i=2 to 11
  if keystate(i) then selkeystate=i : exit
 next i
+endif
 `
 rem Keyboard
 altswapkeycalled=0
@@ -25214,6 +25222,7 @@ if selkeystate>0 and gunzoommode=0 or altswapkeycalled=1
     `
     rem Hockeykid - 080611 - Allow moving and switching
     wepsel=selkeystate-1
+
     rem Cannot keypress until release
     keyboardpress=selkeystate
     if selkeystate=11 then wepsel=-1
@@ -25221,6 +25230,7 @@ if selkeystate>0 and gunzoommode=0 or altswapkeycalled=1
 
     rem Actual weapon change
     if altswapkeycalled=0
+
      if wepsel>0
       weaponkeyselection=wepsel
          rem scene commander - prevent selection if slot locked out.
