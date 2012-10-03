@@ -31,6 +31,9 @@ rem Credit to Airslide for help with Dark AI when it went into Fenix Mod
 rem Credit to Hockeykid for his continued help integrating Dark AI
 rem Credit to Robert Knox for help fixing up the engine and adding a cool HUD system
 
+
+`
+
 sync on : sync rate 0
 
       if Sw=0 or Sh=0
@@ -195,9 +198,10 @@ global syncrate=140
 global plrdistance#=0.0
 global entobj
 global spareselectkey=0
+
 rem scene commander - average FPS for smoother movement
 global nextave=1
-dim fpsstore(80):for f=1 to 80:fpsstore(f)=80:next f
+dim fpsstore(80):for f=1 to 80:fpsstore(f)=140:next f
 
 Rem Scene Commander end variables
 
@@ -568,8 +572,9 @@ type saveloadgamepositionentitytype
  cullstate as integer rem Scene Commander
  usefade as boolean rem Scene Commander
  onradar as integer rem Scene Commander
- radardistance as integer
- shotby as integer
+ radardistance as integer rem Scene Commander
+ shotby as integer rem Scene Commander
+ shotbyammo$ as string rem Scene Commander
  isimmune as integer
  camuse as integer
  camoffsetx as integer
@@ -1738,6 +1743,7 @@ type entitytype
  SP3 as integer
  NECK as integer
  shotby as integer
+ shotbyammo$ as string
  isimmune as integer
  camuse as integer
  camoffsetx as integer
@@ -1994,8 +2000,9 @@ Rem Scene commander conditions
 #constant AICONDWATERLESSER 918
 #constant AICONDWATERGREATER 919
 #constant AICONDWATERISON 920
+#constant AICONDSHOTBYAMMO 921
 
-#constant AICONDLAST 921
+#constant AICONDLAST 922
 
 #constant AIACTNONE 0
 #constant AIACTDESTROY 1
@@ -2942,7 +2949,10 @@ type guntype
  meleeaction as gunactionstype
  altmeleeaction as gunactionstype
 endtype
+
+
 dim gun(100) as guntype
+
 dim firemode(100,1) as guntype
 Global firemode : firemode=0
 Global bulletlimbsmax : bulletlimbsmax=0
@@ -3480,8 +3490,8 @@ global glightzerorange : glightzerorange=2000
 global glightatten : glightatten=16000
 global glightmaxsize : glightmaxsize=-1
 global glightboost : glightboost=4
-global glighttexsize : glighttexsize=1024
-global glightquality : glightquality=40
+global glighttexsize : glighttexsize=512
+global glightquality : glightquality=35
 global glightblurmode : glightblurmode=1
 global glightthreadmax : glightthreadmax=4
 global gdynamiclightingstate : gdynamiclightingstate=0
@@ -3690,8 +3700,8 @@ if file exist(tfile$)=1
     `
     tryfield$="optimizemode" : if field$=tryfield$ then goptimizemode=value1
     tryfield$="lightmapping" : if field$=tryfield$ then glightmappingstate=value1
-    `tryfield$="lightmapsize" : if field$=tryfield$ then glightmapsize=value1
-    `tryfield$="lightmapquality" : if field$=tryfield$ then glightmapquality=value1
+    tryfield$="lightmapsize" : if field$=tryfield$ then glightmapsize=value1
+    tryfield$="lightmapquality" : if field$=tryfield$ then glightmapquality=value1
     tryfield$="lightmapold" : if field$=tryfield$ then glightmappingold=value1
     tryfield$="lightmapshadows" : if field$=tryfield$ then glightshadowsstate=value1
     tryfield$="lightmapambientr" : if field$=tryfield$ then glightambientr=value1
@@ -8414,10 +8424,7 @@ howfar2=plrdistance#
 
       ode set body mass physicsplayerborble,physicsplayerweight#+entityelement(e).eleprof.phyweight
       ode set body mass obj,entityelement(e).eleprof.phyweight/4
-      cameradampen#=entityelement(e).eleprof.phyweight/10
-       if cameradampen#<0.1 then cameradampen#=0.1
-       if cameradampen#>1.0 then cameradampen#=1.0
-       rem try to push haracter away - they will eventually move
+
       thx#=newxvalue(entityelement(e).rx,camera angle y(),10.0)
       thy#=ode get body linear velocity y(obj)
       thz#=newzvalue(entityelement(e).rz,camera angle y(),10.0)
@@ -8531,6 +8538,7 @@ endif
     if timer()>entityelement(e).spawn.life
      entityelement(e).spawn.life=0
      entityelement(e).shotby=998
+     entityelement(e).shotbyammo$=""
      tkillentitynow=1
     endif
    endif
@@ -8539,6 +8547,7 @@ endif
    if entityelement(e).y<-100
     tkillentitynow=1
     entityelement(e).shotby=999
+    entityelement(e).shotbyammo$=""
    endif
    `
    rem kill now
@@ -10858,6 +10867,7 @@ _entity_move_restoreref:
    entityelement(e).health=1
    tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y : tdamagez#=entityelement(e).z
    entityelement(e).shotby=999
+   entityelement(e).shotbyammo$=""
    gosub _entity_deducthealth
   endif
  endif
@@ -11063,6 +11073,7 @@ _entity_controlmovements:
      tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y : tdamagez#=entityelement(e).z
      tdamagesource=0 : timpacttype=1
      entityelement(e).shotby=997
+     entityelement(e).shotbyammo$=""
      gosub _entity_deducthealth
     endif
     rem record last ground player stood on
@@ -11531,6 +11542,7 @@ _entity_completerayhit:
    tuseentityowndecaldamage=1
       Rem Scene Commander shot by what weapon.
    entityelement(e).shotby=gunid
+   entityelement(e).shotbyammo$=ammopool(firemode(gunid,firemode).settings.poolindex).name$
    rem arena game there are no knock-downs (multiplayer)
    if gmultiplayergame=1
     timpacttype=1
@@ -11651,6 +11663,7 @@ _entity_addforcesphere:
      if tdamage<30 then timpacttype=1
 
       entityelement(e).shotby=996
+      entityelement(e).shotbyammo$=""
      gosub _entity_deducthealth
     else
      gosub _entity_delayeddeducthealth
@@ -12395,6 +12408,7 @@ conword$(AICONDWATEREQUAL)="waterequal"
 conword$(AICONDWATERLESSER)="waterlesser"
 conword$(AICONDWATERGREATER)="watergreater"
 conword$(AICONDWATERISON)="waterison"
+conword$(AICONDSHOTBYAMMO)="shotbyammo"
 
 rem Set all action keywords
 dim actword$(AIACTLAST)
@@ -15476,6 +15490,17 @@ case AICONDWATERISON:
    if wateron=aiconditionseq(seq).valuea
    airesult=1
    endif
+endcase
+
+case AICONDSHOTBYAMMO:
+   airesult=0
+   if entityelement(e).shotbyammo$<>""
+      if lower$(entityelement(e).shotbyammo$)=lower$(aiconditionseq(seq).string1)
+      airesult=1
+      entityelement(e).shotbyammo$=""
+      endif
+   endif
+
 endcase
 
    endselect
@@ -27977,7 +28002,6 @@ for l=0 to 299
       endif
      endif
     endif
-    `
    next i
    `
    rem AirMod - Alternate Fire
@@ -27985,6 +28009,7 @@ for l=0 to 299
    if field$="alternateisray" then gun(gunid).settings.alternateisray=value1
    if field$="altto" or field$="alt to" then gun(gunid).altaction.to.s=value1 : gun(gunid).altaction.to.e=value2
    if field$="altfrom" or field$="alt from" then gun(gunid).altaction.from.s=value1 : gun(gunid).altaction.from.e=value2
+
    if field$="switchtoalt"
     gun(gunid).settings.altswapkey1=value1 : gun(gunid).settings.altswapkey2=value2
     if value2=0 then gun(gunid).settings.altswapkey2=-1
