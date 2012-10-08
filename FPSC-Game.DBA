@@ -32,8 +32,6 @@ rem Credit to Hockeykid for his continued help integrating Dark AI
 rem Credit to Robert Knox for help fixing up the engine and adding a cool HUD system
 
 
-`
-
 sync on : sync rate 0
 
       if Sw=0 or Sh=0
@@ -198,6 +196,12 @@ global syncrate=140
 global plrdistance#=0.0
 global entobj
 global spareselectkey=0
+Rem Scene Commander, player maximum velocity reached, mainly for debug.
+global pmaxX#=0.0
+global pmaxY#=0.0
+global pmaxZ#=0.0
+global sizechange=0
+global firstturnjump=0
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
@@ -5050,10 +5054,6 @@ position camera entityelement(ecam).x+entityelement(ecam).camoffsetx,entityeleme
    rotate camera wrapvalue(entityelement(ecam).camrotx+entityelement(ecam).offsetanglex),wrapvalue(entityelement(ecam).camroty+entityelement(ecam).offsetanglex),wrapvalue(entityelement(ecam).camrotz+entityelement(ecam).offsetanglex)
    endif
 endif
-
-`culling()
-
-
 
 
  rem FPGC - 280610 - moved entire SYNC sequence to subroutine so PAUSE mode can call it too
@@ -11201,6 +11201,8 @@ if tobj>0
       limbaz#=limb direction z(entityelement(e).obj,entityprofile(tentid).firespotlimb)
       `set object to object orientation tobj,entityelement(e).obj,entityprofile(tentid).firespotlimb,0
       rotate object tobj,limbax#,limbay#,limbaz#
+      Rem Fix to occasionally random scaling of weapon attachments.
+      scale object tobj,85,85,85
      endif
     endif
    endif
@@ -11579,13 +11581,13 @@ _entity_spherecollision:
    spdist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
    obj=entityelement(e).obj
    if obj>0
-   Rem Scene commander, object size check causing issues with flak/entity collision.
-    `if spdist#<object size(obj)
+   Rem Scene commander, object size check causing issues with flak/entity collision - reverted to x2
+    if spdist#<object size(obj)*2
      idist#=intersect object(obj,spherex#,spherey#,spherez#,spherenx#,sphereny#,spherenz#)
      if idist#>0 and idist#<=spdist#
       spheree=e : exit
      endif
-    `endif
+    endif
    endif
   endif
  next e
@@ -24420,7 +24422,7 @@ _player_restart:
  zrotate camera 0
  `
  rem start with a jump
- grav#=-1.0 : jumpaction=0 : jumpspeed#=0.0 : jumpangle#=camera angle y() : gravlasty#=mey#
+ grav#=-1.0 : jumpaction=0 : jumpspeed#=0.0 : jumpangle#=camera angle y() : gravlasty#=mey#:firstturnjump=0
  camflyforcex#=0 : camflyforcey#=0 : camflyforcez#=0
  camforcex#=0 : camforcey#=0 : camforcez#=0
  `
@@ -33049,7 +33051,7 @@ if file exist(tprofile$)=0
     tryfield$="rotz"
     if field$=tryfield$ then entityprofile(entid).rotz=value1
     tryfield$="scale"
-    if field$=tryfield$ then entityprofile(entid).scale=value1+20
+    if field$=tryfield$ then entityprofile(entid).scale=value1
     tryfield$="fixnewy"
     if field$=tryfield$ then entityprofile(entid).fixnewy=value1
     tryfield$="raisefactor"
@@ -40399,6 +40401,7 @@ _ode_giveentitiesalittlenudgejustbeforelevelbegins:
  next tte
 return
 
+
 _ode_playerborble:
  `
  rem can call this to force player to camerapositionx,y,z
@@ -40418,7 +40421,12 @@ _ode_playerborble:
   delete object physicsplayerborble
  endif
 
+ if crouchmode<>0 or sizechange<>0
+   make object sphere physicsplayerborble,30
+ else
  make object sphere physicsplayerborble,38
+ endif
+
 
  Rem Hockeykid - 250210 - Dark AI add player to ai system
  if darkaiplayer=0
@@ -40436,7 +40444,7 @@ _ode_playerborble:
   hide object physicsplayerborble
  endif
  ode create dynamic sphere physicsplayerborble
- ode set contact fdir1 physicsplayerborble,500
+ ode set contact fdir1 physicsplayerborble,1500
  ode set body mass physicsplayerborble,physicsplayerweight#
  ode set linear velocity physicsplayerborble,0,0,0
  ode set angular velocity physicsplayerborble,0,0,0
@@ -40781,6 +40789,15 @@ endcase
 endselect
 playeraction=0
 
+if firstturnjump=0
+plrkeySPACE=1
+firstturnjump=1
+endif
+
+if plrkeySPACE=1 and jumpaction<>0
+plrkeySPACE=0
+endif
+
 Rem Free weapon jam if reload used
 
 if player(1).state.firingmode=2 and gunzoommode=0
@@ -40927,11 +40944,28 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
  `
  rem crouch control
  if (plrkeyC)=1
-  if crouchmode=0 and onladder=0 and jumpaction=0 then crouchmode=1
+  if crouchmode=0 and onladder=0 and jumpaction=0
+  crouchmode=1
+  gosub _ode_playerborble
+  endif
  else
-  if crouchmode=1 then crouchmode=0
+  if crouchmode=1
+  crouchmode=0
+  gosub _ode_playerborble
+  endif
   if crouchmode=2 then crouchmode=3
  endif
+
+ if (grav#<-40.0 and jumpaction<>0 and crouchmode=0 and physuspendgravity=0 and sizechange=0)
+
+  sizechange=1
+  gosub _ode_playerborble
+  else
+  sizechange=0
+  endif
+
+
+
  `
  rem Control camera movement
  if crouchmode<>0
@@ -40945,6 +40979,10 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
   if alwaysrun=1
    basespeed#=55: isrunning=1
   endif
+
+
+
+  Rem Scene commander, dynamic borble change to counteract issues with player becoming stuck when crouching or jumping.
 
   rem AirMod - Slow player for simple zoom
   if (gunzoommode <> 0 and firemode(gunid,firemode).settings.simplezoom <> 0) then basespeed#=35-(20*firemode(gunid,firemode).settings.zoomwalkspeed) : isrunning=0
@@ -41256,7 +41294,7 @@ if deactivatecollision=0 and skipcol=0
   cty#=camerapositiony
  endif
  ctz#=camerapositionz+(camvelz#/4.0)
- rem check if can rouch down from stood
+ rem check if can crouch down from stood
  if crouchmode=1
   if static volume(ctox#,ctoy#-28,ctoz#,ctx#,(cty#-28)-15,ctz#,0.25)=1 `and playerunderwater=0 and tnearsurfaceofwater>=15
    if physicsdebug=1 then print "willgetstyckifcrouch"
@@ -41435,6 +41473,9 @@ if camerastoodonphyobj<>0
   if newlevelobjectivevoid=0
    rem player lands after a jump
    if (grav#<-60.0 and jumpaction=0) or (grav#<-40.0 and jumpaction<>0)
+    Rem Scene Commander, fix to prevent gravity force going crazy when landing on multiple objects
+      ode set linear velocity physicsplayerborble,0,-5*timeelapsed#,0
+      ode set angular velocity physicsplayerborble,0,0,0
     rem player urg sound
     if playersound(plrid,11)>0 and playerunderwater=0 and tnearsurfaceofwater>=15
      broadcast3dsound(camera position x(),camera position y(),camera position z(),10.0,-1)
@@ -41763,6 +41804,7 @@ camvelz#=camvelz#+moveplrz#:moveplrz#=0
  if camvelz#<-60 then camvelz#=-60
  if camvelz#>60 then camvelz#=60
 
+
  ode set linear velocity physicsplayerborble,camvelx#,camvely#,camvelz#
 
  ode set angular velocity physicsplayerborble,0,0,0
@@ -41813,6 +41855,8 @@ else
  arenaadjust#=curvevalue(arenaadjustd#,arenaadjust#,5.0)
  camerawobble#=0.0
 endif
+
+
 
 rem finally update camera with smoothing (cty# is absolute staticvolume camypos)
 finalcamy#=curvevalue(camerapositiony,camera position y(),2.0)
@@ -42736,6 +42780,21 @@ _ode_update:
  `
  rem update physics (FPGC - 210210 - new ODE requires only one timer based update call)
  `for phy=1 to 2 : ode update : next phy
+
+Rem Scene Commander, last check to cap player mass movement caused by increased performance
+plx#=ode get body linear velocity x(physicsplayerborble)
+ply#=ode get body linear velocity y(physicsplayerborble)
+plz#=ode get body linear velocity z(physicsplayerborble)
+
+if plx#>60 then plx#=60
+if plx#<-60 then plx#=-60
+
+if plz#>60 then plz#=60
+if plz#<-60 then plz#=-60
+
+`ode set linear velocity physicsplayerborble,plx#,ply#,plz#
+
+`ode set angular velocity physicsplayerborble,0,0,0
  ode update
  `
  rem for next run - debug readouts
@@ -62856,13 +62915,35 @@ if entityelement(e).activated=0 and entityelement(e).spawn.atstart=0
 if entityelement(e).ishidden<>2
 
 
-lx=ode get body linear velocity x(obj)
-ly=ode get body linear velocity y(obj)
-lz=ode get body linear velocity z(obj)
+lx#=ode get body linear velocity x(obj)
+ly#=ode get body linear velocity y(obj)
+lz#=ode get body linear velocity z(obj)
+remstart
+if lx#>30 then lx#=30
+if lx#<-30 then lx#=-30
+if ly#>30 then ly#=30
+if ly#<-30 then ly#=-30
+if lz#>30 then lz#=30
+if lz#<-30 then lz#=-30
+
+ode set linear velocity obj,lx#,ly#,lz#
+remend
+
+`plx#=ode get body linear velocity x(physicsplayerborble)
+`ply#=ode get body linear velocity y(physicsplayerborble)
+`plz#=ode get body linear velocity z(physicsplayerborble)
+
+`if plx#>pmaxX# then pmaxX#=plx#
+`if ply#>pmaxY# then pmaxY#=ply#
+`if plz#>pmaxZ# then pmaxZ#=plz#
+
+`text 200,200,str$(plx#)+" "+str$(pmaxX#)
+`text 200,220,str$(ply#)+" "+str$(pmaxY#)
+`text 200,240,str$(plz#)+" "+str$(pmaxZ#)
 
 
    Rem Scene Commnader, do not cull if object in motion.
-   if int(lx)<>0 or int(ly)<>0 or int(lz)<>0
+   if int(lx#)<>0 or int(ly#)<>0 or int(lz#)<>0
       exitfunction
    endif
 
