@@ -1,4 +1,4 @@
-rem
+
 rem FIRST PERSON GAME CREATOR GAME ENGINE - V1.20
 rem Copyright (c) 2005, 2010 The Game Creators Ltd
 rem
@@ -55,12 +55,13 @@ delete dll Kernel32
 
 Rem Scene Commander globals
 
-rem wobble
-global wobble#=0.0
 Rem flashlight
 global flashlighton=0 as boolean
 global flashlightrange=350
 global flashlightred=255:flashlightgreen=255:flashlightblue=255
+
+rem wobble
+global wobble#=0.0
 
 rem new deaths
 global tiltondeath=0
@@ -205,7 +206,7 @@ global firstturnjump=0
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
-dim fpsstore(80):for f=1 to 80:fpsstore(f)=140:next f
+dim fpsstore(80):for f=1 to 80:fpsstore(f)=80:next f
 
 Rem Scene Commander end variables
 
@@ -598,7 +599,6 @@ type saveloadgamepositionentitytype
  entityacc as float
  soundplaying as integer
  frozen as frozen
- usefade as boolean rem Scene Commander
 
 endtype
 type saveloadgamepositionweaponslottype
@@ -1768,7 +1768,7 @@ type entitytype
  soundplaying as integer
  frozen as frozen
  distance as integer
- usefade as boolean rem Scene Commander
+
 endtype
 rem Entity Breadcrumbs Data
 type entitybreadcrumbstype
@@ -4821,7 +4821,7 @@ _main_game_core:
  gameperftotalcountTOP=perftimer()
 
  Rem Scene Commander flashlight
- gosub _flashlight_control
+` gosub _flashlight_control
 
  if wateron=1
   Gosub _water_control
@@ -29546,6 +29546,7 @@ dim data$(100)
 filename$="gamecore\flak\"+flak$+"\flakspec.txt"
 load array filename$,data$()
 addfiletocollection(filename$)
+remstart
 Rem Scene Commander - Check for sticky flak and add to collection if found - might not be best place for fix.
 tfile$="gamecore\flak\"+flak$+"\stick"
 tsur$=".dbo"
@@ -29556,6 +29557,7 @@ addfiletocollection(tfile$+tsur$)
    addfiletocollection(tfile$+tsur$)
    endif
 endif
+remend
 for l=0 to 99
  line$=data$(l)
  if len(line$)>0
@@ -31389,7 +31391,7 @@ _lighting_setupdynamiclights:
 
 rem Create dynamic hardware lights
 if light exist(1)=1 then hide light 1
-for lightindex=2 to 6
+for lightindex=2 to 7
  if light exist(lightindex)=0
   make light lightindex
  endif
@@ -31555,6 +31557,7 @@ if grefreshinfinilightentityindices=1
  next e
  grefreshinfinilightentityindices=0
 endif
+
 
 rem Reveal lights in shortlist
 lightindex=2
@@ -33133,9 +33136,7 @@ if file exist(tprofile$)=0
     tryfield$="ischaracter"
     if field$=tryfield$
     entityprofile(entid).ischaracter=value1
-      if value1<>0
-         entityprofile(entid).scale=entityprofile(entid).scale+20`Rem Scene commander fix  causing misscaling due to new scale  system.
-      endif
+
     endif
 
       tryfield$="custombiped"
@@ -40444,7 +40445,7 @@ _ode_playerborble:
   hide object physicsplayerborble
  endif
  ode create dynamic sphere physicsplayerborble
- ode set contact fdir1 physicsplayerborble,1500
+ ode set contact fdir1 physicsplayerborble,500
  ode set body mass physicsplayerborble,physicsplayerweight#
  ode set linear velocity physicsplayerborble,0,0,0
  ode set angular velocity physicsplayerborble,0,0,0
@@ -40956,13 +40957,13 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
   if crouchmode=2 then crouchmode=3
  endif
 
- if (grav#<-40.0 and jumpaction<>0 and crouchmode=0 and physuspendgravity=0 and sizechange=0)
+if (grav#<-40.0 and jumpaction<>0 and crouchmode=0 and physuspendgravity=0 and sizechange=0)
 
-  sizechange=1
-  gosub _ode_playerborble
+ sizechange=1
+ gosub _ode_playerborble
   else
-  sizechange=0
-  endif
+ sizechange=0
+ endif
 
 
 
@@ -41474,8 +41475,8 @@ if camerastoodonphyobj<>0
    rem player lands after a jump
    if (grav#<-60.0 and jumpaction=0) or (grav#<-40.0 and jumpaction<>0)
     Rem Scene Commander, fix to prevent gravity force going crazy when landing on multiple objects
-      ode set linear velocity physicsplayerborble,0,-5*timeelapsed#,0
-      ode set angular velocity physicsplayerborble,0,0,0
+      `ode set linear velocity physicsplayerborble,0,-5*timeelapsed#,0
+      `ode set angular velocity physicsplayerborble,0,0,0
     rem player urg sound
     if playersound(plrid,11)>0 and playerunderwater=0 and tnearsurfaceofwater>=15
      broadcast3dsound(camera position x(),camera position y(),camera position z(),10.0,-1)
@@ -42781,20 +42782,6 @@ _ode_update:
  rem update physics (FPGC - 210210 - new ODE requires only one timer based update call)
  `for phy=1 to 2 : ode update : next phy
 
-Rem Scene Commander, last check to cap player mass movement caused by increased performance
-plx#=ode get body linear velocity x(physicsplayerborble)
-ply#=ode get body linear velocity y(physicsplayerborble)
-plz#=ode get body linear velocity z(physicsplayerborble)
-
-if plx#>60 then plx#=60
-if plx#<-60 then plx#=-60
-
-if plz#>60 then plz#=60
-if plz#<-60 then plz#=-60
-
-`ode set linear velocity physicsplayerborble,plx#,ply#,plz#
-
-`ode set angular velocity physicsplayerborble,0,0,0
  ode update
  `
  rem for next run - debug readouts
@@ -63263,10 +63250,10 @@ return
 
 _flashlight_control:
 
-if light exist(7)=0
-make light 7
-set spot light 7,0,180
-hide light 7
+if light exist(3)=0
+make light 3
+set spot light 3,0,180
+hide light 3
 endif
 
 
@@ -63278,15 +63265,15 @@ flashrange=flashlightrange
 
 if flashlighton<>0
 
-set light range 7,flashrange
-color light 7,rgb(flashred,flashgreen,flashblue)
+set light range 3,flashrange
+color light 3,rgb(flashred,flashgreen,flashblue)
 
-position light 7,object position x(physicsplayerborble),object position y(physicsplayerborble),object position z(physicsplayerborble)
-rotate light 7, camera angle x(), camera angle y(), camera angle z()
-show light 7
+position light 3,object position x(physicsplayerborble),object position y(physicsplayerborble),object position z(physicsplayerborble)
+rotate light 3, camera angle x(), camera angle y(), camera angle z()
+show light 3
 
 else
-hide light 7
+hide light 3
 endif
 
 return
