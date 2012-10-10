@@ -4820,9 +4820,6 @@ _main_game_core:
  inc gameperftotalcount, perftimer()-gameperftotalcountTOP
  gameperftotalcountTOP=perftimer()
 
- Rem Scene Commander flashlight
-` gosub _flashlight_control
-
  if wateron=1
   Gosub _water_control
  endif
@@ -5216,6 +5213,9 @@ endif
 
  rem LightRay Addition
   rem LRMODUPDATE
+
+      Rem Scene Commander flashlight
+      gosub _flashlight_control
   SyncAll()
   if gpostprocessing=0 or gpostprocessing=1 or gpostprocessing=2 then set current camera 0
   if gpostprocessing=0 or gpostprocessing=1 or gpostprocessing=2
@@ -24422,7 +24422,7 @@ _player_restart:
  zrotate camera 0
  `
  rem start with a jump
- grav#=-1.0 : jumpaction=0 : jumpspeed#=0.0 : jumpangle#=camera angle y() : gravlasty#=mey#:firstturnjump=0
+ grav#=-1.0 : jumpaction=0 : jumpspeed#=1.0 : jumpangle#=camera angle y() : gravlasty#=mey#:firstturnjump=0
  camflyforcex#=0 : camflyforcey#=0 : camflyforcez#=0
  camforcex#=0 : camforcey#=0 : camforcez#=0
  `
@@ -29547,16 +29547,7 @@ filename$="gamecore\flak\"+flak$+"\flakspec.txt"
 load array filename$,data$()
 addfiletocollection(filename$)
 remstart
-Rem Scene Commander - Check for sticky flak and add to collection if found - might not be best place for fix.
-tfile$="gamecore\flak\"+flak$+"\stick"
-tsur$=".dbo"
-if file exist (tfile$+tsur$)=1
-addfiletocollection(tfile$+tsur$)
-   tsur$="_d2.dds"
-   if file exist (tfile$+tsur$)=1
-   addfiletocollection(tfile$+tsur$)
-   endif
-endif
+
 remend
 for l=0 to 99
  line$=data$(l)
@@ -30042,9 +30033,9 @@ Rem Scene commander, track if flak has moved
    tmpy2#=tmpy1#+(flakelement(f).profile.yinc*3.0)
    tmpz2#=tmpz1#+(flakelement(f).profile.zinc*3.0)
 
-  ` tmpx2#=tmpx1#+(flakelement(f).profile.xinc)
-   `tmpy2#=tmpy1#+(flakelement(f).profile.yinc)
-   `tmpz2#=tmpz1#+(flakelement(f).profile.zinc)
+      `tmpx2#=tmpx1#+(flakelement(f).profile.xinc)
+      `tmpy2#=tmpy1#+(flakelement(f).profile.yinc)
+      `tmpz2#=tmpz1#+(flakelement(f).profile.zinc)
    if static raycast(tmpx1#,tmpy1#,tmpz1#,tmpx2#,tmpy2#,tmpz2#)<>0
     `
     rem checklist now filled with collision feedback data
@@ -30094,11 +30085,14 @@ Rem Scene commander, track if flak has moved
     endif
    endif
 rem scene commander, track if flak has moved, if not deactivate and hide. (not movement caused if flak generated too close of obstacle).
-`flak(tflakid).stick=1
-   if flakelement(f).lastx=flakelement(f).xpos and flakelement(f).lasty=flakelement(f).ypos and  flakelement(f).lastz=flakelement(f).zpos
 
+   if flakelement(f).lastx=flakelement(f).xpos and flakelement(f).lasty=flakelement(f).ypos and  flakelement(f).lastz=flakelement(f).zpos
+         if flak(tflakid).stick=1
          flakelement(f).active=4
          hide object tobj
+         else
+         flakelement(f).active=2
+         endif
       `text object screen x(tobj),object screen y(tobj),"Stuck"
    endif
    rem if shot BY entity, can collide with player
@@ -30125,7 +30119,8 @@ rem scene commander, track if flak has moved, if not deactivate and hide. (not m
     else
      rem bouncing flak hasn't worked as it was intended! This needs to be here so once there are no more bounces
      rem the object will detonate on next collision!
-    ` if flakelement(f).profile.bounceonhit<=0
+
+     if flakelement(f).profile.bounceonhit<=0
       if flak(tflakid).noexplode=1
        tdetonate=1
        Rem Scene commander - fix for non working grenades
@@ -30135,8 +30130,9 @@ rem scene commander, track if flak has moved, if not deactivate and hide. (not m
            show object tobj
 
      endif
-  `  endif
    endif
+   endif
+
 
    endif
    `
