@@ -3495,7 +3495,7 @@ global glightatten : glightatten=16000
 global glightmaxsize : glightmaxsize=-1
 global glightboost : glightboost=4
 global glighttexsize : glighttexsize=512
-global glightquality : glightquality=35
+global glightquality : glightquality=5
 global glightblurmode : glightblurmode=1
 global glightthreadmax : glightthreadmax=4
 global gdynamiclightingstate : gdynamiclightingstate=0
@@ -33050,7 +33050,9 @@ if file exist(tprofile$)=0
     tryfield$="rotz"
     if field$=tryfield$ then entityprofile(entid).rotz=value1
     tryfield$="scale"
-    if field$=tryfield$ then entityprofile(entid).scale=value1
+    if field$=tryfield$
+    entityprofile(entid).scale=value1-20
+    endif
     tryfield$="fixnewy"
     if field$=tryfield$ then entityprofile(entid).fixnewy=value1
     tryfield$="raisefactor"
