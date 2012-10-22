@@ -150,6 +150,7 @@ global moveplrx#=0.0
 global moveplry#=0.0
 global moveplrz#=0.0
 global lastfired=0
+global lastfiredtime=0
 global noholster=1
 global noairon=0
 global drowndamage=1
@@ -2005,8 +2006,11 @@ Rem Scene commander conditions
 #constant AICONDWATERGREATER 919
 #constant AICONDWATERISON 920
 #constant AICONDSHOTBYAMMO 921
+#constant AICONDPLRFIRED 923
+#constant AICONDPLRFIREDGREATER 924
+#constant AICONDPLRFIREDLESSER 925
 
-#constant AICONDLAST 922
+#constant AICONDLAST 926
 
 #constant AIACTNONE 0
 #constant AIACTDESTROY 1
@@ -12411,7 +12415,9 @@ conword$(AICONDWATERLESSER)="waterlesser"
 conword$(AICONDWATERGREATER)="watergreater"
 conword$(AICONDWATERISON)="waterison"
 conword$(AICONDSHOTBYAMMO)="shotbyammo"
-
+conword$(AICONDPLRFIRED)="plrfired"
+conword$(AICONDPLRFIREDGREATER)="plrfiredgreater"
+conword$(AICONDPLRFIREDLESSER)="plrfiredlesser"
 rem Set all action keywords
 dim actword$(AIACTLAST)
 actword$(AIACTNONE)="none"
@@ -15502,6 +15508,40 @@ case AICONDSHOTBYAMMO:
       entityelement(e).shotbyammo$=""
       endif
    endif
+
+endcase
+
+case AICONDPLRFIRED:
+
+   if lastfired=0
+   airesult=0
+   else
+   airesult=1
+   endif
+
+   endcase
+
+case AICONDPLRFIREDGREATER:
+
+   if timer()-lastfiredtime<=aiconditionseq(seq).valuea
+   airesult=0
+   else
+   airesult=1
+   endif
+
+   lastfiredtime=0
+
+endcase
+
+case AICONDPLRFIREDLESSER:
+
+   if timer()-lastfiredtime>=aiconditionseq(seq).valuea
+   airesult=0
+   else
+   airesult=1
+   endif
+
+   lastfiredtime=0
 
 endcase
 
@@ -25068,6 +25108,7 @@ if player(plrid).health>0 or playerstartstrength=0
         else
         player(plrid).state.firingmode=1
         lastfired=gunid
+        lastfiredtime=timer()
         endif
     endif
 
@@ -40569,10 +40610,12 @@ _ode_playerrelocations:
    tdstz#=object position z(tobj)-tmez#
    tdstt#=sqrt(abs(tdstx#*tdstx#)+abs(tdstz#*tdstz#))
 
-   position camera camerapositionx+newcamoffsetx,meridinglifty#+newcamoffsety,camerapositionz+newcamoffsetz
    camerapositionx=camera position x()+newcamoffsetx
    camerapositiony=camera position y()+newcamoffsety
    camerapositionz=camera position z()+newcamoffsetz
+
+   position camera camerapositionx,meridinglifty#,camerapositionz
+
    gosub _ode_playerborble
    if tdstt#>90
     meridinglift=0
@@ -41376,8 +41419,8 @@ if deactivatecollision=0 and skipcol=0
    rem if object entity driven, player can be moved by it
    if entityelement(tgravitydefeatedbyphye).eleprof.physics=2
     if camerastoodonphyobj=0
-     lcamerastoodonphyobjmovingx#=object position x(tgravitydefeatedbyphy)
-     lcamerastoodonphyobjmovingz#=object position z(tgravitydefeatedbyphy)
+    lcamerastoodonphyobjmovingx#=object position x(tgravitydefeatedbyphy)
+   lcamerastoodonphyobjmovingz#=object position z(tgravitydefeatedbyphy)
     endif
     camerastoodonphyobj=tgravitydefeatedbyphy
    else
@@ -41449,9 +41492,7 @@ if camerastoodonphyobj<>0
   if newlevelobjectivevoid=0
    rem player lands after a jump
    if (grav#<-60.0 and jumpaction=0) or (grav#<-40.0 and jumpaction<>0)
-    Rem Scene Commander, fix to prevent gravity force going crazy when landing on multiple objects
-      `ode set linear velocity physicsplayerborble,0,-5*timeelapsed#,0
-      `ode set angular velocity physicsplayerborble,0,0,0
+
     rem player urg sound
     if playersound(plrid,11)>0 and playerunderwater=0 and tnearsurfaceofwater>=15
      broadcast3dsound(camera position x(),camera position y(),camera position z(),10.0,-1)
@@ -41497,7 +41538,7 @@ if camerastoodonphyobj<>0
  `
  rem Jump ends when camera starts decending
  rem V119 - this can freeze the player in mid-air
- `if jumpactionnorepeat=0 and camvely#<0.0 then jumpaction=0
+ `if jumpactionnorepeat=0 and camvel<0.0 then jumpaction=0
  `
  rem debug object
  if physicsdebug=1
