@@ -202,7 +202,7 @@ global pmaxX#=0.0
 global pmaxY#=0.0
 global pmaxZ#=0.0
 global sizechange=0
-global firstturnjump=0
+global firstturnjump=1
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
@@ -24422,7 +24422,7 @@ _player_restart:
  zrotate camera 0
  `
  rem start with a jump
- grav#=-1.0 : jumpaction=0 : jumpspeed#=1.0 : jumpangle#=camera angle y() : gravlasty#=mey#:firstturnjump=0
+ grav#=-1.0 : jumpaction=0 : jumpspeed#=1.0 : jumpangle#=camera angle y() : gravlasty#=mey#:sizechange=1:firstturnjump=0
  camflyforcex#=0 : camflyforcey#=0 : camflyforcez#=0
  camforcex#=0 : camforcey#=0 : camforcez#=0
  `
@@ -27264,11 +27264,12 @@ if gunshoot=1
   rem gun data controls iterations and accuracy
   trayiter=1+firemode(gunid,firemode).settings.iterate
   Rem Hockeykid - 010410 - Swapped to a float to work better with Plystire's accuracy system
-  `trayaccuracy=gun(gunid).settings.accuracy
+  `trayaccuracy=gun(gunid).settings.accuracytempacc#=playeraccmult#
+  tempacc#=playeraccmult#
   rem AirMod - Make gun more accurate so bullets don't fly to mars - EDIT: Additionally use simple zoom accuracy if selected
   if gunzoommode<>0 and firemode(gunid,firemode).settings.simplezoom <>0
   `Rem Scene Commander adjusted for player accuracy modification
-  tempacc#=playeraccmult#
+ 
    trayaccuracy#=firemode(gunid,firemode).settings.simplezoomacc*tempacc#
   else
    if (plrkeySHIFT)=1 and movement<>0 and firemode(gunid,firemode).settings.runaccuracy <> - 1
@@ -40420,9 +40421,11 @@ _ode_playerborble:
   delete object physicsplayerborble
  endif
 
- if crouchmode<>0 or sizechange<>0
+ if crouchmode<>0
    make object sphere physicsplayerborble,30
- else
+ endif
+
+ if crouchmode=0
  make object sphere physicsplayerborble,38
  endif
 
@@ -40945,23 +40948,27 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
  if (plrkeyC)=1
   if crouchmode=0 and onladder=0 and jumpaction=0
   crouchmode=1
-  gosub _ode_playerborble
+  sizechange=1
+  `gosub _ode_playerborble
   endif
  else
   if crouchmode=1
   crouchmode=0
-  gosub _ode_playerborble
+  sizechange=1
+ ` gosub _ode_playerborble
   endif
   if crouchmode=2 then crouchmode=3
  endif
 
-if (grav#<-40.0 and jumpaction<>0 and crouchmode=0 and physuspendgravity=0 and sizechange=0)
+`if (grav#<-40.0 and jumpaction<>0 and crouchmode=0 and physuspendgravity=0 and sizechange=0)
 
- sizechange=1
+ if sizechange=1
  gosub _ode_playerborble
-  else
  sizechange=0
  endif
+ ` else
+ `sizechange=0
+ `endif
 
 
 
