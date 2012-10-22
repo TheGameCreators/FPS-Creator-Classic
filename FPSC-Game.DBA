@@ -203,7 +203,7 @@ global pmaxX#=0.0
 global pmaxY#=0.0
 global pmaxZ#=0.0
 global sizechange=0
-global firstturnjump=1
+global firstturnjump=0
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
@@ -40462,7 +40462,7 @@ _ode_playerborble:
   delete object physicsplayerborble
  endif
 
- make object sphere physicsplayerborble,38
+ make object sphere physicsplayerborble,30
 
  Rem Hockeykid - 250210 - Dark AI add player to ai system
  if darkaiplayer=0
@@ -40472,7 +40472,11 @@ _ode_playerborble:
  endif
  color object physicsplayerborble,rgb(255,255,0)
  set object collision off physicsplayerborble
+ if plrcamoffseton=1
+ position object physicsplayerborble,camerapositionx+newcamoffsetx#,(camerapositiony-phyeyeheight#)+1+newcamoffsety#,camerapositionz+newcamoffsetz#
+ else
  position object physicsplayerborble,camerapositionx,(camerapositiony-phyeyeheight#)+1,camerapositionz
+ endif
  if physicsdebug=1
   set object wireframe physicsplayerborble,1
   set object cull physicsplayerborble,0
@@ -40610,9 +40614,16 @@ _ode_playerrelocations:
    tdstz#=object position z(tobj)-tmez#
    tdstt#=sqrt(abs(tdstx#*tdstx#)+abs(tdstz#*tdstz#))
 
+   rem scene commander, take offsets into account.
+if plrcamoffseton=1
    camerapositionx=camera position x()+newcamoffsetx
    camerapositiony=camera position y()+newcamoffsety
    camerapositionz=camera position z()+newcamoffsetz
+else
+   camerapositionx=camera position x()
+   camerapositiony=camera position y()
+   camerapositionz=camera position z()
+endif
 
    position camera camerapositionx,meridinglifty#,camerapositionz
 
@@ -40827,16 +40838,12 @@ endcase
 endselect
 playeraction=0
 
-remstart
+
 if firstturnjump=0
 plrkeySPACE=1
 firstturnjump=1
 endif
 
-if plrkeySPACE=1 and jumpaction<>0
-plrkeySPACE=0
-endif
-remend
 
 Rem Free weapon jam if reload used
 
