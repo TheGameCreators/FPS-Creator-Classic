@@ -24422,7 +24422,7 @@ _player_restart:
  zrotate camera 0
  `
  rem start with a jump
- grav#=-1.0 : jumpaction=0 : jumpspeed#=1.0 : jumpangle#=camera angle y() : gravlasty#=mey#:sizechange=1:firstturnjump=0
+ grav#=-1.0 : jumpaction=0 : jumpspeed#=0.0 : jumpangle#=camera angle y() : gravlasty#=mey#`sizechange=1:firstturnjump=0
  camflyforcex#=0 : camflyforcey#=0 : camflyforcez#=0
  camforcex#=0 : camforcey#=0 : camforcez#=0
  `
@@ -27269,7 +27269,7 @@ if gunshoot=1
   rem AirMod - Make gun more accurate so bullets don't fly to mars - EDIT: Additionally use simple zoom accuracy if selected
   if gunzoommode<>0 and firemode(gunid,firemode).settings.simplezoom <>0
   `Rem Scene Commander adjusted for player accuracy modification
- 
+
    trayaccuracy#=firemode(gunid,firemode).settings.simplezoomacc*tempacc#
   else
    if (plrkeySHIFT)=1 and movement<>0 and firemode(gunid,firemode).settings.runaccuracy <> - 1
@@ -40421,14 +40421,7 @@ _ode_playerborble:
   delete object physicsplayerborble
  endif
 
- if crouchmode<>0
-   make object sphere physicsplayerborble,30
- endif
-
- if crouchmode=0
  make object sphere physicsplayerborble,38
- endif
-
 
  Rem Hockeykid - 250210 - Dark AI add player to ai system
  if darkaiplayer=0
@@ -40791,6 +40784,7 @@ endcase
 endselect
 playeraction=0
 
+remstart
 if firstturnjump=0
 plrkeySPACE=1
 firstturnjump=1
@@ -40799,6 +40793,7 @@ endif
 if plrkeySPACE=1 and jumpaction<>0
 plrkeySPACE=0
 endif
+remend
 
 Rem Free weapon jam if reload used
 
@@ -40945,33 +40940,12 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
  plrzoominchange=0
  `
  rem crouch control
- if (plrkeyC)=1
-  if crouchmode=0 and onladder=0 and jumpaction=0
-  crouchmode=1
-  sizechange=1
-  `gosub _ode_playerborble
-  endif
+if (plrkeyC)=1
+  if crouchmode=0 and onladder=0 and jumpaction=0 then crouchmode=1
  else
-  if crouchmode=1
-  crouchmode=0
-  sizechange=1
- ` gosub _ode_playerborble
-  endif
+  if crouchmode=1 then crouchmode=0
   if crouchmode=2 then crouchmode=3
  endif
-
-`if (grav#<-40.0 and jumpaction<>0 and crouchmode=0 and physuspendgravity=0 and sizechange=0)
-
- if sizechange=1
- gosub _ode_playerborble
- sizechange=0
- endif
- ` else
- `sizechange=0
- `endif
-
-
-
  `
  rem Control camera movement
  if crouchmode<>0
@@ -40985,10 +40959,6 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
   if alwaysrun=1
    basespeed#=55: isrunning=1
   endif
-
-
-
-  Rem Scene commander, dynamic borble change to counteract issues with player becoming stuck when crouching or jumping.
 
   rem AirMod - Slow player for simple zoom
   if (gunzoommode <> 0 and firemode(gunid,firemode).settings.simplezoom <> 0) then basespeed#=35-(20*firemode(gunid,firemode).settings.zoomwalkspeed) : isrunning=0
