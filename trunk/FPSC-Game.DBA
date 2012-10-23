@@ -14402,7 +14402,6 @@ tcamx#=object position x(physicsplayerborble)
     endcase
     `
     `
-    `
     case AICONDHUDSELECTIONMADE:
      conda=aiconditionseq(seq).valuea
      if conda>0
@@ -15523,13 +15522,13 @@ case AICONDPLRFIRED:
 
 case AICONDPLRFIREDGREATER:
 
-   if timer()-lastfiredtime<=aiconditionseq(seq).valuea
+   conda=timer()-lastfiredtime
+   condb=aiconditionseq(seq).valuea
+   if conda<condb
    airesult=0
    else
    airesult=1
    endif
-
-   lastfiredtime=0
 
 endcase
 
@@ -15540,8 +15539,6 @@ case AICONDPLRFIREDLESSER:
    else
    airesult=1
    endif
-
-   lastfiredtime=0
 
 endcase
 
@@ -33093,7 +33090,7 @@ if file exist(tprofile$)=0
     if field$=tryfield$ then entityprofile(entid).rotz=value1
     tryfield$="scale"
     if field$=tryfield$
-    entityprofile(entid).scale=value1-20
+    entityprofile(entid).scale=value1
     endif
     tryfield$="fixnewy"
     if field$=tryfield$ then entityprofile(entid).fixnewy=value1
@@ -33176,7 +33173,8 @@ if file exist(tprofile$)=0
     tryfield$="ischaracter"
     if field$=tryfield$
     entityprofile(entid).ischaracter=value1
-
+    rem scene commander - scale adjustment to balance out for new rescaling system.
+    entityprofile(entid).scale=entityprofile(entid).scale-20
     endif
 
       tryfield$="custombiped"
@@ -40751,8 +40749,8 @@ if keystate(plrkeyZ)=1 then plrkeyZ=1 else plrkeyZ=0
 Rem Scene Commander edit
 if keystate(plrkeySPACE)=1 and jumponkey=1 then plrkeySPACE=1 else plrkeySPACE=0
 if keystate(plrkeyRETURN)=1 then plrkeyRETURN=1 else plrkeyRETURN=0
-if keystate(plrkeySHIFT)=1 and runkeys=1 then plrkeySHIFT=1 else plrkeySHIFT=0
-if keystate(plrkeySHIFT2)=1 and runkeys=1 then plrkeySHIFT2=1 else plrkeySHIFT2=0
+if keystate(plrkeySHIFT)=1 and runkeys=1 and jumpaction=0 then plrkeySHIFT=1 else plrkeySHIFT=0
+if keystate(plrkeySHIFT2)=1 and runkeys=1 and jumpaction=0 then plrkeySHIFT2=1 else plrkeySHIFT2=0
 
 rem hard coded arrow keys - Scene commander change
 if arrowkeyson=1
@@ -46342,7 +46340,7 @@ _saveload_savegame:
  rem SAVE
  if file exist(saveloadfile$)=1 then delete file saveloadfile$
  open to write 1,saveloadfile$
- version=118 : write file 1,version
+ version=120 : write file 1,version
  if version>=104
   rem V104
   rem Player
@@ -46459,7 +46457,113 @@ _saveload_savegame:
   rem What gun is being carried
   a#=saveloadgameposition.playerholdinggun : write float 1,a#
   rem 091009 - Object angles fiffer from RX RY RZ
-  Rem Scene commander save additions
+
+
+  for lsi=0 to entityelementmax
+   a#=saveloadgamepositionentity(lsi).orx : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).ory : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).orz : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).animframe : write float 1,a#
+  next lsi
+  rem FPGC - 191009 - add HUD data to save data
+  a#=saveloadgamehudmax : write float 1,a#
+  for thudid=1 to saveloadgamehudmax
+   a$=saveloadgamehud(thudid).name$ : write string 1,a$
+   a#=saveloadgamehud(thudid).maintype : write float 1,a#
+   a#=saveloadgamehud(thudid).typemode : write float 1,a#
+   a#=saveloadgamehud(thudid).posx : write float 1,a#
+   a#=saveloadgamehud(thudid).posy : write float 1,a#
+   a#=saveloadgamehud(thudid).posz : write float 1,a#
+   a#=saveloadgamehud(thudid).sizex : write float 1,a#
+   a#=saveloadgamehud(thudid).sizey : write float 1,a#
+   a#=saveloadgamehud(thudid).sizez : write float 1,a#
+   a#=saveloadgamehud(thudid).red : write float 1,a#
+   a#=saveloadgamehud(thudid).green : write float 1,a#
+   a#=saveloadgamehud(thudid).blue : write float 1,a#
+   a#=saveloadgamehud(thudid).fadeout : write float 1,a#
+   a#=saveloadgamehud(thudid).baseanim : write float 1,a#
+   a#=saveloadgamehud(thudid).image : write float 1,a#
+   a$=saveloadgamehud(thudid).font$ : write string 1,a$
+   a#=saveloadgamehud(thudid).fontsize : write float 1,a#
+   a$=saveloadgamehud(thudid).text$ : write string 1,a$
+   a#=saveloadgamehud(thudid).hide : write float 1,a#
+   a#=saveloadgamehud(thudid).hidedelay : write float 1,a#
+   a#=saveloadgamehud(thudid).highlighted : write float 1,a#
+   a#=saveloadgamehud(thudid).width : write float 1,a#
+   a#=saveloadgamehud(thudid).height : write float 1,a#
+   a$=saveloadgamehud(thudid).imagefile$ : write string 1,a$
+      Rem Scene Commander
+   a#=saveloadgamehud(thudid).scalex : write float 1,a#
+   a#=saveloadgamehud(thudid).scaley : write float 1,a#
+   a#=saveloadgamehud(thudid).alpha : write float 1,a#
+  next thudid
+ endif
+ if version>=117
+  rem FPGC - 100610 - save decal state, sound state and lift state (so player can save mid-lift ride)
+  for lsi=0 to entityelementmax
+   a#=saveloadgamepositionentity(lsi).decalindex : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).decalmode : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).tsoundset0state : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).tsoundset1state : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).physics : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).alttextureused : write float 1,a#
+   Rem Dark AI
+   a#=saveloadgamepositionentity(lsi).daistate : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).daidestx : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).daidestz : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).daihasdest : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).isdai : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).daiteam : write float 1,a#
+  next lsi
+  rem lift (plr associations)
+  a#=saveloadgameposition.meridinglift : write float 1,a#
+  `
+  Rem Save Dark AI points() array
+  array=array count(saveloadgamepositionpoints())
+  a#=array : write float 1,a#
+  for i=1 to array
+   a#=saveloadgamepositionpoints(i).id : write float 1,a#
+   a#=saveloadgamepositionpoints(i).x : write float 1,a#
+   a#=saveloadgamepositionpoints(i).y : write float 1,a#
+   a#=saveloadgamepositionpoints(i).z : write float 1,a#
+  next i
+  `
+  Rem Save Dark AI factions
+  for x=1 to FactionArrayMax
+   a#=saveloadgamepositionfactions(x,1).team : write float 1,a#
+   for i=1 to FactionArrayMax
+    a#=saveloadgamepositionfactions(x,i).neutral : write float 1,a#
+    a#=saveloadgamepositionfactions(x,i).ally : write float 1,a#
+    a#=saveloadgamepositionfactions(x,i).enemy : write float 1,a#
+   next i
+  next x
+  `
+  rem - Save user variables
+  a#=array count(uservars()) : write float 1,a#
+  for i=0 to array count(uservars())
+   a$=uservars(i).name : write string 1,a$
+   a#=uservars(i).value : write float 1,a#
+  next i
+  `
+ endif
+ if version>=118
+  `
+  rem 310311- TerryFix - save ambience that is currently used
+  a#=guivisualsettings.ambience : write float 1,a#
+  `
+  rem Local values from FPI scripting
+  for lsi=0 to entityelementmax
+   for lsii=0 to 99
+    a#=aiuserlocals(lsi,lsii).value : write float 1,a#
+    a#=aiuserlocals(lsi,lsii).newsystem : write float 1,a#
+    a$=aiuserlocals(lsi,lsii).name : write string 1,a$
+    a#=aiuserlocals(lsi,lsii).used : write float 1,a#
+   next lsii
+  next lsi
+  `
+ endif
+
+if version>=119
 a#=wobble#: write float 1,a#
 rem new deaths
 a#=tiltondeath: write float 1,a#
@@ -46577,110 +46681,12 @@ a#=animations(f).paused
 write float 1,a#
 next f
 
-  for lsi=0 to entityelementmax
+for lsi=0 to entityelementmax
    a#=saveloadgamepositionentity(lsi).soundplaying : write float 1,a#
-   a#=saveloadgamepositionentity(lsi).orx : write float 1,a#
-   a#=saveloadgamepositionentity(lsi).ory : write float 1,a#
-   a#=saveloadgamepositionentity(lsi).orz : write float 1,a#
-   a#=saveloadgamepositionentity(lsi).animframe : write float 1,a#
-  next lsi
-  rem FPGC - 191009 - add HUD data to save data
-  a#=saveloadgamehudmax : write float 1,a#
-  for thudid=1 to saveloadgamehudmax
-   a$=saveloadgamehud(thudid).name$ : write string 1,a$
-   a#=saveloadgamehud(thudid).maintype : write float 1,a#
-   a#=saveloadgamehud(thudid).typemode : write float 1,a#
-   a#=saveloadgamehud(thudid).posx : write float 1,a#
-   a#=saveloadgamehud(thudid).posy : write float 1,a#
-   a#=saveloadgamehud(thudid).posz : write float 1,a#
-   a#=saveloadgamehud(thudid).sizex : write float 1,a#
-   a#=saveloadgamehud(thudid).sizey : write float 1,a#
-   a#=saveloadgamehud(thudid).sizez : write float 1,a#
-   a#=saveloadgamehud(thudid).red : write float 1,a#
-   a#=saveloadgamehud(thudid).green : write float 1,a#
-   a#=saveloadgamehud(thudid).blue : write float 1,a#
-   a#=saveloadgamehud(thudid).fadeout : write float 1,a#
-   a#=saveloadgamehud(thudid).baseanim : write float 1,a#
-   a#=saveloadgamehud(thudid).image : write float 1,a#
-   a$=saveloadgamehud(thudid).font$ : write string 1,a$
-   a#=saveloadgamehud(thudid).fontsize : write float 1,a#
-   a$=saveloadgamehud(thudid).text$ : write string 1,a$
-   a#=saveloadgamehud(thudid).hide : write float 1,a#
-   a#=saveloadgamehud(thudid).hidedelay : write float 1,a#
-   a#=saveloadgamehud(thudid).highlighted : write float 1,a#
-   a#=saveloadgamehud(thudid).width : write float 1,a#
-   a#=saveloadgamehud(thudid).height : write float 1,a#
-   a$=saveloadgamehud(thudid).imagefile$ : write string 1,a$
-      Rem Scene Commander
-   a#=saveloadgamehud(thudid).scalex : write float 1,a#
-   a#=saveloadgamehud(thudid).scaley : write float 1,a#
-   a#=saveloadgamehud(thudid).alpha : write float 1,a#
-  next thudid
- endif
- if version>=117
-  rem FPGC - 100610 - save decal state, sound state and lift state (so player can save mid-lift ride)
-  for lsi=0 to entityelementmax
-   a#=saveloadgamepositionentity(lsi).decalindex : write float 1,a#
-   a#=saveloadgamepositionentity(lsi).decalmode : write float 1,a#
-   a#=saveloadgamepositionentity(lsi).tsoundset0state : write float 1,a#
-   a#=saveloadgamepositionentity(lsi).tsoundset1state : write float 1,a#
-   a#=saveloadgamepositionentity(lsi).physics : write float 1,a#
-   a#=saveloadgamepositionentity(lsi).alttextureused : write float 1,a#
-   Rem Dark AI
-   a#=saveloadgamepositionentity(lsi).daistate : write float 1,a#
-   a#=saveloadgamepositionentity(lsi).daidestx : write float 1,a#
-   a#=saveloadgamepositionentity(lsi).daidestz : write float 1,a#
-   a#=saveloadgamepositionentity(lsi).daihasdest : write float 1,a#
-   a#=saveloadgamepositionentity(lsi).isdai : write float 1,a#
-   a#=saveloadgamepositionentity(lsi).daiteam : write float 1,a#
-  next lsi
-  rem lift (plr associations)
-  a#=saveloadgameposition.meridinglift : write float 1,a#
-  `
-  Rem Save Dark AI points() array
-  array=array count(saveloadgamepositionpoints())
-  a#=array : write float 1,a#
-  for i=1 to array
-   a#=saveloadgamepositionpoints(i).id : write float 1,a#
-   a#=saveloadgamepositionpoints(i).x : write float 1,a#
-   a#=saveloadgamepositionpoints(i).y : write float 1,a#
-   a#=saveloadgamepositionpoints(i).z : write float 1,a#
-  next i
-  `
-  Rem Save Dark AI factions
-  for x=1 to FactionArrayMax
-   a#=saveloadgamepositionfactions(x,1).team : write float 1,a#
-   for i=1 to FactionArrayMax
-    a#=saveloadgamepositionfactions(x,i).neutral : write float 1,a#
-    a#=saveloadgamepositionfactions(x,i).ally : write float 1,a#
-    a#=saveloadgamepositionfactions(x,i).enemy : write float 1,a#
-   next i
-  next x
-  `
-  rem - Save user variables
-  a#=array count(uservars()) : write float 1,a#
-  for i=0 to array count(uservars())
-   a$=uservars(i).name : write string 1,a$
-   a#=uservars(i).value : write float 1,a#
-  next i
-  `
- endif
- if version>=118
-  `
-  rem 310311- TerryFix - save ambience that is currently used
-  a#=guivisualsettings.ambience : write float 1,a#
-  `
-  rem Local values from FPI scripting
-  for lsi=0 to entityelementmax
-   for lsii=0 to 99
-    a#=aiuserlocals(lsi,lsii).value : write float 1,a#
-    a#=aiuserlocals(lsi,lsii).newsystem : write float 1,a#
-    a$=aiuserlocals(lsi,lsii).name : write string 1,a$
-    a#=aiuserlocals(lsi,lsii).used : write float 1,a#
-   next lsii
-  next lsi
-  `
- endif
+next lsi
+
+endif
+
  close file 1
  `
  rem GUI-X9 (knxrb)
@@ -46815,6 +46821,117 @@ _saveload_loadgame:
   read float 1,a# : saveloadgameposition.playerrx=a#
   read float 1,a# : saveloadgameposition.playerholdinggun=a#
   rem 091009 - object otation seperated from entity element rotatyion
+
+  for lsi=0 to entityelementmax
+   read float 1,a# : saveloadgamepositionentity(lsi).orx=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).ory=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).orz=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).animframe=a#
+  next lsi
+  rem FPGC - 191009 - add HUD data to save/restore
+  read float 1,a# : saveloadgamehudmax=a#
+  dim saveloadgamehud(saveloadgamehudmax) as hudtype
+  for thudid=1 to saveloadgamehudmax
+   read string 1,a$ : saveloadgamehud(thudid).name$=a$
+   read float 1,a# : saveloadgamehud(thudid).maintype=a#
+   read float 1,a# : saveloadgamehud(thudid).typemode=a#
+   read float 1,a# : saveloadgamehud(thudid).posx=a#
+   read float 1,a# : saveloadgamehud(thudid).posy=a#
+   read float 1,a# : saveloadgamehud(thudid).posz=a#
+   read float 1,a# : saveloadgamehud(thudid).sizex=a#
+   read float 1,a# : saveloadgamehud(thudid).sizey=a#
+   read float 1,a# : saveloadgamehud(thudid).sizez=a#
+   read float 1,a# : saveloadgamehud(thudid).red=a#
+   read float 1,a# : saveloadgamehud(thudid).green=a#
+   read float 1,a# : saveloadgamehud(thudid).blue=a#
+   read float 1,a# : saveloadgamehud(thudid).fadeout=a#
+   read float 1,a# : saveloadgamehud(thudid).baseanim=a#
+   read float 1,a# : saveloadgamehud(thudid).image=a#
+   read string 1,a$ : saveloadgamehud(thudid).font$=a$
+   read float 1,a# : saveloadgamehud(thudid).fontsize=a#
+   read string 1,a$ : saveloadgamehud(thudid).text$=a$
+   read float 1,a# : saveloadgamehud(thudid).hide=a#
+   read float 1,a# : saveloadgamehud(thudid).hidedelay=a#
+   read float 1,a# : saveloadgamehud(thudid).highlighted=a#
+   read float 1,a# : saveloadgamehud(thudid).width=a#
+   read float 1,a# : saveloadgamehud(thudid).height=a#
+   read string 1,a$ : saveloadgamehud(thudid).imagefile$=a$
+   rem scene commander
+   read float 1,a# : saveloadgamehud(thudid).scalex=a#
+   read float 1,a# : saveloadgamehud(thudid).scaley=a#
+   read float 1,a# : saveloadgamehud(thudid).alpha=a#
+  next thudid
+ endif
+ if version>=117
+  rem FPGC - 100610 - save decal state, sound state and lift state (so player can save mid-lift ride)
+  for lsi=0 to entityelementmax
+   read float 1,a# : saveloadgamepositionentity(lsi).decalindex=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).decalmode=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).tsoundset0state=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).tsoundset1state=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).physics=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).alttextureused=a#
+   Rem Dark AI
+   read float 1,a# : saveloadgamepositionentity(lsi).daistate=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).daidestx=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).daidestz=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).daihasdest=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).isdai=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).daiteam=a#
+  next lsi
+  rem lift (plr associations)
+  read float 1,a# : saveloadgameposition.meridinglift=a#
+  `
+  Rem Load Dark AI points() array
+  read float 1,a# : array=a#
+  dim saveloadgamepositionpoints(array) as pathtype
+  dim points(array) as pathtype
+  for i=1 to array
+   read float 1,a# : saveloadgamepositionpoints(i).id=a#
+   read float 1,a# : saveloadgamepositionpoints(i).x=a#
+   read float 1,a# : saveloadgamepositionpoints(i).y=a#
+   read float 1,a# : saveloadgamepositionpoints(i).z=a#
+  next i
+  `
+  Rem Load Dark AI faction array
+  dim saveloadgamepositionfactions(FactionArrayMax,FactionArrayMax) as aifactiontype
+  for x=1 to FactionArrayMax
+   read float 1,a# : saveloadgamepositionfactions(x,1).team=a#
+   for i=1 to FactionArrayMax
+    read float 1,a# : saveloadgamepositionfactions(x,i).neutral=a#
+    read float 1,a# : saveloadgamepositionfactions(x,i).ally=a#
+    read float 1,a# : saveloadgamepositionfactions(x,i).enemy=a#
+   next i
+  next x
+  `
+  rem - Load user variables
+  read float 1,max#
+  for i=0 to max#
+   array insert at bottom uservars(0)
+   uservars(i).used=1
+   read string 1,a$ : uservars(i).name=a$
+   read float 1,a# : uservars(i).value=a#
+  next i
+  `
+ endif
+ if version>=118
+  `
+  rem 310311- TerryFix - load ambience that was previously saved
+  read float 1,a# : saveloadgameposition.ambience=a#
+  `
+  rem Local values from FPI scripting
+  dim aiuserlocals(entityelementmax,99) as uservar
+  for lsi=0 to entityelementmax
+   for lsii=0 to 99
+    read float 1,a# : aiuserlocals(lsi,lsii).value=a#
+    read float 1,a# : aiuserlocals(lsi,lsii).newsystem=a#
+    read string 1,a$ : aiuserlocals(lsi,lsii).name=a$
+    read float 1,a# : aiuserlocals(lsi,lsii).used=a#
+   next lsii
+  next lsi
+ endif
+
+ if version>=119
 read float 1,a#:wobble#=a#
 rem new deaths
 read float 1,a#:tiltondeath=a#
@@ -46936,113 +47053,11 @@ next f
   for lsi=0 to entityelementmax
 
    read float 1,a# : saveloadgamepositionentity(lsi).soundplaying=a#
-   read float 1,a# : saveloadgamepositionentity(lsi).orx=a#
-   read float 1,a# : saveloadgamepositionentity(lsi).ory=a#
-   read float 1,a# : saveloadgamepositionentity(lsi).orz=a#
-   read float 1,a# : saveloadgamepositionentity(lsi).animframe=a#
-  next lsi
-  rem FPGC - 191009 - add HUD data to save/restore
-  read float 1,a# : saveloadgamehudmax=a#
-  dim saveloadgamehud(saveloadgamehudmax) as hudtype
-  for thudid=1 to saveloadgamehudmax
-   read string 1,a$ : saveloadgamehud(thudid).name$=a$
-   read float 1,a# : saveloadgamehud(thudid).maintype=a#
-   read float 1,a# : saveloadgamehud(thudid).typemode=a#
-   read float 1,a# : saveloadgamehud(thudid).posx=a#
-   read float 1,a# : saveloadgamehud(thudid).posy=a#
-   read float 1,a# : saveloadgamehud(thudid).posz=a#
-   read float 1,a# : saveloadgamehud(thudid).sizex=a#
-   read float 1,a# : saveloadgamehud(thudid).sizey=a#
-   read float 1,a# : saveloadgamehud(thudid).sizez=a#
-   read float 1,a# : saveloadgamehud(thudid).red=a#
-   read float 1,a# : saveloadgamehud(thudid).green=a#
-   read float 1,a# : saveloadgamehud(thudid).blue=a#
-   read float 1,a# : saveloadgamehud(thudid).fadeout=a#
-   read float 1,a# : saveloadgamehud(thudid).baseanim=a#
-   read float 1,a# : saveloadgamehud(thudid).image=a#
-   read string 1,a$ : saveloadgamehud(thudid).font$=a$
-   read float 1,a# : saveloadgamehud(thudid).fontsize=a#
-   read string 1,a$ : saveloadgamehud(thudid).text$=a$
-   read float 1,a# : saveloadgamehud(thudid).hide=a#
-   read float 1,a# : saveloadgamehud(thudid).hidedelay=a#
-   read float 1,a# : saveloadgamehud(thudid).highlighted=a#
-   read float 1,a# : saveloadgamehud(thudid).width=a#
-   read float 1,a# : saveloadgamehud(thudid).height=a#
-   read string 1,a$ : saveloadgamehud(thudid).imagefile$=a$
-   rem scene commander
-   read float 1,a# : saveloadgamehud(thudid).scalex=a#
-   read float 1,a# : saveloadgamehud(thudid).scaley=a#
-   read float 1,a# : saveloadgamehud(thudid).alpha=a#
-  next thudid
- endif
- if version>=117
-  rem FPGC - 100610 - save decal state, sound state and lift state (so player can save mid-lift ride)
-  for lsi=0 to entityelementmax
-   read float 1,a# : saveloadgamepositionentity(lsi).decalindex=a#
-   read float 1,a# : saveloadgamepositionentity(lsi).decalmode=a#
-   read float 1,a# : saveloadgamepositionentity(lsi).tsoundset0state=a#
-   read float 1,a# : saveloadgamepositionentity(lsi).tsoundset1state=a#
-   read float 1,a# : saveloadgamepositionentity(lsi).physics=a#
-   read float 1,a# : saveloadgamepositionentity(lsi).alttextureused=a#
-   Rem Dark AI
-   read float 1,a# : saveloadgamepositionentity(lsi).daistate=a#
-   read float 1,a# : saveloadgamepositionentity(lsi).daidestx=a#
-   read float 1,a# : saveloadgamepositionentity(lsi).daidestz=a#
-   read float 1,a# : saveloadgamepositionentity(lsi).daihasdest=a#
-   read float 1,a# : saveloadgamepositionentity(lsi).isdai=a#
-   read float 1,a# : saveloadgamepositionentity(lsi).daiteam=a#
-  next lsi
-  rem lift (plr associations)
-  read float 1,a# : saveloadgameposition.meridinglift=a#
-  `
-  Rem Load Dark AI points() array
-  read float 1,a# : array=a#
-  dim saveloadgamepositionpoints(array) as pathtype
-  dim points(array) as pathtype
-  for i=1 to array
-   read float 1,a# : saveloadgamepositionpoints(i).id=a#
-   read float 1,a# : saveloadgamepositionpoints(i).x=a#
-   read float 1,a# : saveloadgamepositionpoints(i).y=a#
-   read float 1,a# : saveloadgamepositionpoints(i).z=a#
-  next i
-  `
-  Rem Load Dark AI faction array
-  dim saveloadgamepositionfactions(FactionArrayMax,FactionArrayMax) as aifactiontype
-  for x=1 to FactionArrayMax
-   read float 1,a# : saveloadgamepositionfactions(x,1).team=a#
-   for i=1 to FactionArrayMax
-    read float 1,a# : saveloadgamepositionfactions(x,i).neutral=a#
-    read float 1,a# : saveloadgamepositionfactions(x,i).ally=a#
-    read float 1,a# : saveloadgamepositionfactions(x,i).enemy=a#
-   next i
-  next x
-  `
-  rem - Load user variables
-  read float 1,max#
-  for i=0 to max#
-   array insert at bottom uservars(0)
-   uservars(i).used=1
-   read string 1,a$ : uservars(i).name=a$
-   read float 1,a# : uservars(i).value=a#
-  next i
-  `
- endif
- if version>=118
-  `
-  rem 310311- TerryFix - load ambience that was previously saved
-  read float 1,a# : saveloadgameposition.ambience=a#
-  `
-  rem Local values from FPI scripting
-  dim aiuserlocals(entityelementmax,99) as uservar
-  for lsi=0 to entityelementmax
-   for lsii=0 to 99
-    read float 1,a# : aiuserlocals(lsi,lsii).value=a#
-    read float 1,a# : aiuserlocals(lsi,lsii).newsystem=a#
-    read string 1,a$ : aiuserlocals(lsi,lsii).name=a$
-    read float 1,a# : aiuserlocals(lsi,lsii).used=a#
-   next lsii
-  next lsi
- endif
+
+   next lsi
+
+endif
+
  close file 1
  `
  rem Immediate data required (prior to level loading) - 'saveload_retrievesavedata' used after level loaded
