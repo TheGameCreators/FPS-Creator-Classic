@@ -32682,6 +32682,7 @@ if desc$<>""
   addfiletocollection(tfile$)
   if object exist(entobj)=1
    `
+
    rem Save if DBO not exist for entity (for fast loading)
    if len(tdbofile$)>1
     rem U75 - 070809 - ensure legacy compatibility (avoids new mapedito crashing build process)
@@ -32695,15 +32696,20 @@ if desc$<>""
    endif
    `
    rem main profile object adjustments
+   if object exist(entobj)=1
    if entityprofile(entid).scale<>0 then scale object entobj,entityprofile(entid).scale,entityprofile(entid).scale,entityprofile(entid).scale
    `
    rem Apply texture and effect to entity profile obj
    gosub _entity_loadtexturesandeffect
+
+   rem Hide object away
+  position object entobj,100000,100000,100000
    `
    rem until static bonemodel scales when not animaating, loop
    if entityprofile(entid).ischaracter=1
     loop object entobj : stop object entobj
    endif
+
    `
    rem if entity has decals, find indexes to decals (which are already preloaded)
    entityprofile(entid).bloodscorch=0
@@ -32718,14 +32724,16 @@ if desc$<>""
    endif
    `
    rem Hide object away
-   position object entobj,100000,100000,100000
+  ` position object entobj,100000,100000,100000
    `
+   endif
   endif
  else
   debugstring(right$(tfile$,70),strarr$(100))
   rem V110 - 260508 - prevent crash when model name wrong/geometry file missing/etc
   make object sphere entobj,1
   position object entobj,100000,100000,100000
+
  endif
  `
  rem Resolve default weapon gun ids
@@ -33173,8 +33181,6 @@ if file exist(tprofile$)=0
     tryfield$="ischaracter"
     if field$=tryfield$
     entityprofile(entid).ischaracter=value1
-    rem scene commander - scale adjustment to balance out for new rescaling system.
-    entityprofile(entid).scale=entityprofile(entid).scale-20
     endif
 
       tryfield$="custombiped"
@@ -40837,10 +40843,10 @@ endselect
 playeraction=0
 
 
-if firstturnjump=0
-plrkeySPACE=1
-firstturnjump=1
-endif
+`if firstturnjump=0
+`plrkeySPACE=1    
+`firstturnjump=1
+`endif
 
 
 Rem Free weapon jam if reload used
