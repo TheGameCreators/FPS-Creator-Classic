@@ -2009,8 +2009,10 @@ Rem Scene commander conditions
 #constant AICONDPLRFIRED 923
 #constant AICONDPLRFIREDGREATER 924
 #constant AICONDPLRFIREDLESSER 925
+#constant AICONDSTATEGREATER 926
+#constant AICONDSTATELESSER 927
 
-#constant AICONDLAST 926
+#constant AICONDLAST 928
 
 #constant AIACTNONE 0
 #constant AIACTDESTROY 1
@@ -12418,6 +12420,8 @@ conword$(AICONDSHOTBYAMMO)="shotbyammo"
 conword$(AICONDPLRFIRED)="plrfired"
 conword$(AICONDPLRFIREDGREATER)="plrfiredgreater"
 conword$(AICONDPLRFIREDLESSER)="plrfiredlesser"
+conword$(AICONDSTATEGREATER)="stategreater"
+conword$(AICONDSTATELESSER)="statelesser"
 rem Set all action keywords
 dim actword$(AIACTLAST)
 actword$(AIACTNONE)="none"
@@ -15541,6 +15545,38 @@ case AICONDPLRFIREDLESSER:
    endif
 
 endcase
+
+case AICONDSTATEGREATER:
+
+      conda=0
+      condb=0
+      airesult=0
+     conda$=entityelement(e).ai.state$
+     condb$=aiconditionseq(seq).string1
+     if asc(left$(conda$,1))>=asc("0") or asc(left$(conda$,1))<=asc("9")
+        if asc(left$(condb$,1))>=asc("0") or asc(left$(condb$,1))<=asc("9")
+        conda=val(conda$)
+        condb=val(condb$)
+        endif
+      endif
+     if conda>condb then airesult=1
+    endcase
+
+   case AICONDSTATELESSER:
+
+      conda=0
+      condb=0
+      airesult=0
+     conda$=entityelement(e).ai.state$
+     condb$=aiconditionseq(seq).string1
+     if asc(left$(conda$,1))>=asc("0") or asc(left$(conda$,1))<=asc("9")
+        if asc(left$(condb$,1))>=asc("0") or asc(left$(condb$,1))<=asc("9")
+        conda=val(conda$)
+        condb=val(condb$)
+        endif
+      endif
+     if conda<condb then airesult=1
+    endcase
 
    endselect
    `
@@ -40844,7 +40880,7 @@ playeraction=0
 
 
 `if firstturnjump=0
-`plrkeySPACE=1    
+`plrkeySPACE=1
 `firstturnjump=1
 `endif
 
