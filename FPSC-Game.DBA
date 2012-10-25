@@ -31,6 +31,7 @@ rem Credit to Airslide for help with Dark AI when it went into Fenix Mod
 rem Credit to Hockeykid for his continued help integrating Dark AI
 rem Credit to Robert Knox for help fixing up the engine and adding a cool HUD system
 
+_start_engine:
 
 sync on : sync rate 0
 
@@ -204,6 +205,13 @@ global pmaxY#=0.0
 global pmaxZ#=0.0
 global sizechange=0
 global firstturnjump=0
+global alwaysshowair as boolean:alwaysshowair=0
+Rem Scene Commander - mouse button timers, for tracking firing and also for conditions which seemed a logical extention condition.
+global lmbheld=0
+global lmbheldtime=0
+global rmbheld=0
+global rmbheldtime=0
+global jamadjust=0
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
@@ -211,7 +219,7 @@ dim fpsstore(80):for f=1 to 80:fpsstore(f)=80:next f
 
 Rem Scene Commander end variables
 
-_start_engine:
+
 if exeroot$<>"" then set dir exeroot$
 rem Special build flags for 'genre' switch
 global fpgchud$ : fpgchud$=""
@@ -288,9 +296,6 @@ global timestampactivitymax=0
 global timestampactivityflagged=0
 global timestampactivityindex=0
 dim timestampactivity$(1000)
-Rem Scene Commander performance
-global timebasepercycle# as float : timebasepercycle#=0
-global timebasepercyclestamp as DWORD : timebasepercyclestamp=timer()
 
 rem FPGC - 090909 - mising media collector
 dim missingmedia$(0)
@@ -1150,7 +1155,7 @@ rem Default settings
 gridzoom#=1.0
 rem FPGC - new default is full no shroud (faster PC's these days) - Scene commander, restored as causing crashes on some low end machines.
 shroudsize=5
-shroudsizedefaultsize=5
+shroudsizedefaultsize=10
 shroudsize=shroudsizedefaultsize
 gridground=0
 gridselection=1
@@ -2011,8 +2016,12 @@ Rem Scene commander conditions
 #constant AICONDPLRFIREDLESSER 925
 #constant AICONDSTATEGREATER 926
 #constant AICONDSTATELESSER 927
+#constant AICONDLMBGREATER 928
+#constant AICONDLMBLESSER 929
+#constant AICONDRMBGREATER 930
+#constant AICONDRMBLESSER 931
 
-#constant AICONDLAST 928
+#constant AICONDLAST 932
 
 #constant AIACTNONE 0
 #constant AIACTDESTROY 1
@@ -2573,9 +2582,9 @@ rem Scene Commander actions
 #constant AIACTFLASHLIGHTBLUE 1660
 #constant AIACTFLASHLIGHTRANGE 1661
 #constant AIACTUSEFADE 1662
+#constant AIACTSHOWAIR 1663
 
-
-#constant AIACTLAST 1663
+#constant AIACTLAST 1664
 
 rem V109 BETA3 - 210408 - AI variables
 global aivariablemode : aivariablemode=0 : rem 0-global, 1-local
@@ -2918,7 +2927,11 @@ type gunactionstype
  from as gunanimtype
  Rem Hockeykid - Support for running animations
  run as gunanimtype
- rem Scene commander
+endtype
+
+type gunanimextras
+
+rem Scene commander
  clearjam as gunanimtype
  handpush as gunanimtype
  handdead as gunanimtype
@@ -2927,6 +2940,11 @@ type gunactionstype
  swaptoalt as gunanimtype
  handbutton as gunanimtype
  handtake as gunanimtype
+ pullup as gunanimtype
+ pulldown as gunanimtype
+ pullleft as gunanimtype
+ pullright as gunanimtype
+
 endtype
 
 rem Gun Data Structure (is 10 our maximum for the entire game, ie weapon slots max?)
@@ -2949,6 +2967,7 @@ type guntype
  settings as gunsettingstype
  sound as gunsoundstype
  action as gunactionstype
+ action2 as gunanimextras
  hudimage as integer
  horiz# as float
  vert# as float
@@ -11188,6 +11207,7 @@ tobj=entityelement(e).attachmentobj
 if tobj>0
  tentid=entityelement(e).bankindex
  if object exist(tobj)=1
+
   if entityelement(e).beenkilled=0 and entityelement(e).active<>0
    rem manual position of gun attachment
    limbpx#=object position x(entityelement(e).obj)
@@ -11206,6 +11226,8 @@ if tobj>0
       limbay#=limb direction y(entityelement(e).obj,entityprofile(tentid).firespotlimb)
       limbaz#=limb direction z(entityelement(e).obj,entityprofile(tentid).firespotlimb)
       `set object to object orientation tobj,entityelement(e).obj,entityprofile(tentid).firespotlimb,0
+
+
       rotate object tobj,limbax#,limbay#,limbaz#
       Rem Fix to occasionally random scaling of weapon attachments.
       scale object tobj,85,85,85
@@ -11221,7 +11243,7 @@ if tobj>0
   endif
   `
   rem hide weapon if character totally invisible
-  if gmultiplayergame=1 and entityelement(e).ai.alphafade=0
+  if gmultiplayergame=1 or entityelement(e).ai.alphafade=0
    hide object tobj
   else
    show object tobj
@@ -12422,6 +12444,11 @@ conword$(AICONDPLRFIREDGREATER)="plrfiredgreater"
 conword$(AICONDPLRFIREDLESSER)="plrfiredlesser"
 conword$(AICONDSTATEGREATER)="stategreater"
 conword$(AICONDSTATELESSER)="statelesser"
+conword$(AICONDLMBGREATER)="lmbgreater"
+conword$(AICONDLMBLESSER)="lmblesser"
+conword$(AICONDRMBGREATER)="rmbgreater"
+conword$(AICONDRMBLESSER)="rmblesser"
+
 rem Set all action keywords
 dim actword$(AIACTLAST)
 actword$(AIACTNONE)="none"
@@ -12975,6 +13002,7 @@ actword$(AIACTFLASHLIGHTGREEN)="flashlightgreen"
 actword$(AIACTFLASHLIGHTBLUE)="flashlightblue"
 actword$(AIACTFLASHLIGHTRANGE)="flashlightrange"
 actword$(AIACTUSEFADE)="usefade"
+actword$(AIACTSHOWAIR)="alwaysshowair"
 
 return
 
@@ -15577,6 +15605,63 @@ case AICONDSTATEGREATER:
       endif
      if conda<condb then airesult=1
     endcase
+
+    case AICONDLMBGREATER:
+
+    airesult=1
+    if lmbheld=0
+    airesult=0
+    else
+    if timer()-lmbheldtime<=aiconditionseq(seq).valuea
+    airesult=0
+    endif
+    endif
+
+    endcase
+
+    case AICONDLMBLESSER:
+
+    airesult=1
+    if lmbheld=0
+    airesult=0
+    else
+    if timer()-lmbheldtime>=aiconditionseq(seq).valuea
+    airesult=0
+    endif
+    endif
+
+
+    endcase
+
+    case AICONDRMBGREATER:
+
+    airesult=1
+    if rmbheld=0
+    airesult=0
+    else
+    if timer()-rmbheldtime<=aiconditionseq(seq).valuea
+    airesult=0
+    endif
+    endif
+
+
+    endcase
+
+    case AICONDRMBLESSER:
+
+   airesult=1
+    if rmbheld=0
+    airesult=0
+    else
+    if timer()-rmbheldtime>=aiconditionseq(seq).valuea
+    airesult=0
+    endif
+    endif
+
+
+    endcase
+
+
 
    endselect
    `
@@ -20724,7 +20809,8 @@ case AIACTSETVARRND:
         else
 
         for uvar = 0 to array count(uservars(0))
-         if uservars(uvar).name = aiactionseq(seq).string1
+       if uservars(uvar).name = aiactionseq(seq).string1
+       rndvalue=rnd(aiactionseq(seq).valueb)
           rem Found the variable, let's set it
           uservars(uvar).value = rndvalue
           tvarfound=1
@@ -21413,38 +21499,38 @@ if temp$<>""
    select temp$
 
       case "fixjam"
-      custstart=firemode(gunid,firemode).action.clearjam.s
-      custend=firemode(gunid,firemode).action.clearjam.e
+      custstart=firemode(gunid,firemode).action2.clearjam.s
+      custend=firemode(gunid,firemode).action2.clearjam.e
       endcase
 
       case "handpush"
-      custstart=firemode(gunid,firemode).action.handpush.s
-      custend=firemode(gunid,firemode).action.handpush.e
+      custstart=firemode(gunid,firemode).action2.handpush.s
+      custend=firemode(gunid,firemode).action2.handpush.e
       endcase
 
       case "handdead"
-      custstart=firemode(gunid,firemode).action.handdead.s
-      custend=firemode(gunid,firemode).action.handdead.e
+      custstart=firemode(gunid,firemode).action2.handdead.s
+      custend=firemode(gunid,firemode).action2.handdead.e
       endcase
 
       case "jammed"
-      custstart=firemode(gunid,firemode).action.jammed.s
-      custend=firemode(gunid,firemode).action.jammed.e
+      custstart=firemode(gunid,firemode).action2.jammed.s
+      custend=firemode(gunid,firemode).action2.jammed.e
       endcase
 
       case "swaptoalt"
-      custstart=firemode(gunid,firemode).action.swaptoalt.s
-      custend=firemode(gunid,firemode).action.swaptoalt.e
+      custstart=firemode(gunid,firemode).action2.swaptoalt.s
+      custend=firemode(gunid,firemode).action2.swaptoalt.e
       endcase
 
       case "handbutton"
-      custstart=firemode(gunid,firemode).action.handbutton.s
-      custend=firemode(gunid,firemode).action.handbutton.e
+      custstart=firemode(gunid,firemode).action2.handbutton.s
+      custend=firemode(gunid,firemode).action2.handbutton.e
       endcase
 
       case "handtake"
-      custstart=firemode(gunid,firemode).action.handtake.s
-      custend=firemode(gunid,firemode).action.handtake.e
+      custstart=firemode(gunid,firemode).action2.handtake.s
+      custend=firemode(gunid,firemode).action2.handtake.e
       endcase
 
       case "select"
@@ -21481,6 +21567,28 @@ if temp$<>""
       custstart=firemode(gunid,firemode).action.cock.s
       custend=firemode(gunid,firemode).action.cock.e
       endcase
+
+      case "pullup"
+      custstart=firemode(gunid,firemode).action2.pullup.s
+      custend=firemode(gunid,firemode).action2.pullup.e
+      endcase
+
+      case "pulldown"
+      custstart=firemode(gunid,firemode).action2.pulldown.s
+      custend=firemode(gunid,firemode).action2.pulldown.e
+      endcase
+
+      case "pullleft"
+      custstart=firemode(gunid,firemode).action2.pullleft.s
+      custend=firemode(gunid,firemode).action2.pullleft.e
+      endcase
+
+      case "pullright"
+      custstart=firemode(gunid,firemode).action2.pullright.s
+      custend=firemode(gunid,firemode).action2.pullright.e
+      endcase
+
+
 
 
    endselect
@@ -21979,6 +22087,12 @@ endcase
 case AIACTUSEFADE:
 
 entityelement(e).usefade=aiactionseq(seq).value
+
+endcase
+
+case AIACTSHOWAIR:
+
+alwaysshowair=aiactionseq(seq).value
 
 endcase
 
@@ -25136,6 +25250,7 @@ if player(plrid).health>0 or playerstartstrength=0
  rem v118 - 110511 - cinematic hands (terry cox) >>>>
  ` this will prevent the player from firing the weapon if set to 1
     if tmouseclick=1
+
         if disablefirebutton = 1
         player(plrid).state.firingmode=0
         else
@@ -25144,6 +25259,34 @@ if player(plrid).health>0 or playerstartstrength=0
         lastfiredtime=timer()
         endif
     endif
+
+    if tmouseclick=1
+       if lmbheld=0
+       jamadjust=0
+       lmbheld=1
+       lmbheldtime=timer()
+       endif
+    endif
+
+Rem Scene commander - track mouse held times
+    if tmouseclick=2
+      if rmbheld=0
+      rmbheld=1
+      rmbheldtime=timer()
+      endif
+      endif
+
+    if tmouseclick<>1
+    lmbheld=0
+    lmbheldtime=0
+    jamadjust=0
+    endif
+
+   if tmouseclick<>2
+    rmbheld=0
+    rmbheldtime=0
+    endif
+
 
 Rem Scene Commander - weapon jammed
 
@@ -25156,16 +25299,28 @@ else
 mintimer=500
 endif
 
-if (player(plrid).state.firingmode=1 or gunmode=105) and (timer()-firemode(gunid,firemode).settings.addtimer)>mintimer
+rem scene commander - increase jam change as barrels overheat.
+      if lmbheld<>0
+         if aaa=(timer()-lmbheldtime)/100>int((timer()-lmbheldtime)/100)
+         jamadjust=jamadjust+5
+         endif
+      endif
+
+if (player(plrid).state.firingmode=1 or gunmode=105) and (timer()-firemode(gunid,firemode).settings.addtimer)>(mintimer-jamadjust)
 inc firemode(gunid,firemode).settings.shotsfired,1
 firemode(gunid,firemode).settings.cooltimer=timer()
 firemode(gunid,firemode).settings.addtimer=timer()
 endif
 
+
    if player(plrid).state.firingmode=1 and firemode(gunid,firemode).settings.jammed=0
       jamtemp=100-firemode(gunid,firemode).settings.jamchance
       randomize timer()
+
+
+      `text 200,200,str$(jamadjust)
       chance=firemode(gunid,firemode).settings.shotsbeforejam+(rnd(jamtemp))
+
       if firemode(gunid,firemode).settings.shotsfired>chance and weaponammo(weaponammoindex)>1
          firemode(gunid,firemode).settings.jammed=1
          rem Scene Commander, ensure weapon jams affect both modes if sharing ammo
@@ -27966,13 +28121,17 @@ for l=0 to 299
      if i=0 then keyframeratio=value1 else altkeyframeratio=value1
     endif
       rem Scene Commander animations (based on Cyborg Arts animations)
-      if field$=alt$+"fix jam" then firemode(gunid,x).action.clearjam.s=value1 : firemode(gunid,x).action.clearjam.e=value2
-      if field$=alt$+"hand push" then firemode(gunid,x).action.handpush.s=value1 : firemode(gunid,x).action.handpush.e=value2
-      if field$=alt$+"hand dead" then firemode(gunid,x).action.handdead.s=value1 : firemode(gunid,x).action.handdead.e=value2
-      if field$=alt$+"jammed" then firemode(gunid,x).action.jammed.s=value1 : firemode(gunid,x).action.jammed.e=value2
-      if field$=alt$+"change firemode" then firemode(gunid,x).action.swaptoalt.s=value1 : firemode(gunid,x).action.swaptoalt.e=value2
-      if field$=alt$+"hand button" then firemode(gunid,x).action.handbutton.s=value1 : firemode(gunid,x).action.handbutton.e=value2
-      if field$=alt$+"hand take" then firemode(gunid,x).action.handtake.s=value1 : firemode(gunid,x).action.handtake.e=value2
+      if field$=alt$+"fix jam" then firemode(gunid,x).action2.clearjam.s=value1 : firemode(gunid,x).action2.clearjam.e=value2
+      if field$=alt$+"hand push" then firemode(gunid,x).action2.handpush.s=value1 : firemode(gunid,x).action2.handpush.e=value2
+      if field$=alt$+"hand dead" then firemode(gunid,x).action2.handdead.s=value1 : firemode(gunid,x).action2.handdead.e=value2
+      if field$=alt$+"jammed" then firemode(gunid,x).action2.jammed.s=value1 : firemode(gunid,x).action2.jammed.e=value2
+      if field$=alt$+"change firemode" then firemode(gunid,x).action2.swaptoalt.s=value1 : firemode(gunid,x).action2.swaptoalt.e=value2
+      if field$=alt$+"hand button" then firemode(gunid,x).action2.handbutton.s=value1 : firemode(gunid,x).action2.handbutton.e=value2
+      if field$=alt$+"hand take" then firemode(gunid,x).action2.handtake.s=value1 : firemode(gunid,x).action2.handtake.e=value2
+      if field$=alt$+"pull up" then firemode(gunid,x).action2.pullup.s=value1 : firemode(gunid,x).action2.pullup.e=value2
+      if field$=alt$+"pull down" then firemode(gunid,x).action2.pulldown.s=value1 : firemode(gunid,x).action2.pulldown.e=value2
+      if field$=alt$+"pull left" then firemode(gunid,x).action2.pullleft.s=value1 : firemode(gunid,x).action2.pullleft.e=value2
+      if field$=alt$+"pull right" then firemode(gunid,x).action2.pullright.s=value1 : firemode(gunid,x).action2.pullright.e=value2
     Rem Normal Animations
     if field$=alt$+"select" then firemode(gunid,x).action.show.s=value1 : firemode(gunid,x).action.show.e=value2
     if field$=alt$+"idle" then firemode(gunid,x).action.idle.s=value1 : firemode(gunid,x).action.idle.e=value2
@@ -32711,19 +32870,25 @@ if desc$<>""
    rem allowed to save DBO (once only)
   endif
   `
+  if entobj>0
+  if object exist(entobj)=0
   rem Load entity (compile does not need the dynamic objects)
   load object tfile$,entobj
   set object filter entobj,2
   set object collision off entobj
   addfiletocollection(tfile$)
+  endif
+  endif
+
   if object exist(entobj)=1
    `
-
    rem Save if DBO not exist for entity (for fast loading)
    if len(tdbofile$)>1
     rem U75 - 070809 - ensure legacy compatibility (avoids new mapedito crashing build process)
+
     save object tdbofile$,entobj
     if file exist(tdbofile$)=1
+
      delete object entobj
      load object tdbofile$,entobj
      set object filter entobj,2
@@ -32732,16 +32897,14 @@ if desc$<>""
    endif
    `
    rem main profile object adjustments
-   if object exist(entobj)=1
+  ` if object exist(entobj)=1
    if entityprofile(entid).scale<>0 then scale object entobj,entityprofile(entid).scale,entityprofile(entid).scale,entityprofile(entid).scale
    `
    rem Apply texture and effect to entity profile obj
    gosub _entity_loadtexturesandeffect
 
-   rem Hide object away
-  position object entobj,100000,100000,100000
-   `
    rem until static bonemodel scales when not animaating, loop
+
    if entityprofile(entid).ischaracter=1
     loop object entobj : stop object entobj
    endif
@@ -32760,10 +32923,10 @@ if desc$<>""
    endif
    `
    rem Hide object away
-  ` position object entobj,100000,100000,100000
+  position object entobj,100000,100000,100000
    `
    endif
-  endif
+ ` endif
  else
   debugstring(right$(tfile$,70),strarr$(100))
   rem V110 - 260508 - prevent crash when model name wrong/geometry file missing/etc
@@ -39055,7 +39218,7 @@ rem calculate player level for character radar cull
   endif
 
 
-rem display armour value
+rem Scene Commander display armour value
 
 if armouron<>0
 
@@ -39063,13 +39226,13 @@ a$=str$(armour)
 
 specialpaste(armx,army,a$)
 
-rem display air value
+rem Scene Commander display air value
 
 endif
 
 if airmax<>0 and airleft>airmax then airleft=airmax
 
-if airon<>0 or noairon<>0
+if airon<>0 or noairon<>0 or alwaysshowair<>0
 
 a$=str$(airleft)
 
@@ -40891,10 +41054,10 @@ if player(1).state.firingmode=2 and gunzoommode=0
    plrreloading=1
    firemode(gunid,firemode).settings.shotsfired=0
    rem play free jam animation if it exists
-      if firemode(gunid,firemode).action.clearjam.s<>0 and firemode(gunid,firemode).settings.jammed=1
+      if firemode(gunid,firemode).action2.clearjam.s<>0 and firemode(gunid,firemode).settings.jammed=1
       plrreloading=2
-      custstart=firemode(gunid,firemode).action.clearjam.s
-      custend=firemode(gunid,firemode).action.clearjam.e
+      custstart=firemode(gunid,firemode).action2.clearjam.s
+      custend=firemode(gunid,firemode).action2.clearjam.e
       gunmode=9998
       endif
    firemode(gunid,firemode).settings.jammed=0
@@ -48543,7 +48706,8 @@ _mapeditorexecutable:
 rem GOTO LABEL (warning: not recommended but useful sometimes!)
 
 rem Init app
-sync on : sync rate 60
+sync on :` sync rate 60
+sync rate 140
 show window : window to front strarr$(475)+" - [Editor]"
 always active off
 
@@ -62954,6 +63118,10 @@ rem end is o
     endfunction
 
 function culling(e,entid,obj)
+
+
+ `text 200,200,str$(timer()-lmbheldtime)
+
 
    ` text 200,200,str$(weaponammo(weaponammoindex+ammooffset))
  rem if not just using FPSC default culling
