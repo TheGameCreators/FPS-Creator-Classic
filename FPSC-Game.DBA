@@ -197,7 +197,6 @@ global ammooffset=0
 global timeelapsed#=0.0
 global syncrate=140
 global plrdistance#=0.0
-global entobj
 global spareselectkey=0
 Rem Scene Commander, player maximum velocity reached, mainly for debug.
 global pmaxX#=0.0
@@ -26673,6 +26672,8 @@ endif
 
 rem gun put away and hide control
 if gunmode=31 and noholster=1
+Rem Scene Commander, clear fired count if holstering
+lastfiredtime=0
  gunmode=32
  guninterp=4
  gunselectionlockdown=1
@@ -32898,6 +32899,7 @@ if desc$<>""
    `
    rem main profile object adjustments
   ` if object exist(entobj)=1
+
    if entityprofile(entid).scale<>0 then scale object entobj,entityprofile(entid).scale,entityprofile(entid).scale,entityprofile(entid).scale
    `
    rem Apply texture and effect to entity profile obj
@@ -33296,9 +33298,7 @@ if file exist(tprofile$)=0
     tryfield$="rotz"
     if field$=tryfield$ then entityprofile(entid).rotz=value1
     tryfield$="scale"
-    if field$=tryfield$
-    entityprofile(entid).scale=value1
-    endif
+    if field$=tryfield$ then entityprofile(entid).scale=value1
     tryfield$="fixnewy"
     if field$=tryfield$ then entityprofile(entid).fixnewy=value1
     tryfield$="raisefactor"
@@ -33380,6 +33380,7 @@ if file exist(tprofile$)=0
     tryfield$="ischaracter"
     if field$=tryfield$
     entityprofile(entid).ischaracter=value1
+     If entityprofile(entid).scale<80 then entityprofile(entid).scale=80
     endif
 
       tryfield$="custombiped"
@@ -63149,7 +63150,6 @@ if entityelement(e).activated=0 and entityelement(e).spawn.atstart=0
 
 if entityelement(e).ishidden<>2
 
-
 lx#=ode get body linear velocity x(obj)
 ly#=ode get body linear velocity y(obj)
 lz#=ode get body linear velocity z(obj)
@@ -63200,6 +63200,8 @@ remend
          Rem get object distance
 
                   if entityelement(e).eleprof.physics=99 then entityelement(e).eleprof.physics=3
+
+                 ` text object screen x(obj),object screen y(obj),str$(entityprofile(entid).scale)
 
                  tdx#=object position x(obj)-tcamx#
                  tdy#=object position y(obj)+(object size(obj)/2)-tcamy#
