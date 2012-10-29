@@ -12391,7 +12391,7 @@ conword$(AICONDWEAPONSGREATER)="plrweaponsgreater"
 conword$(AICONDWEAPONSLESSER)="plrweaponslesser"
 conword$(AICONDWEAPONSEQUAL)="plrweaponsequal"
 conword$(AICONDWEAPONINSLOT)="weaponinslot"
-conword$(AICONDCURRENTWEAPON)="currentweapon"
+conword$(AICONDCURRENTWEAPON)="plrcurrentweapon"
 Rem Scene Commander, V1.19 beta 2
 conword$(AICONDPLRRUNNING)="plrrunning"
 conword$(AICONDPLRNOTRUNNING)="plrnotrunning"
@@ -15046,6 +15046,22 @@ case AICONDISIMMUNE:
      rem Scene Commander, find current weapon, there maybe a better way of doing this.
      findslot=0
 
+   findgun$=lower$(aiconditionseq(seq).string1)
+   airesult=0
+   foundgunid=0
+
+   if gunid=0
+    else
+      gosub _gun_findweaponindexbyname
+      if foundgunid>0
+         if foundgunid=gunid
+         airesult=1
+      endif
+      endif
+
+
+    if airesult=0
+
      for f=1 to 10
       if weaponslot(f).got=gunid
       findslot=f
@@ -15058,6 +15074,8 @@ case AICONDISIMMUNE:
       else
       airesult=0
      endif
+    endif
+   endif
 
      endcase
 
