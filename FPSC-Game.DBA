@@ -1154,10 +1154,7 @@ dim olaylist(olaylistmax,50) as DWORD
 
 rem Default settings
 gridzoom#=1.0
-rem FPGC - new default is full no shroud (faster PC's these days) - Scene commander, restored as causing crashes on some low end machines.
-shroudsize=5
-shroudsizedefaultsize=10
-shroudsize=shroudsizedefaultsize
+`global shroudsize : shroudsize=10 : rem now taken from SETUP.INI so lower end machines can restore shroud to 5! MOVED TO REST OF SETUP VARS
 gridground=0
 gridselection=1
 nogridsmart=-1
@@ -1582,7 +1579,6 @@ type entityeleproftype
 endtype
 rem Entity Elements Data
 type entitytype
-
  enterwater as integer
  isflak as integer
  darkai as darkaitype
@@ -3564,6 +3560,8 @@ global level : level=1
 global glocalserveroverride$ : glocalserveroverride$=""
 global gbloodonfloor : gbloodonfloor=0
 global gimageblockmode : gimageblockmode=0
+global shroudsize : shroudsize=10 : rem now taken from SETUP.INI so lower end machines can restore shroud to 5
+global shroudsizedefaultsize : shroudsizedefaultsize=shroudsize
 global gxbox : gxbox=0
 global gxboxinvert : gxboxinvert=0
 global gxboxcontrollertype : gxboxcontrollertype=0
@@ -3592,6 +3590,7 @@ rem V118 - 160810 - knxrb - Auto Resolution
 global gautores : gautores=0
 global guseoggoff:guseoggoff=0
 global gcapfpson: gcapfpson=0
+global createsplashsound : createsplashsound=1
 
 rem Version Control - TEST GAME Mode
 global gtestgamemodefromeditor : gtestgamemodefromeditor=0
@@ -3753,6 +3752,7 @@ if file exist(tfile$)=1
     tryfield$="lightmapthreadmax" : if field$=tryfield$ then glightthreadmax=value1
     tryfield$="bloodonfloor" : if field$=tryfield$ then gbloodonfloor=value1
     tryfield$="imageblockmode" : if field$=tryfield$ then gimageblockmode=value1
+    tryfield$="shroudsize" : if field$=tryfield$ then shroudsize=value1
     tryfield$="showalluniquetextures" : if field$=tryfield$ then gshowalluniquetextures=value1
     tryfield$="systemmemorycapoff" : if field$=tryfield$ then gsystemmemorycapoff=value1
     tryfield$="entitytogglingoff" : if field$=tryfield$ then gentitytogglingoff=value1
@@ -8433,41 +8433,32 @@ nearestold=nearestcharacterdist
 rem scene commander, reset flag for sudden cullmode changes
 cullmodechange=0
 for e=1 to entityelementlist
-
-Rem Scene commander - increase player weight if character near to prevent playing being pushed from universe or trapping player behind allies.
-entid=entityelement(e).bankindex
-obj=entityelement(e).obj
-
-if obj>0
-if object size(obj)>42 and entityprofile(entid).custombiped=0
-
-if entityprofile(entid).ischaracter=1 and entityelement(e).beenkilled=0 and (entityelement(e).active<>0 and entityelement(e).spawn.leader=0) and entityelement(e).beenkilled=0
-
-edistance(e)
-howfar2=plrdistance#
-
-      if howfar2<(object size z(obj)*2)
-
-      ode set body mass physicsplayerborble,physicsplayerweight#+entityelement(e).eleprof.phyweight
-      ode set body mass obj,entityelement(e).eleprof.phyweight/4
-
-      thx#=newxvalue(entityelement(e).rx,camera angle y(),10.0)
-      thy#=ode get body linear velocity y(obj)
-      thz#=newzvalue(entityelement(e).rz,camera angle y(),10.0)
-      ode set linear velocity obj,thx#,thy#,thz#
-      else
-      ode set body mass physicsplayerborble,physicsplayerweight#
-      ode set body mass obj,entityelement(e).eleprof.phyweight
-      endif
-
-      endif
-
-endif
-endif
-
-
-Rem Scene Commander, handle video textures
-          `cullmodelast=cullmode
+ `
+ Rem Scene commander - increase player weight if character near to prevent playing being pushed from universe or trapping player behind allies.
+ entid=entityelement(e).bankindex
+ obj=entityelement(e).obj
+ if obj>0
+  if object size(obj)>42 and entityprofile(entid).custombiped=0
+   if entityprofile(entid).ischaracter=1 and entityelement(e).beenkilled=0 and (entityelement(e).active<>0 and entityelement(e).spawn.leader=0) and entityelement(e).beenkilled=0
+    edistance(e)
+    howfar2=plrdistance#
+    if howfar2<(object size z(obj)*2)
+     ode set body mass physicsplayerborble,physicsplayerweight#+entityelement(e).eleprof.phyweight
+     ode set body mass obj,entityelement(e).eleprof.phyweight/4
+     thx#=newxvalue(entityelement(e).rx,camera angle y(),10.0)
+     thy#=ode get body linear velocity y(obj)
+     thz#=newzvalue(entityelement(e).rz,camera angle y(),10.0)
+     ode set linear velocity obj,thx#,thy#,thz#
+    else
+     ode set body mass physicsplayerborble,physicsplayerweight#
+     ode set body mass obj,entityelement(e).eleprof.phyweight
+    endif
+   endif
+  endif
+ endif
+ `
+ Rem Scene Commander, handle video textures
+ `cullmodelast=cullmode
  if obj>0
           If entityelement(e).videotexture<>0
           if animation playing(entityelement(e).videotexture)=0 then play animation to image entityelement(e).videotexture,animations(entityelement(e).videotexture-9).img,0,0,512,512
@@ -8676,7 +8667,6 @@ endif
     rem free up a counter for a new AI character to be selected
     if entityelement(e).priorityai=1
      tokay=0
-     `X9 - 050208 - s4real speedup if entityelement(e).active=0 or entityelement(e).plrdist>1000
      if entityelement(e).active=0 or entityelement(e).plrdist>500
       entityelement(e).priorityduration=0
       tokay=1
@@ -8734,13 +8724,13 @@ endif
    if entityprofile(entid).ischaracter=1
     `
     rem remove attached weapon physics if out of bounds
-   tobj=entityelement(e).attachmentobj
-   if tobj>0
-   if object position y(tobj)<-50
-    gosub _ode_deleteentity
-     hide object tobj
+    tobj=entityelement(e).attachmentobj
+    if tobj>0
+     if object position y(tobj)<-50
+      gosub _ode_deleteentity
+      hide object tobj
       position object tobj,-5000,-5000,-5000
-    endif
+     endif
     endif
     `
     rem FPGC - 100710 - on occasion, character can be killed off screen (no anim performed)
@@ -9381,13 +9371,12 @@ _entity_makeasplash:
   originatore=0 : gosub _decalelement_create
   `
   rem play splash sound - toggle spalsh sound on/off - Flatlander
-
   if createsplashsound=1
-  tmatindex=17 : tsoundtrigger=material(tmatindex).impactid
-  tspd#=(material(tmatindex).freq*2)+rnd(material(tmatindex).freq)
-  tsx#=decalx : tsy#=decaly : tsz#=decalz
-  tvol#=velocity# : if tvol#>100 then tvol#=100
-  gosub _ode_triggermaterialsound
+   tmatindex=17 : tsoundtrigger=material(tmatindex).impactid
+   tspd#=(material(tmatindex).freq*2)+rnd(material(tmatindex).freq)
+   tsx#=decalx : tsy#=decaly : tsz#=decalz
+   tvol#=velocity#/2.0 : if tvol#>100 then tvol#=100
+   gosub _ode_triggermaterialsound
   endif
   `
  endif
@@ -9450,6 +9439,7 @@ _entity_fillviscolmap:
 return
 
 _entity_controlsingleai:
+
 rem get functional overview
 gosub _entity_controlrecalcdist
 
@@ -9470,7 +9460,7 @@ taddforcesphere=0
 rem Get AI Script for Entity Element
 aiindex=entityelement(e).ai.libindex
 if entityelement(e).active=1
-gosub _ai_control
+ gosub _ai_control
 endif
 `
 rem Apply force if actioned
@@ -9481,6 +9471,9 @@ if taddforcesphere>0
  sphereforce#=taddforcesphere/100.0
  gosub _entity_addforcesphere
 endif
+`
+rem Stop weapon firing if AI no longer in control of entity
+if entityelement(e).active=0 then entityelement(e).fireweapon=0
 `
 rem Weapon Control for entities
 if entityelement(e).fireweapon=1
@@ -9553,22 +9546,21 @@ if entityelement(e).fireweapon=1
        tttokay=1
       endif
      endif
-         testobj=entityelement(tte).obj
-         rem scene commander fix, prevents occasional crash.
-      if tttokay=1
-       if testobj>0
-         if object exist(testobj)
-      y2#=object position y(testobj)
-      x2#=object position x(testobj)
-      z2#=object position z(testobj)
-         endif
-       endif
-      else
+     testobj=entityelement(tte).obj
+     rem scene commander fix, prevents occasional crash.
+     if tttokay=1
+      if testobj>0
+        if object exist(testobj)
+         y2#=object position y(testobj)
+         x2#=object position x(testobj)
+         z2#=object position z(testobj)
+        endif
+      endif
+     else
       y2#=object position y(physicsplayerborble)
       x2#=object position x(physicsplayerborble)
       z2#=object position z(physicsplayerborble)
-       endif
-
+     endif
      tdx#=abs(x2#-x1#)
      tdy#=abs(y2#-y1#)
      tdz#=abs(z2#-z1#)
@@ -9647,26 +9639,25 @@ if entityelement(e).fireweapon=1
       rem player was the target
       if tdamage>0 then gosub _player_takedamage
       if player(1).health<=0 and playerstartstrength>0
-      rem Scene Commander, reset culled items on death to prevent 'transparent` entities on restart
-            for change=1 to entityelementlist
-            tobj=entityelement(change).obj
-            if entityelement(change).ishidden<2
-               if tobj>0
-                  if object exist(tobj)=1
-                  set alpha mapping on tobj,100
-                  show object tobj
-                  endif
-               endif
-            endif
-            next change
-
+       rem Scene Commander, reset culled items on death to prevent 'transparent` entities on restart
+       for change=1 to entityelementlist
+        tobj=entityelement(change).obj
+        if entityelement(change).ishidden<2
+         if tobj>0
+          if object exist(tobj)=1
+           set alpha mapping on tobj,100
+           show object tobj
+          endif
+         endif
+        endif
+       next change
        rem hear the full sound of what killed you
        if tsndid>0
-   rem Scene commander tilt on death
-         if tiltondeath=0
+        rem Scene commander tilt on death
+        if tiltondeath=0
          tiltondeath=360:justdone=0
          if gunid>0 then gunmode=31
-          endif
+        endif
         playinternal3dsound(tsndid,camera position x(),camera position y(),camera position z())
        endif
       endif
@@ -9676,23 +9667,18 @@ if entityelement(e).fireweapon=1
        tdamagesource=0 : timpacttype=1
        tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y : tdamagez#=entityelement(e).z
        stte=e : e=entityelement(e).actualtarget-1 : tte=entityelement(e).actualtarget-1
-
        entityelement(e).darkai.ambushed=1
        entityelement(e).darkai.ambushx#=tdamagex#
        entityelement(e).darkai.ambushz#=tdamagez#
        entityelement(e).darkai.ehit=e
-
        Rem Hockeykid - 020410 - Create blood splat if hit
        Rem Hockeykid - 020410 - Ensure that the target is alive
-
-
        if entityelement(e).beenkilled=0
         decalid=entitydecal(entityelement(e).bankindex,1)
         if decalid>0
          distx#=tdamagex#-entityelement(e).x
          disty#=tdamagey#-entityelement(e).y
          distz#=tdamagez#-entityelement(e).z
-
          dmgdist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
          rem direction from player to entity
          tix#=entityelement(e).x-tdamagex# : tiy#=entityelement(e).y-tdamagey# : tiz#=entityelement(e).z-tdamagez#
@@ -9703,14 +9689,11 @@ if entityelement(e).fireweapon=1
          rem Scene Commander blood fix
          tiy#=rnd(12)
          tiz#=tiz#*(dmgdist#-10.0)
-
          rem create a splat decal
          decalscalemodx=0 : rem FPSCV101 - fix
          decalorient=0 : decalx=tdamagex#+tix# : decaly=((entityelement(e).y+(object size y(entityelement(e).obj)/2))-rnd(6))+tiy# : decalz=tdamagez#+tiz#
-
          originatore=-1 : gosub _decalelement_create
         endif
-
         rem blood splat
         tscorchtype3=8+rnd(3)
         tscorchsize3#=10.0+((abs(dst#-dist#)/100.0)*(20.0+rnd(20)))
@@ -9722,13 +9705,10 @@ if entityelement(e).fireweapon=1
          tempraytofloor#=static raycast(tempx#,tempy#+25,tempz#,tempx#,tempy#-125,tempz#)
         endif
         add static scorch tscorchsize3#,tscorchtype3
-
        endif
-
        gosub _entity_deducthealth : e=stte
        tentid=entityelement(e).bankindex
        entid=entityelement(e).bankindex
-
       endif
      endif
      tbullethitstatic=0 : tbullethit=1
@@ -10995,16 +10975,12 @@ _entity_controlmovements:
     if entityelement(e).nofloorlogic=0
      rem full gravity and volume handling of entities in motion
      if entitysystemdisabled=0
-      rem can be a little heavy on CPU time (any ideas to speed up?)
-       rem do not allow gravity's downward pull to effect flak
-      `if entityelement(e).isflak=0
-       entityelement(e).y=entityelement(e).y-entityelement(e).mover.grav
-      `endif
-      `if entityelement(e).isflak>0
-      ` Print "X:"+str$(entityelement(e).x)+" Y:"+str$(entityelement(e).y)+" Z:"+str$(entityelement(e).z)
-      `endif
+      rem 051112 - do not allow gravity's downward pull to effect flak (handled in flak system incy and grav!)
+      if entityelement(e).isflak=0
+       tmaxfall#=entityelement(e).mover.grav*timeelapsed# : if tmaxfall#>10.0 then tmaxfall#=10.0
+       entityelement(e).y=entityelement(e).y-tmaxfall#
+      endif
       if static volume(toldx#,toldy#+30,toldz#,entityelement(e).x,entityelement(e).y+30,entityelement(e).z,1.0)=1
-       `Print "Hit static volume, moving back to collision point"
        entityelement(e).x=toldx#+get static collision x()
        entityelement(e).y=toldy#+get static collision y()
        entityelement(e).z=toldz#+get static collision z()
@@ -11017,7 +10993,8 @@ _entity_controlmovements:
      endif
     else
      rem quick no-vertical-no-gravity handling (always floor)
-     entityelement(e).y=entityelement(e).y-entityelement(e).mover.grav
+     tmaxfall#=entityelement(e).mover.grav*timeelapsed# : if tmaxfall#>10.0 then tmaxfall#=10.0
+     entityelement(e).y=entityelement(e).y-tmaxfall#
      if entityelement(e).y<entityelement(e).nofloorlogic-1
       entityelement(e).y=entityelement(e).nofloorlogic-1
       tgravitydefeated=1 : colmaterialtype=-1
@@ -11107,7 +11084,8 @@ _entity_controlmovements:
     rem restore gravity
     entityelement(e).mover.grav=1
    else
-    entityelement(e).mover.grav=entityelement(e).mover.grav+1
+    tmaxfall#=1*timeelapsed# : if tmaxfall#>2.0 then tmaxfall#=2.0
+    entityelement(e).mover.grav=entityelement(e).mover.grav+tmaxfall#
    endif
   endif
   `
@@ -11682,19 +11660,17 @@ _entity_addforcesphere:
     if tdirectdamage=0 then tforce#=tforce#/50
     rem actual entity damage
     tdamagex#=entityelement(tte).x : tdamagey#=entityelement(tte).y : tdamagez#=entityelement(tte).z
-    tdamage=tforce#*spheredamage
+    tdamage=tforce#*1.2*spheredamage : rem increased damage slightly to conform with expected V1.0 damage levels (terrorstrike)
     if forcedamageon=0 then tdamage=0
     tdamagesource=0 : timpacttype=3 : tdir=0
     ste=e : sttentid=tentid
     tentid=entityelement(tte).bankindex
     e=tte
-
     if entityprofile(tentid).ischaracter=1
      rem characters can shrug off some explosion force
      if tdamage<30 then timpacttype=1
-
-      entityelement(e).shotby=996
-      entityelement(e).shotbyammo$=""
+     entityelement(e).shotby=996
+     entityelement(e).shotbyammo$=""
      gosub _entity_deducthealth
     else
      gosub _entity_delayeddeducthealth
@@ -11842,7 +11818,6 @@ _entity_deducthealth:
    entityelement(e).lastdamagez#=tdamagez#-entityelement(e).z
   endif
  endif
-
  `
  rem entity damage makes a material sound
  tsoundtrigger=0 : tsoundmaterial=0
@@ -11963,16 +11938,6 @@ _entity_deducthealth:
          set object transparency tobj,0
         endif
        endif
-       rem May trigger explosion if entity needs one
-       rem V110 BETA5 - 080608 - moved lower down so characters can explode too
-       `if texplodable=1
-       ` rem the visual part
-       ` gosub _part_triggerexplosion
-       ` rem the force part
-       ` spheredamage=entityelement(e).eleprof.explodedamage
-       ` spherex#=frox# : spherey#=froy# : spherez#=froz#
-       ` sphereforce#=1.0 : gosub _entity_addforcesphere
-       `endif
       else
        rem obj not hidden, as phyobjectremove used
       endif
@@ -11986,7 +11951,7 @@ _entity_deducthealth:
       endif
      endif
      `
-     rem May trigger explosion if entity needs one (V110 BETA5 moved down from above)
+     rem May trigger explosion if entity needs one
      if texplodable=1
       rem the visual and audio bang part
       frox#=entityelement(e).x : froy#=entityelement(e).y : froz#=entityelement(e).z
@@ -16575,7 +16540,7 @@ Rem Scene Commander
        tmpx#=object position x(obj)
        tmpy#=object position y(obj)
        tmpz#=object position z(obj)
-       temp#=(entityelement(e).eleprof.speed/100.0)*aiactionseq(seq).value
+       temp#=(entityelement(e).eleprof.speed/100.0)*(aiactionseq(seq).value*timeelapsed#)
        entityelement(e).y=tmpy#+temp#
        gosub _entity_controlrecalcdist
        position object obj,tmpx#,entityelement(e).y,tmpz#
@@ -16586,8 +16551,8 @@ Rem Scene Commander
       tmp#=(entityelement(e).eleprof.speed/100.0)*aiactionseq(seq).value
       rem V110 BETA5 - 080608 - must have minimum move distance or movement fails (for slow entities)
       if tmp#<2.0 then tmp#=2.0
-      entityelement(e).mover.dx=newxvalue(tmpx#,entityelement(e).mover.da,tmp#)
-      entityelement(e).mover.dz=newzvalue(tmpz#,entityelement(e).mover.da,tmp#)
+      entityelement(e).mover.dx=newxvalue(tmpx#,entityelement(e).mover.da,tmp#*timeelapsed#)
+      entityelement(e).mover.dz=newzvalue(tmpz#,entityelement(e).mover.da,tmp#*timeelapsed#)
       entityelement(e).mover.dy=entityelement(e).y
       entityelement(e).mover.moved=1
       entityelement(e).mover.run=0
@@ -16599,8 +16564,8 @@ Rem Scene Commander
       rem V110 BETA5 - 080608 - must have minimum move distance or movement fails (for slow entities)
       if tmp#>0.0 then tmp#=-tmp#
       if tmp#>-2.0 then tmp#=-2.0
-      entityelement(e).mover.dx=newxvalue(tmpx#,entityelement(e).mover.da,tmp#)
-      entityelement(e).mover.dz=newzvalue(tmpz#,entityelement(e).mover.da,tmp#)
+      entityelement(e).mover.dx=newxvalue(tmpx#,entityelement(e).mover.da,tmp#*timeelapsed#)
+      entityelement(e).mover.dz=newzvalue(tmpz#,entityelement(e).mover.da,tmp#*timeelapsed#)
       entityelement(e).mover.dy=entityelement(e).y
       entityelement(e).mover.moved=1
       entityelement(e).mover.run=0
@@ -16611,8 +16576,8 @@ Rem Scene Commander
       tmp#=(entityelement(e).eleprof.speed/100.0)*aiactionseq(seq).value
       rem V110 BETA5 - 080608 - must have minimum move distance or movement fails (for slow entities)
       if tmp#<2.0 then tmp#=2.0
-      entityelement(e).mover.dx=newxvalue(tmpx#,entityelement(e).mover.da,tmp#)
-      entityelement(e).mover.dz=newzvalue(tmpz#,entityelement(e).mover.da,tmp#)
+      entityelement(e).mover.dx=newxvalue(tmpx#,entityelement(e).mover.da,tmp#*timeelapsed#)
+      entityelement(e).mover.dz=newzvalue(tmpz#,entityelement(e).mover.da,tmp#*timeelapsed#)
       entityelement(e).mover.dy=entityelement(e).y
       entityelement(e).mover.moved=1
       entityelement(e).mover.run=1
@@ -22356,7 +22321,7 @@ if desc$<>""
        if tfile$="$1"
         aiactionseq(seq).value=-2
        else
-        if file exist(tfile$)=1
+        if soundfileexist(tfile$)=1
          addfiletocollection(tfile$)
          aiactionseq(seq).value=loadinternalsoundcore(tfile$,0)
          if aiactionseq(seq).value=0
@@ -22387,7 +22352,7 @@ if desc$<>""
        if tfile$="$1"
         aiactionseq(seq).value=-2
        else
-        if file exist(tfile$)=1
+        if soundfileexist(tfile$)=1
          addfiletocollection(tfile$)
          aiactionseq(seq).value=loadinternalsoundcore(tfile$,1)
          if aiactionseq(seq).value=0
@@ -22409,7 +22374,7 @@ if desc$<>""
        if tfile$="$1"
         aiactionseq(seq).value=-2
        else
-        if file exist(tfile$)=1
+        if soundfileexist(tfile$)=1
          addfiletocollection(tfile$)
          aiactionseq(seq).value=loadinternalsoundcore(tfile$,1)
          if aiactionseq(seq).value=0
@@ -22433,7 +22398,7 @@ if desc$<>""
        if tfile$="$1"
         aiactionseq(seq).value=-2
        else
-        if file exist(tfile$)=1
+        if soundfileexist(tfile$)=1
          addfiletocollection(tfile$)
          aiactionseq(seq).value=loadinternalsoundcore(tfile$,0)
          if aiactionseq(seq).value=0
@@ -22456,7 +22421,7 @@ if desc$<>""
        if tfile$="$1"
         aiactionseq(seq).value=-2
        else
-        if file exist(tfile$)=1
+        if soundfileexist(tfile$)=1
          addfiletocollection(tfile$)
          aiactionseq(seq).value=loadinternalsoundcore(tfile$,0)
          if aiactionseq(seq).value=0
@@ -22829,7 +22794,7 @@ _ai_action_talk_processfilename:
    if tfile$="$1"
     aiactionseq(seq).value=-2
    else
-    if file exist(tfile$)=1
+    if soundfileexist(tfile$)=1
      addfiletocollection(tfile$)
      aiactionseq(seq).value=loadinternalsoundcore(tfile$,0)
      if aiactionseq(seq).value=0
@@ -23739,7 +23704,23 @@ function loadinternaleffect(tfile$)
  effectid=loadinternaleffectunique(tfile$,0)
 endfunction effectid
 
+function soundfileexist(tfile$)
+ soundexists=0
+ if file exist(tfile$)=1
+  soundexists=1
+ else
+  rem try as OGG
+  tfileogg$=left$(tfile$,len(tfile$)-4)+".ogg"
+  if file exist(tfileogg$)=1
+   soundexists=1
+  endif
+ endif
+endfunction soundexists
+
 function loadinternalsoundcore(tfile$,mode)
+
+rem The file to actually load (can change)
+tfiletoload$=tfile$
 
 rem Default return
 soundid=0
@@ -23747,34 +23728,42 @@ soundid=0
 rem No scan for existing - all sounds unique for overlay play
 t=soundbankmax+1
 if t>soundbankmax
-   tspecialogg=0 : if right$(lower$(tfile$),4)=".ogg" then tspecialogg=1
+ rem 041212 - as we change WAV to OGG during build process, end game can try to load WAV but
+ rem only the OGG file exists in the standalone media, so detect any OGG and switch to that
+ if grealgameviewstate=1
+  if file exist(tfile$)=0
+   tfileogg$=left$(tfile$,len(tfile$)-4)+".ogg"
+   if file exist(tfileogg$)=1
+    rem bingo - no WAV but found OGG, use that from now on
+    tfiletoload$=tfileogg$
+   endif
+  endif 
+ endif
+ tspecialogg=0 : if right$(lower$(tfiletoload$),4)=".ogg" then tspecialogg=1
  if right$(lower$(tfile$),4)=".wav" or tspecialogg=1
-
-  if file exist(tfile$)=1
-
+  if file exist(tfiletoload$)=1
+   rem add this sound to game sound bank
    inc soundbankmax
    dim soundbank$(soundbankmax)
    soundid=soundbankoffset+soundbankmax
-   `
    rem FPSCV114 - can skip 'real load' if building game
    if gcompilestandaloneexe=1
     if globalsmallsound=0
      globalsmallsound=soundid
      tfile$="audiobank\voices\squeak\leap.wav"
-     load sound tfile$,globalsmallsound,0,1
+     load sound tfiletoload$,globalsmallsound,0,1
      if sound exist(globalsmallsound)=0 then globalsmallsound=0
     else
      clone sound soundid,globalsmallsound
     endif
    else
     if mode=1 and tspecialogg=0
-     load 3dsound tfile$,soundid,1
-     if sound exist(soundid)=0 then load sound tfile$,soundid,0,1
+     load 3dsound tfiletoload$,soundid,1
+     if sound exist(soundid)=0 then load sound tfiletoload$,soundid,0,1
     else
-     load sound tfile$,soundid,0,1
+     load sound tfiletoload$,soundid,0,1
     endif
    endif
-   `
    if sound exist(soundid)=0
     rem sound could not loaded
     soundbank$(soundbankmax)=""
@@ -23785,7 +23774,6 @@ if t>soundbankmax
     soundbank$(soundbankmax)=tfile$
     addfiletocollection(tfile$)
    endif
-   `
   endif
  endif
 endif
@@ -24043,62 +24031,64 @@ function addfiletocollection(filename$)
         filecollection$(chk)=filename$
         tokay=0 : exit
        endif
-
       endif
       rem Scene Commander - memory reduction - if .wav and passing through here, convert - Not all wav's can be converted due to restrctions
-      Rem 1.10.2012 - restored but now excludes gunspec sounds.
       if lower$(right$(filename$,4))=".ogg" or lower$(right$(filename$,4))=".wav"
-         sp$=lower$(left$(filecollection$(chk),len(filecollection$(chk))-4))+".ogg"
-            if lower$(right$(filecollection$(chk),4))=".wav" and guseoggoff=0
-               `if left$(filename$,13)<>"gamecore\guns"
-                  if file exist(sp$)=0
-                  a$=filecollection$(chk)
-                  encode to ogg vorbis a$,sp$
-                  `filecollection$(chk)=sp$
-                  filename$=sp$
-                  tokay=1
-                  endif
-                  endif
-               `endif
-            endif
-
-
-      if guseoggoff=1 and lower$(right$(filename$,4))=".wav"
-      sp$=lower$(left$(filecollection$(chk),len(filecollection$(chk))-4))+".wav"
-         `filecollection$(chk)=sp$
-         filename$=sp$
-         tokay=1:exit
-
+       sp$=lower$(left$(filecollection$(chk),len(filecollection$(chk))-4))+".ogg"
+       if lower$(right$(filecollection$(chk),4))=".wav" and guseoggoff=0
+        rem 041212 - Unfortunately OGG sounds cannot be 3D or looped, which means they are only good
+        rem for things like sounds you play one-off and are not required to loop, so we create a black list 
+        rem of folders which contain loopable or 3D sounds below:
+        tgamecritical=0
+        if left$(filename$,15)="audiobank\music" then tgamecritical=1
+        if left$(filename$,15)="audiobank\water" then tgamecritical=1
+        if left$(filename$,19)="audiobank\materials" then tgamecritical=1
+        if left$(filename$,13)="gamecore\guns" then tgamecritical=1
+        if tgamecritical=0
+         if file exist(sp$)=0
+          a$=filecollection$(chk)
+          encode to ogg vorbis a$,sp$
+          rem we do not add, we simply replace the WAV that was already here with the OGG
+          `filename$=sp$ : tokay=1
+          filecollection$(chk)=sp$
+          tokay=0 : exit
+         endif
+        endif
+       endif
       endif
-
+      if guseoggoff=1 and lower$(right$(filename$,4))=".wav"
+       sp$=lower$(left$(filecollection$(chk),len(filecollection$(chk))-4))+".wav"
+       rem we do not add, we simply replace the possible OGG that was already here with the WAV (only if the WAV exists)
+       `filename$=sp$ : tokay=1
+       if file exist(sp$)=1
+        filecollection$(chk)=sp$
+        tokay=0 : exit
+       endif
+      endif
      endif
-
-
     next chk
     rem add file to collection
-
-    twav$=lower$(left$(filename$,len(filename$)-4))+".wav"
-    togg$=lower$(left$(filename$,len(filename$)-4))+".ogg"
-    if file exist(togg$) and filename$=twav$ and left$(twav$,8)<>"gamecore" then filename$=lower$(left$(filename$,len(filename$)-4))+".ogg"
+    `041212 - handled above and OGG is produced and assigned
+    `twav$=lower$(left$(filename$,len(filename$)-4))+".wav"
+    `togg$=lower$(left$(filename$,len(filename$)-4))+".ogg"
+    `if file exist(togg$) and filename$=twav$ and left$(twav$,8)<>"gamecore" then filename$=lower$(left$(filename$,len(filename$)-4))+".ogg"
     if tokay=1
+     rem file must be completely unique, so add it
      array insert at bottom filecollection$()
      filecollection$()=filename$
-
-
      rem FPGC - 220210 - if .WAV, of .OGG assume a LIPSYNC could be with it (even if ultimately not copied)
      if lower$(right$(filename$,4))=".wav" or lower$(right$(filename$,4))=".ogg"
       lipsyncfilename$=left$(filename$,len(filename$)-4)+".lipsync"
       array insert at bottom filecollection$()
       filecollection$()=lipsyncfilename$
      endif
-     `
     endif
    endif
   endif
  endif
 endfunction
 
-  addallfilestocollection(left$(src$,len(src$)-5))
+`addallfilestocollection(left$(src$,len(src$)-5))
 
 function addallfilestocollection(folder$)
  storedir$=get dir$()
@@ -24110,7 +24100,6 @@ function addallfilestocollection(folder$)
    if right$(lower$(file$),4)<>".tga"
     rem all except raw TGA file
     addfiletocollection(folder$+"\"+file$)
-
    endif
   endif
  next c
@@ -24758,7 +24747,7 @@ if colmaterialtype>=0
    footaty#=entityelement(e).y
    playinternal3dsoundfactor(sndid,entityelement(e).x,entityelement(e).y,entityelement(e).z,1.0)
   else
-   footaty#=camera position y()-(phyeyeheight#+18)
+   footaty#=camera position y()-(phyeyeheight#+15) : rem was 18
   endif
   if footaty#<waterheight# and wateron=1
    if footaty#<waterheight#-50
@@ -26065,7 +26054,6 @@ if gunmode<100
  rem Gun Firing
  if gunclick<>1 then gunmustreleasefirst=0
  if gunclick<>0
-  `if gunclick=1 and gunmustreleasefirst=0 then gunmode=101
   if gunclick=1 and gunmustreleasefirst=0 and gunmode >=5 and gunmode <=26 then gunmode=101
   rem V109 BETA10 - 120508 - can only reload when gun idle (stops gun freeze when do change then reload quickly)
   `if gunmode<11
@@ -26073,9 +26061,9 @@ if gunmode<100
   gunfull=1
   if (weaponammo(weaponammoindex+ammooffset) < firemode(gunid,firemode).settings.reloadqty+1 and firemode(gunid,firemode).settings.chamberedround > 0) then gunfull = 0
   if (weaponammo(weaponammoindex+ammooffset) < firemode(gunid,firemode).settings.reloadqty and firemode(gunid,firemode).settings.chamberedround=0) then gunfull = 0
-Rem Scene Commander
-if (weaponammo(weaponammoindex+ammooffset)>0 and firemode(gunid,firemode).settings.emptyreloadonly = 1) then gunfull=1
-if gunfull=1 then plrreloading=0
+  Rem Scene Commander
+  if (weaponammo(weaponammoindex+ammooffset)>0 and firemode(gunid,firemode).settings.emptyreloadonly = 1) then gunfull=1
+  if gunfull=1 then plrreloading=0
   rem V110 - 220508 - and also for when walking/running
   if gunmode<30
    `if gunclick=2 then gunmode=121
@@ -30286,13 +30274,10 @@ for f=1 to flakelementmax
     flakelement(f).ypos=0
     tcollide=1
    endif
+   `
    tmpx2#=tmpx1#+(flakelement(f).profile.xinc*3.0)
    tmpy2#=tmpy1#+(flakelement(f).profile.yinc*3.0)
    tmpz2#=tmpz1#+(flakelement(f).profile.zinc*3.0)
-
-      `tmpx2#=tmpx1#+(flakelement(f).profile.xinc)
-      `tmpy2#=tmpy1#+(flakelement(f).profile.yinc)
-      `tmpz2#=tmpz1#+(flakelement(f).profile.zinc)
    if static raycast(tmpx1#,tmpy1#,tmpz1#,tmpx2#,tmpy2#,tmpz2#)<>0
     `
     rem checklist now filled with collision feedback data
@@ -30305,9 +30290,7 @@ for f=1 to flakelementmax
     flakelement(f).xpos=checklist fvalue a(6)+flakelement(f).profile.xinc
     flakelement(f).ypos=checklist fvalue b(6)+flakelement(f).profile.yinc
     flakelement(f).zpos=checklist fvalue c(6)+flakelement(f).profile.zinc
-
     tcollide=2
-    `
     rem collision bounce requires orientation
     if flakelement(f).profile.bounceonhit>0
      point object tobj,flakelement(f).xpos+(flakelement(f).profile.xinc*10.0),flakelement(f).ypos+(flakelement(f).profile.yinc*10.0),flakelement(f).zpos+(flakelement(f).profile.zinc*10.0)
@@ -30333,24 +30316,22 @@ for f=1 to flakelementmax
      rem owners of flak are excempt
     else
      rem backtrack to leave collision
-    flakelement(f).profile.xinc=flakelement(f).profile.xinc*-1
-    flakelement(f).profile.zinc=flakelement(f).profile.zinc*-1
-    flakelement(f).xpos=flakelement(f).xpos+flakelement(f).profile.xinc
-    flakelement(f).ypos=flakelement(f).ypos+flakelement(f).profile.yinc
-    flakelement(f).zpos=flakelement(f).zpos+flakelement(f).profile.zinc
+     flakelement(f).profile.xinc=flakelement(f).profile.xinc*-1
+     flakelement(f).profile.zinc=flakelement(f).profile.zinc*-1
+     flakelement(f).xpos=flakelement(f).xpos+flakelement(f).profile.xinc
+     flakelement(f).ypos=flakelement(f).ypos+flakelement(f).profile.yinc
+     flakelement(f).zpos=flakelement(f).zpos+flakelement(f).profile.zinc
      tcollide=1
     endif
    endif
-rem scene commander, track if flak has moved, if not deactivate and hide. (not movement caused if flak generated too close of obstacle).
-
-   if flakelement(f).lastx=flakelement(f).xpos and flakelement(f).lasty=flakelement(f).ypos and  flakelement(f).lastz=flakelement(f).zpos
-         if flak(tflakid).stick=1
-         flakelement(f).active=4
-         hide object tobj
-         else
-         flakelement(f).active=2
-         endif
-      `text object screen x(tobj),object screen y(tobj),"Stuck"
+   rem scene commander, track if flak has moved, if not deactivate and hide. (not movement caused if flak generated too close of obstacle).
+   if flakelement(f).lastx=flakelement(f).xpos and flakelement(f).lasty=flakelement(f).ypos and flakelement(f).lastz=flakelement(f).zpos
+    if flak(tflakid).stick=1
+     flakelement(f).active=4
+     hide object tobj
+    else
+     flakelement(f).active=2
+    endif
    endif
    rem if shot BY entity, can collide with player
    if flakelement(f).owner<>0
@@ -30367,7 +30348,6 @@ rem scene commander, track if flak has moved, if not deactivate and hide. (not m
       flakelement(f).profile.bounceonhit=flakelement(f).profile.bounceonhit-1
       if tcollide=1 and flak(tflakid).noexplode=1 then bouncingonhit=1 : tdetonate=1
       playinternal3dsound(flak(tflakid).sound.sndbounceid,tmpx1#,tmpy1#,tmpz1#)
-
      else
       rem detonate at last collision, add scorch - Scene commander change for floor explosion
       flakelement(f).preexplode=0
@@ -30376,25 +30356,20 @@ rem scene commander, track if flak has moved, if not deactivate and hide. (not m
     else
      rem bouncing flak hasn't worked as it was intended! This needs to be here so once there are no more bounces
      rem the object will detonate on next collision!
-
      if flakelement(f).profile.bounceonhit<=0
       if flak(tflakid).noexplode=1
        tdetonate=1
        Rem Scene commander - fix for non working grenades
       else
-        `
-           flakelement(f).active=1
-           show object tobj
-
+       flakelement(f).active=1
+       show object tobj
+      endif
      endif
-   endif
-   endif
-
-
+    endif  
    endif
    `
   endif
-
+  `
   rem detonate trigger
   if tdetonate=1
    if flak(tflakid).noexplode=0
@@ -30405,80 +30380,66 @@ rem scene commander, track if flak has moved, if not deactivate and hide. (not m
    endif
   endif
  endif
-
+ `
  if flakelement(f).active=5
-
  endif
+ `
  if flakelement(f).active=2
- Rem Scene Commander fix for flak using correct decals - will use default of no flak specified in flak FPE
-
- newone=0
- if showflak=1
-      decalscalemodx=0:decalorient=0
-      decalx=tmpx1#:decaly=tmpy1#:decalz=tmpz1#:originatore=-1
+  Rem Scene Commander fix for flak using correct decals - will use default of no flak specified in flak FPE
+  newone=0
+  if showflak=1
+   decalscalemodx=0:decalorient=0
+   decalx=tmpx1#:decaly=tmpy1#:decalz=tmpz1#:originatore=-1
    if flak(tflakid).expinairid>0 and flakelement(f).preexplode=1
-      decalid=flak(tflakid).expinairid
-      decalrange=10000
-      gosub _decalelement_create
-       newone=1
+    decalid=flak(tflakid).expinairid
+    decalrange=10000
+    gosub _decalelement_create
+    newone=1
    endif
-
    if flak(tflakid).exponfloorid>0 and flakelement(f).preexplode=0
-      decalid=flak(tflakid).exponfloorid
-      decalrange=10000
-      gosub _decalelement_create
-      newone=1
-    endif
- endif
+    decalid=flak(tflakid).exponfloorid
+    decalrange=10000
+    gosub _decalelement_create
+    newone=1
+   endif
+  endif
+  `
   rem hide flak object
-
   tobj=flakelement(f).obj
   if tobj>0
-  hide object tobj
+   hide object tobj
   endif
-
+  `
   rem trigger exploder
   frox#=flakelement(f).xpos
   froy#=flakelement(f).ypos
   froz#=flakelement(f).zpos
-
   if newone=0 and showflak=1 then gosub _part_triggerexplosion
-
+  `
   rem make sound seem louder by moving it closer to player
   playinternal3dsound(flak(tflakid).sound.sndexplodeid,decalx,decaly,decalz)
   rem ONLY affect decal with ZBIAS if explosion that needs to be seen by player in full
-
   if object exist(tobj)=1 then enable object zbias tobj,-500.0,0.0
-
+  `
   rem initial blast creates scorch (in six directions)
   if showflak=1
-  for tscdir=1 to 6
-   remstart
-   if tscdir=1 then t=static raycast(decalx+0,decaly,decalz,decalx-200,decaly,decalz)
-   if tscdir=2 then t=static raycast(decalx+0,decaly,decalz,decalx+200,decaly,decalz)
-   if tscdir=3 then t=static raycast(decalx,decaly+0,decalz,decalx,decaly-200,decalz)
-   if tscdir=4 then t=static raycast(decalx,decaly+0,decalz,decalx,decaly+200,decalz)
-   if tscdir=5 then t=static raycast(decalx,decaly,decalz+0,decalx,decaly,decalz-200)
-   if tscdir=6 then t=static raycast(decalx,decaly,decalz+0,decalx,decaly,decalz+200)
-   remend
-   rem AirMod - Following Code replaces above code to fix scorch bug
-
-   if tscdir=1 then t=static raycast(frox#+0,froy#,froz#,frox#-400,froy#,froz#) `200
-   if tscdir=2 then t=static raycast(frox#+0,froy#,froz#,frox#+400,froy#,froz#)
-   if tscdir=3 then t=static raycast(frox#,froy#+0,froz#,frox#,froy#-400,froz#)
-   if tscdir=4 then t=static raycast(frox#,froy#+0,froz#,frox#,froy#+400,froz#)
-   if tscdir=5 then t=static raycast(frox#,froy#,froz#+0,frox#,froy#,froz#-400)
-   if tscdir=6 then t=static raycast(frox#,froy#,froz#+0,frox#,froy#,froz#+400)
-   rem AirMod - Done
-   tsize#=45-rnd(30) : if t=1 then add static scorch tsize#,4+rnd(3)
-  next tscdir
-  rem initial blast creates light flash
-  spotflash=100 : tx#=decalx : ty#=decaly : tz#=decalz
-  tcolr=255
-  tcolg=255
-  tcolb=0
-  gosub _lighting_spotflash
-  Rem Scene commander, end show explosion
+   for tscdir=1 to 6
+    if tscdir=1 then t=static raycast(frox#+0,froy#,froz#,frox#-400,froy#,froz#)
+    if tscdir=2 then t=static raycast(frox#+0,froy#,froz#,frox#+400,froy#,froz#)
+    if tscdir=3 then t=static raycast(frox#,froy#+0,froz#,frox#,froy#-400,froz#)
+    if tscdir=4 then t=static raycast(frox#,froy#+0,froz#,frox#,froy#+400,froz#)
+    if tscdir=5 then t=static raycast(frox#,froy#,froz#+0,frox#,froy#,froz#-400)
+    if tscdir=6 then t=static raycast(frox#,froy#,froz#+0,frox#,froy#,froz#+400)
+    rem AirMod - Done
+    tsize#=45-rnd(30) : if t=1 then add static scorch tsize#,4+rnd(3)
+   next tscdir
+   rem initial blast creates light flash
+   spotflash=100 : tx#=decalx : ty#=decaly : tz#=decalz
+   tcolr=255
+   tcolg=255
+   tcolb=0
+   gosub _lighting_spotflash
+   Rem Scene commander, end show explosion
   endif
   rem start range of expanding explosion at zero
   flakelement(f).range=0
@@ -30490,6 +30451,7 @@ rem scene commander, track if flak has moved, if not deactivate and hide. (not m
   spherex#=tx# : spherey#=ty# : spherez#=tz# : sphereforce#=1.0
   gosub _entity_addforcesphere
  endif
+ `
  if flakelement(f).active=3
   rem increase range as force expands
   flakelement(f).range=flakelement(f).range+10
@@ -30507,7 +30469,7 @@ rem scene commander, track if flak has moved, if not deactivate and hide. (not m
     tsz#=flakelement(sf).zpos-tz#
     d#=sqrt(abs(tsx#*tsx#)+abs(tsy#*tsy#)+abs(tsz#*tsz#))
     if d#<flakelement(f).range
-    flakelement(sf).preexplode=1
+     flakelement(sf).preexplode=1
      rem explode the flak
      flakelement(sf).active=2
      flakelement(sf).range=0
@@ -30516,32 +30478,29 @@ rem scene commander, track if flak has moved, if not deactivate and hide. (not m
   next sf
  endif
  if flakelement(f).active=4
- gosub _stickyflakplacement
+  gosub _stickyflakplacement
   playinternal3dsound(flak(tflakid).sound.sndexplodeid,flakelement(f).xpos,flakelement(f).ypos,flakelement(f).zpos)
-
   rem hide flak object
   if bouncingonhit=0 then hide object tobj
-
   if endoflife=0
    if tcollide=1
     if spheree<>-1
-      tdamagex#=flakelement(f).xpos : tdamagey#=flakelement(f).ypos : tdamagez#=flakelement(f).zpos
-      damagede=spheree : nocalcpoi=1
-      if flak(tflakid).blood=1 then gosub _create_blood
-
-      tdamage=flak(tflakid).profile.damage
-      tdamagesource=0 : timpacttype=1 : tdir=0
-      ste=e : sttentid=tentid
-      tentid=entityelement(spheree).bankindex
-      e=spheree
-      if entityprofile(tentid).ischaracter=1
-       `if tdamage<30 then timpacttype=1
-       entityelement(e).shotby=996
-       gosub _entity_deducthealth
-      else
-       gosub _entity_delayeddeducthealth
-      endif
-      e=ste : tentid=sttentid
+     tdamagex#=flakelement(f).xpos : tdamagey#=flakelement(f).ypos : tdamagez#=flakelement(f).zpos
+     damagede=spheree : nocalcpoi=1
+     if flak(tflakid).blood=1 then gosub _create_blood
+     tdamage=flak(tflakid).profile.damage
+     tdamagesource=0 : timpacttype=1 : tdir=0
+     ste=e : sttentid=tentid
+     tentid=entityelement(spheree).bankindex
+     e=spheree
+     if entityprofile(tentid).ischaracter=1
+      `if tdamage<30 then timpacttype=1
+      entityelement(e).shotby=996
+      gosub _entity_deducthealth
+     else
+      gosub _entity_delayeddeducthealth
+     endif
+     e=ste : tentid=sttentid
     else
      tdamage=flak(tflakid).profile.damage
      gosub _player_takedamage
@@ -30549,21 +30508,16 @@ rem scene commander, track if flak has moved, if not deactivate and hide. (not m
    else
     rem we hit a wall
     if flak(tflakid).stick=1
-      `gosub _stickyflakplacement
-
-
+     `gosub _stickyflakplacement
      for i=1 to flakelementmax
       if flakstick(i).used=0
        flakstick(i).used=1
        flakstick(i).flakid=tflakid
-
        flakstick(i).life=timer()
-
        flakstick(i).x=flakelement(f).xpos
        flakstick(i).y=flakelement(f).ypos
        flakstick(i).z=flakelement(f).zpos
        rem instanced objects can't have their own emissve
-       `instance object flakstick(i).obj,flak(tflakid).stickobj
        clone object flakstick(i).obj,flak(tflakid).stickobj
        position object flakstick(i).obj,flakstick(i).x,flakstick(i).y,flakstick(i).z
        rotate object flakstick(i).obj,object angle x(tobj),object angle y(tobj),object angle z(tobj)
@@ -30571,40 +30525,20 @@ rem scene commander, track if flak has moved, if not deactivate and hide. (not m
        set object ambience flakstick(i).obj,rgb(255,255,255)
        set object emissive flakstick(i).obj,0
        set object specular flakstick(i).obj,0
-
        exit
       endif
      next i
-
     endif
-
    endif
-
   endif
-
   rem allow for flak to bounce off enemies and hurt them while continuing to bounce
   if bouncingonhit=0 then flakelement(f).active=0 else flakelement(f).active=1
   bouncingonhit=0
-
  endif
- remstart - Scene Commander edit to fix non working grenades
- if flakelement(f).active=5
-
-  if flakelement(f).profile.lifespan>0
-   dec flakelement(f).profile.lifespan,timeelapsed#
-   if flakelement(f).profile.lifespan<=0
-    flakelement(f).profile.lifespan=0
-    flakelement(f).active=2
-   endif
-  endif
-
- endif
- remend
  `
 next f
 
 endoflife=0
-
 gosub _flakstick_control
 
 return
@@ -35491,7 +35425,7 @@ _entity_createelements_loadsoundlast:
    if entityelement(e).eleprof.soundset$<>"" and tokay=1
     rem load as 3D sound ready for playing or looping in game (generator)
     tfile$=entityelement(e).eleprof.soundset$
-    if file exist(tfile$)=1
+    if soundfileexist(tfile$)=1
      addfiletocollection(tfile$)
      if loadsoundrefonly=0
       entityelement(e).soundset=loadinternalsoundcore(tfile$,t3d)
@@ -38862,6 +38796,7 @@ for hudid=1 to hudmax
        if hud(hudid).typemode=5 and ggameobjectivetype<>3 then tokay=0
       endif
      endif
+      tokay=1 : rem HACK!!
      if tokay=1
       if hud(hudid).fadeout>0
        tfadeout=hud(hudid).fadeout : if tfadeout>100 then tfadeout=100
@@ -40839,20 +40774,13 @@ _ode_playerrelocations:
    tdstx#=object position x(tobj)-tmex#
    tdstz#=object position z(tobj)-tmez#
    tdstt#=sqrt(abs(tdstx#*tdstx#)+abs(tdstz#*tdstz#))
-
-   rem scene commander, take offsets into account.
-if plrcamoffseton=1
-   camerapositionx=camera position x()+newcamoffsetx
-   camerapositiony=camera position y()+newcamoffsety
-   camerapositionz=camera position z()+newcamoffsetz
-else
-   camerapositionx=camera position x()
-   camerapositiony=camera position y()
-   camerapositionz=camera position z()
-endif
-
-   position camera camerapositionx,meridinglifty#,camerapositionz
-
+   rem 071112 - Ensure player is moved by lift and account of camera offset
+   camerapositiony=meridinglifty#
+   if plrcamoffseton=1
+    position camera camerapositionx+newcamoffsetx,camerapositiony+newcamoffsety,camerapositionz+newcamoffsetz
+   else
+    position camera camerapositionx,camerapositiony,camerapositionz
+   endif
    gosub _ode_playerborble
    if tdstt#>90
     meridinglift=0
@@ -50506,7 +50434,7 @@ if file exist("editors\gridedit\cfg.cfg")=1
   `
   rem Shroud Settings
   `if skipfpmloading=1
-   read file 1,shroudsize
+   read file 1,a : rem ignore shroudsize
    read file 1,gridlayershowsingle
   `else
   ` read file 1,a
@@ -56547,6 +56475,7 @@ if file exist(tfile$)=1
     `V109 BETA8 - 060508 - leave these for main SETUP.INI to control (otherwise hidden in FPG)
     `tryfield$="bloodonfloor" : if field$=tryfield$ then gbloodonfloor=value1
     `tryfield$="imageblockmode" : if field$=tryfield$ then gimageblockmode=value1
+    tryfield$="shroudsize" : if field$=tryfield$ then shroudsize=value1
     tryfield$="newblossershaders" : if field$=tryfield$ then gnewblossershaders=value1
     tryfield$="postprocessing" : if field$=tryfield$ then gpostprocessing=value1
     tryfield$="showaioutlines" : if field$=tryfield$ then gshowaioutlines=value1
@@ -56941,6 +56870,7 @@ _interface_savebuildgame:
  setuparr$(i)="bloodonfloor="+str$(gbloodonfloor) : inc i
  `V109 BETA8 - 060508 - leave these for main SETUP.INI to control (otherwise hidden in FPG)
  `setuparr$(i)="imageblockmode="+str$(gimageblockmode) : inc i
+ setuparr$(i)="shroudsize="+str$(shroudsize) : inc i
  setuparr$(i)="newblossershaders="+str$( gnewblossershaders ) : inc i
  setuparr$(i)="postprocessing="+str$( gpostprocessing ) : inc i
  setuparr$(i)="showaioutlines="+str$( gshowaioutlines ) : inc i
@@ -57397,6 +57327,7 @@ setuparr$(i)="lightmapblurmode="+str$(glightblurmode) : inc i
 setuparr$(i)="lightmapthreadmax="+str$(glightthreadmax) : inc i
 setuparr$(i)="bloodonfloor="+str$(gbloodonfloor) : inc i
 setuparr$(i)="imageblockmode="+str$(gimageblockmode) : inc i
+setuparr$(i)="shroudsize="+str$(shroudsize) : inc i
 setuparr$(i)="showalluniquetextures="+str$(gshowalluniquetextures) : inc i
 setuparr$(i)="systemmemorycapoff="+str$(gsystemmemorycapoff) : inc i
 setuparr$(i)="entitytogglingoff="+str$(gentitytogglingoff) : inc i
