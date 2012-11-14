@@ -16551,8 +16551,8 @@ Rem Scene Commander
       tmp#=(entityelement(e).eleprof.speed/100.0)*aiactionseq(seq).value
       rem V110 BETA5 - 080608 - must have minimum move distance or movement fails (for slow entities)
       if tmp#<2.0 then tmp#=2.0
-      entityelement(e).mover.dx=newxvalue(tmpx#,entityelement(e).mover.da,tmp#*timeelapsed#)
-      entityelement(e).mover.dz=newzvalue(tmpz#,entityelement(e).mover.da,tmp#*timeelapsed#)
+      entityelement(e).mover.dx=newxvalue(tmpx#,entityelement(e).mover.da,tmp#)
+      entityelement(e).mover.dz=newzvalue(tmpz#,entityelement(e).mover.da,tmp#)
       entityelement(e).mover.dy=entityelement(e).y
       entityelement(e).mover.moved=1
       entityelement(e).mover.run=0
@@ -16564,8 +16564,8 @@ Rem Scene Commander
       rem V110 BETA5 - 080608 - must have minimum move distance or movement fails (for slow entities)
       if tmp#>0.0 then tmp#=-tmp#
       if tmp#>-2.0 then tmp#=-2.0
-      entityelement(e).mover.dx=newxvalue(tmpx#,entityelement(e).mover.da,tmp#*timeelapsed#)
-      entityelement(e).mover.dz=newzvalue(tmpz#,entityelement(e).mover.da,tmp#*timeelapsed#)
+      entityelement(e).mover.dx=newxvalue(tmpx#,entityelement(e).mover.da,tmp#)
+      entityelement(e).mover.dz=newzvalue(tmpz#,entityelement(e).mover.da,tmp#)
       entityelement(e).mover.dy=entityelement(e).y
       entityelement(e).mover.moved=1
       entityelement(e).mover.run=0
@@ -16576,8 +16576,8 @@ Rem Scene Commander
       tmp#=(entityelement(e).eleprof.speed/100.0)*aiactionseq(seq).value
       rem V110 BETA5 - 080608 - must have minimum move distance or movement fails (for slow entities)
       if tmp#<2.0 then tmp#=2.0
-      entityelement(e).mover.dx=newxvalue(tmpx#,entityelement(e).mover.da,tmp#*timeelapsed#)
-      entityelement(e).mover.dz=newzvalue(tmpz#,entityelement(e).mover.da,tmp#*timeelapsed#)
+      entityelement(e).mover.dx=newxvalue(tmpx#,entityelement(e).mover.da,tmp#)
+      entityelement(e).mover.dz=newzvalue(tmpz#,entityelement(e).mover.da,tmp#)
       entityelement(e).mover.dy=entityelement(e).y
       entityelement(e).mover.moved=1
       entityelement(e).mover.run=1
