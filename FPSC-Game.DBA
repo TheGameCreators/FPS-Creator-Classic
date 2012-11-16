@@ -23737,7 +23737,7 @@ if t>soundbankmax
     rem bingo - no WAV but found OGG, use that from now on
     tfiletoload$=tfileogg$
    endif
-  endif 
+  endif
  endif
  tspecialogg=0 : if right$(lower$(tfiletoload$),4)=".ogg" then tspecialogg=1
  if right$(lower$(tfile$),4)=".wav" or tspecialogg=1
@@ -24037,7 +24037,7 @@ function addfiletocollection(filename$)
        sp$=lower$(left$(filecollection$(chk),len(filecollection$(chk))-4))+".ogg"
        if lower$(right$(filecollection$(chk),4))=".wav" and guseoggoff=0
         rem 041212 - Unfortunately OGG sounds cannot be 3D or looped, which means they are only good
-        rem for things like sounds you play one-off and are not required to loop, so we create a black list 
+        rem for things like sounds you play one-off and are not required to loop, so we create a black list
         rem of folders which contain loopable or 3D sounds below:
         tgamecritical=0
         if left$(filename$,15)="audiobank\music" then tgamecritical=1
@@ -30230,7 +30230,7 @@ for f=1 to flakelementmax
  tobj=flakelement(f).obj
  if flakelement(f).active>0
   Rem Scene commander, track if flak has moved
-  flakelement(f).lastx=flakelement(f).xpos  
+  flakelement(f).lastx=flakelement(f).xpos
   flakelement(f).lasty=flakelement(f).ypos
   flakelement(f).lastz=flakelement(f).zpos
   if object in screen(tobj) then flaki=f : gosub _lighting_applyflakcolor
@@ -30365,7 +30365,7 @@ for f=1 to flakelementmax
        show object tobj
       endif
      endif
-    endif  
+    endif
    endif
    `
   endif
@@ -33336,7 +33336,7 @@ if file exist(tprofile$)=0
     tryfield$="ischaracter"
     if field$=tryfield$
     entityprofile(entid).ischaracter=value1
-     If entityprofile(entid).scale<80 then entityprofile(entid).scale=80
+    ` If entityprofile(entid).scale<80 then entityprofile(entid).scale=80
     endif
 
       tryfield$="custombiped"
@@ -63509,6 +63509,7 @@ _stickyflakplacement:
    endif
 
 return
+
 
 
 
