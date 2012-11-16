@@ -33336,6 +33336,7 @@ if file exist(tprofile$)=0
     tryfield$="ischaracter"
     if field$=tryfield$
     entityprofile(entid).ischaracter=value1
+    `Was causing conflict with cartoon model pack and some custom media.
     ` If entityprofile(entid).scale<80 then entityprofile(entid).scale=80
     endif
 
