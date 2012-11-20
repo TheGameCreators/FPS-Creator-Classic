@@ -46448,7 +46448,10 @@ _saveload_savebox_dosave:
  if file exist(ttfile$)=1 then delete file ttfile$
  saveloadslot$(saveload.slotselected)=tnameanddate$
  save array ttfile$,saveloadslot$()
- `
+
+ rem - if image doesn't exist then get image - Terry Fix
+ if image exist(saveload.saveloadimg+3)=0 then get image saveload.saveloadimg+3,0,0,screen width(),screen height()
+
  rem FPGC - 020909 - crop if larger than 256x256
  if image exist(saveload.saveloadimg+3)=1
   if image width(saveload.saveloadimg+3)>256
