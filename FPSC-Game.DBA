@@ -46502,6 +46502,8 @@ _saveload_savebox_dosave:
  `
  rem Actual slot filename
  saveloadfile$="gamesaves\slot"+str$(saveload.slotselected)+".dat"
+ `Terry Fix to ensure image isn't duplicated
+ if image exist(saveload.saveloadimg+3)=1 then delete image saveload.saveloadimg+3
  `
 return
 
