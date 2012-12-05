@@ -7697,7 +7697,42 @@ function debugviewtext(progress,gamedebugviewtext$)
   themem$=themem$+str$(themem-gamedebugviewlastmem)+")  :  "
   gamedebugview$=thetime$+themem$+gamedebugviewtext$+chr$(13)+chr$(10)+gamedebugview$
   gamedebugviewlastmem=themem
-  gosub _gamemain_writetexttodebugview
+  `
+  rem gamemain_writetexttodebugview:
+  if gdebugreportmodestate=1
+   if bitmap exist(1)=1
+    set current bitmap 1
+    cls rgb(0,48,0)
+    ink rgb(255,255,255),0
+    print gamedebugview$
+    ink rgb(0,255,0),0
+    `
+    rem gamemain_updatedebugviewstats
+    for stat=1 to 9
+     if stat=1 then stat$=strarr$(60)
+     if stat=2 then stat$=strarr$(61) : stat2=segidmaster
+     if stat=3 then stat$=strarr$(62) : stat2=entidmaster
+     if stat=4 then stat$=strarr$(63) : stat2=entityelementlist
+     if stat=5 then stat$=strarr$(64) : stat2=aiindexmaster
+     if stat=6 then stat$=strarr$(65) : stat2=texturebankmax
+     if stat=7 then stat$=strarr$(66) : stat2=imagebankmax
+     if stat=8 then stat$=strarr$(67) : stat2=effectbankmax
+     if stat=9 then stat$=strarr$(68) : stat2=waypointmax
+     if stat>1
+      stat2$=str$(stat2) : stat3$="" : for st=1 to stat2 step 2 : stat3$=stat3$+"|" : next st
+      stat1$=stat$ : stat2$=stat2$+space$(3-len(stat2$))+stat3$
+     else
+      stat1$=stat$ : stat2$=""
+     endif
+     text screen width()-(screen width()/4),(stat-1)*14,stat1$
+     text screen width()-(screen width()/8),(stat-1)*14,stat2$
+    next stat
+    `
+    set current bitmap 0
+   endif
+   gamedebugrefresh=1
+  endif
+  `
   debugviewupdate(1)
   if gdebugreportstepthroughstate=1
    rem step through debugging
@@ -7721,46 +7756,6 @@ function debugviewtext(progress,gamedebugviewtext$)
    endif
   endif
  endif
- `
- rem early exit
- exitfunction
- `
- _gamemain_writetexttodebugview:
-  if gdebugreportmodestate=1
-   if bitmap exist(1)=1
-    set current bitmap 1
-    cls rgb(0,48,0)
-    ink rgb(255,255,255),0
-    print gamedebugview$
-    ink rgb(0,255,0),0
-    gosub _gamemain_updatedebugviewstats
-    set current bitmap 0
-   endif
-   gamedebugrefresh=1
-  endif
- return
- `
- _gamemain_updatedebugviewstats:
-  for stat=1 to 9
-   if stat=1 then stat$=strarr$(60)
-   if stat=2 then stat$=strarr$(61) : stat2=segidmaster
-   if stat=3 then stat$=strarr$(62) : stat2=entidmaster
-   if stat=4 then stat$=strarr$(63) : stat2=entityelementlist
-   if stat=5 then stat$=strarr$(64) : stat2=aiindexmaster
-   if stat=6 then stat$=strarr$(65) : stat2=texturebankmax
-   if stat=7 then stat$=strarr$(66) : stat2=imagebankmax
-   if stat=8 then stat$=strarr$(67) : stat2=effectbankmax
-   if stat=9 then stat$=strarr$(68) : stat2=waypointmax
-   if stat>1
-    stat2$=str$(stat2) : stat3$="" : for st=1 to stat2 step 2 : stat3$=stat3$+"|" : next st
-    stat1$=stat$ : stat2$=stat2$+space$(3-len(stat2$))+stat3$
-   else
-    stat1$=stat$ : stat2$=""
-   endif
-   text screen width()-(screen width()/4),(stat-1)*14,stat1$
-   text screen width()-(screen width()/8),(stat-1)*14,stat2$
-  next stat
- return
  `
 endfunction
 
@@ -9549,9 +9544,9 @@ if entityelement(e).fireweapon=1
        tttokay=1
       endif
      endif
-     testobj=entityelement(tte).obj
      rem scene commander fix, prevents occasional crash.
      if tttokay=1
+      testobj=entityelement(tte).obj
       if testobj>0
         if object exist(testobj)
          y2#=object position y(testobj)
@@ -48027,15 +48022,20 @@ _obs_generate_pertile:
      if maptile=13 then maplines(l,x,y,OBS_NN)=1 : maplines(l,x,y,OBS_EE)=0 : maplines(l,x,y,OBS_SS)=0 : maplines(l,x,y,OBS_WW)=0
      if maptile=14 then maplines(l,x,y,OBS_NN)=1 : maplines(l,x,y,OBS_EE)=0 : maplines(l,x,y,OBS_SS)=0 : maplines(l,x,y,OBS_WW)=0
      if maptile=15 then maplines(l,x,y,OBS_NN)=1 : maplines(l,x,y,OBS_EE)=0 : maplines(l,x,y,OBS_SS)=0 : maplines(l,x,y,OBS_WW)=1
-     rem 280807 - switch off walls if the segment associated with the tile does not have any walls
-     if segmentswhichchangeobsdatanowalls(mapselection)=1
-      maplines(l,x,y,OBS_NN)=0 : maplines(l,x,y,OBS_EE)=0
-      maplines(l,x,y,OBS_SS)=0 : maplines(l,x,y,OBS_WW)=0
+     rem 221112 - ensure segment array exists
+     if mapselection<=array count(segmentswhichchangeobsdatanowalls())
+      rem 280807 - switch off walls if the segment associated with the tile does not have any walls
+      if segmentswhichchangeobsdatanowalls(mapselection)=1
+       maplines(l,x,y,OBS_NN)=0 : maplines(l,x,y,OBS_EE)=0
+       maplines(l,x,y,OBS_SS)=0 : maplines(l,x,y,OBS_WW)=0
+      endif
      endif
      `
      rem LEE - 281110 - some platforms/corridors are NOT overlays, but base map segments, which have
      rem specific walls and edge-guides which the AI system must take account for..
-     if 1
+     `if 1
+     rem 221112 - ensure segment array exists
+     if mapselection<=array count(segmentswhichchangeobsdata())
       if segmentswhichchangeobsdata(mapselection)>=5 and segmentswhichchangeobsdata(mapselection)<=9
        rem add walls based on corridor symbols (segment blueprint MODE)
        rem 3=straight (5)
@@ -48105,7 +48105,8 @@ _obs_generate_pertile:
  if ismapanoverlay=2
     rem OVERLAY SEGMENT FOR DOORS / PUNCH WALLS OUT
     if mapid<>0
-     if mapselection>0
+     rem 221112 - ensure segment array exists
+     if mapselection>0 and mapselection<=array count(segmentswhichchangeobsdata())
       if segmentswhichchangeobsdata(mapselection)=1
        rem doors punch out walls!
        if maporient=0 then maplines(l,x,y,OBS_NN)=0
