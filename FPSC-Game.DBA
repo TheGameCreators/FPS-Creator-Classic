@@ -41723,6 +41723,8 @@ if camerastoodonphyobj<>0
  rem Jump ends when camera starts decending
  rem V119 - this can freeze the player in mid-air
  `if jumpactionnorepeat=0 and camvel<0.0 then jumpaction=0
+
+
  `
  rem debug object
  if physicsdebug=1
@@ -41873,8 +41875,6 @@ else
  camangy#=camera angle y()+caminertiay# - gunRecoilAngleX# + gunRecoilCorrectAngleX# : rem AirMod - Line Modified for Recoil
  `
 endif
-
-
 
 rem Scene Commander, player wobblling
 
@@ -42043,9 +42043,9 @@ else
 endif
 if movement<>0
  if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
-  camerawobble#=wrapvalue(camerawobble#+(10.0*timeelapsed#))
+  camerawobble#=wrapvalue(camerawobble#+(5.0*timeelapsed#))
  else
-  camerawobble#=wrapvalue(camerawobble#+(40.0*timeelapsed#))
+  camerawobble#=wrapvalue(camerawobble#+(20.0*timeelapsed#))
  endif
  if (plrkeySHIFT)=1 or (plrkeySHIFT2)=1
   arenaadjust#=arenaadjustd#+(cos(camerawobble#)*0.60)
@@ -63543,6 +63543,7 @@ _stickyflakplacement:
    endif
 
 return
+
 
 
 
