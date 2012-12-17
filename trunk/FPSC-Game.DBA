@@ -213,6 +213,7 @@ global lmbheldtime=0
 global rmbheld=0
 global rmbheldtime=0
 global jamadjust=0
+global screengrabtimer=timer()
 
 rem scene commander - average FPS for smoother movement
 global nextave=1
@@ -4978,8 +4979,10 @@ endif
   endif
  endif
  `
- rem Can intercept to grab screen
- if keystate(plrkeyF12)=1
+
+ rem Can intercept to grab screen - Scene Commander fix, no longer freezes if PlrkeyF12 is held
+ if keystate(plrkeyF12)=1 and (timer()-screengrabtimer>1000)
+ screengrabtimer=timer()
   tnum=1
   repeat
    snapshotfile$="..\snapshot"+str$(tnum)+".bmp"
@@ -4990,8 +4993,8 @@ endif
    save image snapshotfile$,21000000,1
    delete image 21000000
   endif
-  while keystate(plrkeyF12)=1
-  endwhile
+  `while keystate(plrkeyF12)=1
+  `endwhile
  endif
  `
  rem Sync Performance check
@@ -8724,7 +8727,7 @@ endif
     rem remove attached weapon physics if out of bounds
     tobj=entityelement(e).attachmentobj
     if tobj>0
-     if object position y(tobj)<-50
+     if object position y(tobj)<-50 and object position y(tobj)<>-5000
       gosub _ode_deleteentity
       hide object tobj
       position object tobj,-5000,-5000,-5000
@@ -16022,30 +16025,10 @@ Rem Scene Commander
      endcase
      `
      case AIACTDESTROY:
-      rem deactivate and hide entity (beenkilled used by spawner)
-      entityelement(e).beenkilled=1
-      entityelement(e).active=0
-      rem FPGC - 140809 - also reset AI script (so saveload removes entity completely on reload)
-      entityelement(e).ai.libindex=entityelement(e).ai.libinit
-      if obj>0
-       if entityelement(e).eleprof.physics<>0
-        gosub _ode_switchoffe
-       else
-        set object collision off obj
-       endif
-       hide object obj:entityelement(e).ishidden=2
-      endif
-      rem stop any looping sound
-      gosub _ai_stopentsounds
-      rem clear entity from col map
-      tx=entityelement(e).x/25
-      ty=entityelement(e).y/100
-      tz=entityelement(e).z/-25
-      if tx>=0 and ty>=0 and tz>=0
-       if tx<=viscolx and ty<=viscoly and tz<=viscolz
-        if viscolmap(tx,ty,tz)=e then viscolmap(tx,ty,tz)=0
-       endif
-      endif
+
+     Rem Scene commander, moved to allow destruction call from points of the source.
+      gosub _killentity
+
      endcase
      case AIACTSUSPEND:
       rem deactivate entity (like a corpse)
@@ -63543,6 +63526,35 @@ _stickyflakplacement:
    endif
 
 return
+
+_killentity:
+
+rem deactivate and hide entity (beenkilled used by spawner)
+      entityelement(e).beenkilled=1
+      entityelement(e).active=0
+      rem FPGC - 140809 - also reset AI script (so saveload removes entity completely on reload)
+      entityelement(e).ai.libindex=entityelement(e).ai.libinit
+      if obj>0
+       if entityelement(e).eleprof.physics<>0
+        gosub _ode_switchoffe
+       else
+        set object collision off obj
+       endif
+       hide object obj:entityelement(e).ishidden=2
+      endif
+      rem stop any looping sound
+      gosub _ai_stopentsounds
+      rem clear entity from col map
+      tx=entityelement(e).x/25
+      ty=entityelement(e).y/100
+      tz=entityelement(e).z/-25
+      if tx>=0 and ty>=0 and tz>=0
+       if tx<=viscolx and ty<=viscoly and tz<=viscolz
+        if viscolmap(tx,ty,tz)=e then viscolmap(tx,ty,tz)=0
+       endif
+      endif
+
+    return
 
 
 
