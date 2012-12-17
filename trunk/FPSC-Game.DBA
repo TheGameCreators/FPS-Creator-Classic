@@ -607,6 +607,9 @@ type saveloadgamepositionentitytype
  entityacc as float
  soundplaying as integer
  frozen as frozen
+ delaydestroy as integer
+ delaydestroytimer as integer
+ delaytimeactive as integer
 
 endtype
 type saveloadgamepositionweaponslottype
@@ -1775,6 +1778,9 @@ type entitytype
  soundplaying as integer
  frozen as frozen
  distance as integer
+ delaydestroy as integer
+ delaydestroytimer as integer
+ delaytimeactive as integer
 
 endtype
 rem Entity Breadcrumbs Data
@@ -2584,8 +2590,9 @@ rem Scene Commander actions
 #constant AIACTFLASHLIGHTRANGE 1661
 #constant AIACTUSEFADE 1662
 #constant AIACTSHOWAIR 1663
+#constant AIACTDELAYDESTROY 1664
 
-#constant AIACTLAST 1664
+#constant AIACTLAST 1665
 
 rem V109 BETA3 - 210408 - AI variables
 global aivariablemode : aivariablemode=0 : rem 0-global, 1-local
@@ -12970,6 +12977,7 @@ actword$(AIACTFLASHLIGHTBLUE)="flashlightblue"
 actword$(AIACTFLASHLIGHTRANGE)="flashlightrange"
 actword$(AIACTUSEFADE)="usefade"
 actword$(AIACTSHOWAIR)="alwaysshowair"
+actword$(AIACTDELAYDESTROY)="delaydestroy"
 
 return
 
@@ -22059,6 +22067,13 @@ case AIACTSHOWAIR:
 
 alwaysshowair=aiactionseq(seq).value
 
+endcase
+
+case AIACTDELAYDESTROY:
+
+entityelement(e).delaydestroy=aiactionseq(seq).value
+entityelement(e).delaydestroytimer=timer()
+entityelement(e).delaytimeactive=1
 endcase
 
    endselect
@@ -63093,7 +63108,12 @@ function culling(e,entid,obj)
 
  `text 200,200,str$(timer()-lmbheldtime)
 
-
+if timer()-entityelement(e).delaydestroytimer>entityelement(e).delaydestroy
+   if entityelement(e).delaytimeactive=1
+   entityelement(e).delaytimeactive=0
+   gosub _killentity
+   endif
+endif
    ` text 200,200,str$(weaponammo(weaponammoindex+ammooffset))
  rem if not just using FPSC default culling
 if gmultiplayergame<>1 and cullmode<>0
