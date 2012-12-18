@@ -15004,16 +15004,42 @@ case AICONDISIMMUNE:
 
      case AICONDWEAPONINSLOT:
 
-     airesult=0
 
       conda=aiconditionseq(seq).valuea
+      condb=aiconditionseq(seq).valueb
       if conda>0 and conda<10
+      slot1=weaponslot(conda).got
+      else
+      slot1=0
+      endif
+      if condb>0 and condb<10
+      slot2=condb
+      else
+      slot2=0
+      endif
 
-         if weaponslot(conda).got<>0
-         airesult=1
+      airesult=0
+      foundgunid=0
+      findgun$=lower$(aiconditionseq(seq).string1)
+
+      if slot2=0
+         else
+            gosub _gun_findweaponindexbyname
+             if foundgunid>0
+               if weaponslot(slot2).got=foundgunid
+               airesult=1
+               endif
+            endif
          endif
 
-      endif
+
+         if foundgunid=0
+            if slot1<>0
+            airesult=1
+            endif
+         endif
+
+
 
      endcase
 
