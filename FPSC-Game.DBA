@@ -5004,7 +5004,7 @@ global dim syncrate(15)
    if tm_current_value = 10 then tm_current_value = 1
    syncrate# = ( timer() - syncrate(tm_current_value) ) / 1000.0
 
- endif`
+ endif
  endif
 
  rem Can intercept to grab screen - Scene Commander fix, no longer freezes if PlrkeyF12 is held
