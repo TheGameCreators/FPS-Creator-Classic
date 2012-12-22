@@ -1,4 +1,3 @@
-
 rem FIRST PERSON GAME CREATOR GAME ENGINE - V1.20
 rem Copyright (c) 2005, 2010 The Game Creators Ltd
 rem
@@ -105,6 +104,8 @@ global lastsetair=0
 global drowned=0
 rem god mode
 global isimmune=0
+rem new syncrate
+global syncrate as integer
 rem control keys
 global arrowkeyson=1
 global jumponkey=1
@@ -157,8 +158,6 @@ global lastfiredtime=0
 global noholster=1
 global noairon=0
 global drowndamage=1
-global gdisplaywidth : gdisplaywidth=Sw
-global gdisplayheight : gdisplayheight=Sh
 global pickrange#=75.0
 global lastpickrange#=75.0
 global laststrength#=4000.0
@@ -197,7 +196,8 @@ Rem Scene Commander - made global as otherwise it is being ignored in functions
 global weaponammoindex=0
 global ammooffset=0
 global timeelapsed#=0.0
-global syncrate=140
+
+`global syncrate=80 rem rem out to fix speed
 global plrdistance#=0.0
 global spareselectkey=0
 Rem Scene Commander, player maximum velocity reached, mainly for debug.
@@ -298,6 +298,10 @@ global timestampactivitymax=0
 global timestampactivityflagged=0
 global timestampactivityindex=0
 dim timestampactivity$(1000)
+rem speed up
+global timebasepercycle# as float : timebasepercycle#=0
+global timebasepercyclestamp as DWORD : timebasepercyclestamp=timer()
+
 
 rem FPGC - 090909 - mising media collector
 dim missingmedia$(0)
@@ -473,7 +477,7 @@ endtype
 dim team_frags(0) as team_frag
 empty array team_frags(0)
 rem V109 BETA3 - added to control change to player jump height
-global playerdefaultjumpheight : playerdefaultjumpheight=50
+global playerdefaultjumpheight : playerdefaultjumpheight=50.0 rem changed
 
 rem V118 - store range, aspect and fov globally!
 global realrange# : realrange#=9000.0
@@ -3545,8 +3549,8 @@ global gusefloorstate : gusefloorstate=0
 global guseenvsoundsstate : guseenvsoundsstate=0
 global guseweaponsstate : guseweaponsstate=0
 global gindieditorstate : gindieditorstate=0
-global gdisplaywidth : gdisplaywidth=sw
-global gdisplayheight : gdisplayheight=sh
+global gdisplaywidth : gdisplaywidth=Sw rem typo error fixed
+global gdisplayheight : gdisplayheight=Sh rem typo error fixed
 global gdisplaydepth : gdisplaydepth=32
 global gfullscreen : gfullscreen=0
 global gcontrollerhint : gcontrollerhint=0
@@ -3592,7 +3596,7 @@ global gentitytogglingoff : gentitytogglingoff=0
 global gextracollisionbuilddisabled : gextracollisionbuilddisabled=1
 global galwaysconfirmsave : galwaysconfirmsave=0
 global gsimplifiedcharacterediting : gsimplifiedcharacterediting=0
-global gantialias : gantialias=0
+global gantialias : gantialias=8 rem changed to 8 from 0
 rem V118 - 130810 - knxrb - Invert Mouse
 global gminvert : gminvert=0
 rem V118 - 140810 - knxrb - Disable Particles
@@ -4238,9 +4242,11 @@ set text font "Verdana"
 rem Init app (lee - 140310 - sync rate was 38)
 `sync on : sync rate 0 : autocam off : disable systemkeys
 rem scene commander performance
-sync on : sync rate 80
 
- : autocam off : disable systemkeys `- new cap to fix animation issues
+sync on : syncrate = 80 : autocam off : disable systemkeys `alpha v1.6 cap for jerky animations
+
+
+
 hide mouse : backdrop off : disable escapekey
 
 rem If Game is NOT IN TEST MODE, default is full screen shown
@@ -4985,7 +4991,21 @@ endif
    if keystate(18)=1 then continueokay=1 : loopapp=0 : levelwon=2 : rem quit game
   endif
  endif
- `
+ rem code added for new syncrate
+if syncrate <> 0
+      ` while timer()-gametimer < 1000 / syncrate
+   ` endwhile
+    `gametimer= timer()
+global tm_current_value,syncrate#
+global dim syncrate(15)
+
+   syncrate(tm_current_value) = timer()
+   inc tm_current_value
+   if tm_current_value = 10 then tm_current_value = 1
+   syncrate# = ( timer() - syncrate(tm_current_value) ) / 1000.0
+
+ endif`
+ endif
 
  rem Can intercept to grab screen - Scene Commander fix, no longer freezes if PlrkeyF12 is held
  if keystate(plrkeyF12)=1 and (timer()-screengrabtimer>1000)
@@ -5257,13 +5277,13 @@ endif
       gosub _flashlight_control
   SyncAll()
   if gpostprocessing=0 or gpostprocessing=1 or gpostprocessing=2 then set current camera 0
-  if gpostprocessing=0 or gpostprocessing=1 or gpostprocessing=2
-  if gcapfpson=0 then sync rate syncrate
-  sync
-  if gcapfpson=0 then sync rate 80
-  endif
+  if gpostprocessing=0 or gpostprocessing=1 or gpostprocessing=2 then sync
 
- endif
+ ` sync
+ ` if gcapfpson=0 then sync rate 80
+  endif
+ `if gcapfpson=0 then syncrate = 140
+
 return
 
 _main_initcalceyes:
@@ -8398,7 +8418,7 @@ rem handle AI sound
 managebroadcastsound()
 
 rem maintain constant game speed -timer based - Scene Commander rewrite for smoother movement
-
+remstart
 timeelapsed#=timebasepercycle#
 fpsstore(nextave)=timeelapsed#
 temptime#=0
@@ -8410,6 +8430,18 @@ timeelasped#=(timeelasped#/100)*(timer()-timestamp): timestamp=timer()
 inc nextave,1:if nextave>80 then nextave=1
 rem maintain constant game speed
 `timeelapsed#=(1.0/50.0)*(timer()-timestamp) : timestamp=timer()
+remend
+rem changed for speed
+`timeelapsed#=(1.0/50.0)*(timer()-timestamp) : timestamp=timer()
+`fpsstore(nextave)=timebasepercycle# ` alpha v1.5 speed up
+`temptime#=0
+`for ave=1 to 80
+`temptime#=temptime#+fpsstore(ave)
+`next ave
+`timeelasped#=temptime#/80
+`inc nextave,1:if nextave>80 then nextave=1
+
+timeelapsed#=(1.0/50.0)*(timer()-timestamp) : timestamp=timer()
 
 rem maintain couner for any animspeed changes
 inc timeelapsedrefreshentityanimspeeds
@@ -10983,6 +11015,7 @@ _entity_controlmovements:
     if entityelement(e).nofloorlogic=0
      rem full gravity and volume handling of entities in motion
      if entitysystemdisabled=0
+
       rem 051112 - do not allow gravity's downward pull to effect flak (handled in flak system incy and grav!)
       if entityelement(e).isflak=0
        tmaxfall#=entityelement(e).mover.grav*timeelapsed# : if tmaxfall#>10.0 then tmaxfall#=10.0
@@ -11665,7 +11698,7 @@ _entity_addforcesphere:
    rem suggest damage to entity if strong enough force
    if tforce#>0.2
     rem indirect damage is a hugely reduced value
-    if tdirectdamage=0 then tforce#=tforce#/50
+    if tdirectdamage=0 then tforce#=tforce#/50.0 rem changed to 50.0
     rem actual entity damage
     tdamagex#=entityelement(tte).x : tdamagey#=entityelement(tte).y : tdamagez#=entityelement(tte).z
     tdamage=tforce#*1.2*spheredamage : rem increased damage slightly to conform with expected V1.0 damage levels (terrorstrike)
@@ -24663,7 +24696,7 @@ _player_restart:
  zrotate camera 0
  `
  rem start with a jump
- grav#=-1.0 : jumpaction=0 : jumpspeed#=0.0 : jumpangle#=camera angle y() : gravlasty#=mey#`sizechange=1:firstturnjump=0
+ grav#=-1.0 : jumpaction=0  : jumpspeed#=0.0 : jumpangle#=camera angle y(0) : gravlasty#=mey#`sizechange=1:firstturnjump=0
  camflyforcex#=0 : camflyforcey#=0 : camflyforcez#=0
  camforcex#=0 : camforcey#=0 : camforcez#=0
  `
@@ -42067,9 +42100,9 @@ else
 endif
 if movement<>0
  if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
-  camerawobble#=wrapvalue(camerawobble#+(5.0*timeelapsed#))
+  camerawobble#=wrapvalue(camerawobble#+(15.0*timeelapsed#))
  else
-  camerawobble#=wrapvalue(camerawobble#+(20.0*timeelapsed#))
+  camerawobble#=wrapvalue(camerawobble#+(30.0*timeelapsed#))
  endif
  if (plrkeySHIFT)=1 or (plrkeySHIFT2)=1
   arenaadjust#=arenaadjustd#+(cos(camerawobble#)*0.60)
@@ -48716,7 +48749,7 @@ rem GOTO LABEL (warning: not recommended but useful sometimes!)
 
 rem Init app
 sync on :` sync rate 60
-sync rate 140
+sync rate 80 rem changed to 80 from 140
 show window : window to front strarr$(475)+" - [Editor]"
 always active off
 
@@ -59724,8 +59757,8 @@ _darkai_init:
  rem V118 - 080211 - switch to grid based avoidance system (less likely to push fellows into walls)
  rem V119 - 230611 - Hockeykid - Sounds nice, but doesn't seem to work as desired. Apparently the blocking threshold is incorrect
  rem 1 AI can stop another AI, instead of 3 :S
- `ai set avoid mode 5 : AI SET BLOCKING THRESHOLD 3
- ai set avoid mode 1
+ ai set avoid mode 5 : AI SET BLOCKING THRESHOLD 3 rem changed back to stop fellows into walls
+` ai set avoid mode 1
  `
  rem Universe containers (required for static entities)
  for layer=0 to 19
@@ -62778,12 +62811,13 @@ Setup_LightRays:
 return
 
 Update_LightRays:
- if lrdebugdeactive=0
+rem take out debug info
+` if lrdebugdeactive=0
   rem debug, display light ray camera image
-  if keystate(2)=1
-   paste image 6,0,0
-  endif
- endif
+ ` if keystate(2)=1
+ `  paste image 6,0,0
+ ` endif
+` endif
  `
  rem update scatter shader
  y=wrapvalue(object angle y(99000))
@@ -62903,9 +62937,11 @@ function SyncAll()
   if object exist(65124)=1 then hide object 65124
   hide object 99001
   Rem Scene Commander - only deal with water plane if water is on.
-  if wateron=1
-  hide object waterobj
-  endif
+  `if wateron=1
+ ` hide object waterobj
+  `endif
+ if wateron=1 then show object waterobj `s4real fix plane showing up.
+
   `
   rem mask all hudbankoffset object for raycamera render
   for o=hudbankoffset to hudbankoffset+31
@@ -62930,9 +62966,11 @@ function SyncAll()
   if object exist(65124)=1 then show object 65124
   show object 99001
   Rem Scene Commander - only deal with water plane if water is on.
-  if wateron=1
-  show object waterobj
-  endif
+ ` if wateron=1
+ ` show object waterobj
+ ` endif
+  if wateron=1 then show object waterobj `s4real fix plane showing up.
+
   `
   rem set new black effect technique
   for blackeffects=effectbankoffset to effectbankoffset+effectbankmax
