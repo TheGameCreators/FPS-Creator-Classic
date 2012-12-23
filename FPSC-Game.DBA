@@ -5005,7 +5005,7 @@ global dim syncrate(15)
    syncrate# = ( timer() - syncrate(tm_current_value) ) / 1000.0
 
  endif
- endif
+
 
  rem Can intercept to grab screen - Scene Commander fix, no longer freezes if PlrkeyF12 is held
  if keystate(plrkeyF12)=1 and (timer()-screengrabtimer>1000)
