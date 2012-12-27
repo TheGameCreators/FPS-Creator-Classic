@@ -222,7 +222,6 @@ dim fpsstore(80):for f=1 to 80:fpsstore(f)=80:next f
 
 Rem Scene Commander end variables
 
-
 if exeroot$<>"" then set dir exeroot$
 rem Special build flags for 'genre' switch
 global fpgchud$ : fpgchud$=""
@@ -3597,7 +3596,7 @@ global gentitytogglingoff : gentitytogglingoff=0
 global gextracollisionbuilddisabled : gextracollisionbuilddisabled=1
 global galwaysconfirmsave : galwaysconfirmsave=0
 global gsimplifiedcharacterediting : gsimplifiedcharacterediting=0
-global gantialias : gantialias=8 rem changed to 8 from 0
+global gantialias : gantialias=0 rem reverted
 rem V118 - 130810 - knxrb - Invert Mouse
 global gminvert : gminvert=0
 rem V118 - 140810 - knxrb - Disable Particles
@@ -38863,7 +38862,9 @@ for hudid=1 to hudmax
        set sprite texture coord hudid,1,(ttbitx#*ttnum)+ttbitx#,(ttbity#*ttnumy)
        set sprite texture coord hudid,2,(ttbitx#*ttnum),(ttbity#*ttnumy)+ttbity#
        set sprite texture coord hudid,3,(ttbitx#*ttnum)+ttbitx#,(ttbity#*ttnumy)+ttbity#
-       paste sprite hudid,hud(hudid).posx+((tt-1)*12),hud(hudid).posy
+       numhudadjust#=(sw/1024)*12.0
+       paste sprite hudid,hud(hudid).posx+((tt-1)*numhudadjust#),hud(hudid).posy
+       `paste sprite hudid,hud(hudid).posx+((tt-1)*12),hud(hudid).posy
       endif
      endif
     next tt
