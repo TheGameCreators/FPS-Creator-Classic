@@ -985,9 +985,6 @@ global gfastboneeffectshaderidmax : gfastboneeffectshaderidmax=0
 dim gfastboneeffectshaderid(1) as integer
 dim soundbank$(10)
 global soundbankmax=0
-Rem Terry fix for clone sound crash.
-dim holdsoundid(10)
-global holdsoundidmax=1
 global soundbankoffset=1
 global materialsoundoffset=10001
 global materialsoundmax=0
@@ -23811,24 +23808,12 @@ if t>soundbankmax
     if globalsmallsound=0
      globalsmallsound=soundid
      tfile$="audiobank\voices\squeak\leap.wav"
-     load sound tfiletoload$,globalsmallsound,0,1
+     `load sound tfiletoload$,globalsmallsound,0,1 : rem turns out CLONE SOUND cannot clone an OGG sound (was in tfiletoload$)
+     load sound tfile$,globalsmallsound,0,1
      if sound exist(globalsmallsound)=0 then globalsmallsound=0
     else
-    Rem Terry fix for clone sound crash
-   for i = 1 to array count(holdsoundid(0))
-                    if holdsoundid(i) = soundid
-                        skipclone=1
-                        exit
-                    endif
-                next i
-                if skipclone=1
-                    skipclone=0
-                else
-                    clone sound soundid,globalsmallsound
-                 endif
-            endif
-     `clone sound soundid,globalsmallsound
-
+     clone sound soundid,globalsmallsound
+    endif
    else
     if mode=1 and tspecialogg=0
      load 3dsound tfiletoload$,soundid,1
@@ -23846,13 +23831,6 @@ if t>soundbankmax
     rem success
     soundbank$(soundbankmax)=tfile$
     addfiletocollection(tfile$)
-    Rem Terry fix for clone sound crash
-      if soundid > 0
-         holdsoundid(holdsoundidmax) = soundid
-         inc holdsoundidmax
-         dim holdsoundid(holdsoundidmax)
-      endif
-
    endif
   endif
  endif
