@@ -34,15 +34,17 @@ rem Credit to Robert Knox for help fixing up the engine and adding a cool HUD sy
 
 _start_engine:
 
+rem Init app
 sync on : sync rate 0
 
-      if Sw=0 or Sh=0
-         load dll "user32.dll",1
-            Sw=call dll(1,"GetSystemMetrics",0)
-            Sh=call dll(1,"GetSystemMetrics",1)
-         delete dll 1
-      endif
-
+rem Get Actual screen resolution from desktop resolution
+rem Not sure what is using SW and GH globals but need renaming as the names are too small for globals!
+if Sw=0 or Sh=0
+ load dll "user32.dll",1
+  Sw=call dll(1,"GetSystemMetrics",0)
+  Sh=call dll(1,"GetSystemMetrics",1)
+ delete dll 1
+endif
 global vsync
 
 rem alpha v1.6 call kernel32 dll for better performance freq
@@ -50,9 +52,7 @@ Kernel32 =1
 load dll "kernel32.dll",Kernel32
 memptr = make memory(16)
 call dll Kernel32, "QueryPerformanceFrequency", memptr
-
 perftimer() = *memptr
-
 delete dll Kernel32
 
 Rem Scene Commander globals
@@ -3546,8 +3546,8 @@ global gusefloorstate : gusefloorstate=0
 global guseenvsoundsstate : guseenvsoundsstate=0
 global guseweaponsstate : guseweaponsstate=0
 global gindieditorstate : gindieditorstate=0
-global gdisplaywidth : gdisplaywidth=Sw rem typo error fixed
-global gdisplayheight : gdisplayheight=Sh rem typo error fixed
+global gdisplaywidth : gdisplaywidth=Sw rem typo error fixed - overwritten in test game SETUP.INI (width)
+global gdisplayheight : gdisplayheight=Sh rem typo error fixed - overwritten in test game SETUP.INI (height)
 global gdisplaydepth : gdisplaydepth=32
 global gfullscreen : gfullscreen=0
 global gcontrollerhint : gcontrollerhint=0
@@ -19319,7 +19319,10 @@ Rem Scene Commander
      case AIACTRESET:
       if grealgameviewstate=1
        Gosub _main_game_freeleveldata
-       Gosub _start_engine
+       `
+       rem 301212 - Pretty Horrible Solution - changed to GOTO to at least preserve the stack a little!
+       Goto _start_engine
+       `
       endif
      endcase
      case AIACTSAVESETUP:
@@ -38840,9 +38843,10 @@ for hudid=1 to hudmax
        set sprite texture coord hudid,1,(ttbitx#*ttnum)+ttbitx#,(ttbity#*ttnumy)
        set sprite texture coord hudid,2,(ttbitx#*ttnum),(ttbity#*ttnumy)+ttbity#
        set sprite texture coord hudid,3,(ttbitx#*ttnum)+ttbitx#,(ttbity#*ttnumy)+ttbity#
-       numhudadjust#=(sw/1024)*12.0
-       paste sprite hudid,hud(hudid).posx+((tt-1)*numhudadjust#),hud(hudid).posy
+       rem leefix - 301212 - use actual width of screen to work out spacing
        `paste sprite hudid,hud(hudid).posx+((tt-1)*12),hud(hudid).posy
+       numhudadjust#=((gdisplaywidth+0.0)/1024.0)*12.0
+       paste sprite hudid,hud(hudid).posx+((tt-1)*numhudadjust#),hud(hudid).posy
       endif
      endif
     next tt
