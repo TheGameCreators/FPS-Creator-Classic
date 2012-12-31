@@ -38,11 +38,11 @@ rem Init app
 sync on : sync rate 0
 
 rem Get Actual screen resolution from desktop resolution
-rem Not sure what is using SW and GH globals but need renaming as the names are too small for globals!
-if Sw=0 or Sh=0
+rem Scene Commander - renamed SW and SH to ScreenW and ScreenH as names too short.
+if ScreenW=0 or ScreenH=0
  load dll "user32.dll",1
-  Sw=call dll(1,"GetSystemMetrics",0)
-  Sh=call dll(1,"GetSystemMetrics",1)
+  ScreenW=call dll(1,"GetSystemMetrics",0)
+  ScreenH=call dll(1,"GetSystemMetrics",1)
  delete dll 1
 endif
 global vsync
@@ -3546,8 +3546,8 @@ global gusefloorstate : gusefloorstate=0
 global guseenvsoundsstate : guseenvsoundsstate=0
 global guseweaponsstate : guseweaponsstate=0
 global gindieditorstate : gindieditorstate=0
-global gdisplaywidth : gdisplaywidth=Sw rem typo error fixed - overwritten in test game SETUP.INI (width)
-global gdisplayheight : gdisplayheight=Sh rem typo error fixed - overwritten in test game SETUP.INI (height)
+global gdisplaywidth : gdisplaywidth=ScreenW rem typo error fixed - overwritten in test game SETUP.INI (width)
+global gdisplayheight : gdisplayheight=ScreenH rem typo error fixed - overwritten in test game SETUP.INI (height)
 global gdisplaydepth : gdisplaydepth=32
 global gfullscreen : gfullscreen=0
 global gcontrollerhint : gcontrollerhint=0
@@ -63634,6 +63634,7 @@ rem deactivate and hide entity (beenkilled used by spawner)
       endif
 
     return
+
 
 
 
