@@ -41928,7 +41928,7 @@ else
  `
 endif
 
-rem Scene Commander, player wobblling
+rem Scene Commander, player wobbling
 
 if wobble#<>0.0 and player(1).health>0
  wobbleangle#=wrapvalue(wobbleangle#+((2+rnd(4)+(11-wobble#))/10.0))
@@ -42095,9 +42095,11 @@ else
 endif
 if movement<>0
  if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
-  camerawobble#=wrapvalue(camerawobble#+(15.0*timeelapsed#))
+  `camerawobble#=wrapvalue(camerawobble#+(15.0*timeelapsed#))
+  camerawobble#=wrapvalue(camerawobble#+(3.0*timeelapsed#))
  else
-  camerawobble#=wrapvalue(camerawobble#+(30.0*timeelapsed#))
+  `camerawobble#=wrapvalue(camerawobble#+(30.0*timeelapsed#))
+  camerawobble#=wrapvalue(camerawobble#+(10.0*timeelapsed#))
  endif
  if (plrkeySHIFT)=1 or (plrkeySHIFT2)=1
   arenaadjust#=arenaadjustd#+(cos(camerawobble#)*0.60)
