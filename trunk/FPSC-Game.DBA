@@ -46923,6 +46923,12 @@ for lsi=0 to entityelementmax
    a#=saveloadgamepositionentity(lsi).soundplaying : write float 1,a#
 next lsi
 
+for f=1 to 100
+   a$=ammopool(f).name$: write string 1,a$
+   a#=ammopool(f).ammo: write float 1,a#
+   a#=ammopool(f).used: write float 1,a#
+next f
+
 endif
 
  close file 1
@@ -47293,6 +47299,12 @@ next f
    read float 1,a# : saveloadgamepositionentity(lsi).soundplaying=a#
 
    next lsi
+
+for f=1 to 100
+read string 1,a$: ammopool(f).name$=a$
+  read float 1,a#: ammopool(f).ammo=a#
+  read float 1,a#: ammopool(f).used=a#
+next f
 
 endif
 
