@@ -4029,6 +4029,7 @@ global currenttexdir$ : currenttexdir$=rootdir$+"texturebank\"
 global currentfxdir$ : currentfxdir$=rootdir$+"effectbank\"
 global currentpredir$ : currentpredir$=rootdir$+"prefabs\"
 global currentsegdir$ : currentsegdir$=rootdir$+"segments\"
+global currentvideodir$ : currentvideodir$=rootdir$+"videobank\"
 
 rem Determine if GAME or MAPEDITOR here, so can set display mode accordingly
 global trueappname$ : trueappname$="FPSC-Game"
@@ -4242,8 +4243,6 @@ rem scene commander performance
 
 sync on : syncrate = 80 : autocam off : disable systemkeys `alpha v1.6 cap for jerky animations
 
-
-
 hide mouse : backdrop off : disable escapekey
 
 rem If Game is NOT IN TEST MODE, default is full screen shown
@@ -4359,8 +4358,6 @@ endif
 rem Reset file collector
 resetfilecollection()
 
-Rem Scene Commander - add blank video templates
-
 rem FPGC - 200310 - initialise FULL SCREEN EFFECTS (camera one) (moved from above to allow file capture)
 gosub _postprocess_init
 
@@ -4368,6 +4365,10 @@ addfiletocollection("databank\compass.png")
 addfiletocollection("databank\needle.png")
 addfiletocollection("databank\radarback.png")
 addfiletocollection("databank\objective.png")
+
+if file exist("videobank\storyvideo.avi")=1
+   addfiletocollection("videobank\storyvideo.avi")
+endif
 for f=1 to 20
 a$="databank\blip"+str$(f)+".png"
 if file exist(a$)
