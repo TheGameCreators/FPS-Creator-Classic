@@ -31028,7 +31028,7 @@ rem Control all decal activity
 for f=1 to decalelementmax
  if decalelement(f).active=1
    if screen fps()>120
-      decaltimeelapsed#=timeelapsed#*2
+      decaltimeelapsed#=timeelapsed#/1.7
    else
       decaltimeelapsed#=timeelapsed#
    endif
