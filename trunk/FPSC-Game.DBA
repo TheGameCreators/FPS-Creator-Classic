@@ -31,8 +31,15 @@ rem
 rem Credit to Airslide for help with Dark AI when it went into Fenix Mod
 rem Credit to Hockeykid for his continued help integrating Dark AI
 rem Credit to Robert Knox for help fixing up the engine and adding a cool HUD system
+rem Credit to Flatlander for his code fixes and tireless alpha testing.
 
 _start_engine:
+
+if file exist("log.txt")
+   delete file "log.txt"
+endif
+open to write 15, "log.txt"
+
 
 rem Init app
 sync on : sync rate 0
@@ -4664,7 +4671,8 @@ _main_game_freeleveldata:
   undim aisafezone()
   undim points()
   undim aisound()
-  undim ammopool()
+  Rem undimming ammopool was breaking ammo transfer.
+ ` undim ammopool()
   undim undoredolist()
   undim meshbank$()
   undim texturebank$()
@@ -15075,40 +15083,80 @@ case AICONDISIMMUNE:
      endcase
 
      case AICONDCURRENTWEAPON:
+          `
+          local weapslot as integer
+          local wn$ as string
+          local pos as integer : pos=0
+          local temp$ as string
+          local character$ as string
+          local ascii as integer
+          local isnumeric as boolean
 
-     rem Scene Commander, find current weapon, there maybe a better way of doing this.
-     findslot=0
-
-   findgun$=lower$(aiconditionseq(seq).string1)
-   airesult=0
-   foundgunid=0
-
-   if gunid=0
-    else
-      gosub _gun_findweaponindexbyname
-      if foundgunid>0
-         if foundgunid=gunid
-         airesult=1
-      endif
-      endif
-
-
-    if airesult=0
-
-     for f=1 to 10
-      if weaponslot(f).got=gunid
-      findslot=f
-      exit
-      endif
-     next f
-
-     if aiconditionseq(seq).valuea=findslot
-      airesult=1
-      else
-      airesult=0
-     endif
-    endif
-   endif
+          if gunid = 0
+            airesult = 0
+          else
+            wn$ = aiconditionseq(seq).string1
+            for i = 1 to len(wn$)
+                character$ = mid$(wn$,i)
+                ascii = asc(character$)
+                if ascii > 47 and ascii < 58
+                    isnumeric = 1
+                else
+                    isnumeric = 0
+                    exit
+                endif
+            next i
+            if isnumeric
+                weapslot = val(aiconditionseq(seq).string1)
+                if weaponslot(weapslot).got <> gunid then airesult = 0
+            else
+                pos = find last char$(wn$,"\")
+                if pos > 0
+                    temp$ = gun(gunid).name$
+                else
+                    pos = find last char$(gun(gunid).name$,"\")
+                    if pos > 0
+                        temp$ = right$(gun(gunid).name$,len(gun(gunid).name$)-pos)
+                    else
+                        temp$ = gun(gunid).name$
+                    endif
+                endif
+                if lower$(temp$) <> lower$(wn$) then airesult = 0
+            endif
+          endif
+//      rem Scene Commander, find current weapon, there maybe a better way of doing this.
+//      findslot=0
+//
+//    findgun$=lower$(aiconditionseq(seq).string1)
+//    airesult=0
+//    foundgunid=0
+//
+//    if gunid=0
+//     else
+//       gosub _gun_findweaponindexbyname
+//       if foundgunid>0
+//          if foundgunid=gunid
+//          airesult=1
+//       endif
+//       endif
+//
+//
+//     if airesult=0
+//
+//      for f=1 to 10
+//       if weaponslot(f).got=gunid
+//       findslot=f
+//       exit
+//       endif
+//      next f
+//
+//      if aiconditionseq(seq).valuea=findslot
+//       airesult=1
+//       else
+//       airesult=0
+//      endif
+//     endif
+//    endif
 
      endcase
 
@@ -24036,7 +24084,6 @@ function getfile(file$)
   endif
  next c
 endfunction file$
-
 `
 ` SUPPORT FUNCTIONS (DUPLICATED IN GUNSYSTEM)
 `
