@@ -60879,7 +60879,7 @@ _postprocess_init:
    `
    rem FPGC - 200310 - new camera 3 holds post-process screen quad (requires U75+)
    gfinalrendercameraid=3
-   if gpostprocessing<=2 then make camera gfinalrendercameraid : load effect tshaderchoice$,65535,1
+   if gpostprocessing<=2 then make camera gfinalrendercameraid : load effect tshaderchoice$,65535,0,1
    set camera view gfinalrendercameraid,0,0,1,1
    set current camera 0
    `
@@ -61476,7 +61476,7 @@ function MakeWater()
   texture object waterobj,i,Img+i
  next i
  xrotate object waterobj,270
- if file exist(path$+"Water.fx") then load effect path$+"Water.fx",waterfx,1 : set object effect waterobj,waterfx : addfiletocollection(path$+"Water.fx")
+ if file exist(path$+"Water.fx") then load effect path$+"Water.fx",waterfx,0,1 : set object effect waterobj,waterfx : addfiletocollection(path$+"Water.fx")
  set object transparency waterobj,1
  hide object waterobj
  set object collision off waterobj
@@ -62931,7 +62931,7 @@ Setup_Bloom:
  rem make and setup bloom object
  `make object plain bloom_obj+2,-1920/400,1080/400//-sw#/(400),sh#/(400)
  make object plain bloom_obj+2,4.8,2
- load effect "effectbank\ps_2_0\post-bloom.fx",bloom_obj+2,1
+ load effect "effectbank\ps_2_0\post-bloom.fx",bloom_obj+2,0,1
  texture object bloom_obj+2,0,bloom_img
  set object effect bloom_obj+2,bloom_obj+2
  set object transparency bloom_obj+2,1
@@ -63509,6 +63509,15 @@ endif
 endfunction
 
 
+
+rem time variable for wobble head
+function timesetvar(var# as float)
+   output#=var#*adj#
+endfunction output#
+
+function timersetvar(var# as float)
+   output#=var#*radj#
+endfunction output#
 
 _create_blood:
  decalid=entitydecal(entityelement(damagede).bankindex,1)
