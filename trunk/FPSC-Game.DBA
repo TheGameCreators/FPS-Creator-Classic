@@ -63508,17 +63508,6 @@ endif
 endif
 endfunction
 
-
-
-rem time variable for wobble head
-function timesetvar(var# as float)
-   output#=var#*adj#
-endfunction output#
-
-function timersetvar(var# as float)
-   output#=var#*radj#
-endfunction output#
-
 _create_blood:
  decalid=entitydecal(entityelement(damagede).bankindex,1)
  if decalid>0
