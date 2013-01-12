@@ -8485,7 +8485,7 @@ for e=1 to entityelementlist
    if entityprofile(entid).ischaracter=1 and entityelement(e).beenkilled=0 and (entityelement(e).active<>0 and entityelement(e).spawn.leader=0)
     edistance(e)
     howfar2=plrdistance#
-    if howfar2<(object size z(obj)*4)
+    if howfar2<(object size z(obj)*4)*deactivatecollision=1
      ode set body mass physicsplayerborble,physicsplayerweight#+entityelement(e).eleprof.phyweight
      ode set body mass obj,entityelement(e).eleprof.phyweight/4
      thx#=newxvalue(entityelement(e).rx,camera angle y(),10.0)
@@ -42140,9 +42140,9 @@ else
 endif
 if movement<>0
  if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
-  camerawobble#=wrapvalue(camerawobble#+(15.0*timeelapsed#))
+  camerawobble#=wrapvalue(camerawobble#+(15.0*timeelapsed#))*deactivatecollision=1
  else
-  camerawobble#=wrapvalue(camerawobble#+(30.0*timeelapsed#))
+  camerawobble#=wrapvalue(camerawobble#+(30.0*timeelapsed#))*deactivatecollision=1
  endif
  if (plrkeySHIFT)=1 or (plrkeySHIFT2)=1
   arenaadjust#=arenaadjustd#+(cos(camerawobble#)*0.60)
