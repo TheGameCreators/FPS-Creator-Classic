@@ -31071,10 +31071,11 @@ _decalelement_control:
 rem Control all decal activity
 for f=1 to decalelementmax
  if decalelement(f).active=1
-   if screen fps()>120
-      decaltimeelapsed#=timeelapsed#/1.7
-   else
+  backuptimeelapsed#=timeelapsed#
+   if screen fps()<=101
       decaltimeelapsed#=timeelapsed#
+   else
+      decaltimeelapsed#=timeelapsed#/1.2
    endif
 
   rem update decal object
@@ -63221,8 +63222,7 @@ rem end is o
 
 function culling(e,entid,obj)
 
-
- `text 200,200,str$(timer()-lmbheldtime)
+ `text 200,200,str$(timeelapsed#)
 
 if timer()-entityelement(e).delaydestroytimer>entityelement(e).delaydestroy
    if entityelement(e).delaytimeactive=1
