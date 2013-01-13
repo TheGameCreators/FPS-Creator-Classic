@@ -18019,37 +18019,37 @@ Rem Scene Commander
       effectfilename$="effectbank\postprocess\" +lower$(aiactionseq(seq).filename) + ".fx"
       rem make sure post effect file exists
       if file exist(effectfilename$)
-      rem make sure post-processing object exists, if not, ignore effect
-      if object exist (65536)=1
-       select effectfilename$
-        case "effectbank\postprocess\gasmask.fx"
-         texture object 65536,0,65536
-         texture object 65536,1,65538
-         texture object 65536,2,65539
-        endcase
-        case "effectbank\postprocess\refract.fx"
-         texture object 65536,0,65536
-         texture object 65536,1,65540
-        endcase
-        case "effectbank\postprocess\multi.fx"
-         texture object 65536,0,65536
-         texture object 65536,1,65541
-         texture object 65536,2,65542
-        endcase
-        case "effectbank\postprocess\filmreel.fx"
-         texture object 65536,0,65536
-         texture object 65536,1,65543
-        endcase
-        case "effectbank\postprocess\rain.fx"
-         texture object 65536,0,65536
-         texture object 65536,1,65544
-         texture object 65536,2,65545
-        endcase
-       endselect
-        delete effect 65535
+       rem make sure post-processing object exists, if not, ignore effect
+       if object exist (65536)=1
+        select effectfilename$
+         case "effectbank\postprocess\gasmask.fx"
+          texture object 65536,0,65536
+          texture object 65536,1,65538
+          texture object 65536,2,65539
+         endcase
+         case "effectbank\postprocess\refract.fx"
+          texture object 65536,0,65536
+          texture object 65536,1,65540
+         endcase
+         case "effectbank\postprocess\multi.fx"
+          texture object 65536,0,65536
+          texture object 65536,1,65541
+          texture object 65536,2,65542
+         endcase
+         case "effectbank\postprocess\filmreel.fx"
+          texture object 65536,0,65536
+          texture object 65536,1,65543
+         endcase
+         case "effectbank\postprocess\rain.fx"
+          texture object 65536,0,65536
+          texture object 65536,1,65544
+          texture object 65536,2,65545
+         endcase
+        endselect
+        if effect exist(65535)=1 then delete effect 65535
         load effect effectfilename$,65535,0
         set object effect 65536,65535
-      endif
+       endif
       endif
      endcase
      case AIACTSKY:
@@ -60878,7 +60878,11 @@ _postprocess_init:
    `
    rem FPGC - 200310 - new camera 3 holds post-process screen quad (requires U75+)
    gfinalrendercameraid=3
-   if gpostprocessing<=2 then make camera gfinalrendercameraid : load effect tshaderchoice$,65535,0,1
+   if gpostprocessing<=2 
+    make camera gfinalrendercameraid
+    if effect exist(65535)=1 then delete effect 65535
+    load effect tshaderchoice$,65535,0
+   endif
    set camera view gfinalrendercameraid,0,0,1,1
    set current camera 0
    `
