@@ -31574,10 +31574,11 @@ return
 _lighting_ambientcontrol:
 
 rem Irrespective of dynamic light setting
+If gtestgamemodefromeditor=1
 tempam=guivisualsettings.ambience
 if inkey$()="," and guivisualsettings.ambience>0 then dec guivisualsettings.ambience : guivisualsettings.updateflag=1 : ambiencetimer=5 : watertimer=0
 if inkey$()="." and guivisualsettings.ambience<100 then inc guivisualsettings.ambience : guivisualsettings.updateflag=1 : ambiencetimer=5 : watertimer=0
-if ambiencetimer>0 and gtestgamemodefromeditor=1
+if ambiencetimer>0
  `
  if grawtextsize<>12 then set text size 12 : grawtextsizelast=-1
  if grawtextfont$<>"Verdana" then set text font "Verdana" : grawtextfontlast$="Verdana"
@@ -31594,6 +31595,7 @@ if ambiencetimer>0 and gtestgamemodefromeditor=1
   write string 1,str$(guivisualsettings.ambience)
   close file 1
   ambiencetimer=0
+ endif
  endif
  `
  if ambiencewatch=0 then ambiencewatch=timer()
@@ -60878,7 +60880,7 @@ _postprocess_init:
    `
    rem FPGC - 200310 - new camera 3 holds post-process screen quad (requires U75+)
    gfinalrendercameraid=3
-   if gpostprocessing<=2 
+   if gpostprocessing<=2
     make camera gfinalrendercameraid
     if effect exist(65535)=1 then delete effect 65535
     load effect tshaderchoice$,65535,0
@@ -63693,6 +63695,7 @@ rem deactivate and hide entity (beenkilled used by spawner)
       endif
 
     return
+
 
 
 
