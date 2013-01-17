@@ -40736,8 +40736,15 @@ _ode_playerborble:
   delete object physicsplayerborble
  endif
 
- make object sphere physicsplayerborble,30
+ `make object sphere physicsplayerborble,30
 
+ Eyeheight = 72
+
+ make object sphere physicsplayerborble,Eyeheight/2
+
+ Set Object Collision To Polygons physicsplayerborble
+
+ Set Object Collision On physicsplayerborble
  Rem Hockeykid - 250210 - Dark AI add player to ai system
  if darkaiplayer=0
   ai add player physicsplayerborble,0
@@ -40747,9 +40754,9 @@ _ode_playerborble:
  color object physicsplayerborble,rgb(255,255,0)
  set object collision off physicsplayerborble
  if plrcamoffseton=1
- position object physicsplayerborble,camerapositionx+newcamoffsetx#,(camerapositiony-phyeyeheight#)+1+newcamoffsety#,camerapositionz+newcamoffsetz#
+ position object physicsplayerborble,camerapositionx+newcamoffsetx#,(camerapositiony-phyeyeheight#)+6+newcamoffsety#,camerapositionz+newcamoffsetz#
  else
- position object physicsplayerborble,camerapositionx,(camerapositiony-phyeyeheight#)+1,camerapositionz
+ position object physicsplayerborble,camerapositionx,(camerapositiony-phyeyeheight#)+6,camerapositionz
  endif
  if physicsdebug=1
   set object wireframe physicsplayerborble,1
