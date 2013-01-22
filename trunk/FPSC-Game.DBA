@@ -36,7 +36,6 @@ rem Credit to S4Real for continued support and some nice performance tweaks.
 
 _start_engine:
 
-
 rem Init app
 sync on : sync rate 0
 
@@ -22607,47 +22606,52 @@ if desc$<>""
 
          rem Scene Commander - create dds if not present.
 
-         for tfor=2 to 3
-            if tfor=2 then text$="png"
-            if tfor=3 then text$="bmp"
+          `for tfor=2 to 3
+            `if tfor=2 then text$="png"
+            `if tfor=3 then
+             text$="bmp"
 
             tsky$=sky$+"\"+tskyname$+"_U."+text$
-
-
 
             if file exist(tsky$)=1
             restore _skydata
                for f=1 to 6
                read tsuffix$
+               tsky$=sky$+"\"+tskyname$+tsuffix$+text$
                tsky2$=sky$+"\"+tskyname$+tsuffix$
 
-               if file exist(tsky2$+"dds")=0
+               if file exist(tsky2$+"png")=0
                   gosub _convertsky
                endif
                next f
+              ` tfor=4
             endif
 
-            next tfor
+         ` next tfor
 
             _skydata:
             data "_U.","_D.","_L.","_R.","_B.","_F."
 
 
-         for tfor=0 to 1
-          if tfor=0 then text$="dds"
-          if tfor=1 then text$="tga"
+         for tfor=0 to 2
+         if tfor=0 then text$="png"
+          if tfor=1 then text$="dds"
+          if tfor=2 then text$="tga"
 
-          tsky$=sky$+"\"+tskyname$+"_U."+text$
+
+            tsky$=sky$+"\"+tskyname$+"_U."+text$
           if file exist(tsky$)=1
-          tsky2$=sky$+"\"+tskyname$+"_U.":addfiletocollection(tsky$)
+          `tsky2$=sky$+"\"+tskyname$+"_U.":addfiletocollection(tsky$)
+            addfiletocollection(tsky$)
            tsky$=sky$+"\"+tskyname$+"_D."+text$ :addfiletocollection(tsky$)
            tsky$=sky$+"\"+tskyname$+"_L."+text$ :addfiletocollection(tsky$)
            tsky$=sky$+"\"+tskyname$+"_R."+text$ :addfiletocollection(tsky$)
            tsky$=sky$+"\"+tskyname$+"_B."+text$ :addfiletocollection(tsky$)
            tsky$=sky$+"\"+tskyname$+"_F."+text$ :addfiletocollection(tsky$)
-           tfor=2
+           tfor=3
           endif
          next tfor
+
          set object collision off 65123
          sk#=(100*(realrange#-4000))/5.0
          scale object 65123,sk#,sk#,sk#
@@ -63735,13 +63739,11 @@ rem deactivate and hide entity (beenkilled used by spawner)
 
     _convertsky:
 
-    if tfor<=1 then return
+   ` if tfor<=1 then return
 
     if image exist(666692) then delete image 666692
     load image tsky$,666692
-    save image tsky2$+"dds",666692
-    text$="dds":tsky$=tsky2$+text$
-
+    save image tsky2$+"png",666692
     return
 
 
