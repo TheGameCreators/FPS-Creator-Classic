@@ -22614,6 +22614,8 @@ if desc$<>""
 
             tsky$=sky$+"\"+tskyname$+"_U."+text$
           if file exist(tsky$)=1
+          rem Scene Commander - S4 fix (allowing data to be restored here appears to fix a Windows 8 issue!).
+          restore _skydata
           `tsky2$=sky$+"\"+tskyname$+"_U.":addfiletocollection(tsky$)
             addfiletocollection(tsky$)
            tsky$=sky$+"\"+tskyname$+"_D."+text$ :addfiletocollection(tsky$)
@@ -22624,6 +22626,9 @@ if desc$<>""
            tfor=4
           endif
          next tfor
+            Rem S4real fix foe windows 8
+            _skydata:
+            data "_U.","_D.","_L.","_R.","_B.","_F."
 
          set object collision off 65123
          sk#=(100*(realrange#-4000))/5.0
