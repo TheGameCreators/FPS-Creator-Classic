@@ -149,7 +149,7 @@ Rem Scene Commander water performance
 Global waterflec=400
 rem Scene Commander culling
 global cullmode=1
-global cullmodi=850
+global cullmodi=650
 global plrfootfall=1
 global forcealtswap=0
 global moveplrx#=0.0
@@ -10089,7 +10089,7 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
 
  rem Count down to next spawn
  if entityelement(e).spawn.afterdelay=1
-  entityelement(e).spawn.leadercount=entityelement(e).spawn.leadercount-timeelapsed#
+  entityelement(e).spawn.leadercount=entityelement(e).spawn.leadercount-(1*timeelapsed#)
  endif
  rem If count goes to zero (and have some left 'upto')
  tpermitaspawn=0
@@ -33667,7 +33667,7 @@ if file exist(tprofile$)=0
  entityprofile(entid).spawnqtyrandom=0
  entityprofile(entid).spawnvel=0
  entityprofile(entid).spawnvelrandom=0
- entityprofile(entid).spawnangle=90
+ entityprofile(entid).spawnangle=0`90
  entityprofile(entid).spawnanglerandom=0
  entityprofile(entid).spawnlife=0
  if entityprofile(entid).spawnmax>0
@@ -40605,6 +40605,7 @@ _ode_setupewithphysics:
      rem ensure entitydriven and pseudo-static than uses RY for rotation
      if entityelement(e).eleprof.physics=2 or entityelement(e).eleprof.physics=3
       ode set body rotation tobj,0,entityelement(e).ry,0
+
      endif
      `
     else
@@ -40622,14 +40623,6 @@ return
 
 _ode_applyphysicstoattachment:
 
-`rem scene commander, create new entity. - only if not last spawn - for next beta
-   `nextobj=tobj:tstore=tobj
-   `hide object tobj
-   `while object exist(nextobj)
-   `inc nextobj
-   `endwhile
-  ` clone object nextobj,tobj
-  ` tobj=nextobj
  ode create dynamic box tobj
 
 
@@ -40639,7 +40632,7 @@ _ode_applyphysicstoattachment:
  if tweight<200 then tweight=200
  ode set contact fdir1 tobj,tfriction
  ode set body mass tobj,tweight
- ode set linear velocity tobj,rnd(10),20+rnd(20),rnd(10)
+ ode set linear velocity tobj,rnd(10)*timeelapsed#,(20+rnd(20)*timeelapsed#),rnd(10)*timeelapsed#
  ode set angular velocity tobj,0,0,0
  ode set gravity tobj,1
  ode set body rotation tobj,object angle x(tobj),object angle y(tobj),object angle z(tobj)
@@ -63249,6 +63242,7 @@ function culling(e,entid,obj)
 
  `text 200,200,str$(timeelapsed#)
 
+ Rem Scene commander, check for dead entities on a delayed death timer.
 if timer()-entityelement(e).delaydestroytimer>entityelement(e).delaydestroy
    if entityelement(e).delaytimeactive=1
    entityelement(e).delaytimeactive=0
@@ -63263,8 +63257,6 @@ rem get player position
  tcamx#=object position x(physicsplayerborble)
  tcamy#=object position y(physicsplayerborble)
  tcamz#=object position z(physicsplayerborble)
-
-
 
 `for e=1 to entityelementlist
 `entid=entityelement(e).bankindex
@@ -63281,9 +63273,7 @@ if entityelement(e).activated=0 and entityelement(e).spawn.atstart=0
 
 if entityelement(e).ishidden<>2
 
-lx#=ode get body linear velocity x(obj)
-ly#=ode get body linear velocity y(obj)
-lz#=ode get body linear velocity z(obj)
+
 remstart
 if lx#>30 then lx#=30
 if lx#<-30 then lx#=-30
@@ -63308,10 +63298,6 @@ remend
 `text 200,240,str$(plz#)+" "+str$(pmaxZ#)
 
 
-   Rem Scene Commnader, do not cull if object in motion.
-   if int(lx#)<>0 or int(ly#)<>0 or int(lz#)<>0
-      exitfunction
-   endif
 
             if obj>0
 
@@ -63344,37 +63330,50 @@ remend
                   sizeis=int(object size(obj)/10)
                   rem cullmodi allows user adjustment to global entity culling
                   sizeis=sizeis*cullmodi
-                           rem if entity has user defined cull then use that
 
-                     if entityelement(e).cullstate>3 then sizeis=entityelement(e).cullstate
-                        rem never hide really close objects regardless
+
                         if sizeis>hudfognear and hudfogon=1 then sizesis=hudfognear
-                        if howfar<150 or entityelement(e).cullstate=2 then sizeis=1000000
+                        if waterfognear<sizeis and waterfogon>0 then sizeis=waterfognear
+                        rem if entity has user defined cull then use that
+                     if entityelement(e).cullstate>3 then sizeis=entityelement(e).cullstate
+
+                        Rem Scene Commnader, do not cull if object in motion or if really close or set to always show.
+                        lx#=ode get body linear velocity x(obj)
+                        ly#=ode get body linear velocity y(obj)
+                        lz#=ode get body linear velocity z(obj)
+
+                        if int(lx#)<>0 or int(ly#)<>0 or int(lz#)<>0 or howfar<150 or entityelement(e).cullstate=2
+                              show object obj
+                              entityelement(e).ishidden=0
+                              exitfunction
+                        endif
 
                      Rem Scene Commander, with newer culling additions, alpha fading isn't so important, so now isn't a default setting to improve performance.
                            if entityelement(e).usefade=1
-                              if sizeis<1000000
                               fade=abs(howfar-sizeis)
                               else
                               fade=100
-                              endif
+                           endif
 
                            if entityelement(e).ishidden<>3 and entityelement(e).cullstate<>2
-                              if fade<entityelement(e).ai.destalphafade and fade<101
+                              if fade<=entityelement(e).ai.destalphafade and fade<101
                               set alpha mapping on obj,fade
                               endif
                            endif
 
-                           if howfar<sizeis
-                              show object obj
-                              entityelement(e).ishidden=0
 
-                              endif
 
                            if howfar>=sizeis or entityelement(e).cullstate=3 or seeit=0
                            hide object obj
                            entityelement(e).ishidden=1
+                           exitfunction
                            endif
+
+                              if howfar<sizeis
+                              show object obj
+                              entityelement(e).ishidden=0
+
+                              endif
 
                         endif
 
@@ -63393,7 +63392,7 @@ endif
 `  next e
 
   rem close if no culling
-  endif
+  `endif
 
 endfunction
 
