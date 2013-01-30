@@ -10103,9 +10103,7 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
       if entityelement(te).beenkilled=1
        entityelement(te).beenkilled=0
        entityelement(te).ishidden=0
-
        tpermitaspawn=1 : exit
-
       endif
      endif
     endif
@@ -10114,16 +10112,14 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
  endif
  if tpermitaspawn=1
   rem Restart spawn cycle
-
-   `entid=entityelement(e).bankindex
-
+  `entid=entityelement(e).bankindex
   entityelement(e).spawn.leadercount=entityelement(e).spawn.delay+rnd(entityelement(e).spawn.delayrandom)
   rem Hockeykid - 080611 - Won't work, throw-ragdoll scripts do not allow for the character to get back up!
   `if entityelement(e).ragdollon=1 then ode destroy ragdoll entityelement(e).obj : entityelement(e).ragdollon=0
   rem Find child of this leader to spawn
   tproduceqty=0
   tnumbertospawn=entityelement(e).spawn.qty+rnd(entityelement(e).spawn.qtyrandom)
-  for te=1+e to e+entityelement(e).spawn.max
+  for te=e+1 to e+entityelement(e).spawn.max
    tobj=entityelement(te).obj
    if tobj>0
     if object exist(tobj)=1 and entityelement(te).active=0
@@ -10144,12 +10140,9 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
          if tx>=0 and ty>=0 and tz>=0
           if tx<=viscolx and ty<=viscoly and tz<=viscolz
            if viscolmap(tx,ty,tz)=0
-
             entityelement(te).y=entityelement(e).spawn.y
             entityelement(te).x=tryx#
             entityelement(te).z=tryz#
-
-
             tokay=1 : exit
            endif
           endif
@@ -10160,12 +10153,10 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
        if ttriesrange>8 then tokay=2
       endwhile
      else
-
       entityelement(te).x=entityelement(e).spawn.x
       entityelement(te).y=entityelement(e).spawn.y
       entityelement(te).z=entityelement(e).spawn.z
       tokay=1
-
      endif
      `
      rem if space, init entity with AIINIT
@@ -10208,8 +10199,7 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
       entityelement(te).force.active=0
       entityelement(te).logiccount=0
       entityelement(te).blockedby=0
-
-
+      `
       rem rest ragdoll
       rem Hockeykid - 080611 - Won't work, throw-ragdoll scripts do not allow for the character to get back up!
       `if entityelement(te).ragdollon=1 then ode destroy ragdoll entityelement(te).obj : entityelement(te).ragdollon=0
@@ -10263,6 +10253,17 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
       rotate object tobj,entityelement(te).rx,entityelement(te).ry,entityelement(te).rz
       show object tobj
       if entityelement(te).eleprof.physics=1 or entityelement(te).eleprof.physics=2
+       rem lee - 300113 - small nudge up so does not get stuck in floor (subtle contact but causes radical response)
+       tttprofileobj=entityelement(te).profileobj
+       tttadj#=object collision center y(tttprofileobj)
+       tttentid=entityelement(te).bankindex
+       if entityprofile(tttentid).scale<>0
+        tttapplyscalefactor#=(entityprofile(tttentid).scale/100.0)
+        tttadj#=tttadj#*tttapplyscalefactor#
+       endif
+       entityelement(te).y=entityelement(te).y+tttadj#
+       position object tobj,entityelement(te).x,entityelement(te).y,entityelement(te).z
+       rem continue to create and propel physics object
        ste=e : e=te : gosub _ode_setupewithphysics
        tvel=entityelement(e).spawn.vel+rnd(entityelement(e).spawn.velrandom)
        tangle=entityelement(e).spawn.angle+rnd(entityelement(e).spawn.anglerandom)
@@ -33661,13 +33662,12 @@ if file exist(tprofile$)=0
  endif
  `
  rem Spawn defaults
-
  entityprofile(entid).spawnatstart=1
  entityprofile(entid).spawndelayrandom=0
  entityprofile(entid).spawnqtyrandom=0
  entityprofile(entid).spawnvel=0
  entityprofile(entid).spawnvelrandom=0
- entityprofile(entid).spawnangle=0`90
+ entityprofile(entid).spawnangle=0 : rem 90
  entityprofile(entid).spawnanglerandom=0
  entityprofile(entid).spawnlife=0
  if entityprofile(entid).spawnmax>0
@@ -40256,7 +40256,7 @@ for e=1 to entityelementmax
       tadj#=tadj#*applyscalefactor#
      endif
      entityelement(e).y=entityelement(e).y+tadj#
-     position object tobj,object position x(tobj),object position y(tobj)+tadj#,object position z(tobj)
+     if object exist(tobj)=1 then position object tobj,object position x(tobj),object position y(tobj)+tadj#,object position z(tobj)
     endif
    endif
   endif
@@ -40587,7 +40587,6 @@ _ode_setupewithphysics:
       centz#=ODE GET BODY ADJUSTMENT Z(tobj)
       rem FPSCV101 - compensate for character model issues with a hack
       if entityprofile(entid).ischaracter=1
-
        rem U74 - 270409 - FPSCV115 - new U74 approach to floor placement
        if entityprofile(entid).raisefactor<>0
         rem does not use collision center offset to adjust character to floor position
@@ -40605,7 +40604,6 @@ _ode_setupewithphysics:
      rem ensure entitydriven and pseudo-static than uses RY for rotation
      if entityelement(e).eleprof.physics=2 or entityelement(e).eleprof.physics=3
       ode set body rotation tobj,0,entityelement(e).ry,0
-
      endif
      `
     else
@@ -40622,10 +40620,7 @@ _ode_setupewithphysics:
 return
 
 _ode_applyphysicstoattachment:
-
  ode create dynamic box tobj
-
-
  tfriction=(object size x(tobj)*75)+(object size y(tobj)*75)+(object size z(tobj)*75)
  tweight=(object size x(tobj)*25)+(object size y(tobj)*25)+(object size z(tobj)*25)
  tweight=(tweight/50)*50 : tfriction=(tfriction/50)*50
@@ -40650,6 +40645,7 @@ _ode_pushusingtvelandangle:
   if object exist(tobj)=1
    rem only for regular physics objects, not entitydriven characters, or statics (doors)
    if entityelement(e).eleprof.physics=1
+    rem apply velocity and angle to physics object
     tvel#=tvel*2.0
     if tvel<>0
      tvelx#=newxvalue(0,entityelement(e).ry,tvel#)
@@ -40718,7 +40714,6 @@ _ode_giveentitiesalittlenudgejustbeforelevelbegins:
   endif
  next tte
 return
-
 
 _ode_playerborble:
  `
