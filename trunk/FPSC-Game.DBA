@@ -10254,15 +10254,18 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
       show object tobj
       if entityelement(te).eleprof.physics=1 or entityelement(te).eleprof.physics=2
        rem lee - 300113 - small nudge up so does not get stuck in floor (subtle contact but causes radical response)
-       tttprofileobj=entityelement(te).profileobj
-       tttadj#=object collision center y(tttprofileobj)
-       tttentid=entityelement(te).bankindex
-       if entityprofile(tttentid).scale<>0
-        tttapplyscalefactor#=(entityprofile(tttentid).scale/100.0)
-        tttadj#=tttadj#*tttapplyscalefactor#
+       if entityprofile(entid).ischaracter=0 
+        rem lee - 310113 - but not character spawners
+        tttprofileobj=entityelement(te).profileobj
+        tttadj#=object collision center y(tttprofileobj)
+        tttentid=entityelement(te).bankindex
+        if entityprofile(tttentid).scale<>0
+         tttapplyscalefactor#=(entityprofile(tttentid).scale/100.0)
+         tttadj#=tttadj#*tttapplyscalefactor#
+        endif
+        entityelement(te).y=entityelement(te).y+tttadj#
+        position object tobj,entityelement(te).x,entityelement(te).y,entityelement(te).z
        endif
-       entityelement(te).y=entityelement(te).y+tttadj#
-       position object tobj,entityelement(te).x,entityelement(te).y,entityelement(te).z
        rem continue to create and propel physics object
        ste=e : e=te : gosub _ode_setupewithphysics
        tvel=entityelement(e).spawn.vel+rnd(entityelement(e).spawn.velrandom)
