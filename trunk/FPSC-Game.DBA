@@ -1351,6 +1351,21 @@ type entityprofiletype
  reserve4 as integer
  reserve5 as integer
  custombiped as boolean
+Rem Scene Commander scaling/both limb and overall.
+ LC as integer
+ RC as integer
+ LF as integer
+ RF as integer
+ LT as integer
+ RT as integer
+ LH as integer
+ RH as integer
+ LFA as integer
+ RFA as integer
+ LUA as integer
+ RUA as integer
+ SP3 as integer
+ NECK as integer
 endtype
 global animmax=200
 global footfallmax=200
@@ -33088,7 +33103,7 @@ if desc$<>""
     perform checklist for object limbs entobj
     for tc=1 to checklist quantity()
      if lower$(checklist string$(tc))="bip01_l_calf"
-      entityelement(e).LC = tc-1
+      entityprofile(entid).LC = tc-1
       tc=checklist quantity()+1
      endif
     next tc
@@ -33099,7 +33114,7 @@ if desc$<>""
     perform checklist for object limbs entobj
     for tc=1 to checklist quantity()
      if lower$(checklist string$(tc))="bip01_r_calf"
-      entityelement(e).RC = tc-1
+      entityprofile(entid).RC = tc-1
       tc=checklist quantity()+1
      endif
     next tc
@@ -33110,7 +33125,7 @@ if desc$<>""
     perform checklist for object limbs entobj
     for tc=1 to checklist quantity()
      if lower$(checklist string$(tc))="bip01_l_foot"
-      entityelement(e).LF = tc-1
+      entityprofile(entid).LF = tc-1
       tc=checklist quantity()+1
      endif
     next tc
@@ -33121,7 +33136,7 @@ if desc$<>""
     perform checklist for object limbs entobj
     for tc=1 to checklist quantity()
      if lower$(checklist string$(tc))="bip01_r_foot"
-      entityelement(e).RF = tc-1
+      entityprofile(entid).RF = tc-1
       tc=checklist quantity()+1
      endif
     next tc
@@ -33133,7 +33148,7 @@ if object exist(entobj)=1
     perform checklist for object limbs entobj
     for tc=1 to checklist quantity()
      if lower$(checklist string$(tc))="bip01_l_hand"
-      entityelement(e).LH = tc-1
+      entityprofile(entid).LH = tc-1
       tc=checklist quantity()+1
      endif
     next tc
@@ -33144,7 +33159,7 @@ if object exist(entobj)=1
     perform checklist for object limbs entobj
     for tc=1 to checklist quantity()
      if lower$(checklist string$(tc))="bip01_r_hand"
-      entityelement(e).RH = tc-1
+      entityprofile(entid).RH = tc-1
       tc=checklist quantity()+1
      endif
     next tc
@@ -33155,7 +33170,7 @@ if object exist(entobj)=1
     perform checklist for object limbs entobj
     for tc=1 to checklist quantity()
      if lower$(checklist string$(tc))="bip01_l_forearm"
-      entityelement(e).LFA = tc-1
+      entityprofile(entid).LFA = tc-1
       tc=checklist quantity()+1
      endif
     next tc
@@ -33166,7 +33181,7 @@ if object exist(entobj)=1
     perform checklist for object limbs entobj
     for tc=1 to checklist quantity()
      if lower$(checklist string$(tc))="bip01_r_forearm"
-      entityelement(e).RFA = tc-1
+      entityprofile(entid).RFA = tc-1
       tc=checklist quantity()+1
      endif
     next tc
@@ -33177,7 +33192,7 @@ if object exist(entobj)=1
     perform checklist for object limbs entobj
     for tc=1 to checklist quantity()
      if lower$(checklist string$(tc))="bip01_l_upperarm"
-      entityelement(e).LUA = tc-1
+      entityprofile(entid).LUA = tc-1
       tc=checklist quantity()+1
      endif
     next tc
@@ -33188,7 +33203,7 @@ if object exist(entobj)=1
     perform checklist for object limbs entobj
     for tc=1 to checklist quantity()
      if lower$(checklist string$(tc))="bip01_r_upperarm"
-      entityelement(e).RUA = tc-1
+      entityprofile(entid).RUA = tc-1
       tc=checklist quantity()+1
      endif
     next tc
@@ -33199,7 +33214,7 @@ if object exist(entobj)=1
     perform checklist for object limbs entobj
     for tc=1 to checklist quantity()
      if lower$(checklist string$(tc))="bip01_neck"
-      entityelement(e).NECK = tc-1
+      entityprofile(entid).NECK = tc-1
       tc=checklist quantity()+1
      endif
     next tc
@@ -33210,7 +33225,7 @@ if object exist(entobj)=1
     perform checklist for object limbs entobj
     for tc=1 to checklist quantity()
      if lower$(checklist string$(tc))="bip01_spine3"
-      entityelement(e).SP3 = tc-1
+      entityprofile(entid).SP3 = tc-1
       tc=checklist quantity()+1
      endif
     next tc
@@ -33221,7 +33236,7 @@ if object exist(entobj)=1
     perform checklist for object limbs entobj
     for tc=1 to checklist quantity()
      if lower$(checklist string$(tc))="bip01_l_thigh"
-      entityelement(e).LT = tc-1
+      entityprofile(entid).LT = tc-1
       tc=checklist quantity()+1
      endif
     next tc
@@ -33232,7 +33247,7 @@ if object exist(entobj)=1
     perform checklist for object limbs entobj
     for tc=1 to checklist quantity()
      if lower$(checklist string$(tc))="bip01_r_thigh"
-      entityelement(e).RT = tc-1
+      entityprofile(entid).RT = tc-1
       tc=checklist quantity()+1
      endif
     next tc
@@ -63415,110 +63430,112 @@ entobj=entityelement(te).obj
 
 
 function alterlimbscale(en,lm,ls)
-if entityelement(en).obj>0
-if object exist(entityelement(en).obj)
+
+tempobj=entityelement(en).obj
+if tempobj>0
+if object exist(tempobj)
  select lm
  case 1
-  if limb exist(entityelement(en).obj,entityprofile(entityelement(en).bankindex).headlimb)
+  if limb exist(tempobj,entityprofile(entityelement(en).bankindex).headlimb)
 
-  scale limb entityelement(en).obj,entityprofile(entityelement(en).bankindex).headlimb,ls,ls,ls
+  scale limb tempobj,entityprofile(entityelement(en).bankindex).headlimb,ls,ls,ls
 
   endif
  endcase
 
  case 2
-  if limb exist(entityelement(en).obj,entityelement(en).LC)
-  scale limb entityelement(en).obj,entityelement(en).LC,ls,ls,ls
+  if limb exist(tempobj,entityelement(en).LC)
+  scale limb tempobj,entityelement(en).LC,ls,ls,ls
 
   endif
  endcase
  case 3
-  if limb exist(entityelement(en).obj,entityelement(en).RC)
-  scale limb entityelement(en).obj,entityelement(en).RC,ls,ls,ls
+  if limb exist(tempobj,entityelement(en).RC)
+  scale limb tempobj,entityelement(en).RC,ls,ls,ls
 
   endif
  endcase
  case 4
-  if limb exist(entityelement(en).obj,entityelement(en).LF)
-  scale limb entityelement(en).obj,entityelement(en).LF,ls,ls,ls
+  if limb exist(tempobj,entityelement(en).LF)
+  scale limb tempobj,entityelement(en).LF,ls,ls,ls
 
   endif
  endcase
  case 5
-  if limb exist(entityelement(en).obj,entityelement(en).RF)
-  scale limb entityelement(en).obj,entityelement(en).RF,ls,ls,ls
+  if limb exist(tempobj,entityelement(en).RF)
+  scale limb tempobj,entityelement(en).RF,ls,ls,ls
 
   endif
  endcase
 case 6
-  if limb exist(entityelement(en).obj,entityelement(en).LT)
-  scale limb entityelement(en).obj,entityelement(en).LT,ls,ls,ls
+  if limb exist(tempobj,entityelement(en).LT)
+  scale limb tempobj,entityelement(en).LT,ls,ls,ls
 
   endif
  endcase
  case 7
-  if limb exist(entityelement(en).obj,entityelement(en).RT)
-  scale limb entityelement(en).obj,entityelement(en).RT,ls,ls,ls
+  if limb exist(tempobj,entityelement(en).RT)
+  scale limb tempobj,entityelement(en).RT,ls,ls,ls
 
   endif
  endcase
  case 8
-  if limb exist(entityelement(en).obj,entityelement(en).LH)
-  scale limb entityelement(en).obj,entityelement(en).LH,ls,ls,ls
+  if limb exist(tempobj,entityelement(en).LH)
+  scale limb tempobj,entityelement(en).LH,ls,ls,ls
 
   endif
  endcase
  case 9
-  if limb exist(entityelement(en).obj,entityelement(en).RH)
-  scale limb entityelement(en).obj,entityelement(en).RH,ls,ls,ls
+  if limb exist(tempobj,entityelement(en).RH)
+  scale limb tempobj,entityelement(en).RH,ls,ls,ls
 
   endif
  endcase
  case 10
-  if limb exist(entityelement(en).obj,entityelement(en).LFA)
-  scale limb entityelement(en).obj,entityelement(en).LFA,ls,ls,ls
+  if limb exist(tempobj,entityelement(en).LFA)
+  scale limb tempobj,entityelement(en).LFA,ls,ls,ls
 
   endif
  endcase
  case 11
-  if limb exist(entityelement(en).obj,entityelement(en).RFA)
-  scale limb entityelement(en).obj,entityelement(en).RFA,ls,ls,ls
+  if limb exist(tempobj,entityelement(en).RFA)
+  scale limb tempobj,entityelement(en).RFA,ls,ls,ls
   endif
  endcase
  case 12
-  if limb exist(entityelement(en).obj,entityelement(en).LUA)
-  scale limb entityelement(en).obj,entityelement(en).LUA,ls,ls,ls
+  if limb exist(tempobj,entityelement(en).LUA)
+  scale limb tempobj,entityelement(en).LUA,ls,ls,ls
 
   endif
  endcase
  case 13
-  if limb exist(entityelement(en).obj,entityelement(en).RUA)
-  scale limb entityelement(en).obj,entityelement(en).RUA,ls,ls,ls
+  if limb exist(tempobj,entityelement(en).RUA)
+  scale limb tempobj,entityelement(en).RUA,ls,ls,ls
 
   endif
  endcase
 
  case 14
-  if limb exist(entityelement(en).obj,entityprofile(en).spine)
-  scale limb entityelement(en).obj,entityprofile(en).spine,ls,ls,ls
+  if limb exist(tempobj,entityprofile(en).spine)
+  scale limb tempobj,entityprofile(en).spine,ls,ls,ls
 
   endif
  endcase
  case 15
-  if limb exist(entityelement(en).obj,entityprofile(en).spine2)
-  scale limb entityelement(en).obj,entityprofile(en).spine2,ls,ls,ls
+  if limb exist(tempobj,entityprofile(en).spine2)
+  scale limb tempobj,entityprofile(en).spine2,ls,ls,ls
 
   endif
  endcase
  case 16
-  if limb exist(entityelement(en).obj,entityelement(en).SP3)
-  scale limb entityelement(en).obj,entityelement(en).SP3,ls,ls,ls
+  if limb exist(tempobj,entityelement(en).SP3)
+  scale limb tempobj,entityelement(en).SP3,ls,ls,ls
 
   endif
  endcase
 case 17
-  if limb exist(entityelement(en).obj,entityelement(en).NECK)
-  scale limb entityelement(en).obj,entityelement(en).NECK,ls,ls,ls
+  if limb exist(tempobj,entityelement(en).NECK)
+  scale limb tempobj,entityelement(en).NECK,ls,ls,ls
 
   endif
 
@@ -63711,6 +63728,7 @@ rem deactivate and hide entity (beenkilled used by spawner)
       endif
 
     return
+
 
 
 
