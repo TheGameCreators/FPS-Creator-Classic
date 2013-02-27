@@ -218,9 +218,9 @@ global jamadjust=0
 global screengrabtimer=timer()
 global forcecrouch=0
 
-rem scene commander - average FPS for smoother movement
-global nextave=1
-dim fpsstore(80):for f=1 to 80:fpsstore(f)=80:next f
+rem scene commander - average FPS for smoother movement - Removed as redundant with later fixes.
+`global nextave=1
+`dim fpsstore(80):for f=1 to 80:fpsstore(f)=80:next f
 
 Rem Scene Commander end variables
 
@@ -8578,7 +8578,7 @@ endif
 rem Move entity if underwater
 
 if obj>0
-   if watercurrent<>0 and entityelement(e).eleprof.isimmobile<>1
+   if watercurrent<>0 and entityelement(e).eleprof.isimmobile<>1 and entityprofile(entid).ischaracter<>1 and entityelement(e).beenkilled=0 and entityelement(e).active<>0
       tempwaterpos=object position y(obj)+(object size y(obj)/2.0)
       if tempwaterpos<(waterheight#+(object size y(obj)/2.0))
       oldvelx#=sin(watercurrent)*(waterflow*2)
@@ -8947,14 +8947,9 @@ next e
 rem Calculate any logic drop increments/decrements
 rem V110 - 290508 - give more MS to entity logic (it is a drainer in X9)
 `if screen fps()>=30
-`if screen fps()>=25
-Rem Scene Commander, changed to reduce increasing entity usage hogging.
-
 if screen fps()>=25
-currentmax#=screen fps()/10:if currentmax#>6.0 then currentmax#=6.0
  `X9 - 060208 - if logicprioritymax#<10.0
- `if logicprioritymax#<5.0
- if logicprioritymax#<currentmax#
+ if logicprioritymax#<5.0
   rem better consistent frame rate if only five entities have close logic (for raycasting, etc)
   logicprioritymax#=logicprioritymax#+0.02
  endif
@@ -8978,17 +8973,21 @@ for e=1 to entityelementlist
  if entityelement(e).active=1 and entityelement(e).dormant=0
   if obj>0
    `
-   if object exist(obj)=1 and entityelement(e).plrdist<1000
+   if object exist(obj)=1 and entityelement(e).plrdist<2000
     `
     rem Operate spin and float system
-    tspin#=0.0 : thover#=0.0
-    if entityelement(e).spinrate<>0
+    Rem Scene Commander - only spin if within 10 segments
+   
+    if entityelement(e).plrdist<1000
+      tspin#=0.0 : thover#=0.0
+      if entityelement(e).spinrate<>0
      entityelement(e).spinvalue=entityelement(e).spinvalue+(timeelapsed#*entityelement(e).spinrate)
      tspin#=wrapvalue(entityelement(e).spinvalue)
-    endif
-    if entityelement(e).floatrate<>0
+      endif
+      if entityelement(e).floatrate<>0
      entityelement(e).floatvalue=entityelement(e).floatvalue+(timeelapsed#*4)
      thover#=entityelement(e).floatrate+(cos(wrapvalue(entityelement(e).floatvalue))*entityelement(e).floatrate)
+      endif
     endif
     `
     rem update entity object position (keep position for univese vis-culling)
@@ -21200,7 +21199,7 @@ case AIACTSETVARRND:
 
       case AIACTLOGICBURST:
 
-      entityelement(e).logiccount=0
+      entityelement(e).logiccount=0:entityelement(e).logiccountburst=120
 
       endcase
 
