@@ -34,7 +34,7 @@ rem Credit to Robert Knox for help fixing up the engine and adding a cool HUD sy
 rem Credit to Flatlander for his code fixes and tireless alpha testing.
 rem Credit to S4Real for continued support and some nice performance tweaks.
 
-_start_engine:
+
 
 rem Init app
 sync on : sync rate 0
@@ -58,6 +58,8 @@ perftimer() = *memptr
 delete dll Kernel32
 
 Rem Scene Commander globals
+
+_start_engine:
 
 Rem flashlight
 global flashlighton=0 as boolean
@@ -301,8 +303,8 @@ global timestampactivityflagged=0
 global timestampactivityindex=0
 dim timestampactivity$(1000)
 rem speed up
-global timebasepercycle# as float : timebasepercycle#=0
-global timebasepercyclestamp as DWORD : timebasepercyclestamp=timer()
+`global timebasepercycle# as float : timebasepercycle#=0
+`global timebasepercyclestamp as DWORD : timebasepercyclestamp=timer()
 
 
 rem FPGC - 090909 - mising media collector
@@ -8782,7 +8784,7 @@ endif
     rem remove attached weapon physics if out of bounds
     tobj=entityelement(e).attachmentobj
     if tobj>0
-     if object position y(tobj)<-50 and object position y(tobj)<>-5000
+     if object position y(tobj)<-50
       gosub _ode_deleteentity
       hide object tobj
       position object tobj,-5000,-5000,-5000
@@ -8977,7 +8979,7 @@ for e=1 to entityelementlist
     `
     rem Operate spin and float system
     Rem Scene Commander - only spin if within 10 segments
-   
+
     if entityelement(e).plrdist<1000
       tspin#=0.0 : thover#=0.0
       if entityelement(e).spinrate<>0
@@ -9702,6 +9704,7 @@ if entityelement(e).fireweapon=1
           if object exist(tobj)=1
            set alpha mapping on tobj,100
            show object tobj
+            entityelement(change).ishidden=0
           endif
          endif
         endif
@@ -11284,6 +11287,9 @@ if tobj>0
   rem hide weapon if character totally invisible
   if gmultiplayergame=1 or entityelement(e).ai.alphafade=0
    hide object tobj
+      if entityprofile(entid).ischaracter=1 and entityelement(e).beenkilled=1
+      show object tobj
+      endif
   else
    show object tobj
   endif
@@ -22627,7 +22633,12 @@ if desc$<>""
           if tfor=2 then text$="tga"
           if tfor=3 then text$="jpg"
           if tfor=4 then text$="bmp"
+<<<<<<< .mine
           tsky$=sky$+"\"+tskyname$+"_U."+text$
+
+=======
+          tsky$=sky$+"\"+tskyname$+"_U."+text$
+>>>>>>> .r764
           if file exist(tsky$)=1
            addfiletocollection(tsky$)
            tsky$=sky$+"\"+tskyname$+"_D."+text$ :addfiletocollection(tsky$)
@@ -22638,6 +22649,12 @@ if desc$<>""
            tfor=4
           endif
          next tfor
+<<<<<<< .mine
+
+=======
+>>>>>>> .r764
+
+
          set object collision off 65123
          sk#=(100*(realrange#-4000))/5.0
          scale object 65123,sk#,sk#,sk#
@@ -32954,15 +32971,12 @@ if desc$<>""
    rem allowed to save DBO (once only)
   endif
   `
-  if entobj>0
-  if object exist(entobj)=0
   rem Load entity (compile does not need the dynamic objects)
   load object tfile$,entobj
   set object filter entobj,2
   set object collision off entobj
   addfiletocollection(tfile$)
-  endif
-  endif
+
 
   if object exist(entobj)=1
    `
@@ -63243,17 +63257,11 @@ rem end is o
 function culling(e,entid,obj)
 
  `text 200,200,str$(timeelapsed#)
+delaykill(e)
 
- Rem Scene commander, check for dead entities on a delayed death timer.
-if timer()-entityelement(e).delaydestroytimer>entityelement(e).delaydestroy
-   if entityelement(e).delaytimeactive=1
-   entityelement(e).delaytimeactive=0
-   gosub _killentity
-   endif
-endif
    ` text 200,200,str$(weaponammo(weaponammoindex+ammooffset))
- rem if not just using FPSC default culling
-if gmultiplayergame<>1 and cullmode<>0
+ rem if not just using FPSC default culling - exclude weapons and ammo from cull regardless
+if gmultiplayergame<>1 and cullmode<>0 and entityprofile(entid).isweapon=0 and entityprofile(entid).isammo=0
 
 rem get player position
  tcamx#=object position x(physicsplayerborble)
@@ -63302,6 +63310,8 @@ remend
 
 
             if obj>0
+
+
 
             `text object screen x(obj),object screen y(obj),str$(edistance(e))
 
@@ -63416,6 +63426,18 @@ entobj=entityelement(te).obj
    endif
 
    endfunction
+
+function delaykill(e)
+
+ Rem Scene commander, check for dead entities on a delayed death timer.
+if timer()-entityelement(e).delaydestroytimer>entityelement(e).delaydestroy
+   if entityelement(e).delaytimeactive=1
+   entityelement(e).delaytimeactive=0
+   gosub _killentity
+   endif
+endif
+
+endfunction
 
 
 function alterlimbscale(en,lm,ls)
