@@ -63269,7 +63269,7 @@ delaykill(e)
    ` text 200,200,str$(weaponammo(weaponammoindex+ammooffset))
  rem if not just using FPSC default culling - exclude weapons and ammo from cull regardless
 
-if gmultiplayergame<>1 and cullmode<>0 and entityprofile(entid).isweapon=0 and entityprofile(entid).isammo=0
+if gmultiplayergame<>1 and cullmode<>0 and (entityprofile(entid).isweapon=0 and entityelement(e).cullstate<2) and (entityprofile(entid).isammo=0 and entityelement(e).cullstate<2)
 
 rem get player position
  tcamx#=object position x(physicsplayerborble)
@@ -63277,7 +63277,7 @@ rem get player position
  tcamz#=object position z(physicsplayerborble)
 
 `for e=1 to entityelementlist
-`entid=entityelement(e).bankindex
+entid=entityelement(e).bankindex
 `obj=entityelement(e).obj
 
 rem only check entities not hidden by system and those that are active
@@ -63302,7 +63302,7 @@ if entityelement(e).ishidden<>2
 
                   rem doors and windows, characters and the dead excluded from the cull.
                   `if object exist(obj) and (entityprofile(entid).ischaracter<>1 and entityelement(e).eleprof.physics<>3 and seeit=1)
-                  if seeit=1
+                  if seeit=1 and entityprofile(entid).ischaracter<>1
 
          Rem get object distance
 
@@ -63331,7 +63331,7 @@ if entityelement(e).ishidden<>2
                         ly#=ode get body linear velocity y(obj)
                         lz#=ode get body linear velocity z(obj)
 
-                           if object size(obj)<45 then howfar=200
+                           if (object size(obj)<45 and entityelement(e).cullstate<2) then howfar=200
 
                         if int(lx#)<>0 or int(ly#)<>0 or int(lz#)<>0 or howfar<500 or entityelement(e).cullstate=2
                               show object obj
