@@ -45,7 +45,9 @@ if ScreenW=0 or ScreenH=0
   ScreenH=call dll(1,"GetSystemMetrics",1)
  delete dll 1
 endif
-global vsync
+global vsync : vsync=1
+
+
 
 rem alpha v1.6 call kernel32 dll for better performance freq
 Kernel32 =1
@@ -55,10 +57,9 @@ call dll Kernel32, "QueryPerformanceFrequency", memptr
 perftimer() = *memptr
 delete dll Kernel32
 
-Rem Scene Commander globals
-
 _start_engine:
-
+Rem Scene Commander globals
+FLUSH VIDEO MEMORY
 Rem flashlight
 global flashlighton=0 as boolean
 global flashlightrange=350
@@ -220,7 +221,7 @@ global forcecrouch=0
 
 rem scene commander - average FPS for smoother movement - Removed as redundant with later fixes.
 `global nextave=1
-`dim fpsstore(80):for f=1 to 80:fpsstore(f)=80:next f
+dim fpsstore(60):for f=1 to 60:fpsstore(f)=60:next f `added back due compile issues and chnaged to 60 for timing s4real
 
 Rem Scene Commander end variables
 
@@ -300,9 +301,9 @@ global timestampactivitymax=0
 global timestampactivityflagged=0
 global timestampactivityindex=0
 dim timestampactivity$(1000)
-rem speed up
-`global timebasepercycle# as float : timebasepercycle#=0
-`global timebasepercyclestamp as DWORD : timebasepercyclestamp=timer()
+rem speed up added back for timing s4real
+global timebasepercycle# as float : timebasepercycle#=0
+global timebasepercyclestamp as DWORD : timebasepercyclestamp=timer()
 
 
 rem FPGC - 090909 - mising media collector
@@ -3611,7 +3612,7 @@ global gentitytogglingoff : gentitytogglingoff=0
 global gextracollisionbuilddisabled : gextracollisionbuilddisabled=1
 global galwaysconfirmsave : galwaysconfirmsave=0
 global gsimplifiedcharacterediting : gsimplifiedcharacterediting=0
-global gantialias : gantialias=0 rem reverted
+global gantialias : gantialias=2 rem reverted s4 changed to 2 so it works.
 rem V118 - 130810 - knxrb - Invert Mouse
 global gminvert : gminvert=0
 rem V118 - 140810 - knxrb - Disable Particles
@@ -4256,10 +4257,10 @@ rem For status text if any
 set text font "Verdana"
 
 rem Init app (lee - 140310 - sync rate was 38)
-`sync on : sync rate 0 : autocam off : disable systemkeys
+sync on  : autocam off : disable systemkeys
 rem scene commander performance
 
-sync on : syncrate = 80 : autocam off : disable systemkeys `alpha v1.6 cap for jerky animations
+`sync on : syncrate = 80 : autocam off : disable systemkeys `alpha v1.6 cap for jerky animations
 
 hide mouse : backdrop off : disable escapekey
 
@@ -5910,6 +5911,28 @@ gosub _lighting_postdefaults
 
 rem Use mapdata to build viscolmap data
 gosub _entity_fillviscolmap
+
+rem DarkAI - Construct Obstacles & Containers
+debugviewtext(280,"AirMod: Constructing AI Obstacles...")
+load object universefile$,airmodoffset+1000
+
+for y=1 to 20
+ debugviewtext(280+int(y/4),"AirMod: Constructing Obstacle ["+str$(y)+"/20]")
+ container(y).y# = (y*100)+50
+ container(y).id = y
+ if ai container exist(container(y).id) then ai remove container container(y).id
+ ai add container container(y).id
+ ai add obstacle from level airmodoffset+1000,container(y).id,1,container(y).y#+10,4,4,0
+ ai complete obstacles container(y).id
+ ai add obstacle from level airmodoffset+1000,container(y).id,0,container(y).y#-25.0,2,2,0
+ ai complete obstacles container(y).id
+next y
+ai complete obstacles
+delete object airmodoffset+1000
+
+debugviewtext(286,"AirMod: Constructing Cross-Layer Zones")
+ttotalzones=39*39*19
+zoneid=0
 
 rem setup scorch texture
 if guseweaponsstate=1
@@ -8435,30 +8458,16 @@ rem handle AI sound
 managebroadcastsound()
 
 rem maintain constant game speed -timer based - Scene Commander rewrite for smoother movement
-remstart
+rem new timing system to work with changes s4real
 timeelapsed#=timebasepercycle#
 fpsstore(nextave)=timeelapsed#
 temptime#=0
-for ave=1 to 80
+for ave=1 to 60
 temptime#=temptime#+fpsstore(ave)
 next ave
-timeelasped#=temptime#/80
-timeelasped#=(timeelasped#/100)*(timer()-timestamp): timestamp=timer()
-inc nextave,1:if nextave>80 then nextave=1
-rem maintain constant game speed
-`timeelapsed#=(1.0/50.0)*(timer()-timestamp) : timestamp=timer()
-remend
-rem changed for speed
-`timeelapsed#=(1.0/50.0)*(timer()-timestamp) : timestamp=timer()
-`fpsstore(nextave)=timebasepercycle# ` alpha v1.5 speed up
-`temptime#=0
-`for ave=1 to 80
-`temptime#=temptime#+fpsstore(ave)
-`next ave
-`timeelasped#=temptime#/80
-`inc nextave,1:if nextave>80 then nextave=1
+timeelasped#=temptime#/60
+inc nextave,1:if nextave>60 then nextave=1
 
-timeelapsed#=(1.0/50.0)*(timer()-timestamp) : timestamp=timer()
 
 rem maintain couner for any animspeed changes
 inc timeelapsedrefreshentityanimspeeds
@@ -11065,8 +11074,8 @@ _entity_controlmovements:
      rem allow physics to do this - no static geom detection for v1 (speed issue)
      rem V109 - BETA11 - reactivated this as it helps nofloorlogic characters keep out of walls!
      Rem Hockeykid - 250210 - Dark AI added flag/if to allow ai system to take control
-     `if ai entity exist(entityelement(e).obj)=0
-     if 1
+     if ai entity exist(entityelement(e).obj)=0
+     `if 1
       tdx2#=entityelement(e).x-toldx#
       tdz2#=entityelement(e).z-toldz#
       tda2#=atanfull(tdx2#,tdz2#)
@@ -11682,6 +11691,7 @@ _entity_addforcesphere:
   spdist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
   tblastradius#=400.0*sphereforce#
 
+  remstart taken out to stop crashing on some entitys s4real
   rem  if entity within sphere area, nudge the entity
   if sphereforce#=0.01
    rem special sphereforce# of 0.01 derived from force of 1/100.0
@@ -11692,6 +11702,7 @@ _entity_addforcesphere:
     endif
    endif
   endif
+  remend
 
   if spdist#<tblastradius#
    rem calculate force
@@ -13045,7 +13056,7 @@ actword$(AIACTFLASHLIGHTRED)="flashlightred"
 actword$(AIACTFLASHLIGHTGREEN)="flashlightgreen"
 actword$(AIACTFLASHLIGHTBLUE)="flashlightblue"
 actword$(AIACTFLASHLIGHTRANGE)="flashlightrange"
-actword$(AIACTUSEFADE)="usefade"
+actword$(AIACTUSEFADE)="nofade"
 actword$(AIACTSHOWAIR)="alwaysshowair"
 actword$(AIACTDELAYDESTROY)="delaydestroy"
 
@@ -16161,6 +16172,10 @@ Rem Scene Commander
     `
     select aiactionseq(seq).type
      `
+      case AIACTOBJMET:
+     if aiactionseq(seq).value>0 and multi_match_type = 2 then objectivesmet=1 `gosub _multi_missioncomplete
+     ENDCASE
+
      case AIACTSTATE:
       entityelement(e).ai.state$=aiactionseq(seq).string1 rem GUI-X9 (String States)
      endcase
@@ -36623,7 +36638,7 @@ _gameflow_default:
         rem ARENA GAME FINISHED
         rem levelwon (0-lost,1-won,2-skip)
         if levelwon=0 or levelwon=1
-         if levelwon=0 then gosub _screen_gameover_init
+         if levelwon=0 then gosub _screen_levelcomplete_init `_screen_gameover_init rem changed for simple fix s4real
          if levelwon=1 then gosub _screen_levelcomplete_init
          continueokay=0
          while continueokay=0
@@ -38947,7 +38962,7 @@ for hudid=1 to hudmax
        if hud(hudid).typemode=5 and ggameobjectivetype<>3 then tokay=0
       endif
      endif
-      tokay=1 : rem HACK!!
+      `tokay=1 : rem HACK!! rem out s4real
      if tokay=1
       if hud(hudid).fadeout>0
        tfadeout=hud(hudid).fadeout : if tfadeout>100 then tfadeout=100
@@ -38959,15 +38974,15 @@ for hudid=1 to hudmax
     endif
     if hud(hudid).text$<>"" and hud(hudid).image=0
      tfont$=hud(hudid).font$ : if tfont$<>"" and tfont$<>tlastfont$ then set text font tfont$ : tlastfont$=tfont$
-      Rem Scene Commander, if text hud font different from rawtext, force reset.
-      if tfont$<>grawtextfontlast$
-      grawtextlast$=""
-      endif
+     ` Rem Scene Commander, if text hud font different from rawtext, force reset.
+      `if tfont$<>grawtextfontlast$
+     ` grawtextlast$=""
+     ` endif
      tfontsize=hud(hudid).fontsize : if tfontsize<>0 and tfontsize<>tlastfontsize then set text size tfontsize : tlastfontsize=tfontsize
       Rem Scene Commander, if text hud font size different from rawtext, force reset.
-      if grawtextsizelast<>tfontsize
-      grawtextsizelast=-1
-      endif
+     ` if grawtextsizelast<>tfontsize
+     ` grawtextsizelast=-1
+     ` endif
      center text hud(hudid).posx+(hud(hudid).sizex/2),(hud(hudid).posy+hud(hudid).sizey)+(hud(hudid).fadeout/5.0),hud(hudid).text$
     endif
    endif
@@ -39057,15 +39072,17 @@ next cLayer : rem V118 - 110810 - knxrb - Hud Layers
   rem WINNERSNAME BOX
   if hud(hudid).maintype=12
    if hud(hudid).hide=0
-    set text size 24
+    set text size 16
     rem list of players
     tylinevalue=hud(hudid).posy
     if multi_match_type > 0
-    center text hud(hudid).posx,tylinevalue,"Winning Team: "+characterlist$(characterchosen(winnerel))+" MVP: "+multiplayername$(mvpel)+" Kills: "+str$(frags(mvpel))
+    center text hud(hudid).posx,tylinevalue,"Winner: "+multiplayername$(winnerel)+" Kills: "+str$(frags(winnerel))
+    `center text hud(hudid).posx,tylinevalue,"Winning Team: "+characterlist$(characterchosen(winnerel))+" MVP: "+multiplayername$(mvpel)+" Kills: "+str$(frags(mvpel))
    inc tylinevalue,30
     for el=1 to multiplayermax
      if multiplayeridlink(el)<>1
-      center text hud(hudid).posx,tylinevalue,characterlist$(characterchosen(el))+" Player: "+multiplayername$(el)+" Kills: "+str$(frags(el))
+     center text hud(hudid).posx,tylinevalue," Player: "+multiplayername$(el)+" Kills: "+str$(frags(el))
+      `center text hud(hudid).posx,tylinevalue,characterlist$(characterchosen(el))+" Player: "+multiplayername$(el)+" Kills: "+str$(frags(el))
       inc tylinevalue,30
      endif
     next el
@@ -41856,7 +41873,7 @@ if camerastoodonphyobj<>0
  rem Jump ends when camera starts decending
  rem V119 - this can freeze the player in mid-air
  `if jumpactionnorepeat=0 and camvel<0.0 then jumpaction=0
-
+  if camvely#<0.0 then jumpaction=0 ` added to fix collision problems.
 
  `
  rem debug object
@@ -42009,15 +42026,10 @@ else
  `
 endif
 
-rem Scene Commander, player wobbling
+ply_roty#=0.0
+ply_rotx#=0.0
 
-if wobble#<>0.0 and player(1).health>0
- wobbleangle#=wrapvalue(wobbleangle#+((2+rnd(4)+(11-wobble#))/10.0))
- camangx#=camangx#+cos(wobbleangle#*2.0)*wobble#*0.008*(sin(wobbleangle#)*1.2)
- camangy#=camangy#+sin(wobbleangle#*4.0)*wobble#*0.005
-endif
 
-rem Scene Commander end
 
 rem FPSXCV104RC5 - zoom mode wobble based on accuracy
 
@@ -42037,6 +42049,14 @@ else
  if wrapvalue(camangx#)>180 and wrapvalue(camangx#)<360-camangxweight# then camangx#=camangxweight#*-1
 endif
 
+rem Scene Commander, player wobbling moved as seems to be in wrong place
+if wobble#<>0.0 and player(1).health>0
+ wobbleangle#=wrapvalue(wobbleangle#+((2+rnd(4)+(11-wobble#))/10.0))
+ camangx#=camangx#+cos(wobbleangle#*2.0)*wobble#*0.008*(sin(wobbleangle#)*1.2)
+ camangy#=camangy#+sin(wobbleangle#*4.0)*wobble#*0.005
+endif
+
+rem Scene Commander end
 rem used to swoosh to an angle (picking up object off-center)
 if camturntofacemode>0
  camangy#=curveangle(camturntoface#,camangy#,10.0)
@@ -43650,7 +43670,7 @@ _multi_earlyinit:
  endif
  `
  rem Create Deadreckoning vectors (FPGC - 280610 - moved from 10+ to 20+ allows vectors for stereoscopics)
- for t=20+0 to 20+(16*5) : r=make vector3(t) : next t
+ for t=10+0 to 10+(16*5) : r=make vector3(t) : next t rem moved back to 10 to fix multiplayer s4real
  `
  rem Memblock allocations for vary-byte tranfser
  mb_move=101 : make memblock mb_move, 93
@@ -43864,7 +43884,7 @@ _multi_playertorespawnpos:
     playerstartx#=respawn(rsi).x
     playerstarty#=respawn(rsi).y
     playerstartz#=respawn(rsi).z
-    playerstartrx#=0
+    `playerstartrx#=0 rem out for now s4real
     playerstartry#=respawn(rsi).ry
     rem ensure it is not filled, exclude self from check
     tokay=1
@@ -43925,7 +43945,7 @@ return
 _multi_free:
  `
  rem Free Deadreckoning vectors
- for t=20+0 to 20+(16*5) : r=delete vector3(t) : next t
+ for t=10+0 to 10+(16*5) : r=delete vector3(t) : next t
  `
  rem Delet memblocks
  if mb_move>0
@@ -44211,7 +44231,7 @@ _multi_control:
        entityelement(te).x=statex(el)
        entityelement(te).y=statey(el)
        entityelement(te).z=statez(el)
-       if showfpsinrealgame=2 then print " X:";statex(el);" Y:";statey(el);" Z:";statez(el)
+       `if showfpsinrealgame=2 then print " X:";statex(el);" Y:";statey(el);" Z:";statez(el) removed for now s4real
        entityelement(te).mover.da=stateviewy(el)
        if stateanim(el)<>1+entityelement(te).animdo
         entityelement(te).animonce=0
@@ -45919,8 +45939,8 @@ _multi_dealdamagedirect:
     rem only if you did not kill yourself
     if sourceel<>el then frags(sourceel)=frags(sourceel)+1
     `
-    if characterlist$(characterchosen(sourceel))= characterlist$(characterchosen(el)) then frags(sourceel)=frags(sourceel)-2
-    if frags(sourceel) < 0 then frags(sourceel) = 0
+    `if characterlist$(characterchosen(sourceel))= characterlist$(characterchosen(el)) then frags(sourceel)=frags(sourceel)-2
+   ` if frags(sourceel) < 0 then frags(sourceel) = 0 rem removed for now s4real
         rem only need to send frag to the guy who wants to know what he has
     MULTIPLAYER SEND FROM PLAYER multiplayeridlink(iLocalEL)
     write memblock byte 102, 0, 205
@@ -46075,7 +46095,7 @@ _packet_move:
   eloff=((el-1)*5) : debugel=el
   statedx(el)=px# : statedy(el)=py# : statedz(el)=pz#
   statex(el)=statesx(el) : statey(el)=statesy(el) : statez(el)=statesz(el)
-  cpx#(1)=statex(el) : cpy#(1)=statey(el) : cpz#(1)=statez(el) : set vector3 20+eloff,cpx#(1),cpy#(1),cpz#(1)
+  cpx#(1)=statex(el) : cpy#(1)=statey(el) : cpz#(1)=statez(el) : set vector3 10+eloff,cpx#(1),cpy#(1),cpz#(1) `s4real
   tdx#=px#-statex(el)
   tdz#=statez(el)-pz#
   td#=sqrt(abs(tdx#*tdx#)+abs(tdz#*tdz#))/2.0
@@ -46083,12 +46103,12 @@ _packet_move:
   ix#=newxvalue(statex(el),statesa(el),td#)
   iy#=statey(el)
   iz#=newzvalue(statez(el),statesa(el)+180,td#)
-  cpx#(2)=ix# : cpy#(2)=iy# : cpz#(2)=iz# : set vector3 21+eloff,cpx#(2),cpy#(2),cpz#(2)
-  cpx#(3)=px# : cpy#(3)=py# : cpz#(3)=pz# : set vector3 22+eloff,cpx#(3),cpy#(3),cpz#(3)
+  cpx#(2)=ix# : cpy#(2)=iy# : cpz#(2)=iz# : set vector3 11+eloff,cpx#(2),cpy#(2),cpz#(2) `s4real
+  cpx#(3)=px# : cpy#(3)=py# : cpz#(3)=pz# : set vector3 12+eloff,cpx#(3),cpy#(3),cpz#(3) `s4real
   ix#=newxvalue(px#,pa#,td#)
   iy#=py#
   iz#=newzvalue(pz#,pa#+180,td#)
-  cpx#(4)=ix# : cpy#(4)=iy# : cpz#(4)=iz# : set vector3 23+eloff,cpx#(4),cpy#(4),cpz#(4)
+  cpx#(4)=ix# : cpy#(4)=iy# : cpz#(4)=iz# : set vector3 13+eloff,cpx#(4),cpy#(4),cpz#(4) `s4real
   statesx(el)=px# : statesy(el)=py# : statesz(el)=pz# : statesa(el)=pa#
   statesvel(el)=1.0
   statemsgap(el)=0
@@ -46119,9 +46139,9 @@ _packet_move_dedrec:
    timespan#=(1.0/200.0)*statemsgap(el)
    if timespan#>1.0 then timespan#=1.0 : statemove(el)=0
    eloff=((el-1)*5)
-   cpx#=x vector3(20+eloff)
-   cpy#=y vector3(20+eloff)
-   cpz#=z vector3(20+eloff)
+   cpx#=x vector3(10+eloff)
+   cpy#=y vector3(10+eloff)
+   cpz#=z vector3(10+eloff)
    rem move position of plr
    statex(el)=cpx#+((statesx(el)-cpx#)*timespan#)
    statey(el)=cpy#+((statesy(el)-cpy#)*timespan#)
@@ -46201,12 +46221,12 @@ _multi_andwho:
   next tcc
  next tcl
  `
- rem set text for choice
- set text size 12+((screen width()-320.0)/320.0)*6.0
- set text to normal
+rem set text for choice
+ set text size 16
+ set text to normal : clear entry buffer
  `
  rem offer choice
- gap#=screen height()/20
+ gap#=screen height()/40
  characterchoice=0
  clear entry buffer
  if numberofplayers>=2
@@ -59834,12 +59854,12 @@ _darkai_init:
  `seems to conflict with new script based approach, ah well
  `if gshowaioutlines=0
  ` rem cannot use n-core in debug as objects for debug visuals are created sequentially
- ` AI SET THREAD MODE 1
- ` AI SET THREAD COUNT 4
+  AI SET THREAD MODE 4
+  AI SET THREAD COUNT 4
  `endif
  `
  rem X10 Set common entity radius and avoidance model (22)
- `AI Set Radius 20 : AI Set Avoid Mode 5 : rem 5 - avoidance grid system
+ `AI Set Radius 30 : AI Set Avoid Mode 5 : rem 5 - avoidance grid system
  `AI SET BLOCKING THRESHOLD 3 : rem number of corpses before grid is marked solid
  rem Hockeykid entity radius and avoidance model
  ai set radius gairadius : rem ai set avoid mode 1
@@ -59847,8 +59867,8 @@ _darkai_init:
  rem V118 - 080211 - switch to grid based avoidance system (less likely to push fellows into walls)
  rem V119 - 230611 - Hockeykid - Sounds nice, but doesn't seem to work as desired. Apparently the blocking threshold is incorrect
  rem 1 AI can stop another AI, instead of 3 :S
- ai set avoid mode 5 : AI SET BLOCKING THRESHOLD 3 rem changed back to stop fellows into walls
-` ai set avoid mode 1
+` ai set avoid mode 5 : AI SET BLOCKING THRESHOLD 3 rem changed back to stop fellows into walls
+ ai set avoid mode 1
  `
  rem Universe containers (required for static entities)
  for layer=0 to 19
@@ -60416,17 +60436,16 @@ _darkai_debug:
    ai debug show view arcs 550
   endif
  endif
- Ai Debug Show Avoidance Angles 550
+` Ai Debug Show Avoidance Angles 550
 return
 
 _ai_find_angle:
+ fadist#=sqrt((ex1#-ex2#)^2 + (ez1#-ez2#)^2)
+`tdx#=ex1#-ex2#
+`tdy#=ey1#-ey2#
+`tdz#=ez1#-ez2#
 
-tdx#=ex1#-ex2#
-tdy#=ey1#-ey2#
-tdz#=ez1#-ez2#
-
- `fadist#=sqrt((ex1#-ex2#)^2 + (ez1#-ez2#)^2)
- fadist#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+` fadist#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
  if entityelement(e).eyeoffset=0 then entityelement(e).eyeoffset=80
  entityangle#=atanfull((ey1#+ey1eyeoffset)-(ey2#+entityelement(e).eyeoffset), fadist#)
 return
@@ -60599,8 +60618,8 @@ Add_Targets:
     next x
     if tenemytargetflagged=1
      rem V118 - 240111 - do not use borble, use camera position (pefect line of sight)
-     `if ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position y(physicsplayerborble),object position z(physicsplayerborble),1)>0
-     if ai get entity can see(entityelement(e).obj,camera position x(),camera position y(),camera position z(),1)>0
+     if ai get entity can see(entityelement(e).obj,object position x(physicsplayerborble),object position y(physicsplayerborble),object position z(physicsplayerborble),1)>0 `s4real changed back
+     `if ai get entity can see(entityelement(e).obj,camera position x(),camera position y(),camera position z(),1)>0
       ai entity add target entityelement(e).obj,physicsplayerborble
      endif
     endif
@@ -60675,7 +60694,7 @@ Function AIHeardSound(obje)
  tclosestdist#=99999.0
  output=0
  arraycount=array count(aisound())
- hearing=entityelement(obje).darkai.hearingrange
+ hearing=entityelement(obje).darkai.hearingrange^2 `s4real
  teamslot=AIFindTeam(entityelement(obje).darkai.team)
  for i=1 to arraycount
   tokay=1
@@ -60684,15 +60703,16 @@ Function AIHeardSound(obje)
   next x
   if tokay=1
    if aisound(i).alive=1 and aisound(i).team<>entityelement(obje).darkai.team
-rem calculate sound distance
-                  tobjx#=entityelement(obje).x
-                  tobjy#=entityelement(obje).y
-                  tobjz#=entityelement(obje).z
+rem calculate sound distance ` changed for speed s4real
+ dst#=(entityelement(obje).x-aisound(i).x)^2 + (entityelement(obje).z-aisound(i).z)^2
+                 ` tobjx#=entityelement(obje).x
+                 ` tobjy#=entityelement(obje).y
+                 ` tobjz#=entityelement(obje).z
 
-                  tdx#=aisound(i).x-tobjx#
-                  tdy#=aisound(i).y-tobjy#
-                  tdz#=aisound(i).z-tobjz#
-                 dst#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+                 ` tdx#=aisound(i).x-tobjx#
+                `  tdy#=aisound(i).y-tobjy#
+                 ` tdz#=aisound(i).z-tobjz#
+                ` dst#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
 
     if dst#<=hearing and dst#<tclosestdist#
      output=i : tclosestdist#=dst#
@@ -63034,7 +63054,7 @@ function SyncAll()
   `if wateron=1
  ` hide object waterobj
   `endif
- if wateron=1 then show object waterobj `s4real fix plane showing up.
+ if wateron=1 then hide object waterobj `s4real fix plane showing up.(Changed to hide typo error)
 
   `
   rem mask all hudbankoffset object for raycamera render
@@ -63266,125 +63286,115 @@ function culling(e,entid,obj)
  `text 200,200,str$(timeelapsed#)
 delaykill(e)
 
-   ` text 200,200,str$(weaponammo(weaponammoindex+ammooffset))
- rem if not just using FPSC default culling - exclude weapons and ammo from cull regardless
 
-if gmultiplayergame<>1 and cullmode<>0 and (entityprofile(entid).isweapon=0 and entityelement(e).cullstate<2) and (entityprofile(entid).isammo=0 and entityelement(e).cullstate<2)
+if cullmode=0 then exitfunction
 
-rem get player position
+if entityelement(e).activated=0 and entityelement(e).spawn.atstart=0
+ entityelement(e).ishidden=2
+ exitfunction
+endif
+
+     if cullmode<>0
+Rem if object exists run cull
+  if obj>0
+      seeit=0
+      Rem get is object on screen
+      if object exist(obj) then seeit=object in screen(obj)
+
+if entityelement(e).eleprof.physics=3 and entityelement(e).eleprof.isimmobile=1 and entityelement(e).cullimmobile=1 then entityelement(e).eleprof.physics=99
+
+if (entityprofile(entid).isweapon=0 and (entityelement(e).cullstate<2 or entityelement(e).cullstate>3)) and (entityprofile(entid).isammo=0 and (entityelement(e).cullstate<2 or entityelement(e).cullstate>3)) and entityprofile(entid).ischaracter=0 and entityelement(e).eleprof.physics<>3 and entityelement(e).beenkilled=0
+
+`if object not on screen or is hidden then hide
+if seeit=0 or entityelement(e).cullstate=3 then hide object obj:exitfunction
+
+Rem Scene Commnader, do not cull if object in motion or if really close or set to always show.
+          lx#=ode get body linear velocity x(obj)
+          ly#=ode get body linear velocity y(obj)
+          lz#=ode get body linear velocity z(obj)
+
+      if (object size(obj)<45 and entityelement(e).cullstate<2) then howfar=200
+
+         if  entityelement(e).cullstate>3 then howfar=entityelement(e).cullstate
+
+         if (int(lx#)<>0 or int(ly#)<>0 or int(lz#)<>0 or entityelement(e).cullstate=2) and entityelement(e).cullstate<>3
+            show object obj
+            entityelement(e).ishidden=0
+
+         exitfunction
+         endif
+Rem get object distance
  tcamx#=object position x(physicsplayerborble)
  tcamy#=object position y(physicsplayerborble)
  tcamz#=object position z(physicsplayerborble)
 
-`for e=1 to entityelementlist
-entid=entityelement(e).bankindex
-`obj=entityelement(e).obj
+      tdx#=object position x(obj)-tcamx#
+     tdy#=object position y(obj)+(object size(obj)/2)-tcamy#
+     tdz#=object position z(obj)-tcamz#
 
-rem only check entities not hidden by system and those that are active
-hiddenbackup=entityelement(e).ishidden
+    howfar=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+`and size
+    sizeis=int(object size(obj)/10)
 
-if entityelement(e).activated=0 and entityelement(e).spawn.atstart=0
- entityelement(e).ishidden=2
- else
-   entityelement(e).ishidden=hiddenbackup
- endif
-
-if entityelement(e).ishidden<>2
-
-             if obj>0
-
-            seeit=0
-            Rem get is object on screen
-               if object exist(obj) then seeit=object in screen(obj)
-
-                  if entityelement(e).eleprof.physics=3 and entityelement(e).eleprof.isimmobile=1 and entityelement(e).cullimmobile=1 then entityelement(e).eleprof.physics=99
-
-
-                  rem doors and windows, characters and the dead excluded from the cull.
-                  `if object exist(obj) and (entityprofile(entid).ischaracter<>1 and entityelement(e).eleprof.physics<>3 and seeit=1)
-                  if seeit=1 and entityprofile(entid).ischaracter<>1
-
-         Rem get object distance
-
-                  if entityelement(e).eleprof.physics=99 then entityelement(e).eleprof.physics=3
-
-                 ` text object screen x(obj),object screen y(obj),str$(entityprofile(entid).scale)
-
-                 tdx#=object position x(obj)-tcamx#
-                 tdy#=object position y(obj)+(object size(obj)/2)-tcamy#
-                 tdz#=object position z(obj)-tcamz#
-                 `edistance(e)
-                  howfar=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
-
-                  `size adjustment, arrived at through experimentation and is approximately cullmodi*100=1 segment
-                  sizeis=int(object size(obj)/10)
-                  rem cullmodi allows user adjustment to global entity culling
-                  sizeis=sizeis*cullmodi
-
-                        if sizeis>hudfognear and hudfogon=1 then sizesis=hudfognear
-                        if waterfognear<sizeis and waterfogon>0 then sizeis=waterfognear
-                        rem if entity has user defined cull then use that
-                     if entityelement(e).cullstate>3 then sizeis=entityelement(e).cullstate
-
-                        Rem Scene Commnader, do not cull if object in motion or if really close or set to always show.
-                        lx#=ode get body linear velocity x(obj)
-                        ly#=ode get body linear velocity y(obj)
-                        lz#=ode get body linear velocity z(obj)
-
-                           if (object size(obj)<45 and entityelement(e).cullstate<2) then howfar=200
-
-                        if int(lx#)<>0 or int(ly#)<>0 or int(lz#)<>0 or howfar<500 or entityelement(e).cullstate=2
-                              show object obj
-                              entityelement(e).ishidden=0
-
-                              exitfunction
-                        endif
-
-                     Rem Scene Commander, with newer culling additions, alpha fading isn't so important, so now isn't a default setting to improve performance.
-                           if entityelement(e).usefade=1
-                              fade=abs(howfar-sizeis)
-                              else
-                              fade=100
-                           endif
-
-                           if entityelement(e).ishidden<>3 and entityelement(e).cullstate<>2
-                              if fade<=entityelement(e).ai.destalphafade and fade<101
-                              set alpha mapping on obj,fade
-                              endif
-                           endif
-
-
-
-                           if howfar>=sizeis or entityelement(e).cullstate=3 or seeit=0
-                           hide object obj
-                           entityelement(e).ishidden=1
-                           exitfunction
-                           endif
-
-                              if howfar<sizeis
-                              show object obj
-                              entityelement(e).ishidden=0
-
-                              endif
-
-                        endif
-
-
-         rem close obj 'cullable'
-`text object screen x(obj),object screen y(obj),str$(obj)
-
-         endif
-
-      rem close obj exist
-
-      endif
-
+if entityelement(e).cullstate>3
+   tempcullmodi=1
+   else
+   tempcullmodi=cullmodi
 endif
 
-`  next e
+ sizeis=sizeis*tempcullmodi
+Rem if entity cullstate>149 or is in cullmode 2 for only cull from cullstate set sizeis to cullstate
 
-  rem close if no culling
-  `endif
+
+if howfar<150 or entityelement(e).cullstate=2 then sizeis=1000000
+
+ if entityelement(e).cullstate>3 then sizeis=entityelement(e).cullstate
+ Rem Handle isimmobile cull
+ if entityelement(e).cullimmobile<>0 and entityelement(e).health>0
+
+   if (entityelement(e).ishidden<>2 and howfar<sizeis)
+show object obj
+
+     entityelement(e).ishidden=0
+     endif
+
+Rem Scene Commander, with newer culling additions, alpha fading isn't so important, so now isn't a default setting to improve performance.
+    if entityelement(e).usefade=0
+    fade=abs(howfar-sizeis)
+    if howfar<110 then fade=100
+   else
+   fade=100
+   endif
+
+   if entityelement(e).ishidden<>3 and entityelement(e).cullstate<>2
+      if fade<=entityelement(e).ai.destalphafade and fade<101
+         set alpha mapping on obj,fade
+      endif
+   endif
+
+    if howfar>=sizeis and entityelement(e).ishidden<>2
+    hide object obj
+    endif
+
+    endif
+  `Handle dynamic, non isimmobile cull
+  if entityprofile(entid).fixnewy=0 and entityelement(e).eleprof.physics<>3 and entityelement(e).eleprof.isimmobile=0
+
+  if (entityelement(e).ishidden<>2 and howfar<sizeis)
+
+     show object obj
+     entityelement(e).ishidden=0
+     endif
+
+    if howfar>=sizeis and entityelement(e).ishidden<>2
+     hide object obj
+    endif
+endif
+    endif
+      endif
+   _later:
+    endif
+
 
 endfunction
 
