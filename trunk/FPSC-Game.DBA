@@ -34,6 +34,7 @@ rem Credit to Robert Knox for help fixing up the engine and adding a cool HUD sy
 rem Credit to Flatlander for his code fixes and tireless alpha testing.
 rem Credit to S4Real for continued support and some nice performance tweaks.
 
+ rem Latest beta v1.20.41 date :- 17/5/2013
 rem Init app
 sync on : sync rate 0
 
@@ -59,7 +60,6 @@ delete dll Kernel32
 
 _start_engine:
 Rem Scene Commander globals
-FLUSH VIDEO MEMORY
 Rem flashlight
 global flashlighton=0 as boolean
 global flashlightrange=350
@@ -149,8 +149,8 @@ global maxslots=10
 Rem Scene Commander water performance
 Global waterflec=400
 rem Scene Commander culling
-global cullmode=1
-global cullmodi=650
+global cullmode=0
+global cullmodi=800
 global plrfootfall=1
 global forcealtswap=0
 global moveplrx#=0.0
@@ -200,6 +200,21 @@ global weaponammoindex=0
 global ammooffset=0
 global timeelapsed#=0.0
 
+rem ===================================
+rem  Timer System
+rem ===================================
+type tairtimer
+    elapsed# as double float
+    last_time as double integer
+    difference as integer
+    framerate as integer
+endtype
+global time as tairtimer
+global atime as float
+
+rem Default Timer Settings
+time.framerate = 32
+
 `global syncrate=80 rem rem out to fix speed
 global plrdistance#=0.0
 global spareselectkey=0
@@ -221,7 +236,7 @@ global forcecrouch=0
 
 rem scene commander - average FPS for smoother movement - Removed as redundant with later fixes.
 `global nextave=1
-dim fpsstore(60):for f=1 to 60:fpsstore(f)=60:next f `added back due compile issues and chnaged to 60 for timing s4real
+ dim fpsstore(60):for f=1 to 60:fpsstore(f)=60:next f `added back due compile issues and chnaged to 60 for timing s4real
 
 Rem Scene Commander end variables
 
@@ -285,6 +300,11 @@ type containertype
    id as integer
 endtype
 global dim container(20) as containertype
+
+rem s4real
+type zonetype
+    id as integer
+endtype
 
 Rem Hockeykid - 250210 - Dark AI global Variables
 Global darkaiuni = 200000
@@ -759,6 +779,7 @@ global gameperfgun as DWORD
 global gameperfmisc as DWORD
 global gameperfdebug as DWORD
 global gameperfresttosync as DWORD
+global gameperfdarkai as DWORD `s4real
 global gameperfphysics as DWORD
 global gameperfsync as DWORD
 global deactivatecollision=0
@@ -1490,6 +1511,21 @@ type movertype
  slidevel as float
 endtype
 
+rem Entity DarkAI `s4real
+type darkaitype
+    `action$ as string
+    `actiondelay as integer
+    tactical as boolean
+    state as integer
+    delay as integer
+    ambushed as integer
+    ambushx# as float
+    ambushz# as float
+    running as boolean
+    reference as integer
+    action as integer
+endtype
+
 rem Decal Particle Structure
 type decalparticletype
  offsety as float
@@ -2046,8 +2082,9 @@ Rem Scene commander conditions
 #constant AICONDLMBLESSER 929
 #constant AICONDRMBGREATER 930
 #constant AICONDRMBLESSER 931
+#constant AICONDISDARKAISEEING 932
 
-#constant AICONDLAST 932
+#constant AICONDLAST 933
 
 #constant AIACTNONE 0
 #constant AIACTDESTROY 1
@@ -4385,9 +4422,10 @@ addfiletocollection("databank\needle.png")
 addfiletocollection("databank\radarback.png")
 addfiletocollection("databank\objective.png")
 
-if file exist("videobank\storyvideo.avi")=1
-   addfiletocollection("videobank\storyvideo.avi")
-endif
+
+
+
+
 for f=1 to 20
 a$="databank\blip"+str$(f)+".png"
 if file exist(a$)
@@ -5626,7 +5664,7 @@ else
    rem see own message (only if server)
    if createorjoin=1
     talkscript$(talkindex)=">>"+tmessage$
-    talkscriptcount(talkindex)=200
+    talkscriptcount(talkindex)=300
     talkscriptwho(talkindex)=iLocalEL
     inc talkindex : if talkindex>10 then talkindex=0
    endif
@@ -5692,12 +5730,14 @@ if gamewarmupcount=0
   gosub _player_itemmanager
   gosub _player_mission
   `
-  rem The Player Camera
-  gosub _player_camera
-  gosub _gun_update_hud
+  
   `
  endif
  `
+ rem The Player Camera
+  gosub _player_camera
+  gosub _gun_update_hud
+  
 endif
 
 rem Measure plr calcs time
@@ -5769,6 +5809,12 @@ function genuniqueservercode(name$)
  next index
  code$=right$(code$,32)
 endfunction code$
+
+_interface_openbuildgame:
+_interface_handlebuildgame:
+_interface_closebuildgame:
+return
+
 
 rem
 rem GAME
@@ -5929,10 +5975,10 @@ for y=1 to 20
 next y
 ai complete obstacles
 delete object airmodoffset+1000
-
-debugviewtext(286,"AirMod: Constructing Cross-Layer Zones")
-ttotalzones=39*39*19
-zoneid=0
+`
+`debugviewtext(286,"AirMod: Constructing Cross-Layer Zones")
+`ttotalzones=39*39*19
+`zoneid=0
 
 rem setup scorch texture
 if guseweaponsstate=1
@@ -6305,6 +6351,9 @@ for p=0 to segmeshpartmax
     texuseid=loadinternaltexture(texfiletouse$)
     if texuseid=0
      rem some effects need a blank texture if no file available
+    rem black texture if no texture
+      texuseid=loadinternalimagecompressquality("texturebank\common\black.tga",1,0)
+      remstart 
      if tlayer<=ensureclearlayermax
       if lower$(mid$(right$(texfiletouse$,5),1))="n"
        rem normal texture if intended
@@ -6314,6 +6363,7 @@ for p=0 to segmeshpartmax
        texuseid=loadinternalimagecompressquality("texturebank\common\black.dds",1,0)
       endif
      endif
+     remend
     endif
     if texuseid>0
      if tstage=0 then segmentprofile(segid,p).texdid=texuseid : segmentprofile(segid,p).texid=texuseid
@@ -8459,6 +8509,8 @@ managebroadcastsound()
 
 rem maintain constant game speed -timer based - Scene Commander rewrite for smoother movement
 rem new timing system to work with changes s4real
+timeelapsed#=(1.0/50.0)*(timer()-timestamp) : timestamp=timer()
+fpsstore(nextave)=timebasepercycle# `  speed up
 timeelapsed#=timebasepercycle#
 fpsstore(nextave)=timeelapsed#
 temptime#=0
@@ -8934,6 +8986,34 @@ if logicpriorityfurtheste>0
 endif
 
 rem Entity Performance
+inc gameperfentities1, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
+
+rem Go through all entities for MOVEMENT
+for e=1 to entityelementlist
+ if entityelement(e).dormant=0
+  obj=entityelement(e).obj
+  entid=entityelement(e).bankindex
+  gosub _entity_controlspawn
+  if entityelement(e).spawn.leader=0
+   if entityelement(e).active=1
+    gosub _entity_controlwaypoints
+    gosub _entity_controlforce
+    gosub _entity_controlcollision
+    inc gameperfentities2, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
+    gosub _entity_controlmovements
+    inc gameperfentities3, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
+    gosub _entity_controldelayeddamage
+   endif
+  endif
+ endif
+next e
+
+rem Entity Performance
+inc gameperfentities4, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
+
+
+remstart
+rem Entity Performance
 inc gameperfentities4, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
 
 rem Go through all entities for MOVEMENT
@@ -8953,6 +9033,8 @@ for e=1 to entityelementlist
   endif
  endif
 next e
+remend
+
 
 rem Calculate any logic drop increments/decrements
 rem V110 - 290508 - give more MS to entity logic (it is a drainer in X9)
@@ -8972,7 +9054,7 @@ else
 endif
 if logicprioritymax#<2.0 then logicprioritymax#=2.0
 rem speed work
-incspeed#=(1.0/40.0)*(timer()-lastincrementspeedtime) : lastincrementspeedtime=timer()
+`incspeed#=(1.0/40.0)*(timer()-lastincrementspeedtime) : lastincrementspeedtime=timer()
 rem Go through all entities for VISUAL
 for e=1 to entityelementlist
  obj=entityelement(e).obj
@@ -8986,16 +9068,16 @@ for e=1 to entityelementlist
    if object exist(obj)=1 and entityelement(e).plrdist<2000
     `
     rem Operate spin and float system
-    Rem Scene Commander - only spin if within 10 segments
+    Rem Scene Commander - only spin if within 10 segments 
 
     if entityelement(e).plrdist<1000
       tspin#=0.0 : thover#=0.0
       if entityelement(e).spinrate<>0
-     entityelement(e).spinvalue=entityelement(e).spinvalue+(timeelapsed#*entityelement(e).spinrate)
+     entityelement(e).spinvalue=entityelement(e).spinvalue+(entityelement(e).spinrate*atime)
      tspin#=wrapvalue(entityelement(e).spinvalue)
       endif
       if entityelement(e).floatrate<>0
-     entityelement(e).floatvalue=entityelement(e).floatvalue+(timeelapsed#*4)
+     entityelement(e).floatvalue=entityelement(e).floatvalue+(4*atime)
      thover#=entityelement(e).floatrate+(cos(wrapvalue(entityelement(e).floatvalue))*entityelement(e).floatrate)
       endif
     endif
@@ -9179,6 +9261,9 @@ for e=1 to entityelementlist
       endif
      endif
      `
+    rem handle any entity attachments (coneofsight)
+     gosub _entity_controlattachments 
+     
      rem control lighting of entities (and free at start also - get start lighting)
      if gdynamiclightingstate=1 or forceambientlightsetting>0
       if object in screen(obj)=1
@@ -10114,7 +10199,7 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
 
  rem Count down to next spawn
  if entityelement(e).spawn.afterdelay=1
-  entityelement(e).spawn.leadercount=entityelement(e).spawn.leadercount-(1*timeelapsed#)
+  entityelement(e).spawn.leadercount=entityelement(e).spawn.leadercount-(1*atime)
  endif
  rem If count goes to zero (and have some left 'upto')
  tpermitaspawn=0
@@ -10325,6 +10410,7 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
        set object collision on tobj
       endif
       `
+      aiobjid=tobj
       rem write entity to viscolmap if space available, else find new place
       if entityelement(te).eleprof.physics=0 or entityelement(te).eleprof.physics=2
        tx=entityelement(te).x/25
@@ -10698,7 +10784,7 @@ if tindex<>0
   endif
   if entityelement(e).decalmode=2 or entityelement(e).decalmode=3 or entityelement(e).decalmode=5
    rem loop decal continually recreating it
-   entityelement(e).decalloop=entityelement(e).decalloop+(timeelapsed#*2)
+   entityelement(e).decalloop=entityelement(e).decalloop+(atime*2)
    if entityelement(e).decalloop>=15
     entityelement(e).decalloop=0
     currentdecald=entityelement(e).decalslotused
@@ -10719,6 +10805,26 @@ return
 
 _entity_controlcollision:
 
+rem DarkAI - Use AI position `s4real
+
+if obj>0
+ if ai entity exist(obj)=1
+ if abs(entityelement(e).x-ai get entity x(obj)) > 50 or abs(entityelement(e).z-ai get entity z(obj)) > 50
+   ai set entity position obj,entityelement(e).x,entityelement(e).z
+  endif
+  endif
+  endif
+  remstart
+  if entityelement(e).mover.dx<>ai get entity x(obj) or entityelement(e).mover.dz<>ai get entity z(obj)
+   entityelement(e).mover.moved=1
+  endif
+  `entityelement(e).mover.dx=ai get entity x(obj)
+  `entityelement(e).mover.dz=ai get entity z(obj)
+  entityelement(e).mover.da=ai get entity angle y(obj)
+  `entityelement(e).mover.run=entityelement(e).darkai.running
+ endif
+endif
+remend
 rem no movement if entity immobile
 if entityelement(e).mover.moved=1
  if entityelement(e).eleprof.isimmobile=1
@@ -12503,6 +12609,7 @@ conword$(AICONDLMBGREATER)="lmbgreater"
 conword$(AICONDLMBLESSER)="lmblesser"
 conword$(AICONDRMBGREATER)="rmbgreater"
 conword$(AICONDRMBLESSER)="rmblesser"
+conword$(AICONDISDARKAISEEING)="aicanseetarget"
 
 rem Set all action keywords
 dim actword$(AIACTLAST)
@@ -13520,7 +13627,7 @@ tcamx#=object position x(physicsplayerborble)
       if condb>=100
        rem always fire
       else
-       if rnd(100-condb)>0 then airesult=0
+       if rnd((100-condb)/atime)>0 then airesult=0 `s4real timing added
       endif
      endif
     endcase
@@ -14608,11 +14715,20 @@ tcamx#=object position x(physicsplayerborble)
      endif
     endcase
    case AICONDDARKAICANSHOOT:
+   `  aiobjidvalue=0
+    ` if aiobjidvalue=0 then airesult=0
      conda=aiconditionseq(seq).valuea
-     if ai entity exist(entityelement(e).obj)
-      if ai get entity can fire(entityelement(e).obj)=1 and conda=0 then airesult=0
-      if ai get entity can fire(entityelement(e).obj)<>1 and conda=1 then airesult=0
-     endif
+     tobj=entityelement(e).obj
+     airesult=0
+     if ai entity exist(tobj)
+      if ai get entity can fire(tobj)=1 and conda=1 then airesult=1
+      if ai get entity can fire(tobj)=0 and conda=0 then airesult=1
+     ` if AI Get Entity Can Fire(entityelement(e).obj)=1
+    ` aiobjidvalue=1
+    ` else
+    ` aiobjidvalue=0
+    endif
+    ` endif
     endcase
     case AICONDAIDUCKING:
      conda=aiconditionseq(seq).valuea
@@ -14623,7 +14739,7 @@ tcamx#=object position x(physicsplayerborble)
     endcase
     case AICONDAIISAI:
      conda=aiconditionseq(seq).valuea
-     if ai entity exist(entityelement(e).obj) and conda=0 then airesult=0
+     if ai entity exist(entityelement(e).obj)=1 and conda=0 then airesult=0
      if ai entity exist(entityelement(e).obj)=0 and conda=1 then airesult=0
     endcase
     case AICONDAITEAM:
@@ -15801,7 +15917,11 @@ case AICONDSTATEGREATER:
 
     endcase
 
-
+   case AICONDISDARKAISEEING:
+     aiobjidvalue=0 : gosub _aiss_fpi_getconditionvalue
+     if aiobjidvalue=0 then airesult=0
+     gosub _ai_additionaldarkaientityraycast
+    endcase
 
    endselect
    `
@@ -16680,8 +16800,8 @@ Rem Scene Commander
        tmpx#=object position x(obj)
        tmpy#=object position y(obj)
        tmpz#=object position z(obj)
-       temp#=(entityelement(e).eleprof.speed/100.0)*(aiactionseq(seq).value*timeelapsed#)
-       entityelement(e).y=tmpy#+temp#
+       temp#=(entityelement(e).eleprof.speed/100.0)*(aiactionseq(seq).value*atime)
+       entityelement(e).y=tmpy#+temp#*atime
        gosub _entity_controlrecalcdist
        position object obj,tmpx#,entityelement(e).y,tmpz#
       endif
@@ -16740,7 +16860,7 @@ Rem Scene Commander
      endcase
      `
      case AIACTROTATEY:
-      tmp#=aiactionseq(seq).value
+      tmp#=aiactionseq(seq).value*atime
       entityelement(e).mover.da=entityelement(e).mover.da+tmp#
       if entityelement(e).mover.da<0 then entityelement(e).mover.da=entityelement(e).mover.da+360
       if entityelement(e).mover.da>359 then entityelement(e).mover.da=entityelement(e).mover.da-360
@@ -16751,7 +16871,7 @@ Rem Scene Commander
       entityelement(e).mover.da=wrapvalue(diffangle#)
      endcase
      case AIACTROTATEIY:
-      tmp#=aiactionseq(seq).value
+      tmp#=aiactionseq(seq).value*atime
       entityelement(e).ry=entityelement(e).ry+tmp#
       entityelement(e).mover.da=entityelement(e).ry
       if obj>0
@@ -22042,13 +22162,17 @@ tstring$=right$(lower$(tfile$),4)
    if file exist(tfile$)=1
 
    if tstring$=".avi" or tstring$=".wmv" or tstring$=".mpeg" or tstring$=".mpg" or tstring$=".mov" or tstring$=".qt"
-
+   
+ 
    if animation exist(actual)=1
    delete animation actual
    endif
 
    load animation tfile$,actual
-   addfiletocollection(tfile$)
+   
+   addfiletocollection("videobank\")+tfile$
+ 
+   ` addfiletocollection(tfile$)
 
 endif
 endif
@@ -24013,6 +24137,13 @@ function broadcast3dsound(x#,y#,z#,strength#,obj)
   bcsoundstrength#=strength#
   bcsoundx#=x# : bcsoundy#=y# : bcsoundz#=z#
  endif
+rem DarkAI `s4real
+ for y=1 to 20
+     if y# > container(y).y#-50.0 and y# < container(y).y#+50.0
+         scontainer = y : exit
+     endif
+ next y
+ ai create sound x#,z#,strength#*0.5,strength#*50.0,scontainer
 endfunction
 
 function playinternalBC3dsound(id,x#,y#,z#,strength#)
@@ -26443,6 +26574,10 @@ if gunmode=9999
 endif
 
 
+`s4real added for gun speed
+`set object speed currentgunobj,atime*gunspeed
+
+
 rem AirMod - Gun Lag :D >>>
 if gunzoommode <> 0
  gunlagspeed# = firemode(gunid,firemode).settings.zoomgunlagSpeed
@@ -27483,6 +27618,7 @@ if gunflash=1
  gosub _lighting_spotflash
  `
 endif
+
 if gunflash=2
  rem lee - 140310 - timer based deduction
  `if gunflashcount<=4
@@ -27493,7 +27629,12 @@ if gunflash=2
   hide object hudbankoffset+32
  endif
  dec gunflashcount,timeelapsed#
+ 
+ 
+ 
  if gunflashcount<=0
+ 
+ 
   gunflash=3
  endif
 endif
@@ -30402,25 +30543,25 @@ for f=1 to flakelementmax
   rem update flak object (initial so we see starting position of flak)
   tflakid=flakelement(f).flakid
   position object tobj,flakelement(f).xpos,flakelement(f).ypos,flakelement(f).zpos
-  xrotate object tobj,object angle x(tobj)+flakelement(f).profile.spinx
+  xrotate object tobj,object angle x(tobj)+flakelement(f).profile.spinx*atime
   rem affect flak by inertia and gravity
   tmpx1#=flakelement(f).xpos : tmpy1#=flakelement(f).ypos : tmpz1#=flakelement(f).zpos
-  flakelement(f).xpos=flakelement(f).xpos+(timeelapsed#*flakelement(f).profile.xinc)
-  flakelement(f).ypos=flakelement(f).ypos+(timeelapsed#*flakelement(f).profile.yinc)
-  flakelement(f).zpos=flakelement(f).zpos+(timeelapsed#*flakelement(f).profile.zinc)
+  flakelement(f).xpos=flakelement(f).xpos+(timeelapsed#*flakelement(f).profile.xinc*atime)
+  flakelement(f).ypos=flakelement(f).ypos+(timeelapsed#*flakelement(f).profile.yinc*atime)
+  flakelement(f).zpos=flakelement(f).zpos+(timeelapsed#*flakelement(f).profile.zinc*atime)
   txinc#=flakelement(f).profile.xinc-(flakelement(f).profile.xinc/flakelement(f).profile.xspeed)
-  flakelement(f).profile.xinc=flakelement(f).profile.xinc-(txinc#*timeelapsed#)
+  flakelement(f).profile.xinc=flakelement(f).profile.xinc-(txinc#*atime)
   tyinc#=flakelement(f).profile.yinc-(flakelement(f).profile.yinc/flakelement(f).profile.yspeed)
-  flakelement(f).profile.yinc=flakelement(f).profile.yinc-(tyinc#*timeelapsed#)
+  flakelement(f).profile.yinc=flakelement(f).profile.yinc-(tyinc#*atime)
   tzinc#=flakelement(f).profile.zinc-(flakelement(f).profile.zinc/flakelement(f).profile.zspeed)
-  flakelement(f).profile.zinc=flakelement(f).profile.zinc-(tzinc#*timeelapsed#)
-  flakelement(f).profile.yinc=flakelement(f).profile.yinc-(flakelement(f).profile.weight*timeelapsed#)
+  flakelement(f).profile.zinc=flakelement(f).profile.zinc-(tzinc#*atime)
+  flakelement(f).profile.yinc=flakelement(f).profile.yinc-(flakelement(f).profile.weight*atime)
   rem handle flak collision
   tdetonate=0 : tcollide=0
   rem handle timer delay
   if flakelement(f).profile.lifespan>0
    if (flak(tflakid).noexplode=1 and flakelement(f).profile.explodeonhit>0) or flak(tflakid).noexplode=0
-    dec flakelement(f).profile.lifespan,timeelapsed#
+    dec flakelement(f).profile.lifespan,atime
     if flakelement(f).profile.lifespan<=0
      flakelement(f).profile.lifespan=0
      flakelement(f).preexplode=1
@@ -30456,7 +30597,7 @@ for f=1 to flakelementmax
     tcollide=2
     rem collision bounce requires orientation
     if flakelement(f).profile.bounceonhit>0
-     point object tobj,flakelement(f).xpos+(flakelement(f).profile.xinc*10.0),flakelement(f).ypos+(flakelement(f).profile.yinc*10.0),flakelement(f).zpos+(flakelement(f).profile.zinc*10.0)
+     point object tobj,flakelement(f).xpos+(flakelement(f).profile.xinc*10.0)/atime,flakelement(f).ypos+(flakelement(f).profile.yinc*10.0)/atime,flakelement(f).zpos+(flakelement(f).profile.zinc*10.0)/atime
     endif
     `
     rem kill Y ineria if get too low
@@ -31128,11 +31269,11 @@ _decalelement_control:
 rem Control all decal activity
 for f=1 to decalelementmax
  if decalelement(f).active=1
-  backuptimeelapsed#=timeelapsed#
+  backuptimeelapsed#=atime
    if screen fps()<=101
-      decaltimeelapsed#=timeelapsed#
+      decaltimeelapsed#=atime
    else
-      decaltimeelapsed#=timeelapsed#/1.2
+      decaltimeelapsed#=atime/1.2
    endif
 
   rem update decal object
@@ -31154,7 +31295,7 @@ for f=1 to decalelementmax
    rem next frame
    rem FPGC - 050710 - glass smash much slower than previous non-timer based system, so we speed it up!
    `decalelement(f).framedelay=decalelement(f).framedelay+decaltimeelapsed#
-   decalelement(f).framedelay=decalelement(f).framedelay+(decaltimeelapsed#*2)
+   decalelement(f).framedelay=decalelement(f).framedelay+(decaltimeelapsed#*2)/atime
    if decalelement(f).framedelay>=1
     decalelement(f).framedelay=0
     decalelement(f).frame=decalelement(f).frame+(decalelement(f).particle.lifeincrement/100.0)
@@ -32350,7 +32491,7 @@ _lighting_spotflash:
   endif
  endif
  if spotflash>0 and spotflash<100
-  dec spotflash,20
+  dec spotflash,20*atime
   if spotflash>0
    if light exist(1)=1
     spotfadeout#=spotflash/100.0
@@ -36568,7 +36709,9 @@ _gameflow_default:
       ingameloop=1
       gosub _ode_beginphysics
       if gvrmode<>0 then vr920exist=reset left eye()
+       air_timerupdate(): air_timerupdate()
       while continueokay=0
+          air_timerupdate()
        if showgamemenu=0
         gosub _main_game_core
        else
@@ -38901,7 +39044,7 @@ _ai_hud_view:
   if hud(hudid).fadeout>0
    if hudfadeoutoneatatime=0 then hudfadeoutoneatatime=hudid
    if hudid=hudfadeoutoneatatime
-    hud(hudid).fadeout=hud(hudid).fadeout-(timeelapsed#*3)
+    hud(hudid).fadeout=hud(hudid).fadeout-(atime*3)
     if hud(hudid).fadeout>0
      if hud(hudid).fadeout>100
       talpha#=255.0
@@ -40794,7 +40937,7 @@ _ode_playerborble:
   ai set player height 0 : rem V118 - 240111 - player position is camera position (no need for height)
   darkaiplayer=1
  endif
- color object physicsplayerborble,rgb(255,255,0)
+ color object physicsplayerborble,rgb(255,255,0) `s4real not needed
  set object collision off physicsplayerborble
  if plrcamoffseton=1
  position object physicsplayerborble,camerapositionx+newcamoffsetx#,(camerapositiony-phyeyeheight#)+6+newcamoffsety#,camerapositionz+newcamoffsetz#
@@ -41202,7 +41345,7 @@ ctox#=ctx# : ctoy#=cty# : ctoz#=ctz#
 rem camera eye height (eye drops to base of elipse when no health)
 if player(plrid).health<=0 and playerstartstrength>0
  if ellipsevolumesize#=1.0 and (plrkeyC)=0
-  phyeyeheight#=phyeyeheight#-1.0
+  phyeyeheight#=phyeyeheight#-(1.0*atime)
   if phyeyeheight#<10.0 then phyeyeheight#=10.0
  else
   phyeyeheight#=phycrouched#
@@ -41277,8 +41420,8 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
  `
  rem AirMod - CAM FOV >>>
  old_airmod_fov# = airmod_camfov#
- airmod_camfov_d# = curvevalue(0,airmod_camfov_d#,20.0)
- airmod_camfov# = curvevalue(airmod_camfov_d#,airmod_camfov#,10.0)
+ airmod_camfov_d# = curvevalue(0,airmod_camfov_d#,20.0/atime)
+ airmod_camfov# = curvevalue(airmod_camfov_d#,airmod_camfov#,10.0/atime)
  if old_airmod_fov# <> airmod_camfov# then plrzoominchange=1
  rem AirMod - DONE<<<
   rem Handle optical effect of zoom
@@ -41426,7 +41569,7 @@ if (plrkeyC)=1 or forcecrouch=1
     if (plrkeyA)=1 and (plrkeyD)=1
      `do nothing
     else
-     if cameraspeed<tcameraspeed# then inc cameraspeed,10.0*timeelapsed#
+     if cameraspeed<tcameraspeed# then inc cameraspeed,10.0*atime
      if cameraspeed>tcameraspeed# then cameraspeed=tcameraspeed#
     endif
    endif
@@ -41434,6 +41577,7 @@ if (plrkeyC)=1 or forcecrouch=1
   if camerareachatrun#<cameraspeed/3.0 then camerareachatrun#=cameraspeed/3.0
   if camerareachatrun#<0 then camerareachatrun#=0
  else
+ 
 `ladder?
 `  phyangle#=moveroty#
 `  if (plrkeyW)=1
@@ -41465,7 +41609,7 @@ if (plrkeyC)=1 or forcecrouch=1
    motionytracked#=tmotiony#
   else
    rem ensure we don't go HIGHER!
-   if motionytracked#>0.0 then motionytracked#=motionytracked#-(timeelapsed#*1.0)
+   if motionytracked#>0.0 then motionytracked#=motionytracked#-(atime*1.0)
    if tmotiony#>motionytracked# then tmotiony#=motionytracked#
   endif
  else
@@ -41481,7 +41625,7 @@ if (plrkeyC)=1 or forcecrouch=1
   inc phytotalmotioncount
   if phytotalmotioncount>20
    phytotalmotion#=phytotalmotion#/phytotalmotioncount
-   if phytotalmotion#<10.0
+   if phytotalmotion#<10.0*atime
     physuspendgravity=1
    else
     physuspendgravity=0
@@ -41697,6 +41841,7 @@ if deactivatecollision=0 and skipcol=0
    if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
     rem no gravity to defeat when in water
    else
+    tstaticfloor=get static collision floor()
     if tstaticfloor=1 and grav#<0 then tgravitydefeated=1
    endif
    rem handle if collide while jumping
@@ -42059,7 +42204,7 @@ endif
 rem Scene Commander end
 rem used to swoosh to an angle (picking up object off-center)
 if camturntofacemode>0
- camangy#=curveangle(camturntoface#,camangy#,10.0)
+ camangy#=curveangle(camturntoface#,camangy#,10.0/atime)
  dec camturntofacemode
 endif
 
@@ -42168,6 +42313,7 @@ else
  ode set angular velocity physicsplayerborble,0,0,0
 endif
 
+remstart
 rem calculate some simply shake movement
 camshakey#=0.0
 if abs(camshake#)<>0
@@ -42183,6 +42329,29 @@ if abs(camshake#)<>0
   camshake#=camshake#*0.9
  endif
 endif
+remend
+
+rem calculate some simply shake movement
+camshakey#=curvevalue(0.0,camshakey#,2.0/atime)
+if abs(camshake#) > 30.0
+    camshake# = 30.0
+endif
+
+if abs(camshake#)<>0
+ if rnd(1) = 0 then camshakedir=1-camshakedir
+ if camshakedir=0
+  camshakey#=camshakey#+(camshake#*atime*0.1)
+  if camshakey# > 30.0 then camshakey# = 30.0
+ else
+  camshakey#=camshakey#-(camshake#*atime*0.1)
+  if camshakey# < -30.0 then camshakey# = -30.0
+ endif
+ if abs(camshake#)<1.0
+  camshake#=0.0 
+ else
+  camshake# = camshake# - (atime*0.5)
+ endif
+endif
 
 rem arena-eyes adjustment
 if gmultiplayergame=1
@@ -42196,9 +42365,9 @@ else
 endif
 if movement<>0
  if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
-  camerawobble#=wrapvalue(camerawobble#+(15.0*timeelapsed#))*deactivatecollision=1
+  camerawobble#=wrapvalue(camerawobble#+(15.0*atime))*deactivatecollision=1
  else
-  camerawobble#=wrapvalue(camerawobble#+(30.0*timeelapsed#))*deactivatecollision=1
+  camerawobble#=wrapvalue(camerawobble#+(30.0*atime))*deactivatecollision=1
  endif
  if (plrkeySHIFT)=1 or (plrkeySHIFT2)=1
   arenaadjust#=arenaadjustd#+(cos(camerawobble#)*0.60)
@@ -42206,20 +42375,25 @@ if movement<>0
   arenaadjust#=arenaadjustd#+(cos(camerawobble#)*0.35)
  endif
 else
- arenaadjust#=curvevalue(arenaadjustd#,arenaadjust#,5.0)
+ arenaadjust#=curvevalue(arenaadjustd#,arenaadjust#,5.0/atime)`s4real 
  camerawobble#=0.0
 endif
 
 
 
 rem finally update camera with smoothing (cty# is absolute staticvolume camypos)
-finalcamy#=curvevalue(camerapositiony,camera position y(),2.0)
+finalcamy#=curvevalue(camerapositiony,camera position y(),2.0/atime)
 if finalcamy#>cty#-8 then finalcamy#=cty#-8
 if playersystemdisabled=0
- position camera curvevalue(camerapositionx,camera position x(),2.0),finalcamy#+arenaadjust#+(camshakey#/10.0),curvevalue(camerapositionz,camera position z(),2.0)
+` position camera curvevalue(camerapositionx,camera position x(),2.0/timeelapsed#),finalcamy#+arenaadjust#+(camshakey#/10.0),curvevalue(camerapositionz,camera position z(),2.0)
+ position camera curvevalue(camerapositionx,camera position x(),2.0/atime)+camshakey#,finalcamy#+arenaadjust#+(camshakey#),curvevalue(camerapositionz,camera position z(),2.0/atime)-camshakey#
 endif
 
 Rem Hockeykid - 250210 - DarkAI Set Player Container
+rem `s4real dark ai
+ai set player position camerapositiony,camerapositionx,camerapositionz
+if crouchmode<>0 then ai set player ducking 1 else ai set player ducking 0
+
 for y=0 to 19
  if finalcamy# > container(y).y#-50.0 and finalcamy# < container(y).y#+50.0
   k=y
@@ -42240,17 +42414,17 @@ _ode_listener:
   rotate listener 0,camera angle y(0),0
  else
   rem quick approx. of listener position (CPU friendly)
-  roughx=camera position x(0)/10.0 : roughx=(roughx/2)*2
-  roughy=camera position y(0)/3.0 : roughy=(roughy/2)*2
-  roughz=camera position z(0)/10.0 : roughz=(roughz/2)*2
+  roughx=camera position x(0)/10.0 : roughx=(roughx/5)*5
+  roughy=camera position y(0)/10.0 : roughy=(roughy/5)*5
+  roughz=camera position z(0)/10.0 : roughz=(roughz/5)*5
   if roughx<>lastroughx or roughy<>lastroughy or roughz<>lastroughz
    lastroughx=roughx : lastroughy=roughy : lastroughz=roughz
-   position listener roughx,roughy-5,roughz
+   position listener roughx,roughy,roughz
   endif
   `rotate listener 0,camera angle y(0),0  `want my rotspeed back!
-  roughaa=camera angle y(0)/22.0
+  roughaa=camera angle y(0)/45.0
   if roughaa<>lastroughaa
-   rotate listener 0,roughaa*22,0
+   rotate listener 0,roughaa*45,0
    lastroughaa=roughaa
   endif
  endif
@@ -43134,7 +43308,10 @@ _ode_update:
  `
  rem update physics (FPGC - 210210 - new ODE requires only one timer based update call)
  `for phy=1 to 2 : ode update : next phy
-
+ tstep# = 0.05*atime
+ if tstep# = 0 then tstep# = 0.05
+ ode set world step tstep#
+ if odestartup > 0 then ode set world step 0.05 : dec odestartup
  ode update
  `
  rem for next run - debug readouts
@@ -43595,9 +43772,9 @@ _part_controlexploders:
   endselect
   if exploder(exploderindex).explode>0
    rem flash
-   exploder(exploderindex).fade#=exploder(exploderindex).fade#-10
+   exploder(exploderindex).fade#=exploder(exploderindex).fade#-(10*atime)
    if exploder(exploderindex).fade#<1 then exploder(exploderindex).fade#=0
-   sparkfade#=100-((90-exploder(exploderindex).fade#)*40)
+   sparkfade#=100-(((90-exploder(exploderindex).fade#)*40)*atime)
    if sparkfade#<0 then sparkfade#=0
    if sparkfade#>100 then sparkfade#=100
    set alpha mapping on exploder(exploderindex).obj+0,sparkfade#
@@ -43608,8 +43785,8 @@ _part_controlexploders:
    set alpha mapping on exploder(exploderindex).obj+3,exploder(exploderindex).fade#/2.0 : s#=80+(25-(exploder(exploderindex).fade#/4))
    scale object exploder(exploderindex).obj+3,s#,s#,s#
    rem smoke
-   exploder(exploderindex).dist#=exploder(exploderindex).dist#+0.1
-   exploder(exploderindex).smoke#=exploder(exploderindex).smoke#+2.0
+   exploder(exploderindex).dist#=exploder(exploderindex).dist#+(0.1*atime)
+   exploder(exploderindex).smoke#=exploder(exploderindex).smoke#+(2.0*atime)
    if exploder(exploderindex).smoke#>=100
     for oi=0 to 16
      o=exploder(exploderindex).obj+oi
@@ -43620,7 +43797,7 @@ _part_controlexploders:
     for oi=4 to 16
      o=exploder(exploderindex).obj+oi
      if oi>=14 then up#=0.3 else up#=0.05
-     position object o,object position x(o),object position y(o)+up#,object position z(o)
+     position object o,object position x(o),object position y(o)+(up#*atime),object position z(o)
      set alpha mapping on o,100.0-exploder(exploderindex).smoke#
     next oi
    endif
@@ -63377,6 +63554,8 @@ Rem Scene Commander, with newer culling additions, alpha fading isn't so importa
     endif
 
     endif
+    
+   
   `Handle dynamic, non isimmobile cull
   if entityprofile(entid).fixnewy=0 and entityelement(e).eleprof.physics<>3 and entityelement(e).eleprof.isimmobile=0
 
@@ -63394,6 +63573,8 @@ endif
       endif
    _later:
     endif
+    
+    
 
 
 endfunction
@@ -63730,9 +63911,185 @@ rem deactivate and hide entity (beenkilled used by spawner)
 
     return
 
+_ai_additionaldarkaientityraycast:
+ `
+ tobj=entityelement(e).obj
+ rem called within DODARKAISEEING and FIRING (so cannot see and fire through doors)
+ if aiobjidvalue=0
+  airesult=0
+ else
+  rem darkai has a target, fill in details
+  gosub _aiss_gettargetforshooting
+  rem X10 - 231007 - ghost or fly precludes a target being player
+  if gghostrunmode=1 or gcameraflymode=1
+   if targetID=physicsplayerborble then targetID=0
+  endif
+  if targetID>0
+   if object exist(targetID)=1
+    tmpx#=entityelement(e).x
+    tmpy#=entityelement(e).y+30
+    tmpz#=entityelement(e).z
+    ttox#=object position x(targetID)
+    ttoy#=object position y(targetID)
+    ttoz#=object position z(targetID)
+    toisobj=entityelement(e).obj
+    t=1
+    if toisobj>0
+     if object visible(toisobj)=0
+      t=0
+     endif
+    endif
+    if t=1
+     tvisibility=0 : gosub _entity_determinevisibility
+    else
+     if rnd(50)=1
+      rem X10 - 111007 - if not in screen, reduce vis cast to one in 50
+      tvisibility=0 : gosub _entity_determinevisibility
+     else
+      tvisibility=0
+     endif
+    endif
+    if tvisibility=1
+     if tvisibilityifbreak>0
+      rem replace target value for this cod  destroy breabable interfering entity
+      if object exist(entityobjectoffset+tvisibilityifbreak)=1
+       targetID=entityobjectoffset+tvisibilityifbreak
+      endif
+     endif
+    endif
+    if tvisibility=1
+     if targetID=physicsplayerborble
+      entityelement(e).actualtarget=1
+      entityelement(e).actualtargetx=object position x(targetID)
+      entityelement(e).actualtargety=object position y(targetID)
+      entityelement(e).actualtargetz=object position z(targetID)
+     else
+      entityelement(e).actualtarget=1+(targetID-entityobjectoffset)
+      entityelement(e).actualtargetx=object position x(targetID)
+      entityelement(e).actualtargety=object position y(targetID)
+      entityelement(e).actualtargetz=object position z(targetID)
+     endif
+    else
+     rem X10 - 130807 - if not visible line of sight, no shoot
+     airesult=0
+    endif
+   endif
+  else
+   entityelement(e).actualtarget=-1
+  endif
+ endif
+ `
+return
 
+_aiss_gettargetforshooting:
+ `
+ rem get targetID from entity about to fire, takes E
+ targetID=0
+ if object exist(tobj)=1
+  aiobjid=tobj
+  if AI Entity Exist(aiobjid)=1
+   targetID = AI Get Entity Target ID(aiobjid,1)
+  endif
+ endif
+ if targetID>65535
+  rem a bug causes above command to return a HUGE value
+  targetID=0
+ endif
+ `
+return
 
+_aiss_fpi_getconditionvalue:
+ `
+ rem Handle action logic of AI entity (aiobjidvalue in and out)
+ rem 0 : ISDARKAISEEING
+ rem 1 : ISDARKAIHURT
+ rem 2 : ISDARKAIFIRING
+ aiobjid=entityobjectoffset+e
+ if AI Entity Exist(aiobjid)=1
 
+    targetx# = AI Get Entity Target X(aiobjid)
+    targety# = object position y(aiobjid)+30
+    targetz# = AI Get Entity Target Z(aiobjid)
+    if AI Get Entity Can See(aiobjid,targetx#,targety#,targetz#,1)<>0
+     aiobjidvalue=1
+    else
+     aiobjidvalue=0
+    endif
+ else
+  aiobjidvalue=0
+ endif
+ `
+return
+
+_entity_determinevisibility:
+
+rem As above but trimmed down for vis check between entity and a coordinate
+rem ray = tmpx#,tmpy#,tmpz#,ttox#,ttoy#,ttoz#,dist#
+tvisibility=1
+tvisibilityifbreak=0 : tvisibilityifbreakdist#=9999.99
+
+rem range of ray
+tdistx#=tmpx#-ttox#
+tdisty#=tmpy#-ttoy#
+tdistz#=tmpz#-ttoz#
+traydist#=sqrt(abs(tdistx#*tdistx#)+abs(tdisty#*tdisty#)+abs(tdistz#*tdistz#))
+
+rem instant block if other object obstructs it
+for tte=1 to entityelementlist
+ if tte<>e
+  if entityelement(tte).active=1 and entityelement(tte).collisionactive=1
+   tdistx#=entityelement(e).x-entityelement(tte).x
+   tdisty#=entityelement(e).y-entityelement(tte).y
+   tdistz#=entityelement(e).z-entityelement(tte).z
+   ttdist#=sqrt(abs(tdistx#*tdistx#)+abs(tdisty#*tdisty#)+abs(tdistz#*tdistz#))
+   if ttdist#<=traydist# and entityelement(tte).obj>0
+    `
+    rem X10 - 111007 - three intersect tests is expensive, only do if door/window (pseudo static)
+    if entityelement(tte).eleprof.physics=3
+     `
+     ttdst#=intersect object(entityelement(tte).obj,tmpx#,tmpy#,tmpz#,ttox#,ttoy#,ttoz#)
+     if ttdst#=0 then ttdst#=intersect object(entityelement(tte).obj,tmpx#,tmpy#-20,tmpz#,ttox#,ttoy#-20,ttoz#)
+     if ttdst#=0 then ttdst#=intersect object(entityelement(tte).obj,tmpx#,tmpy#+20,tmpz#,ttox#,ttoy#+20,ttoz#)
+     if ttdst#>0
+      rem block if solid, do not block if transparent but record the breakable obstruction
+      if entityelement(tte).eleprof.transparency=0 then tvisibility=0
+      if entityelement(tte).eleprof.transparency>0
+       if ttdst#<tvisibilityifbreakdist#
+        tvisibilityifbreak=tte
+        tvisibilityifbreakdist#=ttdst#
+       endif
+      endif
+      if tvisibility=0 then tte=entityelementlist+1
+     endif
+     `
+    endif
+    `
+   endif
+  endif
+ endif
+next tte
+
+rem raycast for solid wall collisions (if still visible)
+if tvisibility=1
+ tvisibility=1-static raycast(tmpx#,tmpy#,tmpz#,ttox#,ttoy#,ttoz#)
+
+ if tvisibility#<>-1
+  rem hit something solid, not visible
+  tvisibility=0
+ endif
+endif
+
+return
+
+function air_timerupdate()
+    time.difference = timer()-time.last_time
+    if time.difference=0 then time.difference=1
+    fps# = 1000 / time.difference
+    time.elapsed# = time.framerate / fps#
+    if time.elapsed# > 3.0 then time.elapsed# = 3.0
+    time.last_time=timer()
+    atime = time.elapsed#
+endfunction
 
 
 
