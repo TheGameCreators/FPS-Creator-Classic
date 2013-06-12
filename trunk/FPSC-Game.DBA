@@ -5730,14 +5730,14 @@ if gamewarmupcount=0
   gosub _player_itemmanager
   gosub _player_mission
   `
-  
+
   `
  endif
  `
  rem The Player Camera
   gosub _player_camera
   gosub _gun_update_hud
-  
+
 endif
 
 rem Measure plr calcs time
@@ -6353,7 +6353,7 @@ for p=0 to segmeshpartmax
      rem some effects need a blank texture if no file available
     rem black texture if no texture
       texuseid=loadinternalimagecompressquality("texturebank\common\black.tga",1,0)
-      remstart 
+      remstart
      if tlayer<=ensureclearlayermax
       if lower$(mid$(right$(texfiletouse$,5),1))="n"
        rem normal texture if intended
@@ -9068,7 +9068,7 @@ for e=1 to entityelementlist
    if object exist(obj)=1 and entityelement(e).plrdist<2000
     `
     rem Operate spin and float system
-    Rem Scene Commander - only spin if within 10 segments 
+    Rem Scene Commander - only spin if within 10 segments
 
     if entityelement(e).plrdist<1000
       tspin#=0.0 : thover#=0.0
@@ -9262,8 +9262,8 @@ for e=1 to entityelementlist
      endif
      `
     rem handle any entity attachments (coneofsight)
-     gosub _entity_controlattachments 
-     
+     gosub _entity_controlattachments
+
      rem control lighting of entities (and free at start also - get start lighting)
      if gdynamiclightingstate=1 or forceambientlightsetting>0
       if object in screen(obj)=1
@@ -10364,7 +10364,7 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
       show object tobj
       if entityelement(te).eleprof.physics=1 or entityelement(te).eleprof.physics=2
        rem lee - 300113 - small nudge up so does not get stuck in floor (subtle contact but causes radical response)
-       if entityprofile(entid).ischaracter=0
+       if 1`entityprofile(entid).ischaracter=0
         rem lee - 310113 - but not character spawners
         tttprofileobj=entityelement(te).profileobj
         tttadj#=object collision center y(tttprofileobj)
@@ -22162,16 +22162,16 @@ tstring$=right$(lower$(tfile$),4)
    if file exist(tfile$)=1
 
    if tstring$=".avi" or tstring$=".wmv" or tstring$=".mpeg" or tstring$=".mpg" or tstring$=".mov" or tstring$=".qt"
-   
- 
+
+
    if animation exist(actual)=1
    delete animation actual
    endif
 
    load animation tfile$,actual
-   
+
    addfiletocollection("videobank\")+tfile$
- 
+
    ` addfiletocollection(tfile$)
 
 endif
@@ -27629,12 +27629,12 @@ if gunflash=2
   hide object hudbankoffset+32
  endif
  dec gunflashcount,timeelapsed#
- 
- 
- 
+
+
+
  if gunflashcount<=0
- 
- 
+
+
   gunflash=3
  endif
 endif
@@ -41577,7 +41577,7 @@ if (plrkeyC)=1 or forcecrouch=1
   if camerareachatrun#<cameraspeed/3.0 then camerareachatrun#=cameraspeed/3.0
   if camerareachatrun#<0 then camerareachatrun#=0
  else
- 
+
 `ladder?
 `  phyangle#=moveroty#
 `  if (plrkeyW)=1
@@ -42347,7 +42347,7 @@ if abs(camshake#)<>0
   if camshakey# < -30.0 then camshakey# = -30.0
  endif
  if abs(camshake#)<1.0
-  camshake#=0.0 
+  camshake#=0.0
  else
   camshake# = camshake# - (atime*0.5)
  endif
@@ -42375,7 +42375,7 @@ if movement<>0
   arenaadjust#=arenaadjustd#+(cos(camerawobble#)*0.35)
  endif
 else
- arenaadjust#=curvevalue(arenaadjustd#,arenaadjust#,5.0/atime)`s4real 
+ arenaadjust#=curvevalue(arenaadjustd#,arenaadjust#,5.0/atime)`s4real
  camerawobble#=0.0
 endif
 
@@ -63554,8 +63554,8 @@ Rem Scene Commander, with newer culling additions, alpha fading isn't so importa
     endif
 
     endif
-    
-   
+
+
   `Handle dynamic, non isimmobile cull
   if entityprofile(entid).fixnewy=0 and entityelement(e).eleprof.physics<>3 and entityelement(e).eleprof.isimmobile=0
 
@@ -63573,8 +63573,8 @@ endif
       endif
    _later:
     endif
-    
-    
+
+
 
 
 endfunction
