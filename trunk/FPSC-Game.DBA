@@ -34,7 +34,12 @@ rem Credit to Robert Knox for help fixing up the engine and adding a cool HUD sy
 rem Credit to Flatlander for his code fixes and tireless alpha testing.
 rem Credit to S4Real for continued support and some nice performance tweaks.
 
- rem Latest beta v1.20.41 date :- 17/5/2013
+
+modname$="Unoffical"
+datecreate$="23/6/2013"
+FPSCver$="v1.20 beta19d"
+
+
 rem Init app
 sync on : sync rate 0
 
@@ -67,7 +72,8 @@ global flashlightred=255:flashlightgreen=255:flashlightblue=255
 
 rem wobble
 global wobble#=0.0
-
+rem portal
+global portalcontrol=1
 rem new deaths
 global tiltondeath=0
 global tilton=0
@@ -162,6 +168,8 @@ global noholster=1
 global noairon=0
 global drowndamage=1
 global pickrange#=75.0
+global gdisplaywidth : gdisplaywidth=ScreenW
+global gdisplayheight : gdisplayheight=ScreenH
 global lastpickrange#=75.0
 global laststrength#=4000.0
 global lastthrow#=100.0
@@ -198,22 +206,8 @@ global cullmodechange=0
 Rem Scene Commander - made global as otherwise it is being ignored in functions
 global weaponammoindex=0
 global ammooffset=0
-global timeelapsed#=0.0
+global timeelapsed#
 
-rem ===================================
-rem  Timer System
-rem ===================================
-type tairtimer
-    elapsed# as double float
-    last_time as double integer
-    difference as integer
-    framerate as integer
-endtype
-global time as tairtimer
-global atime as float
-
-rem Default Timer Settings
-time.framerate = 32
 
 `global syncrate=80 rem rem out to fix speed
 global plrdistance#=0.0
@@ -236,7 +230,7 @@ global forcecrouch=0
 
 rem scene commander - average FPS for smoother movement - Removed as redundant with later fixes.
 `global nextave=1
- dim fpsstore(60):for f=1 to 60:fpsstore(f)=60:next f `added back due compile issues and chnaged to 60 for timing s4real
+ dim fpsstore(80):for f=1 to 80:fpsstore(f)=80:next f `added back due compile issues and chnaged to 80 for timing s4real
 
 Rem Scene Commander end variables
 
@@ -459,6 +453,7 @@ dim resourcemeter(5)
 dim resourcemeter#(5)
 dim resourcemeterdest#(5)
 
+
 rem FPGC - 050909 - game memory tracker (test game creates, editor uses to show in meter)
 type gamememtabletype
  name$ as string
@@ -500,8 +495,8 @@ endtype
 dim team_frags(0) as team_frag
 empty array team_frags(0)
 rem V109 BETA3 - added to control change to player jump height
-global playerdefaultjumpheight : playerdefaultjumpheight=50.0 rem changed
-
+global playerdefaultjumpheight : playerdefaultjumpheight=50.0
+timerDefine() `Defines timer system variables
 rem V118 - store range, aspect and fov globally!
 global realrange# : realrange#=9000.0
 global realaspect# : realaspect#=4.0/3.0
@@ -2647,8 +2642,12 @@ rem Scene Commander actions
 #constant AIACTUSEFADE 1662
 #constant AIACTSHOWAIR 1663
 #constant AIACTDELAYDESTROY 1664
+rem Portal control
+#constant AIACTDISABLEPORTAL 1665
+#constant AIACTENABLEPORTAL 1666
 
-#constant AIACTLAST 1665
+
+#constant AIACTLAST 1667
 
 rem V109 BETA3 - 210408 - AI variables
 global aivariablemode : aivariablemode=0 : rem 0-global, 1-local
@@ -3649,7 +3648,7 @@ global gentitytogglingoff : gentitytogglingoff=0
 global gextracollisionbuilddisabled : gextracollisionbuilddisabled=1
 global galwaysconfirmsave : galwaysconfirmsave=0
 global gsimplifiedcharacterediting : gsimplifiedcharacterediting=0
-global gantialias : gantialias=2 rem reverted s4 changed to 2 so it works.
+global gantialias : gantialias=2 rem reverted s4 changed to 0 so it works.
 rem V118 - 130810 - knxrb - Invert Mouse
 global gminvert : gminvert=0
 rem V118 - 140810 - knxrb - Disable Particles
@@ -4294,10 +4293,10 @@ rem For status text if any
 set text font "Verdana"
 
 rem Init app (lee - 140310 - sync rate was 38)
-sync on  : autocam off : disable systemkeys
+`sync on  : autocam off : disable systemkeys
 rem scene commander performance
 
-`sync on : syncrate = 80 : autocam off : disable systemkeys `alpha v1.6 cap for jerky animations
+sync on : syncrate =0 : autocam off : disable systemkeys `alpha v1.6 cap for jerky animations
 
 hide mouse : backdrop off : disable escapekey
 
@@ -5025,6 +5024,7 @@ endselect
 endif
 endif
 
+
 if player(1).health>0 and justdone=0 then tiltondeath=0:rotate camera 0,0,camera angle y(0),0:temptilt=0:thud=0:justdone=1
 
 Rem Scene commander
@@ -5059,10 +5059,31 @@ global dim syncrate(15)
    inc tm_current_value
    if tm_current_value = 10 then tm_current_value = 1
    syncrate# = ( timer() - syncrate(tm_current_value) ) / 1000.0
+endif
 
+
+rem portal
+
+rem unoffical text
+if gtestgamemodefromeditor=1
+if portalcontrol=1
+TEXT 5,screen height()-15,modname$+" ["+datecreate$+"] ["+FPSCver$+"]"
+`text 100,100,str$(forcedslot)
+endif
+endif
+
+
+
+ if gtestgamemodefromeditor=1
+     if keystate(199)=1 then portalcontrol=1
+     if keystate(207)=1 then portalcontrol=0
  endif
 
-
+rem Updates timer variables, VERY IMPORTANT. REMOVE THIS AND EVERYTHING WILL (or should, hehe) FREEZE
+ timerUpdate()
+ tstep# = setvar(0.05)
+ if tstep# <= 0
+ endif
  rem Can intercept to grab screen - Scene Commander fix, no longer freezes if PlrkeyF12 is held
  if keystate(plrkeyF12)=1 and (timer()-screengrabtimer>1000)
  screengrabtimer=timer()
@@ -5481,6 +5502,10 @@ if gcompilestandaloneexe=0
  `
  rem Setup camera (player)
  debugviewtext(326,strarr$(628)) : gosub _player_setup
+
+ rem Flush video for new graphics usages
+ debugviewtext(327,strarr$(630)) : flush video memory
+
  `
  rem Reset multiplayer state (multiplayer)
  if gmultiplayergame=1
@@ -5731,6 +5756,7 @@ if gamewarmupcount=0
   gosub _player_mission
   `
 
+
   `
  endif
  `
@@ -5958,27 +5984,6 @@ gosub _lighting_postdefaults
 rem Use mapdata to build viscolmap data
 gosub _entity_fillviscolmap
 
-rem DarkAI - Construct Obstacles & Containers
-debugviewtext(280,"AirMod: Constructing AI Obstacles...")
-load object universefile$,airmodoffset+1000
-
-for y=1 to 20
- debugviewtext(280+int(y/4),"AirMod: Constructing Obstacle ["+str$(y)+"/20]")
- container(y).y# = (y*100)+50
- container(y).id = y
- if ai container exist(container(y).id) then ai remove container container(y).id
- ai add container container(y).id
- ai add obstacle from level airmodoffset+1000,container(y).id,1,container(y).y#+10,4,4,0
- ai complete obstacles container(y).id
- ai add obstacle from level airmodoffset+1000,container(y).id,0,container(y).y#-25.0,2,2,0
- ai complete obstacles container(y).id
-next y
-ai complete obstacles
-delete object airmodoffset+1000
-`
-`debugviewtext(286,"AirMod: Constructing Cross-Layer Zones")
-`ttotalzones=39*39*19
-`zoneid=0
 
 rem setup scorch texture
 if guseweaponsstate=1
@@ -6351,9 +6356,6 @@ for p=0 to segmeshpartmax
     texuseid=loadinternaltexture(texfiletouse$)
     if texuseid=0
      rem some effects need a blank texture if no file available
-    rem black texture if no texture
-      texuseid=loadinternalimagecompressquality("texturebank\common\black.tga",1,0)
-      remstart
      if tlayer<=ensureclearlayermax
       if lower$(mid$(right$(texfiletouse$,5),1))="n"
        rem normal texture if intended
@@ -6363,7 +6365,6 @@ for p=0 to segmeshpartmax
        texuseid=loadinternalimagecompressquality("texturebank\common\black.dds",1,0)
       endif
      endif
-     remend
     endif
     if texuseid>0
      if tstage=0 then segmentprofile(segid,p).texdid=texuseid : segmentprofile(segid,p).texid=texuseid
@@ -8003,7 +8004,7 @@ for rmi=0 to 4
 next rmi
 
 rem Resource Meter Panel (FPGC - 300710 - ensured multiplayer does not show resource panels)
-if gmultiplayergame=0
+if gmultiplayergame=0 and portalcontrol=1
 if testgametabtoggle=1
  `
  rem draw resource meter
@@ -8509,17 +8510,17 @@ managebroadcastsound()
 
 rem maintain constant game speed -timer based - Scene Commander rewrite for smoother movement
 rem new timing system to work with changes s4real
+`timeelapsed#=(1.0/50.0)*(timer()-timestamp) : timestamp=timer()
+`fpsstore(nextave)=timebasepercycle# `  speed up
+`timeelapsed#=timebasepercycle#
+`fpsstore(nextave)=timeelapsed#
+`temptime#=0
+`for ave=1 to 60
+`temptime#=temptime#+fpsstore(ave)
+`next ave
+`timeelasped#=temptime#/60
+`inc nextave,1:if nextave>60 then nextave=1
 timeelapsed#=(1.0/50.0)*(timer()-timestamp) : timestamp=timer()
-fpsstore(nextave)=timebasepercycle# `  speed up
-timeelapsed#=timebasepercycle#
-fpsstore(nextave)=timeelapsed#
-temptime#=0
-for ave=1 to 60
-temptime#=temptime#+fpsstore(ave)
-next ave
-timeelasped#=temptime#/60
-inc nextave,1:if nextave>60 then nextave=1
-
 
 rem maintain couner for any animspeed changes
 inc timeelapsedrefreshentityanimspeeds
@@ -8986,34 +8987,6 @@ if logicpriorityfurtheste>0
 endif
 
 rem Entity Performance
-inc gameperfentities1, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
-
-rem Go through all entities for MOVEMENT
-for e=1 to entityelementlist
- if entityelement(e).dormant=0
-  obj=entityelement(e).obj
-  entid=entityelement(e).bankindex
-  gosub _entity_controlspawn
-  if entityelement(e).spawn.leader=0
-   if entityelement(e).active=1
-    gosub _entity_controlwaypoints
-    gosub _entity_controlforce
-    gosub _entity_controlcollision
-    inc gameperfentities2, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
-    gosub _entity_controlmovements
-    inc gameperfentities3, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
-    gosub _entity_controldelayeddamage
-   endif
-  endif
- endif
-next e
-
-rem Entity Performance
-inc gameperfentities4, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
-
-
-remstart
-rem Entity Performance
 inc gameperfentities4, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
 
 rem Go through all entities for MOVEMENT
@@ -9033,7 +9006,6 @@ for e=1 to entityelementlist
   endif
  endif
 next e
-remend
 
 
 rem Calculate any logic drop increments/decrements
@@ -9054,7 +9026,7 @@ else
 endif
 if logicprioritymax#<2.0 then logicprioritymax#=2.0
 rem speed work
-`incspeed#=(1.0/40.0)*(timer()-lastincrementspeedtime) : lastincrementspeedtime=timer()
+incspeed#=(1.0/40.0)*(timer()-lastincrementspeedtime) : lastincrementspeedtime=timer()
 rem Go through all entities for VISUAL
 for e=1 to entityelementlist
  obj=entityelement(e).obj
@@ -9065,21 +9037,17 @@ for e=1 to entityelementlist
  if entityelement(e).active=1 and entityelement(e).dormant=0
   if obj>0
    `
-   if object exist(obj)=1 and entityelement(e).plrdist<2000
+   if object exist(obj)=1 and entityelement(e).plrdist<1000
     `
     rem Operate spin and float system
-    Rem Scene Commander - only spin if within 10 segments
-
-    if entityelement(e).plrdist<1000
-      tspin#=0.0 : thover#=0.0
-      if entityelement(e).spinrate<>0
-     entityelement(e).spinvalue=entityelement(e).spinvalue+(entityelement(e).spinrate*atime)
+    tspin#=0.0 : thover#=0.0
+    if entityelement(e).spinrate<>0
+     entityelement(e).spinvalue=entityelement(e).spinvalue+(timeelapsed#*entityelement(e).spinrate)
      tspin#=wrapvalue(entityelement(e).spinvalue)
-      endif
-      if entityelement(e).floatrate<>0
-     entityelement(e).floatvalue=entityelement(e).floatvalue+(4*atime)
+    endif
+    if entityelement(e).floatrate<>0
+     entityelement(e).floatvalue=entityelement(e).floatvalue+(timeelapsed#*4)
      thover#=entityelement(e).floatrate+(cos(wrapvalue(entityelement(e).floatvalue))*entityelement(e).floatrate)
-      endif
     endif
     `
     rem update entity object position (keep position for univese vis-culling)
@@ -10199,7 +10167,7 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
 
  rem Count down to next spawn
  if entityelement(e).spawn.afterdelay=1
-  entityelement(e).spawn.leadercount=entityelement(e).spawn.leadercount-(1*atime)
+   entityelement(e).spawn.leadercount=entityelement(e).spawn.leadercount-timeelapsed#
  endif
  rem If count goes to zero (and have some left 'upto')
  tpermitaspawn=0
@@ -10363,8 +10331,8 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
       rotate object tobj,entityelement(te).rx,entityelement(te).ry,entityelement(te).rz
       show object tobj
       if entityelement(te).eleprof.physics=1 or entityelement(te).eleprof.physics=2
-       rem lee - 300113 - small nudge up so does not get stuck in floor (subtle contact but causes radical response)
-       if 1`entityprofile(entid).ischaracter=0
+        rem lee - 300113 - small nudge up so does not get stuck in floor (subtle contact but causes radical response)
+       if entityprofile(entid).ischaracter=0
         rem lee - 310113 - but not character spawners
         tttprofileobj=entityelement(te).profileobj
         tttadj#=object collision center y(tttprofileobj)
@@ -10382,6 +10350,9 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
        tangle=entityelement(e).spawn.angle+rnd(entityelement(e).spawn.anglerandom)
        gosub _ode_pushusingtvelandangle
        e=ste
+       else
+       entityelement(te).y=entityelement(te).y+5
+       position object tobj,entityelement(te).x,entityelement(te).y,entityelement(te).z
       endif
       `
       rem reset visuals
@@ -10652,29 +10623,32 @@ if obj>0
      if entityelement(e).animdo=17 then entityelement(e).animonce=1
      if entityelement(e).animdo=20 then entityelement(e).animonce=1
     endif
+    if entityelement(e).animatespeed=0.0 then entityelement(e).animatespeed=1.0
     if entityelement(e).animonce=1
      loop object obj,tffinish-0.001,tffinish
      set object frame obj,tfstart
      entityelement(e).animonce=0
-     set object speed obj,100*entityelement(e).animatespeed rem animatespeed multiplier (markblosser)
+    set object speed obj,setvar(100*entityelement(e).animatespeed)
     else
      loop object obj,tfstart,tffinish
      if entityelement(e).animdir=1
-      set object speed obj,-110*timeelapsed#*entityelement(e).animatespeed rem animatespeed multiplier (markblosser)
+      set object speed obj,setvar(-125*entityelement(e).animatespeed)
      else
-      set object speed obj,110*timeelapsed#*entityelement(e).animatespeed rem animatespeed multiplier (markblosser)
+       set object speed obj,setvar(125*entityelement(e).animatespeed)
+       if screen fps()<>0 then animatespeed =(38/screen fps())*animatespeed
      endif
     endif
    endif
   endif
+
   if entityelement(e).animtime>0 then entityelement(e).animtime=entityelement(e).animtime-1
   `
   rem monitor any animation (periodically)
   if timeelapsedrefreshentityanimspeeds=0
    if entityelement(e).animdir=1
-    set object speed obj,-110*timeelapsed#*entityelement(e).animatespeed rem animatespeed multiplier (markblosser)
+    set object speed obj,((-110*entityelement(e).animatespeed)*timeelapsed#)
    else
-    set object speed obj,110*timeelapsed#*entityelement(e).animatespeed rem animatespeed multiplier (markblosser)
+    set object speed obj,((110*entityelement(e).animatespeed)*timeelapsed#)
    endif
   endif
   `
@@ -10784,7 +10758,7 @@ if tindex<>0
   endif
   if entityelement(e).decalmode=2 or entityelement(e).decalmode=3 or entityelement(e).decalmode=5
    rem loop decal continually recreating it
-   entityelement(e).decalloop=entityelement(e).decalloop+(atime*2)
+   entityelement(e).decalloop=entityelement(e).decalloop+(timeelapsed#*4)
    if entityelement(e).decalloop>=15
     entityelement(e).decalloop=0
     currentdecald=entityelement(e).decalslotused
@@ -10825,6 +10799,7 @@ if obj>0
  endif
 endif
 remend
+
 rem no movement if entity immobile
 if entityelement(e).mover.moved=1
  if entityelement(e).eleprof.isimmobile=1
@@ -11797,18 +11772,18 @@ _entity_addforcesphere:
   spdist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
   tblastradius#=400.0*sphereforce#
 
-  remstart taken out to stop crashing on some entitys s4real
+   Rem added back in with change s4real
   rem  if entity within sphere area, nudge the entity
   if sphereforce#=0.01
    rem special sphereforce# of 0.01 derived from force of 1/100.0
    if spdist#<300.0
     if entityelement(tte).obj>0
      phyobjelenudged(entityelement(tte).obj)=2
-     tblastradius#=0.0
+     tblastradius#=0.0 : AI Set Avoid Mode 0
     endif
    endif
   endif
-  remend
+
 
   if spdist#<tblastradius#
    rem calculate force
@@ -12054,6 +12029,11 @@ _entity_deducthealth:
    endif
    rem work out if dead or alive
    if entityelement(e).health<=0
+      rem  entity is dead, if other entities are targetting this entity then reset their target
+    for te=1 to entityelementlist
+      if entityelement(e).actualtarget=1+e then entityelement(e).actualtarget=0
+    next te
+
     rem entity killed
     entityelement(e).health=0
     entityelement(e).shotdamage=0
@@ -12249,6 +12229,7 @@ _entity_deducthealth:
        endif
        tdestroyname$=right$(tdestroyname$,len(tdestroyname$)-1)
       next tn
+
       rem Hockeykid - 070611 - If we have more spawns we don't have the time to ragdoll! Just throw back until last spawnlife
       spawne=entityelement(e).spawn.leaderid
       if spawne>0
@@ -12999,6 +12980,10 @@ actword$(AIACTSETENTITYSPEED)="setentityspeed"
 rem set animate command speed (markblosser)
 actword$(AIACTSETANIMATESPEED)="setanimatespeed"
 
+rem Portal control
+actword$(AIACTDISABLEPORTAL)="disableportal"
+actword$(AIACTENABLEPORTAL)="enableportal"
+
 rem Scene Commander actions
 actword$(AIACTWOBBLE)="plrwobble"
 actword$(AIACTTILTON)="plrdeath"
@@ -13627,7 +13612,7 @@ tcamx#=object position x(physicsplayerborble)
       if condb>=100
        rem always fire
       else
-       if rnd((100-condb)/atime)>0 then airesult=0 `s4real timing added
+       if rnd(100-condb)>0 then airesult=0
       endif
      endif
     endcase
@@ -16800,8 +16785,8 @@ Rem Scene Commander
        tmpx#=object position x(obj)
        tmpy#=object position y(obj)
        tmpz#=object position z(obj)
-       temp#=(entityelement(e).eleprof.speed/100.0)*(aiactionseq(seq).value*atime)
-       entityelement(e).y=tmpy#+temp#*atime
+       temp#=(entityelement(e).eleprof.speed/100.0)*(aiactionseq(seq).value*timeelapsed#)
+       entityelement(e).y=tmpy#+temp#
        gosub _entity_controlrecalcdist
        position object obj,tmpx#,entityelement(e).y,tmpz#
       endif
@@ -16860,7 +16845,7 @@ Rem Scene Commander
      endcase
      `
      case AIACTROTATEY:
-      tmp#=aiactionseq(seq).value*atime
+      tmp#=aiactionseq(seq).value
       entityelement(e).mover.da=entityelement(e).mover.da+tmp#
       if entityelement(e).mover.da<0 then entityelement(e).mover.da=entityelement(e).mover.da+360
       if entityelement(e).mover.da>359 then entityelement(e).mover.da=entityelement(e).mover.da-360
@@ -16871,7 +16856,7 @@ Rem Scene Commander
       entityelement(e).mover.da=wrapvalue(diffangle#)
      endcase
      case AIACTROTATEIY:
-      tmp#=aiactionseq(seq).value*atime
+      tmp#=aiactionseq(seq).value
       entityelement(e).ry=entityelement(e).ry+tmp#
       entityelement(e).mover.da=entityelement(e).ry
       if obj>0
@@ -17121,6 +17106,8 @@ Rem Scene Commander
      case AIACTRAGDOLL:
       rem FPGC - 210210 - by popular demand, ragdoll via script
       rem FPGC - 280710 - added flag to ensure non-supported models NEVER use ragdoll (bone splat issue)
+       if entityprofile(entid).ischaracter=1 and entityprofile(entid).noragdoll=0
+
       rem Hockeykid - 070611 - Make sure that we're allowed to ragdoll if we have more lives or spawns
       spawne=entityelement(e).spawn.leaderid
       if spawne>0
@@ -17130,6 +17117,7 @@ Rem Scene Commander
        tokay=1
       endif
 
+
       rem Scene Commander, no ragdoll if off screen.
 
       if entityelement(e).obj>0
@@ -17137,10 +17125,12 @@ Rem Scene Commander
          tokay=0
          endif
       endif
+       remstart
 
       rem markblosser - 102911 - breaks model pack 52 characters whose lives never reach 0, death is controlled purely in script
       `if entityprofile(entid).ischaracter=1 and entityprofile(entid).noragdoll=0 and entityelement(e).eleprof.lives<=0 and tokay=1
       if entityprofile(entid).ischaracter=1 and entityprofile(entid).noragdoll=0 and entityelement(e).eleprof.lives<=1 and entityelement(e).health<=0 and tokay=1
+          remend
        if entityelement(e).ragdollon=0
         entityelement(e).ragdollon=1
         ODE Create Ragdoll from bone model obj,0.6 : rem was 0.8 up to 171007 (was 0.6 on 300707)
@@ -18648,10 +18638,12 @@ Rem Scene Commander
      endcase
      case AIACTHUDIMAGE:
       `workhudimage=aiactionseq(seq).value FPGC - 231109 - need to retain image filename for game reload
+      if portalcontrol=1
       tindex=aiactionseq(seq).value
       workhudimagevalue$=left$(actstring$(tindex),4)
       workhudimagefile$=right$(actstring$(tindex),len(actstring$(tindex))-4)
       workhudimage=val(workhudimagevalue$)
+      endif
      endcase
      case AIACTHUDIMAGEFINE:
       `workhudimage=aiactionseq(seq).value FPGC - 231109 - need to retain image filename for game reload
@@ -21595,6 +21587,13 @@ case AIACTRAWTEXTVAR:
       lastcam=ecam
       ecam=e
 
+      endcase
+
+      case AIACTDISABLEPORTAL:
+      portalcontrol=0
+      endcase
+      case AIACTENABLEPORTAL:
+      portalcontrol=1
       endcase
 
       case AIACTPLAYERCAM:
@@ -24911,7 +24910,8 @@ _player_restart:
  zrotate camera 0
  `
  rem start with a jump
- grav#=-1.0 : jumpaction=0  : jumpspeed#=0.0 : jumpangle#=camera angle y(0) : gravlasty#=mey#`sizechange=1:firstturnjump=0
+  grav#=-1.0 : jumpaction=0  : jumpspeed#=0.0 : jumpangle#=camera angle y(0) : gravlasty#=mey#`sizechange=1:firstturnjump=0
+
  camflyforcex#=0 : camflyforcey#=0 : camflyforcez#=0
  camforcex#=0 : camforcey#=0 : camforcez#=0
  `
@@ -30543,25 +30543,25 @@ for f=1 to flakelementmax
   rem update flak object (initial so we see starting position of flak)
   tflakid=flakelement(f).flakid
   position object tobj,flakelement(f).xpos,flakelement(f).ypos,flakelement(f).zpos
-  xrotate object tobj,object angle x(tobj)+flakelement(f).profile.spinx*atime
+  xrotate object tobj,object angle x(tobj)+flakelement(f).profile.spinx
   rem affect flak by inertia and gravity
   tmpx1#=flakelement(f).xpos : tmpy1#=flakelement(f).ypos : tmpz1#=flakelement(f).zpos
-  flakelement(f).xpos=flakelement(f).xpos+(timeelapsed#*flakelement(f).profile.xinc*atime)
-  flakelement(f).ypos=flakelement(f).ypos+(timeelapsed#*flakelement(f).profile.yinc*atime)
-  flakelement(f).zpos=flakelement(f).zpos+(timeelapsed#*flakelement(f).profile.zinc*atime)
+  flakelement(f).xpos=flakelement(f).xpos+(timeelapsed#*flakelement(f).profile.xinc)
+  flakelement(f).ypos=flakelement(f).ypos+(timeelapsed#*flakelement(f).profile.yinc)
+  flakelement(f).zpos=flakelement(f).zpos+(timeelapsed#*flakelement(f).profile.zinc)
   txinc#=flakelement(f).profile.xinc-(flakelement(f).profile.xinc/flakelement(f).profile.xspeed)
-  flakelement(f).profile.xinc=flakelement(f).profile.xinc-(txinc#*atime)
+  flakelement(f).profile.xinc=flakelement(f).profile.xinc-(txinc#*timeelapsed#)
   tyinc#=flakelement(f).profile.yinc-(flakelement(f).profile.yinc/flakelement(f).profile.yspeed)
-  flakelement(f).profile.yinc=flakelement(f).profile.yinc-(tyinc#*atime)
+  flakelement(f).profile.yinc=flakelement(f).profile.yinc-(tyinc#*timeelapsed#)
   tzinc#=flakelement(f).profile.zinc-(flakelement(f).profile.zinc/flakelement(f).profile.zspeed)
-  flakelement(f).profile.zinc=flakelement(f).profile.zinc-(tzinc#*atime)
-  flakelement(f).profile.yinc=flakelement(f).profile.yinc-(flakelement(f).profile.weight*atime)
+  flakelement(f).profile.zinc=flakelement(f).profile.zinc-(tzinc#*timeelapsed#)
+  flakelement(f).profile.yinc=flakelement(f).profile.yinc-(flakelement(f).profile.weight*timeelapsed#)
   rem handle flak collision
   tdetonate=0 : tcollide=0
   rem handle timer delay
   if flakelement(f).profile.lifespan>0
    if (flak(tflakid).noexplode=1 and flakelement(f).profile.explodeonhit>0) or flak(tflakid).noexplode=0
-    dec flakelement(f).profile.lifespan,atime
+    dec flakelement(f).profile.lifespan,timeelapsed#
     if flakelement(f).profile.lifespan<=0
      flakelement(f).profile.lifespan=0
      flakelement(f).preexplode=1
@@ -30597,7 +30597,7 @@ for f=1 to flakelementmax
     tcollide=2
     rem collision bounce requires orientation
     if flakelement(f).profile.bounceonhit>0
-     point object tobj,flakelement(f).xpos+(flakelement(f).profile.xinc*10.0)/atime,flakelement(f).ypos+(flakelement(f).profile.yinc*10.0)/atime,flakelement(f).zpos+(flakelement(f).profile.zinc*10.0)/atime
+    point object tobj,flakelement(f).xpos+(flakelement(f).profile.xinc*10.0),flakelement(f).ypos+(flakelement(f).profile.yinc*10.0),flakelement(f).zpos+(flakelement(f).profile.zinc*10.0)
     endif
     `
     rem kill Y ineria if get too low
@@ -31269,11 +31269,11 @@ _decalelement_control:
 rem Control all decal activity
 for f=1 to decalelementmax
  if decalelement(f).active=1
-  backuptimeelapsed#=atime
+  backuptimeelapsed#=timeelapsed#
    if screen fps()<=101
-      decaltimeelapsed#=atime
+      decaltimeelapsed#=timeelapsed#
    else
-      decaltimeelapsed#=atime/1.2
+      decaltimeelapsed#=timeelapsed#/1.2
    endif
 
   rem update decal object
@@ -31295,7 +31295,7 @@ for f=1 to decalelementmax
    rem next frame
    rem FPGC - 050710 - glass smash much slower than previous non-timer based system, so we speed it up!
    `decalelement(f).framedelay=decalelement(f).framedelay+decaltimeelapsed#
-   decalelement(f).framedelay=decalelement(f).framedelay+(decaltimeelapsed#*2)/atime
+   decalelement(f).framedelay=decalelement(f).framedelay+(decaltimeelapsed#*2)/timeelapsed#
    if decalelement(f).framedelay>=1
     decalelement(f).framedelay=0
     decalelement(f).frame=decalelement(f).frame+(decalelement(f).particle.lifeincrement/100.0)
@@ -32491,7 +32491,7 @@ _lighting_spotflash:
   endif
  endif
  if spotflash>0 and spotflash<100
-  dec spotflash,20*atime
+  dec spotflash,20
   if spotflash>0
    if light exist(1)=1
     spotfadeout#=spotflash/100.0
@@ -36692,6 +36692,8 @@ _gameflow_default:
        loadsavedlevel$=""
       endif
       `
+      timerUpdate():timerUpdate()
+
       rem FPGC - 150310 - add any extra HUDs (controller hint overlay)
       gosub _ai_hud_extra
       `
@@ -36709,9 +36711,7 @@ _gameflow_default:
       ingameloop=1
       gosub _ode_beginphysics
       if gvrmode<>0 then vr920exist=reset left eye()
-       air_timerupdate(): air_timerupdate()
       while continueokay=0
-          air_timerupdate()
        if showgamemenu=0
         gosub _main_game_core
        else
@@ -38050,10 +38050,21 @@ if activatelightmapping=1 and staticlightcount>0
     create light maps glightmapsize,glightmapquality,"levelbank\testlevel\lightmaps\"
    else
     create light maps 8,100,"levelbank\testlevel\lightmaps\"
-   endif
   endif
+    endif
  endif
 endif
+ rem add universe for lightmapping
+` debugviewtext(260,strarr$(167))
+ `x9if useoldlightmapper=1
+ ` add static objects to light map pool
+ ` debugviewtext(270,strarr$(168))
+ ` if glightmapsize>0
+ `  create light maps glightmapsize,glightmapquality,myownrootdir$+"levelbank\testlevel\lightmaps\"
+ ` else
+ `  create light maps 8,100,myownrootdir$+"levelbank\testlevel\lightmaps\"
+`  endif
+`endif
 
 rem Must be done 'after' lightmapping phase
 if grealgameviewstate=0 and segobjusedformapeditor=0 and goptimizemode=1
@@ -38128,13 +38139,13 @@ rem settings
   quality#=glightquality/100.0
   if glightthreadmax=-2
    rem FPSCV105 - 090307 - new mode, to revert to non-thread approach (for some users stability)
-   debugviewtext(270,strarr$(168))
+   debugviewtext(277,strarr$(168))
    LM Build Light Maps glighttexsize,quality#,glightblurmode
   else
    LM Build Light Maps Thread glighttexsize,quality#,glightblurmode,glightthreadmax
    load dll "Kernel32.dll",1
    while LM Get Complete()=0
-    debugviewtext(276,LM Get Status( )+"  "+str$(int(LM Get Percent()))+"%")
+    debugviewtext(277,LM Get Status( )+"  "+str$(int(LM Get Percent()))+"%")
     call dll 1,"Sleep",1
    endwhile
    delete dll 1
@@ -38171,6 +38182,7 @@ rem settings
  `
  rem V106 save old map, overlay and static entity data for future test game pass
  gosub _universe_saveforskipcheck
+
  `
 endif
 
@@ -39044,7 +39056,7 @@ _ai_hud_view:
   if hud(hudid).fadeout>0
    if hudfadeoutoneatatime=0 then hudfadeoutoneatatime=hudid
    if hudid=hudfadeoutoneatatime
-    hud(hudid).fadeout=hud(hudid).fadeout-(atime*3)
+    hud(hudid).fadeout=hud(hudid).fadeout-(timeelapsed#*3)
     if hud(hudid).fadeout>0
      if hud(hudid).fadeout>100
       talpha#=255.0
@@ -39118,14 +39130,14 @@ for hudid=1 to hudmax
     if hud(hudid).text$<>"" and hud(hudid).image=0
      tfont$=hud(hudid).font$ : if tfont$<>"" and tfont$<>tlastfont$ then set text font tfont$ : tlastfont$=tfont$
      ` Rem Scene Commander, if text hud font different from rawtext, force reset.
-      `if tfont$<>grawtextfontlast$
-     ` grawtextlast$=""
-     ` endif
+      if tfont$<>grawtextfontlast$
+      grawtextlast$=""
+      endif
      tfontsize=hud(hudid).fontsize : if tfontsize<>0 and tfontsize<>tlastfontsize then set text size tfontsize : tlastfontsize=tfontsize
       Rem Scene Commander, if text hud font size different from rawtext, force reset.
-     ` if grawtextsizelast<>tfontsize
-     ` grawtextsizelast=-1
-     ` endif
+      if grawtextsizelast<>tfontsize
+      grawtextsizelast=-1
+      endif
      center text hud(hudid).posx+(hud(hudid).sizex/2),(hud(hudid).posy+hud(hudid).sizey)+(hud(hudid).fadeout/5.0),hud(hudid).text$
     endif
    endif
@@ -40815,7 +40827,7 @@ _ode_applyphysicstoattachment:
  if tweight<200 then tweight=200
  ode set contact fdir1 tobj,tfriction
  ode set body mass tobj,tweight
- ode set linear velocity tobj,rnd(10)*timeelapsed#,(20+rnd(20)*timeelapsed#),rnd(10)*timeelapsed#
+  ode set linear velocity tobj,rnd(10),20+rnd(20),rnd(10)
  ode set angular velocity tobj,0,0,0
  ode set gravity tobj,1
  ode set body rotation tobj,object angle x(tobj),object angle y(tobj),object angle z(tobj)
@@ -41345,7 +41357,7 @@ ctox#=ctx# : ctoy#=cty# : ctoz#=ctz#
 rem camera eye height (eye drops to base of elipse when no health)
 if player(plrid).health<=0 and playerstartstrength>0
  if ellipsevolumesize#=1.0 and (plrkeyC)=0
-  phyeyeheight#=phyeyeheight#-(1.0*atime)
+  phyeyeheight#=phyeyeheight#-1.0
   if phyeyeheight#<10.0 then phyeyeheight#=10.0
  else
   phyeyeheight#=phycrouched#
@@ -41420,8 +41432,8 @@ if (player(plrid).health>0 or playerstartstrength=0) and mefrozen=0
  `
  rem AirMod - CAM FOV >>>
  old_airmod_fov# = airmod_camfov#
- airmod_camfov_d# = curvevalue(0,airmod_camfov_d#,20.0/atime)
- airmod_camfov# = curvevalue(airmod_camfov_d#,airmod_camfov#,10.0/atime)
+ airmod_camfov_d# = curvevalue(0,airmod_camfov_d#,20.0)
+ airmod_camfov# = curvevalue(airmod_camfov_d#,airmod_camfov#,10.0)
  if old_airmod_fov# <> airmod_camfov# then plrzoominchange=1
  rem AirMod - DONE<<<
   rem Handle optical effect of zoom
@@ -41494,8 +41506,8 @@ if (plrkeyC)=1 or forcecrouch=1
  rem Movement (forward,backward,strafe)
  camerareachatrun#=0.0
  rem scene commander addition
- speedchange#=speedmod#/100
- basespeed#=basespeed#*speedchange#
+ `speedchange#=speedmod#/100
+ `basespeed#=basespeed#*speedchange#
  rem end screen commander addition
  speed#=basespeed#
  plrbasespeed#=basespeed#
@@ -41569,7 +41581,7 @@ if (plrkeyC)=1 or forcecrouch=1
     if (plrkeyA)=1 and (plrkeyD)=1
      `do nothing
     else
-     if cameraspeed<tcameraspeed# then inc cameraspeed,10.0*atime
+     if cameraspeed<tcameraspeed# then inc cameraspeed,10.0*timeelapsed#
      if cameraspeed>tcameraspeed# then cameraspeed=tcameraspeed#
     endif
    endif
@@ -41609,7 +41621,7 @@ if (plrkeyC)=1 or forcecrouch=1
    motionytracked#=tmotiony#
   else
    rem ensure we don't go HIGHER!
-   if motionytracked#>0.0 then motionytracked#=motionytracked#-(atime*1.0)
+   if motionytracked#>0.0 then motionytracked#=motionytracked#-(timeelapsed#*1.0)
    if tmotiony#>motionytracked# then tmotiony#=motionytracked#
   endif
  else
@@ -41625,7 +41637,7 @@ if (plrkeyC)=1 or forcecrouch=1
   inc phytotalmotioncount
   if phytotalmotioncount>20
    phytotalmotion#=phytotalmotion#/phytotalmotioncount
-   if phytotalmotion#<10.0*atime
+   if phytotalmotion#<10.0*timeelapsed#
     physuspendgravity=1
    else
     physuspendgravity=0
@@ -41679,7 +41691,7 @@ if (plrkeyC)=1 or forcecrouch=1
  rem Jump Control
  if onladder=0
   if player(plrid).health>0 or playerstartstrength=0
-   if (plrkeySPACE)=1 and jumpaction=0 and meridinglift=0 and crouchmode=0 and jumpactionnorepeat=0 and grav#>-1
+    if (plrkeySPACE)=1 and jumpaction=0 and meridinglift=0 and crouchmode=0 and jumpactionnorepeat=0 and grav#>(-1*tunderwaterspeed#)`s4real fix )
     jumpspeed#=speed# : jumpangle#=camera angle y() : leapedlanded=1
     camvely#=0.0
     camforcey#=playerdefaultjumpheight
@@ -41965,7 +41977,7 @@ if camerastoodonphyobj<>0
     camerastoodrelativecoordinatex#=-1
    endif
   endif
- if tgravitydefeated=1
+if tgravitydefeated=1
   if physicsdebug=1 then print "andgravitydefeated"
   rem a few cycles grace at start of level (avoid urg sound when retstart)
   if newlevelobjectivevoid=0
@@ -42204,7 +42216,7 @@ endif
 rem Scene Commander end
 rem used to swoosh to an angle (picking up object off-center)
 if camturntofacemode>0
- camangy#=curveangle(camturntoface#,camangy#,10.0/atime)
+ camangy#=curveangle(camturntoface#,camangy#,10.0/timeelapsed#)
  dec camturntofacemode
 endif
 
@@ -42332,7 +42344,7 @@ endif
 remend
 
 rem calculate some simply shake movement
-camshakey#=curvevalue(0.0,camshakey#,2.0/atime)
+camshakey#=curvevalue(0.0,camshakey#,2.0/timeelapsed#)
 if abs(camshake#) > 30.0
     camshake# = 30.0
 endif
@@ -42340,21 +42352,21 @@ endif
 if abs(camshake#)<>0
  if rnd(1) = 0 then camshakedir=1-camshakedir
  if camshakedir=0
-  camshakey#=camshakey#+(camshake#*atime*0.1)
+  camshakey#=camshakey#+(camshake#*timeelapsed#*0.1)
   if camshakey# > 30.0 then camshakey# = 30.0
  else
-  camshakey#=camshakey#-(camshake#*atime*0.1)
+  camshakey#=camshakey#-(camshake#*timeelapsed#*0.1)
   if camshakey# < -30.0 then camshakey# = -30.0
  endif
  if abs(camshake#)<1.0
   camshake#=0.0
  else
-  camshake# = camshake# - (atime*0.5)
+  camshake# = camshake# - (timeelapsed#*0.5)
  endif
 endif
 
 rem arena-eyes adjustment
-if gmultiplayergame=1
+if gmultiplayergame=1 and gmultiplayergame=0
  if crouchmode=0
   arenaadjustd#=-5.0
  else
@@ -42365,9 +42377,9 @@ else
 endif
 if movement<>0
  if playerunderwater=1 or (playerunderwater=0 and tnearsurfaceofwater<15)
-  camerawobble#=wrapvalue(camerawobble#+(15.0*atime))*deactivatecollision=1
+  camerawobble#=wrapvalue(camerawobble#+(15.0*timeelapsed#))*deactivatecollision=1
  else
-  camerawobble#=wrapvalue(camerawobble#+(30.0*atime))*deactivatecollision=1
+  camerawobble#=wrapvalue(camerawobble#+(30.0*timeelapsed#))*deactivatecollision=1
  endif
  if (plrkeySHIFT)=1 or (plrkeySHIFT2)=1
   arenaadjust#=arenaadjustd#+(cos(camerawobble#)*0.60)
@@ -42375,19 +42387,17 @@ if movement<>0
   arenaadjust#=arenaadjustd#+(cos(camerawobble#)*0.35)
  endif
 else
- arenaadjust#=curvevalue(arenaadjustd#,arenaadjust#,5.0/atime)`s4real
+ arenaadjust#=curvevalue(arenaadjustd#,arenaadjust#,5.0)
  camerawobble#=0.0
 endif
 
-
-
 rem finally update camera with smoothing (cty# is absolute staticvolume camypos)
-finalcamy#=curvevalue(camerapositiony,camera position y(),2.0/atime)
+finalcamy#=curvevalue(camerapositiony,camera position y(),2.0)
 if finalcamy#>cty#-8 then finalcamy#=cty#-8
 if playersystemdisabled=0
-` position camera curvevalue(camerapositionx,camera position x(),2.0/timeelapsed#),finalcamy#+arenaadjust#+(camshakey#/10.0),curvevalue(camerapositionz,camera position z(),2.0)
- position camera curvevalue(camerapositionx,camera position x(),2.0/atime)+camshakey#,finalcamy#+arenaadjust#+(camshakey#),curvevalue(camerapositionz,camera position z(),2.0/atime)-camshakey#
+ position camera curvevalue(camerapositionx,camera position x(),2.0),finalcamy#+arenaadjust#+(camshakey#/10.0),curvevalue(camerapositionz,camera position z(),2.0)
 endif
+
 
 Rem Hockeykid - 250210 - DarkAI Set Player Container
 rem `s4real dark ai
@@ -43306,12 +43316,7 @@ _ode_update:
   next e
  endif
  `
- rem update physics (FPGC - 210210 - new ODE requires only one timer based update call)
- `for phy=1 to 2 : ode update : next phy
- tstep# = 0.05*atime
- if tstep# = 0 then tstep# = 0.05
- ode set world step tstep#
- if odestartup > 0 then ode set world step 0.05 : dec odestartup
+
  ode update
  `
  rem for next run - debug readouts
@@ -43772,9 +43777,9 @@ _part_controlexploders:
   endselect
   if exploder(exploderindex).explode>0
    rem flash
-   exploder(exploderindex).fade#=exploder(exploderindex).fade#-(10*atime)
+   exploder(exploderindex).fade#=exploder(exploderindex).fade#-(10*timeelapsed#)
    if exploder(exploderindex).fade#<1 then exploder(exploderindex).fade#=0
-   sparkfade#=100-(((90-exploder(exploderindex).fade#)*40)*atime)
+   sparkfade#=100-(((90-exploder(exploderindex).fade#)*40)*timeelapsed#)
    if sparkfade#<0 then sparkfade#=0
    if sparkfade#>100 then sparkfade#=100
    set alpha mapping on exploder(exploderindex).obj+0,sparkfade#
@@ -43785,8 +43790,8 @@ _part_controlexploders:
    set alpha mapping on exploder(exploderindex).obj+3,exploder(exploderindex).fade#/2.0 : s#=80+(25-(exploder(exploderindex).fade#/4))
    scale object exploder(exploderindex).obj+3,s#,s#,s#
    rem smoke
-   exploder(exploderindex).dist#=exploder(exploderindex).dist#+(0.1*atime)
-   exploder(exploderindex).smoke#=exploder(exploderindex).smoke#+(2.0*atime)
+   exploder(exploderindex).dist#=exploder(exploderindex).dist#+(0.1*timeelapsed#)
+   exploder(exploderindex).smoke#=exploder(exploderindex).smoke#+(2.0*timeelapsed#)
    if exploder(exploderindex).smoke#>=100
     for oi=0 to 16
      o=exploder(exploderindex).obj+oi
@@ -43797,7 +43802,7 @@ _part_controlexploders:
     for oi=4 to 16
      o=exploder(exploderindex).obj+oi
      if oi>=14 then up#=0.3 else up#=0.05
-     position object o,object position x(o),object position y(o)+(up#*atime),object position z(o)
+     position object o,object position x(o),object position y(o)+(up#*timeelapsed#),object position z(o)
      set alpha mapping on o,100.0-exploder(exploderindex).smoke#
     next oi
    endif
@@ -49012,12 +49017,26 @@ _obs_generateobstacles:
   next o
  endif
  `
+ load object universefile$,airmodoffset+1000
+for y=1 to 20
+ container(y).y# = (y*100)+50
+ container(y).id = y
+ if ai container exist(container(y).id) then ai remove container container(y).id
+ ai add container container(y).id
+ ai add obstacle from level airmodoffset+1000,container(y).id,1,container(y).y#+10,4,4,0
+ ai complete obstacles container(y).id
+ ai add obstacle from level airmodoffset+1000,container(y).id,0,container(y).y#-25.0,2,2,0
+ ai complete obstacles container(y).id
+next y
+
+
  rem FPGC - 050510 - release OBS array to save a little virtual memory
  undim obs()
  `
  rem Generate completed DarkAI obstacles
  AI Complete Obstacles
  `
+ delete object airmodoffset+1000
 return
 
 rem
@@ -60045,7 +60064,7 @@ _darkai_init:
  rem V119 - 230611 - Hockeykid - Sounds nice, but doesn't seem to work as desired. Apparently the blocking threshold is incorrect
  rem 1 AI can stop another AI, instead of 3 :S
 ` ai set avoid mode 5 : AI SET BLOCKING THRESHOLD 3 rem changed back to stop fellows into walls
- ai set avoid mode 1
+ ai set avoid mode 5
  `
  rem Universe containers (required for static entities)
  for layer=0 to 19
@@ -64080,16 +64099,47 @@ if tvisibility=1
 endif
 
 return
-
-function air_timerupdate()
-    time.difference = timer()-time.last_time
-    if time.difference=0 then time.difference=1
-    fps# = 1000 / time.difference
-    time.elapsed# = time.framerate / fps#
-    if time.elapsed# > 3.0 then time.elapsed# = 3.0
-    time.last_time=timer()
-    atime = time.elapsed#
+rem Use this function to setup the timing system
+function timerDefine()
+   global fps# as float
+   global adj# as float
+   global radj# as float
+   global sincelastframe as integer
+   global oldtimer as integer
+   global stfps# as float : stfps# = 34.0 : rem What frame rate to simulate
+   global timeflow# as float : timeflow# = 1.0
+   global timeflow_target# as float : timeflow_target# = 1.0
+   rem For some reason, animations in FPSC want to run at the equiv of 10 fps. This should be looked into, prehaps.
+   Rem UPDATE: This seems to have been fixed after migrating back to V107. Must of been a bug in lemur (possibly from refreshing water)
 endfunction
+
+rem Call this every loop
+function timerUpdate()
+   if timeflow#<>timeflow_target# then timeflow#=curvevalue(timeflow_target#,timeflow#,3)
+   if abs(timeflow#-timeflow_target#) < 0.02 then timeflow#=timeflow_target#
+
+    sincelastframe = timer() - oldtimer
+    if sincelastframe=0 then sincelastframe=1
+    fps# = 1000 / (stfps#*timeflow#)
+    adj# =  sincelastframe / fps#
+    if adj# > 3.0 then adj# = 3.0
+
+    if sincelastframe > 1000 then adj# = 1
+    radj# = fps# / (stfps#*timeflow#)
+    `timeelapsed#=adj#
+    oldtimer =timer()
+endfunction
+
+
+rem Use this function to "time" a variable (ex: set object speed obj,setvar(100))
+function setvar(var# as float)
+   output#=var#*adj#
+endfunction output#
+rem Use this function for curevalue/cureangle functions (ex: curevalue(x#,x2#,rsetvar(100)))
+function rsetvar(var# as float)
+   output#=var#*radj#
+endfunction output#
+
 
 
 
