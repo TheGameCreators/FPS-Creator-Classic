@@ -35,9 +35,9 @@ rem Credit to Flatlander for his code fixes and tireless alpha testing.
 rem Credit to S4Real for continued support and some nice performance tweaks.
 
  
-modname$="Unoffical"
-datecreate$="30/6/2013"
-FPSCver$="v1.20 beta19c" 
+modname$=""
+datecreate$=""
+FPSCver$="" 
  
  
 rem Init app
@@ -64,6 +64,12 @@ perftimer() = *memptr
 delete dll Kernel32
 
 _start_engine:
+
+Rem new commands
+ScrollSpeed=0
+global  elapsed#=10.0 
+
+
 Rem Scene Commander globals
 Rem flashlight
 global flashlighton=0 as boolean
@@ -278,6 +284,13 @@ global newweapon as boolean : newweapon = 0
 global trackingcinematichandsloop as integer : trackingcinematichandsloop = 1
 global disableblockingbutton as boolean : disableblockingbutton = 0
 rem cinematic hands <<<<
+
+rem dynamic light fix
+type dynlit
+   r g b
+endtype
+dim dynlight(7) as dynlit
+
 
 rem - Global array for string variables
 type uservar
@@ -2645,9 +2658,11 @@ rem Scene Commander actions
 rem Portal control 
 #constant AIACTDISABLEPORTAL 1665
 #constant AIACTENABLEPORTAL 1666
+rem skyspeed
+#constant AIACTSKYSPEED 1667
 
 
-#constant AIACTLAST 1667
+#constant AIACTLAST 1668
 
 rem V109 BETA3 - 210408 - AI variables
 global aivariablemode : aivariablemode=0 : rem 0-global, 1-local
@@ -4796,6 +4811,8 @@ _main_game_freeleveldata:
    undim weaponclipammo()
   endif
   undim weaponhud()
+  rem skyscroll speed
+  ScrollSpeed=0
 
 rem Compass - Scene commander- original code used with permission knxrb
 compassOn = 0
@@ -4855,7 +4872,9 @@ _main_game_core:
  endif
  if object exist(65124)=1
   position object 65124,camera position x(0),camera position y(0)+1000,camera position z(0)
-  scroll object texture 65124,0.0004,0.0005
+  `scroll object texture 65124,0.0000.1,0.0005 rem s4real skyscroll speed test from 4 to 1
+  
+  scroll object texture 65124,elapsed#/20000.0,elapsed#/20000.0
  endif
  `
  rem Control main game
@@ -4973,6 +4992,14 @@ if playerunderwater<>0 or noairon<>0
    endif
   endif
 endif
+
+rem skyscroll speed
+if ScrollSpeed#>0
+ if Object Exist(65123)=1
+skyrotate#=skyrotate#+ScrollSpeed#
+ rotate object 65123, object angle x(65123), skyrotate#, object angle z(65123)
+ endif
+ endif
 
 Rem Scene Commander tilt on player death.
 
@@ -9035,7 +9062,7 @@ for e=1 to entityelementlist
  if entityelement(e).active=1 and entityelement(e).dormant=0
   if obj>0
    `
-   if object exist(obj)=1 and entityelement(e).plrdist<1000
+   if object exist(obj)=1 and entityelement(e).plrdist<2500
     `
     rem Operate spin and float system
     tspin#=0.0 : thover#=0.0
@@ -9231,10 +9258,16 @@ for e=1 to entityelementlist
      gosub _entity_controlattachments 
      
      rem control lighting of entities (and free at start also - get start lighting)
-     if gdynamiclightingstate=1 or forceambientlightsetting>0
-      if object in screen(obj)=1
+    ` if gdynamiclightingstate=1 or forceambientlightsetting>0 rem dynamic light fix
+     ` if object in screen(obj)=1
+     tdist#=(entityelement(e).x-spotflashx#)^2+(entityelement(e).y-spotflashy#)^2+(entityelement(e).z-spotflashz#)^2
+     enearspotflash=0
+     if tdist#<=360000 then enearspotflash=1
+     if gdynamiclightingstate=1 or forceambientlightsetting>0 or enearspotflash=1
+      rem removed for dynamic light fix
+`      if object in screen(obj)=1
        gosub _entity_controllighting
-      endif
+     ` endif
      endif
      `
      rem show attachment obj
@@ -9380,6 +9413,9 @@ rem Entity Performance
 inc gameperfentities5, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
 
 return
+
+rem dynamic light fix
+if spotflash<=0 then dynlightchanged=0
 
 _entity_monitorforsplash:
  `
@@ -10350,9 +10386,10 @@ if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
        tangle=entityelement(e).spawn.angle+rnd(entityelement(e).spawn.anglerandom)
        gosub _ode_pushusingtvelandangle
        e=ste
+       rem caunsing strange gun in air problem s4real 
        else
-       entityelement(te).y=entityelement(te).y+5
-       position object tobj,entityelement(te).x,entityelement(te).y,entityelement(te).z
+       entityelement(e).y=entityelement(e).y+5
+       position object tobj,entityelement(e).x,entityelement(e).y,entityelement(e).z
       endif
       `
       rem reset visuals
@@ -12963,7 +13000,7 @@ actword$(AIACTLRDEBUGDEACTIVE)="lrdebugdeactive"
 rem GUI-X9 (knxrb) <>>><
 actword$(AIACTFORCEGUISUB)="updategui"
 rem GUI-X9 (knxrb) <<<
-
+actword$(AIACTSKYSPEED)="skyspeed"
 rem v118 - 110511 - cinematic hands (terry cox) >>>>
 actword$(AIACTDISABLEFIREBUTTON)="disablefirebutton"
 actword$(AIACTSTARTCINEMATICHANDS)="startcinematichands"
@@ -18454,6 +18491,9 @@ Rem Scene Commander
         endif
        next tttte
       endif
+      rem dynamic light fix
+       dynlightchanged=1
+
      endcase
      case AIACTLIGHTOFF:
       tokay=0
@@ -18477,6 +18517,9 @@ Rem Scene Commander
         endif
        next tttte
       endif
+     rem  dynamic light fix
+      dynlightchanged=1
+
      endcase
      case AIACTLIGHTRED:
       tokay=0
@@ -21592,6 +21635,13 @@ case AIACTRAWTEXTVAR:
       case AIACTENABLEPORTAL:
       portalcontrol=1
       endcase
+      
+      Case  AIACTSKYSPEED
+`ScrollSpeed=aiactionseq(seq).value
+`ScrollSpeed#=aiactionseq(seq).value
+elapsed#=aiactionseq(seq).value
+    endcase
+
 
       case AIACTPLAYERCAM:
 
@@ -32037,7 +32087,8 @@ rem FPGC - 100909 - refresh infinilight element indices once before debugger use
 if grefreshinfinilightentityindices=1
  for e=1 to entityelementlist
   entid=entityelement(e).bankindex
-  if entityprofile(entid).islightmarker=1
+  `if entityprofile(entid).islightmarker=1
+  if entityprofile(entid).ismarker=1
    if entityelement(e).staticflag=0
     if gdynamiclightingstate=1
      tinfinilightindex=entityelement(e).eleprof.light.index
@@ -32063,6 +32114,9 @@ while array index valid(infinilightshortlist())
  set light range lightindex,infinilight(tindex).range
  next array index infinilightshortlist()
  show light lightindex
+ rem dynamic light fix
+  dynlight(lightindex).r=infinilight(tindex).colrgb.r*perc# : dynlight(lightindex).g=infinilight(tindex).colrgb.g*perc# : dynlight(lightindex).b=infinilight(tindex).colrgb.b*perc#
+
  `
  rem Show light as object if in debug mode
  if activatedynamiclightsdebug=1
@@ -32098,6 +32152,8 @@ while lightindex<=7
  if light exist(lightindex)=1
   hide light lightindex
  endif
+ rem dynamic light fix
+  dynlight(lightindex).r=0 : dynlight(lightindex).g=0 : dynlight(lightindex).b=0
  inc lightindex
 endwhile
 
@@ -32407,6 +32463,18 @@ tamb#=guivisualsettings.ambience/100.0
 r=make vector4(1)
 for tef=1 to effectbankmax
  teffectid=effectbankoffset+tef
+ if dynlightchanged=1 rem dynamic light fix 
+    for i = 1 to 7
+       set vector4 1,light position x(i),light position y(i),light position z(i),light range(i)
+       set effect constant vector teffectid,"LightPos"+str$(i),1
+       set vector4 1,dynlight(i).r/255.0,dynlight(i).g/255.0,dynlight(i).b/255.0,1.0
+       set effect constant vector teffectid,"LightColor"+str$(i),1
+       if hardcoredebug=1
+          `write string 27,"LightPos"+str$(i)+": "+str$(light position x(i))+", "+str$(light position y(i))+", "+str$(light position z(i))+", "+str$(light range(i))
+          `write string 27,"LightColor"+str$(i)+": "+str$(dynlight(i).r/255.0)+", "+str$(dynlight(i).g/255.0)+", "+str$(dynlight(i).b/255.0,1.0)
+       endif
+    next i
+ endif
  rem FPGC - 040110 - added LightSource data pass into scenery segments
  set vector4 1,avlightposx#,avlightposy#,avlightposz#,1.0
  set effect constant vector teffectid,"LightSource",1
@@ -32477,26 +32545,40 @@ return
 
 _lighting_spotflash:
  `
- rem Control spot flash
+rem Control spot flash
  if spotflash=100
+  dynlightchanged=1
   spotflash=99 : spotflashx#=tx# : spotflashy#=ty# : spotflashz#=tz#
   if light exist(1)=1
-   set point light 1,spotflashx#,spotflashy#,spotflashz# : set light range 1,flashrange
+   set point light 1,spotflashx#,spotflashy#,spotflashz# : set light range 1,600
+   rem Plystire 109 - Determine if player near spotflash se we can update the lighting properly
+   if (camera position x()-tx#)^2-(camera position y()-ty#)^2-(camera position z()-tz#)^2 < 360000
+      playernearspotflash=1
+   else
+    playernearspotflash=0
+   endif
    spotlightr#=tcolr : spotlightg#=tcolg : spotlightb#=tcolb
    color light 1,spotlightr#,spotlightg#,spotlightb#
    show light 1
+   rem Plystire 109 - Grab this light's info
+   dynlight(1).r=spotlightr# : dynlight(1).g=spotlightg# : dynlight(1).b=spotlightb#
   endif
  endif
  if spotflash>0 and spotflash<100
+  dynlightchanged=1
   dec spotflash,20
   if spotflash>0
    if light exist(1)=1
     spotfadeout#=spotflash/100.0
     color light 1,spotlightr#*spotfadeout#,spotlightg#*spotfadeout#,spotlightb#*spotfadeout#
+    rem Plystire 109 - Grab this light's info
+    dynlight(1).r=spotlightr#*spotfadeout# : dynlight(1).g=spotlightg#*spotfadeout# : dynlight(1).b=spotlightb#*spotfadeout#
    endif
   else
    spotflash=0
    if light exist(1)=1 then hide light 1
+   rem Plystire 109 - Grab this light's info
+   dynlight(1).r=0 : dynlight(1).g=0 : dynlight(1).b=0
   endif
  endif
  `
@@ -47105,6 +47187,7 @@ a#=armouron: write float 1,a#
 a#=armx: write float 1,a#
 a#=army: write float 1,a#
 a#=bodyon: write float 1,a#
+a#=elapsed#: write float 1,a#
 rem air
 a#=airon: write float 1,a#
 a#=airleft: write float 1,a#
@@ -47479,6 +47562,7 @@ read float 1,a#:armouron=a#
 read float 1,a#:armx=a#
 read float 1,a#:army=a#
 read float 1,a#:bodyon=a#
+read float 1,a#:elapsed#=a#
 rem air
 read float 1,a#:airon=a#
 read float 1,a#:airleft=a#
