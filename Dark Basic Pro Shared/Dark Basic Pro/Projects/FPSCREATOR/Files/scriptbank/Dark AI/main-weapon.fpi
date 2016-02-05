@@ -1,0 +1,194 @@
+;//Requires v1.17+ DarkAI
+
+desc          = DarkAI generic shoot and melee with ally command
+
+;//debug-----------
+;//:state=1,plrfacing=1:fpgcrawtextsize=18,fpgcrawtextfont=arial,fpgcrawtextr=200,fpgcrawtextg=200,fpgcrawtextb=200,fpgcrawtextx=50,fpgcrawtexty=10,fpgcrawtext=state 1 ready
+;//:state=2,plrfacing=1:fpgcrawtextsize=18,fpgcrawtextfont=arial,fpgcrawtextr=200,fpgcrawtextg=200,fpgcrawtextb=200,fpgcrawtextx=50,fpgcrawtexty=10,fpgcrawtext=state 2 enemy close
+;//:state=10,plrfacing=1:fpgcrawtextsize=18,fpgcrawtextfont=arial,fpgcrawtextr=200,fpgcrawtextg=200,fpgcrawtextb=200,fpgcrawtextx=50,fpgcrawtexty=10,fpgcrawtext=state 10 gut check
+;//:state=20,plrfacing=1:fpgcrawtextsize=18,fpgcrawtextfont=arial,fpgcrawtextr=200,fpgcrawtextg=200,fpgcrawtextb=200,fpgcrawtextx=50,fpgcrawtexty=10,fpgcrawtext=state 20 fall back to cover
+;//:state=30,plrfacing=1:fpgcrawtextsize=18,fpgcrawtextfont=arial,fpgcrawtextr=200,fpgcrawtextg=200,fpgcrawtextb=200,fpgcrawtextx=50,fpgcrawtexty=10,fpgcrawtext=state 30 heard sound
+;//:state=55,plrfacing=1:fpgcrawtextsize=18,fpgcrawtextfont=arial,fpgcrawtextr=200,fpgcrawtextg=200,fpgcrawtextb=200,fpgcrawtextx=50,fpgcrawtexty=10,fpgcrawtext=state 55 closing in
+;//:state=67,plrfacing=1:fpgcrawtextsize=18,fpgcrawtextfont=arial,fpgcrawtextr=200,fpgcrawtextg=200,fpgcrawtextb=200,fpgcrawtextx=50,fpgcrawtexty=10,fpgcrawtext=state 67 falling back
+;//:varequal=911,plrfacing=1:fpgcrawtextsize=18,fpgcrawtextfont=arial,fpgcrawtextr=200,fpgcrawtextg=200,fpgcrawtextb=200,fpgcrawtextx=50,fpgcrawtexty=10,fpgcrawtext=911 responding
+;//----------------------
+
+;//Start
+
+;//local var flags default, escort or responder behavior. 0=default, 1=escort (Ally), 911=responder
+:always:localvar=1
+:state=0:aiusefullaim=1,setvar=0
+
+;//Dark AI Animations----------------------------------------------------------------------------------------------------
+
+;Walking animations
+:ducking=0,strafingleft=1:animationnormal,animate=3
+:ducking=0,strafingright=1:animationnormal,animate=4
+:ducking=0,movingforwards=1:animationnormal,animate=2
+:ducking=0,runningforwards=1:animationnormal,animate=5
+:ducking=0,movingbackwards=1:animationreverse,animate=2
+:ducking=0,idle=1:animate=1
+
+;Crouching Animations
+:ducking=1,movingforwards=1:animate=32
+:ducking=1,movingbackwards=1:animationreverse
+:ducking=1,strafingleft=1:animate=32
+:ducking=1,movingbackwards=1:animate=32
+:ducking=1,idle=1:animate=31
+
+;//Common behavior triggers---------------------------------------------------------------------------------
+
+:state=1:airotatetotarget
+
+:state=1,idle=1,aicanshoot=0,aiheardsound=2500:aistop,state=30,etimerstart
+:state=1,idle=0,aicanshoot=0,aiheardsound=1000:aistop,state=30,etimerstart
+
+:state=1,ifweapon=1,aicanshoot=1,aitargetdistfurther=70,idle=1,random=1:aisettarget,useweapon,rundecal=6
+:state=1,ifweapon=1,aicanshoot=1,aitargetdistfurther=70,idle=0,rateoffire:aisettarget,useweapon,rundecal=6
+
+:state=1,varequal=0,aicanshoot=1,aitargetdistfurther=70,aitargetdistwithin=250:state=54,aistop
+:state=1,varequal=1,aicanshoot=1,aitargetdistfurther=70,aitargetdistwithin=150:state=54,aistop
+:state=1,varequal=911,aicanshoot=1,aitargetdistfurther=70,aitargetdistwithin=100:state=54,aistop
+
+:state=1,aitargetdistwithin=70:state=2
+
+:state=1,hasweapon=1,ifweapon=0:state=10
+
+;//Take cover when shot
+:state=1,shotdamage=1:state=60,aisettarget
+:state=30,shotdamage=1:state=60,aisettarget
+
+;//Enemy at close range
+:state=2,ifweapon=1,aicanshoot=1,random=3:aifollowplr=0,state=60,aistop,animate=1
+:state=2,ifweapon=0,random=5:aifollowplr=0,state=60,aistop,animate=1
+:state=2,ifweapon=1,random=1:airotatetotarget,state=190
+:state=2,ifweapon=0:airotatetotarget,state=190
+:state=2,aitargetdistfurther=100:state=1
+:state=2:aisettarget
+
+;//Respond to any sounds
+:state=30:aisettarget,airotatetotarget
+:state=30,varequal=1,aiheardsound=3000:airotatetosound
+:state=30,varequal=0,aiheardsound=3000:aimovetosound
+:state=30,healthless=50,aicanshoot=1:aistop,state=1,aicallteam=2000
+:state=30,aicanshoot=1:aisettarget,useweapon,rundecal=6,state=1
+:state=30,etimergreater=4000,idle=1:state=1
+:state=30,ifweapon=0:state=10
+
+;//Fall back to cover while returning fire
+:state=60:state=67,etimerstart
+:state=67:airotatetotarget
+:state=67,aiatcover=0:aimovetocover=0,aisettarget,airotatetotarget
+:state=67,ifweapon=1,aicanshoot=1,rateoffire:aisettarget,useweapon,rundecal=6
+:state=67,etimergreater=1000,aitargetdistwithin=70,aicanshoot=1,ratoffire:aistop,state=190
+:state=67,etimergreater=1000,aicanshoot=0:state=1
+:state=67,etimergreater=1000,ifweapon=0:freeze,setaiactive=0,state=25
+
+;//close with enemy for melee if seen nearby
+:state=54,idle=1:animate=1,state=55
+:state=55,ifweapon=1,aicanshoot=1,rateoffire:aisettarget,useweapon,rundecal=6
+:state=55:aisettarget,aimovetotarget
+:state=55,aitargetdistwithin=60:state=191
+:state=55,aitargetdistfurther=150,varequal=1:aistop,state=1,aifollowplr=1
+:state=55,aitargetdistfurther=210:aistop,state=1
+:state=55,aicanshoot=0:state=1
+
+;//reloading-------------------------------------------------------------------------
+;//when out of ammo, choose to fall back and reload or charge foreward and melee.
+
+;//Assess situation
+:state=10,varequal=1,idle=1:aistop,setaiactive=0,aifollowplr=0,state=25
+:state=10,varequal=911,idle=1:aistop,setaiactive=0,state=25
+:state=10,aitargetdistwithin=70:state=190
+:state=10,aitargetdistfurther=70,aitargetdistwithin=120:state=54
+:state=10,aiatcover=0,idle=1:aisettarget,state=20,etimerstart
+:state=10,aiatcover=1,ducking=0,idle=1:freeze,setaiactive=0,state=25
+:state=10,aiatcover=1,ducking=1,idle=1:freeze,setaiactive=0,state=45
+:state=10,ducking=0,idle=1:freeze,setaiactive=0,state=25
+:state=10,ducking=1,idle=1:freeze,setaiactive=0,state=45
+
+;//Attempt to fall back to cover and reload
+:state=20,aiatcover=0:aimovetocover=0,airotatetotarget
+:state=20,aiatcover=1,ducking=0:freeze,setaiactive=0,state=25
+:state=20,aiatcover=1,ducking=1:freeze,setaiactive=0,state=45
+:state=20,etimergreater=500,idle=1,ducking=0:freeze,setaiactive=0,state=25
+:state=20,etimergreater=500,idle=1,ducking=1:freeze,setaiactive=0,state=45
+:state=20,etimergreater=2000,ducking=0,random=10:freeze,setaiactive=0,state=25
+:state=20,etimergreater=2000,ducking=1,random=10:freeze,setaiactive=0,state=45
+:state=20,aitargetdistwithin=70:aistop,state=191
+
+;//Reload standing
+:state=25:freeze,setframe=6,state=26
+:state=26:freeze,incframe=6
+:state=26,framebeyond=6 60:reloadweapon
+:state=26,varequal=1,frameatend=6:sound=audiobank\guns\reload.wav,state=28
+:state=26,frameatend=6:sound=audiobank\guns\reload.wav,state=27
+:state=27:state=1,setaiactive=1
+:state=28:state=1,setaiactive=1,aifollowplr=1
+
+;//Reload crouched
+:state=45:freeze,setframe=36,state=46
+:state=46:freeze,incframe=36
+:state=46,framebeyond=36 60:reloadweapon
+:state=46,varequal=1,frameatend=36:sound=audiobank\guns\reload.wav,state=48
+:state=46,frameatend=36:sound=audiobank\guns\reload.wav,state=47
+:state=47:state=1,setaiactive=1
+:state=48:state=1,setaiactive=1,aifollowplr=1
+
+;//melee strike
+:state=190,varequal=0:state=191
+:state=190,varequal=1:state=291
+:state=190,varequal=911:state=191
+
+:state=191:aisettarget,airotatetotarget
+:state=191,aitargetdistwithin=70,aicanshoot=1:state=192,aistop
+:state=191,aitargetdistfurther=70:state=1
+:state=191,aicanshoot=0:state=1
+:state=192:setaiactive=0,state=193,setframe=8
+:state=193:incframe=8,airotatetotarget
+:state=193,framebeyond=8 60,aitargetdistwithin=70:aisetmeleedamage=10,aiusemelee=1,state=194,sound=audiobank\misc\melee.wav
+:state=193,frameatend=8:animate=1,state=1,setaiactive=1,airotatetotarget
+:state=194,frameatend=8:animate=1,state=1,setaiactive=1,airotatetotarget
+
+:state=291:aisettarget,airotatetotarget
+:state=291,aitargetdistwithin=70,aicanshoot=1:state=292,aistop
+:state=291,aitargetdistfurther=70:state=1,aifollowplr=1
+:state=291,aicanshoot=0:state=1,aifollowplr=1
+:state=292:setaiactive=0,state=293,setframe=8
+:state=293:incframe=8,airotatetotarget
+:state=293,framebeyond=8 60,aitargetdistwithin=70:aisetmeleedamage=10,aiusemelee=1,state=294,sound=audiobank\misc\melee.wav
+:state=293,frameatend=8:animate=1,state=1,setaiactive=1,airotatetotarget
+:state=294,frameatend=8:animate=1,state=1,setaiactive=1,airotatetotarget
+
+;//Enemy team2 behavior------------------------------------------
+
+;//Enemy idle- move about randomly
+:state=1,aiteam=2,aiaction=0,aicanshot=0,random=30:aimoverandom
+
+;//Ally team1 behavior------------------------------------------
+
+;//Ally idle- start escort/follow when 'G' is pressed and switch to escort behavior
+;//Ally Following stop when 'H' is pressed
+
+:aiteam=1,varequal=0,plrdistwithin=70,plrfacing=10:fpgcrawtextsize=18,fpgcrawtextfont=arial,fpgcrawtextr=200,fpgcrawtextg=200,fpgcrawtextb=200,fpgcrawtextx=50,fpgcrawtexty=10,fpgcrawtext=Press [G] To Recruit Ally
+:aiteam=1,varequal=0,plrdistwithin=70,plrfacing=10,etimergreater=200,scancodekeypressed=34 1:etimerstart,setvar=1,sound=audiobank\switches\click.wav,aifollowplr=1
+:aiteam=1,varequal=1,plrdistwithin=70,plrfacing=10:fpgcrawtextsize=18,fpgcrawtextfont=arial,fpgcrawtextr=200,fpgcrawtextg=200,fpgcrawtextb=200,fpgcrawtextx=50,fpgcrawtexty=10,fpgcrawtext=Press [H] To Leave Ally
+:aiteam=1,varequal=1,plrdistwithin=70,plrfacing=10,etimergreater=200,scancodekeypressed=35 1:etimerstart,setvar=0,sound=audiobank\switches\click.wav,aifollowplr=0
+
+:aiteam=1,varequal=1,plrdistfurther=200:aifollowplr=1
+:state=1,aiteam=1,varequal=1,idle=1,plrdistwithin=100,aicanshoot=0:aimoverandom
+
+;//-----------------------------------------------------------
+
+;//free teammate respond to call
+:varequal=0,aiaction=0,aicalled=2000:airespondtocall,setvar=911
+:varequal=911,aicanshoot=1:setvar=0
+:varequal=911,idle=1:setvar=0
+:varequal=911,shotdamage=1:setvar=0
+;//-----------------------------------------------------------
+
+:state=0:setaiactive=1,alwaysactive=1,reloadweapon,state=1
+
+:nearactivatable=0:settarget,activatetarget=2
+
+;//End

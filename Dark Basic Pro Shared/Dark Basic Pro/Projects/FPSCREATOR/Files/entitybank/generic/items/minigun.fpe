@@ -1,0 +1,43 @@
+;Entity Spec
+
+;Header
+
+desc          = Minigun
+
+;AI
+aiinit	      = appear2.fpi
+aimain	      = weaponglow.fpi
+aidestroy     = disappear2.fpi
+
+;Spawn
+spawnmax      = 1
+spawndelay    = 3000
+spawnqty      = 1
+
+;Itemproperties
+defaultstatic = 0
+materialindex = 3
+collisionmode = 0
+debrisshape   = 0
+explodable    = 0
+
+;Orientation
+
+model         = minigun.X
+offy          = 0
+scale         = 200
+rotx          = -5
+texturepath   = gamecore\guns\modernday\minigun\
+textured      = gun_D2.tga
+reducetexture = -1
+transparency  = 1
+isimmobile    = 1
+
+;Identity Details
+isweapon      = modernday\minigun
+quantity      = 1
+speed         = 100
+
+;Decals
+decalmax      = 1
+decal0        = glowred

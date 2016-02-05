@@ -1,0 +1,24 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Base Platform Lift - ScFi (Up and Down)
+
+;Triggers
+
+:state=0,plrdistwithin=50:state=6,coloff
+:state=1:moveup=1
+:state=1,raycastup=20 92.5:state=2
+:state=2,plrdistfurther=75,playerassociated:state=3,unassociateplayer,colon
+:state=3,plrdistwithin=50:state=7,coloff
+:state=4:moveup=-1
+:state=4,raycastup=20 0:state=5
+:state=5,plrdistfurther=50,playerassociated:state=0,unassociateplayer,colon
+
+:state=6,plrdistwithin=50:sound=audiobank\scifi\scenery\lifts\up.wav,state=1,associateplayer
+:state=6,plrdistfurther=50,playerassociated:state=0,colon
+:state=7,plrdistwithin=50:sound=audiobank\scifi\scenery\lifts\down.wav,state=4,associateplayer
+:state=7,plrdistfurther=50,playerassociated:state=3,colon
+
+;End of Script
+

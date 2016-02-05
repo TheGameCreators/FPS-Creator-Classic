@@ -1,0 +1,28 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Static, When See Player, Move Back Then Shoot
+
+;Triggers
+
+:nearactivatable=0:settarget,activatetarget=2
+
+:state=0:state=1
+:state=1,plrcanbeseen:settarget,state=2
+:state=1,shotdamage=10:settarget,state=2
+:state=1,noiseheard=5:rotateheadrandom=85
+:state=1,random=20:rotateheadrandom=65
+
+:state=2:rotatetotarget,rotatey=180,resethead,animate=5,state=3
+:state=3:runfore=20
+:state=3,random=5:rotateheadrandom=85
+:state=3,losetarget=10:state=4
+:state=3,plrdistfurther=400:state=4
+:state=3,plrcanbeseen:settarget,state=2
+
+:state=4:rotatetoplr,animate=1
+:state=4,plrcanbeseen:settarget,state=0,shootplr
+:state=4:state=0
+
+;End of Script

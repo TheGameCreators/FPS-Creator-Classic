@@ -1,0 +1,1462 @@
+rem
+rem SEGMENTS
+rem
+
+_segment_validatearraysize:
+ `
+ rem ensure enough space in arrays
+ if segidmaster+32>segidmastermax
+  segidmastermax=segidmaster+32
+  dim selectionbank$(segidmastermax)
+  dim selectionbanklocal$(segidmastermax)
+  dim segmentprofileheader(segidmastermax) as segmentprofileheadertype
+  dim segmentprofile(segidmastermax,64) as segmentprofiletype
+ endif
+ `
+return
+
+_segment_shufflebank:
+
+rem FPSCV104RC6 - scan entire map data, delete all segment entries not used
+if segidmaster>0
+ dim segmentbankused(segidmaster)
+ for tttsegid=1 to segidmaster
+  segmentbankused(tttsegid)=0
+ next tttsegid
+ rem segs in map
+ for tttl=0 to layermax
+  for tttx=0 to maxx
+   for ttty=0 to maxy
+    tttmapid=map(tttl,tttx,ttty)
+    if tttmapid>0
+     tttsegid = ( tttmapid && %11111111111100000000000000000000 ) >> 20
+     if tttsegid>0 then segmentbankused(tttsegid)=1
+    endif
+    rem segs in olay
+    ttto=mapolay(tttl,tttx,ttty)
+    if ttto>0
+     for tt=0 to 50
+      tttmapid=olaylist(ttto,tt)
+      if tttmapid>0
+       tttsegid = ( tttmapid && %11111111111100000000000000000000 ) >> 20
+       if tttsegid>0 then segmentbankused(tttsegid)=1
+      endif
+     next tt
+    endif
+   next ttty
+  next tttx
+ next tttl
+ for tttsegid=1 to segidmaster
+  if segmentbankused(tttsegid)=0
+   selectionbank$(tttsegid)=""
+  endif
+ next tttsegid
+ rem shuffle to remove empties
+ for tttsegid=1 to segidmaster
+  segmentbankused(tttsegid)=0
+ next tttsegid
+ treadsegid=1 : tlargest=0
+ for tttsegid=1 to segidmaster
+  if treadsegid<=segidmaster
+   while selectionbank$(treadsegid)=""
+    inc treadsegid : if treadsegid>segidmaster then exit
+   endwhile
+   if treadsegid<=segidmaster
+    selectionbank$(tttsegid)=selectionbank$(treadsegid)
+    selectionbanklocal$(tttsegid)=selectionbanklocal$(treadsegid)
+    segmentprofileheader(tttsegid)=segmentprofileheader(treadsegid)
+    for tt=0 to 64 : segmentprofile(tttsegid,tt)=segmentprofile(treadsegid,tt) : next tt
+    segmentbankused(treadsegid)=tttsegid
+    tlargest=tttsegid
+   else
+    selectionbank$(tttsegid)=""
+   endif
+  else
+   selectionbank$(tttsegid)=""
+  endif
+  inc treadsegid
+ next tttsegid
+ rem new list size
+ if segidmaster<>tlargest
+  segidmaster=tlargest
+  entityorsegmententrieschanged=1
+ endif
+ rem update bank index numbers in mapdata
+ for tttl=0 to layermax
+  for tttx=0 to maxx
+   for ttty=0 to maxy
+    tttmapid=map(tttl,tttx,ttty)
+    if tttmapid>0
+     tttsegid = ( tttmapid && %11111111111100000000000000000000 ) >> 20
+     if tttsegid>0
+      rem new segment entry place index
+      newtttsegid = segmentbankused(tttsegid)
+      tttmapid = tttmapid && %00000000000011111111111111111111
+      tttmapid = tttmapid || ( newtttsegid << 20 )
+      map(tttl,tttx,ttty)=tttmapid
+     endif
+    endif
+    rem segs in olay
+    ttto=mapolay(tttl,tttx,ttty)
+    if ttto>0
+     for tt=0 to 50
+      tttmapid=olaylist(ttto,tt)
+      if tttmapid>0
+       tttsegid = ( tttmapid && %11111111111100000000000000000000 ) >> 20
+       if tttsegid>0
+        newtttsegid = segmentbankused(tttsegid)
+        tttmapid = tttmapid && %00000000000011111111111111111111
+        tttmapid = tttmapid || ( newtttsegid << 20 )
+        olaylist(ttto,tt)=tttmapid
+       endif
+      endif
+     next tt
+    endif
+   next ttty
+  next tttx
+ next tttl
+ undim segmentbankused()
+endif
+
+return
+
+_segment_savebank:
+
+rem Save segment bank
+if file exist("mapbank\testmap\map.seg")=1 then delete file "mapbank\testmap\map.seg"
+open to write 1,"mapbank\testmap\map.seg"
+ write file 1,segidmaster
+ if segidmaster>0
+  gosub _segment_validatearraysize
+  for segid=1 to segidmaster
+   write string 1,selectionbank$(segid)
+  next segid
+ endif
+close file 1
+
+return
+
+_segment_deletebank:
+
+rem Destroy old segments
+if segidmastermax>0
+ rem changed from segidmaster
+ for segid=1 to segidmastermax
+  segobj=selectionbankoffset+segid
+  if object exist(segobj)=1 then delete object segobj
+  selectionbank$(segid)=""
+ next segid
+endif
+segidmaster=0
+
+return
+
+_segment_loadbank:
+
+rem If seg file exists
+if file exist("mapbank\testmap\map.seg")=1
+
+rem Destroy old segments
+gosub _segment_deletebank
+
+rem Load segment bank
+open to read 1,"mapbank\testmap\map.seg"
+ read file 1,segidmaster
+ if segidmaster>0
+  gosub _segment_validatearraysize
+  for segid=1 to segidmaster
+   read string 1,selectionbank$(segid)
+  next segid
+ endif
+close file 1
+
+rem Load segments specified by bank
+segdir$="segments\"
+if segidmaster>0
+ for segid=1 to segidmaster
+  seg$=selectionbank$(segid)
+  if seg$<>""
+   segcategory$=getfirstdir(seg$)
+   segpath$=getseconddir(seg$)
+   gosub _segment_load
+   if segmentprofileheader(segid).partmax=-1
+    selectionbank$(segid)=""
+   endif
+  else
+   segmentprofileheader(segid).partmax=-1
+  endif
+ next segid
+endif
+
+rem No file
+endif
+
+return
+
+_segment_updatebank:
+
+rem If seg file exists
+if file exist("mapbank\testmap\map.seg")=1
+
+rem Clear non-present entries
+for segid=segidmaster+1 to segidmastermax
+ selectionbank$(segid)=""
+next segid
+
+rem Update segment bank
+segdir$="segments\"
+open to read 2,"mapbank\testmap\map.seg"
+ read file 2,segidmaster
+ if segidmaster>0
+  gosub _segment_validatearraysize
+  for segid=1 to segidmaster
+   read string 2,tseg$
+   if tseg$<>selectionbank$(segid)
+    selectionbank$(segid)=tseg$
+    seg$=selectionbank$(segid)
+    segcategory$=getfirstdir(seg$)
+    segpath$=getseconddir(seg$)
+    gosub _segment_load
+   endif
+  next segid
+ endif
+close file 2
+
+rem No file
+endif
+
+return
+
+_segment_preloadtextures:
+
+rem Load textures for segment
+segmeshpartmax=segmentprofileheader(segid).lastmeshmax
+for p=0 to segmeshpartmax
+ `
+ rem RADICAL change - D2 only required texture - rest generated here D.I.N.S
+ `
+ rem Can use multi-texture
+ if segobjusedforfinalgame=1
+  if segmentprofile(segid,p).multimeshmode=1
+   extralimbp=segmentprofile(segid,p).multimeshstart
+   if extralimbp>0
+    rem points to two new meshes which may have _02 and _03 textures associated
+    ttfile$=segmentprofile(segid,p).tex$
+    tfilecheck$=left$(ttfile$,len(ttfile$)-4)
+    if lower$(right$(tfilecheck$,6))="_01_d2"
+     rem generate _02 and _03 textures in correct part of segment (mesh)
+     tfile$=ttfile$ : tfile$=left$(tfile$,len(tfile$)-len("_NN_D2.TGA"))
+     segmentprofile(segid,extralimbp+0).tex$=tfile$+"_02_D2.TGA"
+     if file exist(segmentprofile(segid,extralimbp+0).tex$)=0
+      segmentprofile(segid,extralimbp+0).tex$=tfile$+"_02_D2.DDS"
+      if file exist(segmentprofile(segid,extralimbp+0).tex$)=0
+       segmentprofile(segid,extralimbp+0).tex$=ttfile$
+      endif
+     endif
+     segmentprofile(segid,extralimbp+1).tex$=tfile$+"_03_D2.TGA"
+     if file exist(segmentprofile(segid,extralimbp+1).tex$)=0
+      segmentprofile(segid,extralimbp+1).tex$=tfile$+"_03_D2.DDS"
+      if file exist(segmentprofile(segid,extralimbp+1).tex$)=0
+       segmentprofile(segid,extralimbp+1).tex$=ttfile$
+      endif
+     endif
+    endif
+   endif
+  endif
+ endif
+ `
+ rem Load actual textures based on effect requirements
+ segmentprofile(segid,p).texid=0
+ segmentprofile(segid,p).texdid=0
+ segmentprofile(segid,p).texnid=0
+ segmentprofile(segid,p).texsid=0
+ texdir$=segmentprofile(segid,p).tex$
+ if texdir$<>""
+  `
+  rem Effect or No
+  tfile$=segmentprofile(segid,p).effect$
+  teffectuseslightmapstage=1 : gosub _common_makeeffecttextureset
+  if tfile$<>"" and guseeffectonscenesstate=1
+   `
+   rem Load and apply MAIN texture directly
+   tstage=0
+   for tlayer=0 to 4
+    if tlayer=0 then texfiletouse$=texdir1$
+    if tlayer=1 then texfiletouse$=texdir2$
+    if tlayer=2 then texfiletouse$=texdir3$
+    if tlayer=3 then texfiletouse$=texdir4$
+    if tlayer=4 then texfiletouse$=texdir5$
+    texuseid=loadinternaltexture(texfiletouse$)
+    if texuseid=0
+     rem some effects need a blank texture if no file available
+     if tlayer<=ensureclearlayermax
+      rem black texture if no texture
+      texuseid=loadinternalimagecompressquality("texturebank\common\black.tga",1,0)
+     endif
+    endif
+    if texuseid>0
+     if tstage=0 then segmentprofile(segid,p).texdid=texuseid : segmentprofile(segid,p).texid=texuseid
+     if tstage=1 then segmentprofile(segid,p).texiid=texuseid
+     if tstage=2 then segmentprofile(segid,p).texnid=texuseid
+     if tstage=3 then segmentprofile(segid,p).texsid=texuseid
+     if tstage=4 then segmentprofile(segid,p).texsid=texuseid
+     inc tstage
+    endif
+   next tlayer
+   `
+  else
+   rem Basic Texture (D2)
+   tfile$=segmentprofile(segid,p).tex$
+   segmentprofile(segid,p).texid=loadinternaltexture(tfile$)
+   if segmentprofile(segid,p).multimeshmode=1
+    textralimbp=segmentprofile(segid,p).multimeshstart
+    if textralimbp>0
+     segmentprofile(segid,textralimbp+0).texid=loadinternaltexture(segmentprofile(segid,textralimbp+0).tex$)
+     segmentprofile(segid,textralimbp+1).texid=loadinternaltexture(segmentprofile(segid,textralimbp+1).tex$)
+    endif
+   endif
+  endif
+ endif
+ `
+next p
+
+return
+
+_segment_preloadeffects:
+
+rem Load effect for segment
+segmeshpartmax=segmentprofileheader(segid).lastmeshmax
+for p=0 to segmeshpartmax
+ if segmentprofile(segid,p).effect$<>"" and segnoeffects=0 and guseeffectonscenesstate=1
+  tfile$=segmentprofile(segid,p).effect$
+  gosub _common_wipeeffectifnotexist
+  if tfile$<>""
+   debugfilename(tfile$,"effect:"+seg$)
+   segmentprofile(segid,p).effectid=loadinternaleffect(tfile$)
+  else
+   segmentprofile(segid,p).effectid=0
+  endif
+ else
+  segmentprofile(segid,p).effectid=0
+ endif
+next p
+
+return
+
+_segment_load:
+
+rem Segment Object Index
+segobj=selectionbankoffset+segid
+
+rem debug info
+mytimer=timer()
+
+rem Load segment profile data
+segmentprofileheader(segid).partmax=-1
+gosub _segment_loaddata
+segpartmax=segmentprofileheader(segid).partmax
+
+rem Only if profile exists
+if segpartmax<>-1
+ `
+ rem Check if DBO version of segment obj exists
+ tsegobjpreloaded=0
+ if segobjusedforfinalgame=0
+  tsegobjfile$=left$(segdir$+seg$,len(segdir$+seg$)-4)+".dbo"
+  if file exist(tsegobjfile$)=1 and segobjusedformapeditor=0
+   load object tsegobjfile$,segobj
+   tsegobjpreloaded=1
+  endif
+ endif
+ `
+ rem segment mesh max
+ segmeshpartmax=segmentprofileheader(segid).lastmeshmax
+ `
+ rem Load meshes for segment
+ if tsegobjpreloaded=0
+  for p=0 to segmeshpartmax
+   if segmentprofile(segid,p).partmode=0
+    tmeshname$=segmentprofile(segid,p).meshname$
+    if segmentprofile(segid,p).csgmesh$<>"" then tmeshname$=segmentprofile(segid,p).csgmesh$
+    if tmeshname$<>""
+     tfile$=tmeshname$
+     debugfilename(tfile$,"mesh:"+seg$)
+     segmentprofile(segid,p).meshid=loadinternalmesh(tfile$)
+    endif
+   endif
+  next p
+ endif
+ `
+ rem Load multi-meshes for segment
+ originalsegmeshpartmax=-1
+ if segobjusedforfinalgame=1
+  dim tempsegmentprofile(64) as segmentprofiletype
+  tempp=0
+  rem place where new limbs will be located (extralimbp) - we will move things like entitys/csgs to end
+  extralimbp=segmeshpartmax+1
+  for p=0 to segmeshpartmax
+   if segmentprofile(segid,p).partmode=0
+    ttmeshname$=segmentprofile(segid,p).meshname$
+    if segmentprofile(segid,p).multimeshmode=1
+     if segmentprofile(segid,p).csgmesh$="" and ttmeshname$<>""
+      if lower$(right$(ttmeshname$,3))="a.x"
+       for ttwo=0 to 1
+        tmeshname$=ttmeshname$
+        tmeshname$=left$(tmeshname$,len(tmeshname$)-3)
+        if ttwo=0 then tmeshname$=tmeshname$+"b.x"
+        if ttwo=1 then tmeshname$=tmeshname$+"c.x"
+        tfile$=tmeshname$
+        debugfilename(tfile$,"mesh:"+seg$)
+        tempsegmentprofile(tempp)=segmentprofile(segid,p)
+        if ttwo=0 then tempsegmentprofile(tempp).meshid=loadinternalmesh(tfile$)
+        if ttwo=1 then tempsegmentprofile(tempp).meshid=loadinternalmesh(tfile$)
+        inc tempp
+       next ttwo
+      else
+       rem not a.x, but can still habe multi-texture so use base mesh instead
+       tempsegmentprofile(tempp)=segmentprofile(segid,p)
+       tempsegmentprofile(tempp).meshid=loadinternalmesh(ttmeshname$)
+       inc tempp
+       tempsegmentprofile(tempp)=segmentprofile(segid,p)
+       tempsegmentprofile(tempp).meshid=loadinternalmesh(ttmeshname$)
+       inc tempp
+      endif
+      segmentprofile(segid,p).multimeshstart=extralimbp
+      inc extralimbp,2
+     endif
+    endif
+   endif
+  next p
+  rem multimesh entries made
+  if tempp>0
+   rem first copy non-mesh parts (entity/csg) to new end
+   for p=segpartmax to segmeshpartmax+1 step -1
+    segmentprofile(segid,p+tempp)=segmentprofile(segid,p)
+   next p
+   rem now copy accumilated multi-meshes to updated segment profile
+   temppmax=tempp : tempp=0
+   for p=segmeshpartmax+1 to segmeshpartmax+temppmax
+    segmentprofile(segid,p)=tempsegmentprofile(tempp) : inc tempp
+   next p
+   rem update max values
+   segmentprofileheader(segid).partmax=segpartmax+temppmax
+   segpartmax=segmentprofileheader(segid).partmax
+   originalsegmeshpartmax=segmeshpartmax
+   segmentprofileheader(segid).lastmeshmax=segmeshpartmax+temppmax
+   segmeshpartmax=segmentprofileheader(segid).lastmeshmax
+  endif
+ endif
+ `
+ rem Load textures for segment
+ gosub _segment_preloadtextures
+ `
+ rem Load effect for segment
+ gosub _segment_preloadeffects
+ `
+ rem Build segment in object from segment profile
+ if tsegobjpreloaded=0
+  segmeshpartmax=segmentprofileheader(segid).lastmeshmax
+  tpstart=0 : tpend=segmeshpartmax
+  for p=tpstart to tpend
+   if object exist(segobj)=0
+    make object segobj,segmentprofile(segid,p).meshid,0
+   else
+    add limb segobj,p,segmentprofile(segid,p).meshid
+   endif
+   offset limb segobj,p,segmentprofile(segid,p).offx,segmentprofile(segid,p).offy,segmentprofile(segid,p).offz
+   rotate limb segobj,p,0,segmentprofile(segid,p).roty,0
+  next p
+ endif
+ `
+ rem load csg meshes for scene building
+ if tsegobjpreloaded=0
+  for tp=0 to segpartmax
+   if segmentprofile(segid,tp).partmode=1
+    tmeshname$=segmentprofile(segid,tp).meshname$
+    if tmeshname$<>""
+     tfile$=tmeshname$
+     debugfilename(tfile$,"mesh:"+seg$)
+     segmentprofile(segid,tp).meshid=loadinternalmesh(tfile$)
+     add limb segobj,p,segmentprofile(segid,tp).meshid
+     offset limb segobj,p,segmentprofile(segid,tp).offx,segmentprofile(segid,tp).offy,segmentprofile(segid,tp).offz
+     rotate limb segobj,p,0,segmentprofile(segid,tp).roty,0
+     color limb segobj,p,rgb(0,255,0)
+     segmentprofile(segid,tp).actuallimb=p
+     inc p
+    endif
+   endif
+  next tp
+ else
+  rem still need actuallimb data for CSG meshes
+  p=segmeshpartmax+1
+  for tp=0 to segpartmax
+   if segmentprofile(segid,tp).partmode=1
+    tmeshname$=segmentprofile(segid,tp).meshname$
+    if tmeshname$<>"" then segmentprofile(segid,tp).actuallimb=p : inc p
+   endif
+  next tp
+ endif
+ `
+ rem Save DBO of segment if not exist
+ if segobjusedforfinalgame=0
+  if file exist(tsegobjfile$)=0
+   save object tsegobjfile$,segobj
+  endif
+ endif
+ `
+ rem Texture segment in object from segment profile
+ segmeshpartmax=segmentprofileheader(segid).lastmeshmax
+ for p=0 to segmeshpartmax
+  if segmentprofile(segid,p).effectid=0
+   texture limb segobj,p,segmentprofile(segid,p).texid
+  else
+   if segmentprofile(segid,p).texdid=0
+    texture limb segobj,p,segmentprofile(segid,p).texid
+   else
+    texture limb segobj,p,0,segmentprofile(segid,p).texdid
+    if segmentprofile(segid,p).texiid<>0 then texture limb segobj,p,1,segmentprofile(segid,p).texiid
+    if segmentprofile(segid,p).texnid<>0 then texture limb segobj,p,2,segmentprofile(segid,p).texnid
+    if segmentprofile(segid,p).texsid<>0 then texture limb segobj,p,3,segmentprofile(segid,p).texsid
+   endif
+   set limb effect segobj,p,segmentprofile(segid,p).effectid
+  endif
+ next p
+ `
+ rem Set any segment transparenct (always uses transparency TGA=alpha)
+ set object transparency segobj,1
+ `
+ rem Hide object away
+ position object segobj,100000,100000,100000
+ `
+ rem Ensure multimeshes are hidden from segment handling (only used in node tree creation)
+ if segobjusedforfinalgame=1 and originalsegmeshpartmax<>-1
+  segmentprofileheader(segid).lastmeshmax=originalsegmeshpartmax
+  segmeshpartmax=originalsegmeshpartmax
+ endif
+ `
+rem no profile exists endif
+endif
+
+rem debug info and timestamp (if logged)
+debugviewtext(-1,"Built "+seg$+" in "+str$(timer()-mytimer)+"ms")
+if segobj>0
+ if object exist(segobj)=1
+  timestampactivity(0,"Loaded "+str$(segid)+":"+seg$)
+ endif
+endif
+
+return
+
+_segment_cleardata:
+
+rem Default mesh settings
+segpartmax=64
+for q=0 to segpartmax
+ segmentprofile(segid,q).partmode=0
+ segmentprofile(segid,q).tex$=""
+ segmentprofile(segid,q).texid=0
+ segmentprofile(segid,q).texdid=0
+ segmentprofile(segid,q).texiid=0
+ segmentprofile(segid,q).texnid=0
+ segmentprofile(segid,q).texsid=0
+` segmentprofile(segid,q).texd$=""
+` segmentprofile(segid,q).texn$=""
+` segmentprofile(segid,q).texs$=""
+ segmentprofile(segid,q).effect$=""
+ segmentprofile(segid,q).effectid=0
+ segmentprofile(segid,q).csgmesh$=""
+ segmentprofile(segid,q).csgmode=0
+ segmentprofile(segid,q).csgimmune=0
+ segmentprofile(segid,q).transparency=0
+next q
+
+rem Default hidden parts
+segmentprofile(segid).vis.overlay=0
+segmentprofile(segid).vis.f=-1
+segmentprofile(segid).vis.r=-1
+segmentprofile(segid).vis.wb=-1
+segmentprofile(segid).vis.wr=-1
+segmentprofile(segid).vis.wf=-1
+segmentprofile(segid).vis.wl=-1
+segmentprofile(segid).vis.owb=-1
+segmentprofile(segid).vis.owr=-1
+segmentprofile(segid).vis.owf=-1
+segmentprofile(segid).vis.owl=-1
+segmentprofile(segid).vis.ctl=-1
+segmentprofile(segid).vis.ctr=-1
+segmentprofile(segid).vis.cbr=-1
+segmentprofile(segid).vis.cbl=-1
+segmentprofile(segid).vis.octl=-1
+segmentprofile(segid).vis.octr=-1
+segmentprofile(segid).vis.ocbr=-1
+segmentprofile(segid).vis.ocbl=-1
+
+rem Default blueprint data
+segmentprofile(segid).blueprint.mode=0
+segmentprofile(segid).blueprint.symbol=0
+segmentprofile(segid).blueprint.floorsizey=-1
+segmentprofile(segid).blueprint.sidesizex=100
+segmentprofile(segid).blueprint.sidesizey=100
+segmentprofile(segid).blueprint.sidesizez=100
+
+rem Default properties data
+segmentprofile(segid).properties.groundmode=0
+segmentprofile(segid).properties.kindof=0
+
+return
+
+_segment_loaddata:
+
+rem Default Segment Data
+gosub _segment_cleardata
+
+rem Fill this last if not in filedata
+segmentprofileheader(segid).lastmeshmax=-1
+
+rem Ensure segment profile still exists
+if file exist(segdir$+seg$)=1
+
+rem Export entity FPE file if flagged
+if gexportassets=1
+ tthumbbmpfile$=left$(segdir$+seg$,len(segdir$+seg$)-4)+".bmp"
+ addfiletocollection(segdir$+seg$) : addfiletocollection(tthumbbmpfile$)
+endif
+
+rem Check if binary version of segment profile exists
+tprofile$=left$(segdir$+seg$,len(segdir$+seg$)-4)+".bin"
+if isbinaryfileolderthantxtfileforseg(tprofile$,segdir$+seg$)=1 then delete file tprofile$
+if file exist(tprofile$)=0
+
+ rem Load Segment Data from file
+ dim data$(999)
+ load array segdir$+seg$,data$()
+ for l=0 to 999
+  line$=data$(l)
+  if len(line$)>0
+   if lower$(left$(line$,4))=";end" then exit
+   if left$(line$,1)<>";"
+    `
+    rem take fieldname and value
+    for c=0 to len(line$)
+     if mid$(line$,c)="=" then mid=c : exit
+    next c
+    field$=lower$(removeedgespaces(left$(line$,mid-1)))
+    value$=removeedgespaces(right$(line$,len(line$)-mid))
+    `
+    rem take value 1 and 2 from value
+    for c=0 to len(value$)
+     if mid$(value$,c)="," then mid=c : exit
+    next c
+    value1=val(removeedgespaces(left$(value$,mid-1)))
+    value2$=removeedgespaces(right$(value$,len(value$)-mid))
+    if len(value2$)>0 then value2=val(value2$) else value2=-1
+    `
+    rem HEADER
+    if field$="partmax" then segmentprofileheader(segid).partmax=value1
+    if field$="lastmeshmax" then segmentprofileheader(segid).lastmeshmax=value1
+    `
+    rem SEGMENT PARTS
+    segpartmax=segmentprofileheader(segid).partmax
+    for p=0 to segpartmax
+     tryfield$="partmode"+str$(p)
+     if field$=tryfield$ then segmentprofile(segid,p).partmode=value1
+     tryfield$="meshname"+str$(p)
+     if field$=tryfield$ then segmentprofile(segid,p).meshname$=value$
+     tryfield$="offx"+str$(p)
+     if field$=tryfield$ then segmentprofile(segid,p).offx=value1
+     tryfield$="offy"+str$(p)
+     if field$=tryfield$ then segmentprofile(segid,p).offy=value1
+     tryfield$="offz"+str$(p)
+     if field$=tryfield$ then segmentprofile(segid,p).offz=value1
+     tryfield$="rotx"+str$(p)
+     if field$=tryfield$ then segmentprofile(segid,p).rotx=value1
+     tryfield$="roty"+str$(p)
+     if field$=tryfield$ then segmentprofile(segid,p).roty=value1
+     tryfield$="rotz"+str$(p)
+     if field$=tryfield$ then segmentprofile(segid,p).rotz=value1
+     tryfield$="texture"+str$(p)
+     if field$=tryfield$ then segmentprofile(segid,p).tex$=value$
+     tryfield$="transparency"+str$(p)
+     if field$=tryfield$ then segmentprofile(segid,p).transparency=value1
+     tryfield$="effect"+str$(p)
+     if field$=tryfield$ then segmentprofile(segid,p).effect$=value$
+     tryfield$="colmode"+str$(p)
+     if field$=tryfield$ then segmentprofile(segid,p).colmode=value1
+     tryfield$="csgmesh"+str$(p)
+     if field$=tryfield$ then segmentprofile(segid,p).csgmesh$=value$
+     tryfield$="csgmode"+str$(p)
+     if field$=tryfield$ then segmentprofile(segid,p).csgmode=value1
+     tryfield$="csgimmune"+str$(p)
+     if field$=tryfield$ then segmentprofile(segid,p).csgimmune=value1
+     tryfield$="lightmode"+str$(p)
+     if field$=tryfield$ then segmentprofile(segid,p).lightmode=value1
+     tryfield$="multimeshmode"+str$(p)
+     if field$=tryfield$ then segmentprofile(segid,p).multimeshmode=value1
+     tryfield$="materialindex"+str$(p)
+     if field$=tryfield$ then segmentprofile(segid,p).material.index=value1
+     `
+     rem V109 BETA5 - 250408 - flag material is being used
+     if segmentprofile(segid,p).material.index>0
+      mi=segmentprofile(segid,p).material.index-1
+      material(mi).usedinlevel=1
+     endif
+     `
+    next p
+    `
+    rem SEGMENT VISIBILITY
+    if field$="visoverlay" then segmentprofile(segid).vis.overlay=value1
+    if field$="visfloor" then segmentprofile(segid).vis.f=value1
+    if field$="visroof" then segmentprofile(segid).vis.r=value1
+    if field$="viswallb" then segmentprofile(segid).vis.wb=value1 : segmentprofile(segid).vis.owb=value2
+    if field$="viswallr" then segmentprofile(segid).vis.wr=value1 : segmentprofile(segid).vis.owr=value2
+    if field$="viswallf" then segmentprofile(segid).vis.wf=value1 : segmentprofile(segid).vis.owf=value2
+    if field$="viswalll" then segmentprofile(segid).vis.wl=value1 : segmentprofile(segid).vis.owl=value2
+    if field$="viscornertl" then segmentprofile(segid).vis.ctl=value1 : segmentprofile(segid).vis.octl=value2
+    if field$="viscornertr" then segmentprofile(segid).vis.ctr=value1 : segmentprofile(segid).vis.octr=value2
+    if field$="viscornerbr" then segmentprofile(segid).vis.cbr=value1 : segmentprofile(segid).vis.ocbr=value2
+    if field$="viscornerbl" then segmentprofile(segid).vis.cbl=value1 : segmentprofile(segid).vis.ocbl=value2
+    if field$="visportalmode" then segmentprofile(segid).vis.portalmode=value1
+    `
+    rem SEGMENT BLUEPRINT
+    if field$="mode" then segmentprofile(segid).blueprint.mode=value1
+    if field$="symbol" then segmentprofile(segid).blueprint.symbol=value1
+    if field$="floorsizey" then segmentprofile(segid).blueprint.floorsizey=value1
+    if field$="sidesizex" then segmentprofile(segid).blueprint.sidesizex=value1
+    if field$="sidesizey" then segmentprofile(segid).blueprint.sidesizey=value1
+    if field$="sidesizez" then segmentprofile(segid).blueprint.sidesizez=value1
+    `
+    rem SEGMENT PROPERTIES
+    if field$="groundmode" then segmentprofile(segid).properties.groundmode=value1
+    if field$="kindof" then segmentprofile(segid).properties.kindof=value1
+    `
+   endif
+  endif
+ next l
+ undim data$()
+ `
+ rem Save segment profile as binary (and strings tagged to end)
+ dim temp(64) as segmentprofiletype
+ open to write 1,tprofile$
+ rem V110 - 160508 - added extra code to hold new version number in segment BIN file
+ write file 1,-1 : write file 1,gversion
+ write file 1,segmentprofileheader(segid).partmax
+ write file 1,segmentprofileheader(segid).lastmeshmax
+ segpartmax=segmentprofileheader(segid).partmax
+ for p=0 to segpartmax : temp(p)=segmentprofile(segid,p) : next p
+ if memblock exist(1)=1 then delete memblock 1
+ for p=0 to segpartmax
+  temp(p).meshname$=free string()
+  temp(p).tex$=free string()
+  temp(p).effect$=free string()
+  temp(p).csgmesh$=free string()
+ next p
+ make memblock from array 1,temp(0)
+ write memblock 1,1
+ for p=0 to segpartmax
+  write string 1,segmentprofile(segid,p).meshname$
+  write string 1,segmentprofile(segid,p).tex$
+  write string 1,segmentprofile(segid,p).effect$
+  write string 1,segmentprofile(segid,p).csgmesh$
+ next p
+ close file 1
+ delete memblock 1
+ undim temp(0)
+ `
+else
+ `
+ rem load binary version of segment profile file
+ dim temp(64) as segmentprofiletype
+ open to read 1,tprofile$
+ read file 1,tval
+ read file 1,tversion
+ read file 1,tval : segmentprofileheader(segid).partmax=tval
+ read file 1,tval : segmentprofileheader(segid).lastmeshmax=tval
+ segpartmax=segmentprofileheader(segid).partmax
+ read memblock 1,1
+ make array from memblock temp(0),1
+ for p=0 to segpartmax : segmentprofile(segid,p)=temp(p) : next p
+ for p=0 to segpartmax
+  read string 1,tstr$ : segmentprofile(segid,p).meshname$=tstr$
+  read string 1,tstr$ : segmentprofile(segid,p).tex$=tstr$
+  read string 1,tstr$ : segmentprofile(segid,p).effect$=tstr$
+  read string 1,tstr$ : segmentprofile(segid,p).csgmesh$=tstr$
+ next p
+ close file 1
+ delete memblock 1
+ undim temp(0)
+ `
+endif
+
+rem V109 BETA10 - 120508 - flag material usage here (after possiblw BIN load)
+segpartmax=segmentprofileheader(segid).partmax
+for p=0 to segpartmax
+ if segmentprofile(segid,p).material.index>0
+  mi=segmentprofile(segid,p).material.index-1
+  material(mi).usedinlevel=1
+ endif
+next p
+
+rem If lastmesh not there, use partmax
+if segmentprofileheader(segid).lastmeshmax=-1
+ segmentprofileheader(segid).lastmeshmax=segmentprofileheader(segid).partmax
+endif
+
+rem File not exist endif
+else
+ rem File not exist, provide debug information
+ debugfilename(segdir$+seg$,"")
+endif
+
+return
+
+_segment_savedata:
+
+rem Create seg file in string array (segid to savesegfile$)
+dim data$(999) : l=-1
+
+rem SEGMENT HEADER
+inc l : data$(l)=";Segment Spec"
+inc l : data$(l)=""
+inc l : data$(l)=";Header"
+inc l : data$(l)=""
+inc l : data$(l)="partmax = "+str$(segmentprofileheader(segid).partmax)
+inc l : data$(l)="lastmeshmax = "+str$(segmentprofileheader(segid).lastmeshmax)
+
+rem SEGMENT PARTS
+inc l : data$(l)=""
+inc l : data$(l)=";Segment Parts"
+inc l : data$(l)=""
+for p=0 to segmentprofileheader(segid).partmax
+ tryfield$=minstring("partmode"+str$(p),15)
+ inc l : data$(l)=tryfield$+" = "+str$(segmentprofile(segid,p).partmode)
+ tryfield$=minstring("meshname"+str$(p),15)
+ inc l : data$(l)=tryfield$+" = "+segmentprofile(segid,p).meshname$
+ tryfield$=minstring("offx"+str$(p),15)
+ inc l : data$(l)=tryfield$+" = "+str$(segmentprofile(segid,p).offx)
+ tryfield$=minstring("offy"+str$(p),15)
+ inc l : data$(l)=tryfield$+" = "+str$(segmentprofile(segid,p).offy)
+ tryfield$=minstring("offz"+str$(p),15)
+ inc l : data$(l)=tryfield$+" = "+str$(segmentprofile(segid,p).offz)
+ tryfield$=minstring("rotx"+str$(p),15)
+ inc l : data$(l)=tryfield$+" = "+str$(segmentprofile(segid,p).rotx)
+ tryfield$=minstring("roty"+str$(p),15)
+ inc l : data$(l)=tryfield$+" = "+str$(segmentprofile(segid,p).roty)
+ tryfield$=minstring("rotz"+str$(p),15)
+ inc l : data$(l)=tryfield$+" = "+str$(segmentprofile(segid,p).rotz)
+ tryfield$=minstring("texture"+str$(p),15)
+ inc l : data$(l)=tryfield$+" = "+segmentprofile(segid,p).tex$
+` tryfield$=minstring("textured"+str$(p),15)
+` inc l : data$(l)=tryfield$+" = "+segmentprofile(segid,p).texd$
+` tryfield$=minstring("texturen"+str$(p),15)
+` inc l : data$(l)=tryfield$+" = "+segmentprofile(segid,p).texn$
+` tryfield$=minstring("textures"+str$(p),15)
+` inc l : data$(l)=tryfield$+" = "+segmentprofile(segid,p).texs$
+ tryfield$=minstring("transparency"+str$(p),15)
+ inc l : data$(l)=tryfield$+" = "+str$(segmentprofile(segid,p).transparency)
+ tryfield$=minstring("effect"+str$(p),15)
+ inc l : data$(l)=tryfield$+" = "+segmentprofile(segid,p).effect$
+ tryfield$=minstring("colmode"+str$(p),15)
+ inc l : data$(l)=tryfield$+" = "+str$(segmentprofile(segid,p).colmode)
+ tryfield$=minstring("csgmesh"+str$(p),15)
+ inc l : data$(l)=tryfield$+" = "+segmentprofile(segid,p).csgmesh$
+ tryfield$=minstring("csgmode"+str$(p),15)
+ inc l : data$(l)=tryfield$+" = "+str$(segmentprofile(segid,p).csgmode)
+ tryfield$=minstring("csgimmune"+str$(p),15)
+ inc l : data$(l)=tryfield$+" = "+str$(segmentprofile(segid,p).csgimmune)
+ tryfield$=minstring("lightmode"+str$(p),15)
+ inc l : data$(l)=tryfield$+" = "+str$(segmentprofile(segid,p).lightmode)
+ tryfield$=minstring("multimeshmode"+str$(p),15)
+ inc l : data$(l)=tryfield$+" = "+str$(segmentprofile(segid,p).multimeshmode)
+ tryfield$=minstring("materialindex"+str$(p),15)
+ inc l : data$(l)=tryfield$+" = "+str$(segmentprofile(segid,p).material.index)
+ inc l : data$(l)=""
+ `
+ rem Ensure we never run out of array space
+ if l>100 then array insert at bottom data$(),11
+ `
+next p
+
+rem SEGMENT VISIBILITY
+inc l : data$(l)=";Segment Visibility"
+inc l : data$(l)=""
+inc l : data$(l)=minstring("visoverlay",15)+" = "+str$(segmentprofile(segid).vis.overlay)
+inc l : data$(l)=minstring("visfloor",15)+" = "+str$(segmentprofile(segid).vis.f)
+inc l : data$(l)=minstring("visroof",15)+" = "+str$(segmentprofile(segid).vis.r)
+try=segmentprofile(segid).vis.owb : if try<>-1 then extra$=","+str$(try) else extra$=""
+inc l : data$(l)=minstring("viswallb",15)+" = "+str$(segmentprofile(segid).vis.wb)+extra$
+try=segmentprofile(segid).vis.owr : if try<>-1 then extra$=","+str$(try) else extra$=""
+inc l : data$(l)=minstring("viswallr",15)+" = "+str$(segmentprofile(segid).vis.wr)+extra$
+try=segmentprofile(segid).vis.owf : if try<>-1 then extra$=","+str$(try) else extra$=""
+inc l : data$(l)=minstring("viswallf",15)+" = "+str$(segmentprofile(segid).vis.wf)+extra$
+try=segmentprofile(segid).vis.owl : if try<>-1 then extra$=","+str$(try) else extra$=""
+inc l : data$(l)=minstring("viswalll",15)+" = "+str$(segmentprofile(segid).vis.wl)+extra$
+try=segmentprofile(segid).vis.octl : if try<>-1 then extra$=","+str$(try) else extra$=""
+inc l : data$(l)=minstring("viscornertl",15)+" = "+str$(segmentprofile(segid).vis.ctl)+extra$
+try=segmentprofile(segid).vis.octr : if try<>-1 then extra$=","+str$(try) else extra$=""
+inc l : data$(l)=minstring("viscornertr",15)+" = "+str$(segmentprofile(segid).vis.ctr)+extra$
+try=segmentprofile(segid).vis.ocbr : if try<>-1 then extra$=","+str$(try) else extra$=""
+inc l : data$(l)=minstring("viscornerbr",15)+" = "+str$(segmentprofile(segid).vis.cbr)+extra$
+try=segmentprofile(segid).vis.ocbl : if try<>-1 then extra$=","+str$(try) else extra$=""
+inc l : data$(l)=minstring("viscornerbl",15)+" = "+str$(segmentprofile(segid).vis.cbl)+extra$
+`
+rem V110 - 160508 - added new flag to segment profile
+try=segmentprofile(segid).vis.portalmode : if try<>-1 then extra$=","+str$(try) else extra$=""
+inc l : data$(l)=minstring("visportalmode",15)+" = "+str$(segmentprofile(segid).vis.portalmode)+extra$
+
+rem SEGMENT BLUEPRINT
+inc l : data$(l)=""
+inc l : data$(l)=";Segment Blueprint"
+inc l : data$(l)=""
+inc l : data$(l)=minstring("mode",15)+" = "+str$(segmentprofile(segid).blueprint.mode)
+inc l : data$(l)=minstring("symbol",15)+" = "+str$(segmentprofile(segid).blueprint.symbol)
+inc l : data$(l)=minstring("floorsizey",15)+" = "+str$(segmentprofile(segid).blueprint.floorsizey)
+inc l : data$(l)=minstring("sidesizex",15)+" = "+str$(segmentprofile(segid).blueprint.sidesizex)
+inc l : data$(l)=minstring("sidesizey",15)+" = "+str$(segmentprofile(segid).blueprint.sidesizey)
+inc l : data$(l)=minstring("sidesizez",15)+" = "+str$(segmentprofile(segid).blueprint.sidesizez)
+
+rem SEGMENT PROPERTIES
+inc l : data$(l)=minstring("groundmode",15)+" = "+str$(segmentprofile(segid).properties.groundmode)
+inc l : data$(l)=minstring("kindof",15)+" = "+str$(segmentprofile(segid).properties.kindof)
+
+rem END MARKER
+inc l : data$(l)=""
+inc l : data$(l)=";end"
+
+rem Shorten array based on L
+dim newdata$(l+1) : for t=0 to l : newdata$(t)=data$(t) : next t
+
+rem Delet the short-load BIN and DBO files
+tprofile$=left$(savesegfile$,len(savesegfile$)-4)+".bin"
+if file exist(tprofile$)=1 then delete file tprofile$
+tprofile$=left$(savesegfile$,len(savesegfile$)-4)+".dbo"
+if file exist(tprofile$)=1 then delete file tprofile$
+
+rem Save Segment Data to file
+if file exist(savesegfile$)=1 then delete file savesegfile$
+save array savesegfile$,newdata$()
+
+rem Free usages
+undim newdata$()
+undim data$()
+
+return
+
+_segment_showallsegmentlimbs:
+
+rem segment and segment rotayion used
+seg=mapselection : segmaprot=maprotate-maporient
+if segmaprot<0 then inc segmaprot,4
+
+rem force show all limbs for overlay
+for tl=1 to 99
+ if limb exist(obj,tl)=1
+  show limb obj,tl
+ endif
+next tl
+
+rem rotate object ro rotation
+yrotate object obj,maporient*90
+
+`rem Set any segment transparenct - many transparency values - use profileobj
+`set object transparency obj,segmentprofile(seg).transparency
+
+return
+
+_segment_customisesinglesegment:
+
+rem segment and segment rotayion used
+seg=mapselection : segmaprot=maprotate-maporient
+if segmaprot<0 then inc segmaprot,4
+
+rem scale any walls to scaler value (if any)
+if segmentprofile(seg).blueprint.sidesizex>100
+ if segmentprofile(seg).vis.wb<>-1
+  if (mapscaler && %0001)
+   show limb obj,segmentprofile(seg).vis.wb
+   if segmentprofile(seg).vis.owb<>-1 then show limb obj,segmentprofile(seg).vis.owb
+  else
+   hide limb obj,segmentprofile(seg).vis.wb
+   if segmentprofile(seg).vis.owb<>-1 then hide limb obj,segmentprofile(seg).vis.owb
+  endif
+ endif
+ if segmentprofile(seg).vis.wr<>-1
+  if (mapscaler && %0010)
+   show limb obj,segmentprofile(seg).vis.wr
+   if segmentprofile(seg).vis.owr<>-1 then show limb obj,segmentprofile(seg).vis.owr
+  else
+   hide limb obj,segmentprofile(seg).vis.wr
+   if segmentprofile(seg).vis.owr<>-1 then hide limb obj,segmentprofile(seg).vis.owr
+  endif
+ endif
+ if segmentprofile(seg).vis.wf<>-1
+  if (mapscaler && %0100)
+   show limb obj,segmentprofile(seg).vis.wf
+   if segmentprofile(seg).vis.owf<>-1 then show limb obj,segmentprofile(seg).vis.owf
+  else
+   hide limb obj,segmentprofile(seg).vis.wf
+   if segmentprofile(seg).vis.owf<>-1 then hide limb obj,segmentprofile(seg).vis.owf
+  endif
+ endif
+ if segmentprofile(seg).vis.wl<>-1
+  if (mapscaler && %1000)
+   show limb obj,segmentprofile(seg).vis.wl
+   if segmentprofile(seg).vis.owl<>-1 then show limb obj,segmentprofile(seg).vis.owl
+  else
+   hide limb obj,segmentprofile(seg).vis.wl
+   if segmentprofile(seg).vis.owl<>-1 then hide limb obj,segmentprofile(seg).vis.owl
+  endif
+ endif
+else
+ if segmentprofile(seg).vis.wb<>-1
+  show limb obj,segmentprofile(seg).vis.wb
+  if segmentprofile(seg).vis.owb<>-1 then show limb obj,segmentprofile(seg).vis.owb
+ endif
+ if segmentprofile(seg).vis.wr<>-1
+  show limb obj,segmentprofile(seg).vis.wr
+  if segmentprofile(seg).vis.owr<>-1 then show limb obj,segmentprofile(seg).vis.owr
+ endif
+ if segmentprofile(seg).vis.wf<>-1
+  show limb obj,segmentprofile(seg).vis.wf
+  if segmentprofile(seg).vis.owf<>-1 then show limb obj,segmentprofile(seg).vis.owf
+ endif
+ if segmentprofile(seg).vis.wl<>-1
+  show limb obj,segmentprofile(seg).vis.wl
+  if segmentprofile(seg).vis.owl<>-1 then show limb obj,segmentprofile(seg).vis.owl
+ endif
+endif
+
+rem default limbs states
+if segmentprofile(seg).vis.f<>-1 then show limb obj,segmentprofile(seg).vis.f
+if segmentprofile(seg).vis.r<>-1 then show limb obj,segmentprofile(seg).vis.r
+if segmentprofile(seg).vis.ctl<>-1 then hide limb obj,segmentprofile(seg).vis.ctl
+if segmentprofile(seg).vis.ctr<>-1 then hide limb obj,segmentprofile(seg).vis.ctr
+if segmentprofile(seg).vis.cbr<>-1 then hide limb obj,segmentprofile(seg).vis.cbr
+if segmentprofile(seg).vis.cbl<>-1 then hide limb obj,segmentprofile(seg).vis.cbl
+if segmentprofile(seg).vis.octl<>-1 then hide limb obj,segmentprofile(seg).vis.octl
+if segmentprofile(seg).vis.octr<>-1 then hide limb obj,segmentprofile(seg).vis.octr
+if segmentprofile(seg).vis.ocbr<>-1 then hide limb obj,segmentprofile(seg).vis.ocbr
+if segmentprofile(seg).vis.ocbl<>-1 then hide limb obj,segmentprofile(seg).vis.ocbl
+
+rem apply side-maprotation for walls
+twb=segmentprofile(seg).vis.wb : twr=segmentprofile(seg).vis.wr
+twf=segmentprofile(seg).vis.wf : twl=segmentprofile(seg).vis.wl
+towb=segmentprofile(seg).vis.owb : towr=segmentprofile(seg).vis.owr
+towf=segmentprofile(seg).vis.owf : towl=segmentprofile(seg).vis.owl
+if segmaprot=1
+ twb=segmentprofile(seg).vis.wl :  twr=segmentprofile(seg).vis.wb
+ twf=segmentprofile(seg).vis.wr :  twl=segmentprofile(seg).vis.wf
+ towb=segmentprofile(seg).vis.owl :  towr=segmentprofile(seg).vis.owb
+ towf=segmentprofile(seg).vis.owr :  towl=segmentprofile(seg).vis.owf
+endif
+if segmaprot=2
+ twb=segmentprofile(seg).vis.wf :  twr=segmentprofile(seg).vis.wl
+ twf=segmentprofile(seg).vis.wb :  twl=segmentprofile(seg).vis.wr
+ towb=segmentprofile(seg).vis.owf :  towr=segmentprofile(seg).vis.owl
+ towf=segmentprofile(seg).vis.owb :  towl=segmentprofile(seg).vis.owr
+endif
+if segmaprot=3
+ twb=segmentprofile(seg).vis.wr :  twr=segmentprofile(seg).vis.wf
+ twf=segmentprofile(seg).vis.wl :  twl=segmentprofile(seg).vis.wb
+ towb=segmentprofile(seg).vis.owr :  towr=segmentprofile(seg).vis.owf
+ towf=segmentprofile(seg).vis.owl :  towl=segmentprofile(seg).vis.owb
+endif
+
+rem eliminate external walls if blocked
+if maprotate=0
+ if towf<>-1 and getgroundmodefrommap(mapatl,mapatx,mapaty-1)<=1 then hide limb obj,towf
+ if towb<>-1 and getgroundmodefrommap(mapatl,mapatx,mapaty+1)<=1 then hide limb obj,towb
+ if towl<>-1 and getgroundmodefrommap(mapatl,mapatx-1,mapaty)<=1 then hide limb obj,towl
+ if towr<>-1 and getgroundmodefrommap(mapatl,mapatx+1,mapaty)<=1 then hide limb obj,towr
+endif
+if maprotate=1
+ if towf<>-1 and getgroundmodefrommap(mapatl,mapatx+1,mapaty)<=1 then hide limb obj,towf
+ if towb<>-1 and getgroundmodefrommap(mapatl,mapatx-1,mapaty)<=1 then hide limb obj,towb
+ if towl<>-1 and getgroundmodefrommap(mapatl,mapatx,mapaty-1)<=1 then hide limb obj,towl
+ if towr<>-1 and getgroundmodefrommap(mapatl,mapatx,mapaty+1)<=1 then hide limb obj,towr
+endif
+if maprotate=2
+ if towf<>-1 and getgroundmodefrommap(mapatl,mapatx,mapaty+1)<=1 then hide limb obj,towf
+ if towb<>-1 and getgroundmodefrommap(mapatl,mapatx,mapaty-1)<=1 then hide limb obj,towb
+ if towl<>-1 and getgroundmodefrommap(mapatl,mapatx+1,mapaty)<=1 then hide limb obj,towl
+ if towr<>-1 and getgroundmodefrommap(mapatl,mapatx-1,mapaty)<=1 then hide limb obj,towr
+endif
+if maprotate=3
+ if towf<>-1 and getgroundmodefrommap(mapatl,mapatx-1,mapaty)<=1 then hide limb obj,towf
+ if towb<>-1 and getgroundmodefrommap(mapatl,mapatx+1,mapaty)<=1 then hide limb obj,towb
+ if towl<>-1 and getgroundmodefrommap(mapatl,mapatx,mapaty+1)<=1 then hide limb obj,towl
+ if towr<>-1 and getgroundmodefrommap(mapatl,mapatx,mapaty-1)<=1 then hide limb obj,towr
+endif
+
+rem inner wall to hide
+if twr<>-1
+ if maptile>=2 then hide limb obj,twr
+endif
+if twb<>-1
+ if maptile=3 or maptile>=5 then hide limb obj,twb
+endif
+if twl<>-1
+ if maptile>=4 and maptile<=14 then hide limb obj,twl
+endif
+if twf<>-1
+ if maptile>=6 and maptile<=11 then hide limb obj,twf
+endif
+
+rem outer wall to hide
+if towr<>-1
+ if maptile>=2 then hide limb obj,towr
+endif
+if towb<>-1
+ if maptile=3 or maptile>=5 then hide limb obj,towb
+endif
+if towl<>-1
+ if maptile>=4 and maptile<=14 then hide limb obj,towl
+endif
+if towf<>-1
+ if maptile>=6 and maptile<=11 then hide limb obj,towf
+endif
+
+rem symbol no floor hides floor/roof
+if mapsymbol=1
+ if segmentprofile(seg).vis.f<>-1 then hide limb obj,segmentprofile(seg).vis.f
+ if segmentprofile(seg).vis.r<>-1 then hide limb obj,segmentprofile(seg).vis.r
+endif
+
+rem calculate actual corner before whole seg is rotated
+ttoctl=segmentprofile(seg).vis.octl
+ttoctr=segmentprofile(seg).vis.octr
+ttocbr=segmentprofile(seg).vis.ocbr
+ttocbl=segmentprofile(seg).vis.ocbl
+toctl=-1 : toctr=-1 : tocbr=-1 : tocbl=-1
+if segmaprot=0
+ tctl=segmentprofile(seg).vis.ctl
+ tctr=segmentprofile(seg).vis.ctr
+ tcbr=segmentprofile(seg).vis.cbr
+ tcbl=segmentprofile(seg).vis.cbl
+ toctl=ttoctl
+ toctr=ttoctr
+ tocbr=ttocbr
+ tocbl=ttocbl
+endif
+if segmaprot=1
+ tctl=segmentprofile(seg).vis.ctr
+ tctr=segmentprofile(seg).vis.cbr
+ tcbr=segmentprofile(seg).vis.cbl
+ tcbl=segmentprofile(seg).vis.ctl
+ toctl=ttoctr
+ toctr=ttocbr
+ tocbr=ttocbl
+ tocbl=ttoctl
+endif
+if segmaprot=2
+ tctl=segmentprofile(seg).vis.cbr
+ tctr=segmentprofile(seg).vis.cbl
+ tcbr=segmentprofile(seg).vis.ctl
+ tcbl=segmentprofile(seg).vis.ctr
+ toctl=ttocbr
+ toctr=ttocbl
+ tocbr=ttoctl
+ tocbl=ttoctr
+endif
+if segmaprot=3
+ tctl=segmentprofile(seg).vis.cbl
+ tctr=segmentprofile(seg).vis.ctl
+ tcbr=segmentprofile(seg).vis.ctr
+ tcbl=segmentprofile(seg).vis.cbr
+ toctl=ttocbl
+ toctr=ttoctl
+ tocbr=ttoctr
+ tocbl=ttocbr
+endif
+
+rem remove external corners if not needed
+ttoctl=-1 : ttoctr=-1 : ttocbr=-1 : ttocbl=-1
+if maprotate=0
+ if getgroundmodefrommap(mapatl,mapatx-1,mapaty-1)>=2 then ttoctl=toctl
+ if getgroundmodefrommap(mapatl,mapatx+1,mapaty-1)>=2 then ttoctr=toctr
+ if getgroundmodefrommap(mapatl,mapatx+1,mapaty+1)>=2 then ttocbr=tocbr
+ if getgroundmodefrommap(mapatl,mapatx-1,mapaty+1)>=2 then ttocbl=tocbl
+endif
+if maprotate=1
+ if getgroundmodefrommap(mapatl,mapatx+1,mapaty-1)>=2 then ttoctl=toctl
+ if getgroundmodefrommap(mapatl,mapatx+1,mapaty+1)>=2 then ttoctr=toctr
+ if getgroundmodefrommap(mapatl,mapatx-1,mapaty+1)>=2 then ttocbr=tocbr
+ if getgroundmodefrommap(mapatl,mapatx-1,mapaty-1)>=2 then ttocbl=tocbl
+endif
+if maprotate=2
+ if getgroundmodefrommap(mapatl,mapatx+1,mapaty+1)>=2 then ttoctl=toctl
+ if getgroundmodefrommap(mapatl,mapatx-1,mapaty+1)>=2 then ttoctr=toctr
+ if getgroundmodefrommap(mapatl,mapatx-1,mapaty-1)>=2 then ttocbr=tocbr
+ if getgroundmodefrommap(mapatl,mapatx+1,mapaty-1)>=2 then ttocbl=tocbl
+endif
+if maprotate=3
+ if getgroundmodefrommap(mapatl,mapatx-1,mapaty+1)>=2 then ttoctl=toctl
+ if getgroundmodefrommap(mapatl,mapatx-1,mapaty-1)>=2 then ttoctr=toctr
+ if getgroundmodefrommap(mapatl,mapatx+1,mapaty-1)>=2 then ttocbr=tocbr
+ if getgroundmodefrommap(mapatl,mapatx+1,mapaty+1)>=2 then ttocbl=tocbl
+endif
+
+rem inner corner limbs to show
+if tctl<>-1
+ if maptile>=7 and maptile<=11 then show limb obj,tctl
+endif
+if tctr<>-1
+ if maptile=8 or maptile=10 or maptile=11 then show limb obj,tctr
+endif
+if tcbr<>-1
+ if maptile=9 or maptile=10 or maptile=11 or maptile>=13 then show limb obj,tcbr
+endif
+if tcbl<>-1
+ if maptile=11 or maptile=12 or maptile=14 then show limb obj,tcbl
+endif
+
+rem outer corner limbs to show
+if ttoctl<>-1
+ if maptile=1 then show limb obj,ttoctl
+ if maptile=2 then show limb obj,ttoctl
+ if maptile=3 then show limb obj,ttoctl
+ if maptile=15 then show limb obj,ttoctl
+endif
+if ttoctr<>-1
+ if maptile=1 then show limb obj,ttoctr
+endif
+if ttocbr<>-1
+ if maptile=1 then show limb obj,ttocbr
+endif
+if ttocbl<>-1
+ if maptile=1 then show limb obj,ttocbl
+ if maptile=2 then show limb obj,ttocbl
+endif
+
+rem rotate object ro rotation
+yrotate object obj,maporient*90
+
+return
+
+`
+` Special Function for finding GROUNDMODE from NEIGHBOR MAP TILE (external wall removal)
+`
+
+function getgroundmodefrommap(mapatl,mapatx,mapaty)
+ mapground=3
+ if mapatx>=0
+  if mapaty>=0
+   if mapatx<=49
+    if mapaty<=49
+     mapid=map(mapatl,mapatx,mapaty)
+     if mapid<>0
+      mapground = ( mapid && %00000000000000001100000000000000 ) >> 14
+     else
+      mapground = 3
+     endif
+    endif
+   endif
+  endif
+ endif
+endfunction mapground
+
+_segment_scanfornewsegments:
+
+rem Scan for segments
+segdir$="segments\"
+empty array filelist$()
+buildfilelist(segdir$,"")
+
+rem If segments exist
+if array count(filelist$())>0
+ for chkfile=0 to array count(filelist$())
+  `
+  rem Segment name from folder
+  seg$=filelist$(chkfile)
+  if right$(seg$,4)=".fps"
+  `
+  rem Check segment exists in bank
+  tokay=1
+  if segidmaster>0
+   for segid=1 to segidmaster
+    if selectionbank$(segid)=seg$ then tokay=0
+   next segid
+  endif
+  if tokay=1
+   `
+   rem Find Free Segment Index
+   freesegid=-1
+   if segidmaster>0
+    for segid=1 to segidmaster
+     if segmentprofileheader(segid).partmax=-1 then freesegid=segid : exit
+    next segid
+   endif
+   `
+   rem New Segment or Free One
+   if freesegid=-1
+    inc segidmaster : gosub _segment_validatearraysize
+    segid=segidmaster
+   else
+    segid=freesegid
+   endif
+   `
+   rem Extract firstdir and path from seg$
+   segcategory$=getfirstdir(seg$)
+   segpath$=getseconddir(seg$)
+   `
+   rem Load Segment
+   selectionbank$(segid)=seg$
+   gosub _segment_load
+   `
+  endif
+  `
+  endif
+ next chkfile
+endif
+
+return
+
+_segment_addtoworkspace:
+
+rem If type valid
+segnewloaded=0
+if right$(seg$,4)=".fps"
+ `
+ rem Check segment exists in bank
+ tokay=1
+ if segidmaster>0
+  for segid=1 to segidmaster
+   if selectionbank$(segid)=seg$ then tokay=0 : tfoundid=segid : exit
+  next segid
+ endif
+ if tokay=1
+  `
+  rem Find Free Segment Index
+  freesegid=-1
+  if segidmaster>0
+   for segid=1 to segidmaster
+    if segmentprofileheader(segid).partmax=-1 then freesegid=segid : exit
+   next segid
+  endif
+  `
+  rem New Segment or Free One
+  if freesegid=-1
+   inc segidmaster : gosub _segment_validatearraysize
+   segid=segidmaster
+   segnewloaded=1
+  else
+   segid=freesegid
+  endif
+  `
+  rem Extract firstdir and path from seg$
+  segcategory$=getfirstdir(seg$)
+  segpath$=getseconddir(seg$)
+  `
+  rem Load Segment
+  selectionbank$(segid)=seg$
+  gosub _segment_load
+  `
+  rem Localization Extra
+  if localdesc$<>""
+   selectionbanklocal$(segid)=localdesc$
+  endif
+  `
+ else
+  `
+  rem already got, assign ID from existing
+  segid=tfoundid
+  `
+ endif
+ `
+endif
+
+return
+
+_segment_addtoselection:
+
+rem Load segment from file requester
+set dir currentsegdir$
+seg$=browseropen$(6)
+segdir$="segments\"
+seg$=right$(seg$,len(seg$)-len(rootdir$+segdir$))
+currentsegdir$=get dir$()
+set dir rootdir$
+
+rem Add selected to workspace selection
+gosub _segment_addtoworkspace
+
+return
+
+_segment_createnewselection:
+
+rem Create new segment using SEGEDIT (indi-tool)
+set dir currentsegdir$
+segedit$(1)
+set dir rootdir$
+
+return
+
+rem Add selected to workspace selection
+_prefab_addtoworkspace:
+
+rem If type valid
+prenewloaded=0
+if lower$(right$(prefab$,4))=".fpp"
+ `
+ rem Check prefab exists in bank
+ tokay=1
+ if preidmaster>0
+  for preid=1 to preidmaster
+   if prefabbank$(preid)=prefab$ then tokay=0 : exit
+  next preid
+ endif
+ if tokay=1
+  `
+  rem Find Free prefab Index
+  freepreid=-1
+  if preidmaster>0
+   for preid=1 to preidmaster
+    if prefabbank$(preid)="" then freepreid=preid : exit
+   next preid
+  endif
+  `
+  rem New prefab or Free One
+  if freepreid=-1
+   inc preidmaster
+   if preidmaster>=100
+    dim prefabbank$(preidmaster)
+    dim prefabbanklocal$(preidmaster)
+   endif
+   preid=preidmaster
+  else
+   preid=freepreid
+  endif
+  `
+  rem Extract firstdir and path from prefab$
+  preategory$=getfirstdir(prefab$)
+  prepath$=getseconddir(prefab$)
+  `
+  rem Load Prefab
+  prefabbank$(preid)=prefab$
+  prenewloaded=1
+  `
+  rem Localization Extra
+  if localdesc$<>""
+   prefabbanklocal$(preid)=localdesc$
+  endif
+  `
+ endif
+ `
+endif
+
+return
+
+_prefab_addtoselection:
+
+rem Load segment from file requester
+set dir currentpredir$
+prefab$=browseropen$(7)
+predir$="prefabs\"
+prefab$=right$(prefab$,len(prefab$)-len(rootdir$+predir$))
+currentpredir$=get dir$()
+set dir rootdir$
+
+rem Add selected to workspace selection
+gosub _prefab_addtoworkspace
+
+return
+

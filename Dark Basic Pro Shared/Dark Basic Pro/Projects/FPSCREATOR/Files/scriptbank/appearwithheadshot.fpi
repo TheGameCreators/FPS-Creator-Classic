@@ -1,0 +1,11 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Instant On (and allow a headshot to cause serious damage)
+
+;Triggers
+
+:state=0:setalphafade=100,headshot=1,runfpidefault=1
+
+;End of Script

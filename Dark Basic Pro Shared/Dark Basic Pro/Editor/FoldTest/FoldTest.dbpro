@@ -1,0 +1,68 @@
+; **** Dark BASIC Professional Project File ****
+version=DBP1.00
+project name=FoldTest
+
+Comments1=This project is not designed to be run, but 
+Comments2=is simply a demo of the syntax highlighting 
+Comments3=scheme.
+Comments4=
+Comments5=It will of course run, but nothig is displayed.
+
+Todo1=0Add something to this so you can run it
+
+; **** source file information ****
+main=
+; The compiler only needs to read the final source from this entry - the editor
+; handles include files, concatenation, etc.
+final source=FoldTest.dba
+
+; The editor will replace any references to %temp in the EXE path/filename
+executable=FoldTest.exe
+
+; **** Executable Information  ***
+; build types: exe, media, installer, alone
+build type=exe
+
+; ** Media file compression **
+compression=NO
+
+; ** Media file encryption **
+encryption=NO
+
+; ** Display the card options screen window? **
+card options window=NO
+
+; **** debugger information ****
+; If the editor sets this to yes, it is running in debug mode
+CLI=NO
+
+; **** display mode information ****
+app title=DarkBASIC Pro Project
+
+; graphics mode options: fullscreen, window, desktop, fulldesktop, hidden
+graphics mode=fulldesktop
+fullscreen resolution=640x480x16
+window resolution=640x480
+
+; **** External Files Information ****
+
+; **** Media ****
+; Example entries: media1=graphics\*.jpg
+media root path=
+
+; **** Icons ****
+
+; **** Cursors ****
+
+; **** Version Info ****
+VerComments=
+VerCompany=
+VerFileDesc=
+VerFileNumber=v1.0
+VerInternal=
+VerCopyright=
+VerTrademark=
+VerFilename=
+VerProduct=
+VerProductNumber=v1.0=
+

@@ -1,0 +1,24 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Static, When See Player, Get In Range
+
+;Triggers
+
+:state=0:state=1
+:state=1,plrcanbeseen:settarget,state=2
+:state=1,shotdamage=10:rotatetoplr
+:state=1,noiseheard=5:rotateheadrandom=85
+:state=1,random=10:rotateheadrandom=75
+
+:state=2:rotatetotarget,resethead,animate=5,state=3
+:state=3:runfore=20
+:state=3,losetarget=10:state=4,animate=1
+:state=3,plrdistwithin=400:state=4,animate=1
+
+:state=4:rotatetoplr
+:state=4,plrcanbeseen:settarget,state=0,shootplr
+:state=4:state=0
+
+;End of Script

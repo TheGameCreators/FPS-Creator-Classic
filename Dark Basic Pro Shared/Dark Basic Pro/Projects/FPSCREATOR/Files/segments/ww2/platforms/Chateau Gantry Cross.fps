@@ -1,0 +1,58 @@
+;Segment Spec
+
+;Header
+
+partmax = 0
+lastmeshmax = 0
+
+;Segment Parts
+
+partmode0       = 0
+meshname0       = meshbank\ww2\france\gantries\gantry_a\floor_cross_a.x
+offx0           = 0
+offy0           = -51
+offz0           = 0
+rotx0           = 0
+roty0           = 0
+rotz0           = 0
+texture0        = texturebank\ww2\gantries\concrete\g_a_01_d2.tga
+textured0       = 
+texturen0       = 
+textures0       = 
+transparency0   = 1
+effect0         = 
+colmode0        = 1
+csgmesh0        = 
+csgmode0        = 0
+csgimmune0      = 0
+lightmode0      = 0
+multimeshmode0  = 0
+materialindex0  = 4
+
+;Segment Visibility
+
+visoverlay      = 2
+visfloor        = -1
+visroof         = -1
+viswallb        = -1
+viswallr        = -1
+viswallf        = -1
+viswalll        = -1
+viscornertl     = -1
+viscornertr     = -1
+viscornerbr     = -1
+viscornerbl     = -1
+
+;Segment Blueprint
+
+mode            = 6
+symbol          = 0
+floorsizey      = 0
+sidesizex       = 100
+sidesizey       = 100
+sidesizez       = 100
+groundmode      = 0
+kindof          = 4
+
+;end
+

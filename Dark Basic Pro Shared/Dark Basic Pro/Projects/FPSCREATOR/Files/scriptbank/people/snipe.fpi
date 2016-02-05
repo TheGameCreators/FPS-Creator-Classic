@@ -1,0 +1,44 @@
+;Artificial Intelegence Script
+
+;Header
+
+desc          = Snipe Shoot
+
+;Triggers
+
+:plrcanbeseen:settarget,rotatetotarget,resethead
+:plrdistwithin=200:rotatetoplr,resethead
+
+:state=0,plrdistwithin=50:rotatetoplr,state=2
+:state=0,random=50:rotateheadrandom=65
+:state=0,shotdamage=1:state=7
+:state=0,ifweapon=1,plrcanbeseen:state=2
+:state=0,ifweapon=0:state=12,sound=audiobank\guns\reload.wav
+
+:state=1,random=50:rotateheadrandom=65
+:state=1,random=100:state=0,animate=1
+:state=1,plrcanbeseen:state=0,animate=1
+
+:state=5:useweapon,rundecal=6,state=0
+:state=4:state=5
+:state=3:state=4
+:state=2:state=3
+
+:state=7,random=1:state=8
+:state=7,random=1:state=10
+:state=7:settarget,rotatetotarget,state=1,animate=31
+
+:state=8:state=9,setframe=3
+:state=9:incframe=3,strafe=-90,rotatetoplr
+:state=9,frameatend=3:state=1,animate=1
+:state=10:state=11,setframe=3
+:state=11:incframe=3,strafe=90,rotatetoplr
+:state=11,frameatend=3:state=1,animate=1
+
+;Reload animation
+:state=12:state=13,setframe=6
+:state=13:incframe=6
+:state=13,frameatend=6:reloadweapon,state=0,animate=1
+
+;End of Script
+

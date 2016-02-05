@@ -1,0 +1,36 @@
+
+;header
+
+desc          = sign_d
+
+;ai
+aiinit	      = appear1.fpi
+aimain	      = default.fpi
+aidestroy     = disappear1.fpi
+
+;spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;orientation
+
+model         = meshbank\ww2\scenery\signs\sign_d\sign_d.x
+offx          = 0
+offy          = 0
+offz          = 0
+rotx          = 0
+roty          = 0
+rotz          = 0
+materialindex = 3
+fixnewy       = 0
+forwardfacing = 1
+defaultheight = 50
+defaultstatic = 1
+
+;visualinfo
+
+textured      = texturebank\ww2\scenery\signs\sign_d\sign_d_d2.tga
+effect        = 
+castshadow    = 0
+

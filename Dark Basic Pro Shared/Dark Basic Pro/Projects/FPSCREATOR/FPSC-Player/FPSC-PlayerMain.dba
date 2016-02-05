@@ -1,0 +1,221 @@
+rem
+rem PLAYER TEST AREA
+rem
+
+rem Initialise application
+sync on : sync rate 33 : backdrop off : autocam off : hide mouse : autocam off
+
+rem Prepare testing area
+gosub _lighting_init
+gosub _prepare_test_arena
+
+rem Setup display font
+ink rgb(255,255,255),0
+set text font "Verdana"
+set text size 12
+
+rem Setup Player
+gosub _player_init
+gosub _decal_init
+gosub _flak_init
+gosub _gun_init
+
+rem Load first gun
+autoloadgun=1
+
+rem Simulate ground material type
+colmaterialtype=1
+
+rem Start camera in universe
+position camera 100,70,-100
+point camera 200,70,-200
+
+rem debug extra text
+debugtext=1
+
+rem Main loop
+do
+
+rem Control manager
+gosub _player_input
+gosub _player_manager
+gosub _player_itemmanager
+gosub _player_mission
+gosub _entity_controlelements
+gosub _player_camera
+gosub _player_aftermove
+
+rem Gun control
+gosub _gun_manager
+
+rem Flak in-game handling
+gosub _particles_control
+gosub _flakelement_control
+gosub _decalelement_control
+
+rem Ingame light effects
+gosub _lighting_control
+gosub _lighting_managedynamiclights
+gosub _lighting_managegloballighting
+`gosub _lighting_applyplayerlighting
+`gosub _lighting_applytoscene
+
+rem Quick entity handler
+mex#=camera position x()
+mey#=camera position y()
+mez#=camera position z()
+for e=1 to entityelementlist
+ obj=entityelement(e).obj
+ if obj>0
+  if object exist(obj)=1
+   gosub _entity_controlforce
+  endif
+ endif
+next e
+
+rem User feedback
+if debugtext=1 then center text 320,5,strarr$(376)
+if debugtext=1 then center text 320,20,"GUN "+str$(gunid)+" : "+gun$
+if debugtext=1 then center text 320,40,"JUMP:"+str$(jumpaction)+"  CROUCH:"+str$(crouchmode)
+
+rem Test key prompts
+if debugtext=1 then center text 320,480-40,"[MOUSE] = MOUSELOOK VIEW   [LMB] = FIRE   [RMB] = RELOAD+COCK"
+if debugtext=1 then center text 320,480-20,"[W,A,S,D] = WALK/STRAFE KEYS"
+
+rem Gun action values
+set cursor 0,0
+print "FRAMERATE:";screen fps();"   POS X:";int(camera position x());" Y:";int(camera position y());" Z:";int(camera position z())
+if debugtext=1 then print "GUN MODE : ";gunmode; "  (AMMO:";weaponammoindex;"=";weaponammo(weaponammoindex);")"
+if gunid>0 and debugtext=1
+ print "FLASH:";gun(gunid).settings.flashlimb;"  ";gunshoot
+ print "BRASS:";gun(gunid).settings.brasslimb;"  ";gunbrass
+ print "HAND:";gun(gunid).settings.handlimb
+endif
+if debugtext=1 then print "GUNSOUND [n][m] END:";gun(gunid).sound.fireloopend
+if inkey$()="n" and gun(gunid).sound.fireloopend>0 then gun(gunid).sound.fireloopend=gun(gunid).sound.fireloopend-10
+if inkey$()="m" then gun(gunid).sound.fireloopend=gun(gunid).sound.fireloopend+10
+
+rem Overlays are rendered last
+gosub _gun_update_overlay
+
+rem Update screen
+sync
+
+rem End loop
+loop
+
+`
+` Player Test Subroutines
+`
+
+`
+` Player Test Subroutines
+`
+
+_prepare_test_arena:
+
+rem Simple checker texture
+cls rgb(192,192,192)
+ink rgb(128,128,128),0
+box 0,0,128,128
+box 128,128,256,256
+get image 1001,0,0,256,256
+ink rgb(255,255,255),0
+
+rem Create box room for tests
+for x=0 to 9
+ for z=0 to 9
+  for l=0 to 1
+   obj=1001+x+(z*10)+(l*10*10)
+   make object box obj,100,5,100
+   position object obj,(x*100)+50,(l*200),(z*-100)-50
+   texture object obj,1001
+  next l
+ next z
+next x
+
+rem Create a boxes in scene
+make object box 2004,50,30,100 : position object 2004,350,15,-750
+make object box 2003,50,40,100 : position object 2003,350,20,-650
+make object box 2002,50,50,100 : position object 2002,350,25,-550
+make object box 2001,50,70,100 : position object 2001,350,35,-450
+if gsegnoeffectstate=1 then set effect on 2001,"effectbank\BumpCubeReflectAlpha\BumpCubeReflectAlpha.fx",1
+make object box 2000,50,30,100 : position object 2000,350,15+65,-350
+make object box 1999,50,30,100 : position object 1999,350,15+60,-250
+make object box 1998,50,30,100 : position object 1998,350,15+50,-150
+make object box 1997,50,30,100 : position object 1997,350,15+30,-50
+
+rem Create static universe from objects
+gosub _prepare_universe
+
+rem Hack an entity to exist
+entityelementlist=1
+entityelement(1).x=500
+entityelement(1).y=50
+entityelement(1).z=-500
+entityelement(1).obj=2101
+make object sphere entityelement(1).obj,90 : scale object entityelement(1).obj,50,100,50
+position object entityelement(1).obj,entityelement(1).x,entityelement(1).y,entityelement(1).z
+if gsegnoeffectstate=1
+ set effect on entityelement(1).obj,"effectbank\BumpCubeReflectAlpha\BumpCubeReflectAlpha.fx",1
+endif
+
+rem Instead of sky, backdrop
+backdrop on
+
+rem Create some test lights
+for z=0 to 9 step 3
+ x=0 : lgx#=(x*100)+50 : lgy#=75 : lgz#=(z*-100)-50
+ gosub _lighting_adddynamiclight
+ x=9 : lgx#=(x*100)+50 : lgy#=75 : lgz#=(z*-100)-50
+ gosub _lighting_adddynamiclight
+next z
+
+rem lee, i think shadows should be DELIBERATELY SWITCHED ON!
+rem calculating them could be expensive and WRONG (and annoying for the user)
+infinilight(0).colrgb.r=512
+infinilight(0).colrgb.g=512
+infinilight(0).colrgb.b=512
+array insert at bottom shadowlight()
+shadowlight(1).x#=infinilight(0).x
+shadowlight(1).y#=infinilight(0).y
+shadowlight(1).z#=infinilight(0).z
+shadowlight(1).range#=2000.0
+
+return
+
+_prepare_universe:
+
+rem set size
+set static universe 40*100,40*100,40*100
+
+rem add objects for our universe
+for obj=1001 to 2000
+ if object exist(obj)=1
+  make static object obj,0,0,0,0
+ endif
+next obj
+
+rem static mesh is caster
+make static object 1997,0,0,1,0
+make static object 1998,0,0,1,0
+make static object 1999,0,0,1,0
+make static object 2000,0,0,1,0
+make static object 2001,0,0,1,0
+make static object 2002,0,0,1,0
+make static object 2003,0,0,1,0
+make static object 2004,0,0,1,0
+
+rem create universe
+build static portals
+
+rem setup scorch texture
+if file exist("gamecore\Bulletholes\bulletholes.dds")=1
+ load image "gamecore\Bulletholes\bulletholes.dds",1002
+else
+ load image "gamecore\Bulletholes\bulletholes.tga",1002
+endif
+set static scorch 1002,1,1
+
+return
+

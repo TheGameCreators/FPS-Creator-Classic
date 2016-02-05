@@ -1,0 +1,45 @@
+;Entity Spec
+
+;Header
+
+desc          = millsno36 grenade
+
+;AI
+aiinit	      = appear2.fpi
+aimain	      = weapon.fpi
+aidestroy     = disappear2.fpi
+
+;Spawn
+spawnmax      = 1
+spawndelay    = 1000
+spawnqty      = 1
+
+;Itemproperties
+defaultstatic = 0
+materialindex = 3
+collisionmode = 0
+debrisshape   = 0
+explodable    = 0
+
+;Orientation
+model         = millsno36.X
+scale         = 100
+rotz          = 90
+rotx          = 90
+texturepath   = gamecore\guns\ww2\millsno36\
+textured      = gun_D2.tga
+reducetexture = -1
+transparency  = 1
+isimmobile    = 1
+
+;Identity Details
+isammo	      = 1
+isweapon      = ww2\millsno36
+isflak        = 1
+hasweapon     = ww2\millsno36
+quantity      = 1
+speed         = 100
+
+;Decals
+decalmax      = 1
+decal0        = glowzone

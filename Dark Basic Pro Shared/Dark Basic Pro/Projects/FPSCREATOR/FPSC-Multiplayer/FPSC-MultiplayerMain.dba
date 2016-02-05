@@ -1,0 +1,409 @@
+rem
+rem Multiplayer Main
+
+rem simulates the FLAK engine
+type rockettype
+ owner as DWORD
+ rii as byte
+ rocketmode
+ rocketx#
+ rockety#
+ rocketa#
+ exploderadius
+endtype
+rocketmax=30
+dim rocket(rocketmax) as rockettype
+
+rem App Loop
+do
+
+rem Title page (ask user 1.host or 2.join)
+gosub _multi_titlepage
+
+rem Blah of game loading / preparation (entities in place, players ready in single plr mode)
+gosub _proto_setupgame
+
+rem Initialise multiplayer session
+gosub _multi_earlyinit
+gosub _multi_start
+
+rem Main loop
+mpgameinprogress=1
+sincetimerstarted=timer()
+while mpgameinprogress
+
+ rem Update screen with details
+ gosub _proto_inputs
+
+ rem Control multiplayer communicaions
+ gosub _multi_control
+
+ rem Update screen with details
+ gosub _proto_main
+
+ rem Update sceen
+ sync
+
+rem End gameloop
+endwhile
+
+rem End comms
+gosub _multi_free
+
+rem Repeat
+loop
+
+_multi_titlepage:
+
+sync off : cls 0
+set text font "fixedsys"
+center text 160,30,"MULTIPLAYER ARENA PAGE"
+center text 160,80,"HOST"
+center text 160,120,"JOIN"
+center text 160,160,"EXIT"
+do
+ if mouseclick()=1
+  if mousey()<100 then createorjoin=1 : exit
+  if mousey()>100 and mousey()<140 then createorjoin=2 : exit
+  if mousey()>140 then end
+ endif
+loop
+cls 0
+if createorjoin<1 then createorjoin=1
+if createorjoin>2 then createorjoin=2
+if servername$="" then servername$="FPSC Creator Portal"
+if createorjoin=1
+ center text 160,30,"ENTER YOUR NAME AND NUMBER OF PLAYERS"
+ center text 160,42,"(depends on character added to arena)"
+ set cursor 40,80 : input "YOUR NAME>";playername$
+ set cursor 40,120 : input "MAX PLAYERS (2-8)>";numberofplayers
+ if playername$="" then playername$="the host"
+ if numberofplayers=0 then numberofplayers=4
+ if numberofplayers<2 then numberofplayers=2
+ if numberofplayers>8 then numberofplayers=8
+else
+ ipaddress$=""
+ center text 160,30,"ENTER YOUR NAME AND I.P ADDRESS"
+ set cursor 40,80 : input "NAME>";playername$
+ set cursor 40,120 : input "IP>";ipaddress$
+ if ipaddress$="" then ipaddress$=MULTIPLAYER GET IP ADDRESS()
+ if playername$="" then playername$="lee bamber"
+ rem ask gosub _multi_andwho when client inits
+endif
+sync on : sync rate 33
+
+return
+
+_proto_setupgame:
+ `
+ rem pretend entity data
+ entid=1 : entityprofile(entid).ischaracter=1
+ entityelementmax=10
+ entityelementlist=10
+ dim entityelement(entityelementmax) as entitytype
+ for e=1 to entityelementmax
+  if createorjoin=1 then entityelement(e).servercontrolled=1
+  entityelement(e).x=rnd(320)
+  entityelement(e).y=50+rnd(100)
+  entityelement(e).z=(50+rnd(100))*-1
+  if e<=4
+   entityelement(e).bankindex=1
+   entityelement(e).eleprof.name$="Sample Character"
+  endif
+ next e
+ `
+ rem pretend player data
+ if createorjoin=1
+  camerapositionx=50.0
+  camerapositiony=50.0
+  camerapositionz=-50.0
+ else
+  camerapositionx=280.0
+  camerapositiony=50.0
+  camerapositionz=-200.0
+ endif
+ `
+ rem a flag to ensure proto does not interfere with final code
+ multiplayerprototest=1
+ `
+ rem Setup text for proto
+ set text font "Arial" : set text size 12
+ `
+return
+
+_proto_inputs:
+ `
+ rem Clear screen
+ cls 0 : print "Press [X] to Quit Game";
+ if createorjoin=1 then print " GAMEFULL:";Servergameisfull else print ""
+ seconds#=(timer()-sincetimerstarted)/1000.0 : ps#=unreliablebytes : ps#=ps#/seconds#
+ if inkey$()="r" then sincetimerstarted=timer() : unreliablebytes=0
+ print "GUARENTEED:";guarenteedbytes;"  UNRELIABLE:";unreliablebytes;"(";int(ps#);"bps) R=RESETBPS"
+ print "OWN PACKET TIME : ";locallagtime;"ms"
+ circle 280,200,30 : center text 280,195,"ENTRANCE"
+ `
+ if inkey$()="x" then mpgameinprogress=0
+ if inkey$()="[" then sync rate 5
+ if inkey$()="]" then sync rate 33
+ if inkey$()="#" then indianlee=1-indianlee : sleep 100
+ `
+ movement=0
+ if leftkey()=1 then stateviewy(iLocalEL)=wrapvalue(stateviewy(iLocalEL)-2)
+ if rightkey()=1 then stateviewy(iLocalEL)=wrapvalue(stateviewy(iLocalEL)+2)
+ if upkey()=1 then movement=1
+ if downkey()=1 then movement=-1
+ if movement<>0
+  px#=newxvalue(camerapositionx,stateviewy(iLocalEL),movement* 1.0)
+  py#=newzvalue(camerapositionz,stateviewy(iLocalEL),movement* 1.0)
+  statex(iLocalEL)=px#
+  statez(iLocalEL)=py#
+  camerapositionx=px# : camerapositionz=py#
+ endif
+ `
+ rem shoot rocket
+ if spacekey()=0 then meshoot=10
+ if spacekey()=1 and meshoot=10
+  meshoot=0
+  rix#=statex(iLocalEL)
+  riy#=statez(iLocalEL)
+  ria#=stateviewy(iLocalEL)
+  riaplr as DWORD
+  riaplr=dwLocalPlayerID
+  rii=0
+  gosub _proto_fire
+  iLocalELAction=ri
+ endif
+ if meshoot<10 then inc meshoot
+ `
+ gosub _proto_allhaveflakcontrol
+ `
+ rem trigger objective completions 1,2,3
+ if inkey$()="8"
+  ggameobjectivetype=1
+  gosub _multi_missioncomplete
+ endif
+ if inkey$()="9"
+  ggameobjectivetype=2
+  ggameobjectivevalue=10
+  for el=1 to multiplayeridlinkmax
+   if multiplayeridlink(el)<>1
+    frags(el)=3
+   endif
+  next el
+  frags(iLocalEL)=11
+ endif
+ if inkey$()="0"
+  ggameobjectivetype=3
+  ggameobjectivevalue=20
+  for el=1 to multiplayeridlinkmax
+   if multiplayeridlink(el)<>1
+    frags(el)=3
+   endif
+  next el
+  frags(iLocalEL)=4
+ endif
+ `
+return
+
+_proto_main:
+ `
+ ink rgb(192,192,192),0
+ if createorjoin=2 and PlayerCanStart=0
+  `
+  rem Stay in a join screen until ready
+  center text 160,70,"JOINING PAGE"
+  center text 160,85,"PLEAE WAIT"
+  center text 160,100,"PlayerCanStartStage:"+str$(PlayerCanStartStage)
+  center text 160,115,"dwLocalPlayerID:"+str$(dwLocalPlayerID)
+  center text 160,130,"iLocalEL:"+str$(iLocalEL)
+  `
+ else
+  `
+  rem player list - entityINDEX based
+  mpdebug=0
+  if mpdebug=1
+   if multiplayeridlinkmax>0
+    for el=1 to multiplayeridlinkmax
+     if multiplayeridlink(el)<>1
+      index=getindexfromid(multiplayeridlink(el))
+      if index=0
+       id$="0" : name$="Server"
+      else
+       id$ = str$ ( MULTIPLAYER GET PLAYER ID( index-1 ) )
+       name$ = MULTIPLAYER GET PLAYER NAME( index-1 )
+      endif
+      print str$( el ) + ":" + name$ + " ("+str$(statelag(el))+"ms) ";
+      showid as DWORD
+      showid=MULTIPLAYER GET PLAYER ID( index-1 )
+      print showid
+     endif
+    next el
+   endif
+   print
+  endif
+  `
+  rem update game objects
+  for el=1 to multiplayeridlinkmax
+   rem info
+   protocol(el)
+   if multiplayeridlink(el)<>1
+    circle statex(el),statez(el)*-1,2
+    line statex(el),statez(el)*-1,newxvalue(statex(el),stateviewy(el),20),newzvalue(statez(el)*-1,stateviewy(el),-20)
+    center text statex(el),(statez(el)*-1)+2,multiplayername$(el)+"["+str$(stateanim(el))+"] "+characterlist$(characterchosen(el))
+    plrindex=multiplayerplrindex(el)
+    center text statex(el),(statez(el)*-1)+11,"HEALTH("+str$(plrindex)+"):"+str$(player(plrindex).health)
+   endif
+  next el
+  `
+  rem show entities
+  ink rgb(255,128,0),0
+  for e=1 to entityelementmax
+   if entityelement(e).servercontrolled=1
+    circle entityelement(e).x,entityelement(e).z*-1,8
+    center text entityelement(e).x,(entityelement(e).z*-1)-5,str$(e)
+   endif
+  next e
+  `
+  rem show rockets (FLAK)
+  for ri=1 to rocketmax
+   if rocket(ri).rocketmode=1
+    el=getelfromid(rocket(ri).owner) : protocol(el)
+    circle rocket(ri).rocketx#,rocket(ri).rockety#*-1,2
+   endif
+   if rocket(ri).rocketmode=2
+    el=getelfromid(rocket(ri).owner) : protocol(el)
+    circle rocket(ri).rocketx#,rocket(ri).rockety#*-1,rocket(ri).exploderadius
+   endif
+  next ri
+  `
+  rem update
+  ink rgb(192,192,192),0
+  center text 160,220,warning$
+  `
+ endif
+ `
+return
+
+_proto_fire:
+ `
+ for ri=1 to rocketmax
+  if rocket(ri).rocketmode=0 then exit
+ next ri
+ if ri>rocketmax then ri=rocketmax
+ rocket(ri).rocketmode=1
+ rocket(ri).rocketx#=rix#
+ rocket(ri).rockety#=riy#
+ rocket(ri).rocketa#=ria#
+ rocket(ri).owner=riaplr
+ rocket(ri).rii=rii
+ if rocket(ri).rii=0 then rocket(ri).rii=ri
+ `
+return
+
+_proto_allhaveflakcontrol:
+ `
+ for ri=1 to rocketmax
+  if rocket(ri).rocketmode=1
+   rocket(ri).rocketx#=newxvalue(rocket(ri).rocketx#,rocket(ri).rocketa#,4.0)
+   rocket(ri).rockety#=newzvalue(rocket(ri).rockety#,rocket(ri).rocketa#,4.0)
+   if rocket(ri).rocketx#<0 then rocket(ri).rocketmode=2 : rocket(ri).exploderadius=2
+   if rocket(ri).rocketx#>320 then rocket(ri).rocketmode=2 : rocket(ri).exploderadius=2
+   if rocket(ri).rockety#<-240 then rocket(ri).rocketmode=2 : rocket(ri).exploderadius=2
+   if rocket(ri).rockety#>0 then rocket(ri).rocketmode=2 : rocket(ri).exploderadius=2
+  endif
+  if rocket(ri).rocketmode=2
+   rocket(ri).exploderadius=rocket(ri).exploderadius+1
+   if rocket(ri).exploderadius>30 then rocket(ri).rocketmode=0
+  endif
+ next ri
+ `
+return
+
+_proto_serverforflak:
+ `
+ rem server side monitoring and triggering
+ for ri=1 to rocketmax
+  if rocket(ri).rocketmode=1
+   for el=1 to multiplayeridlinkmax
+    if multiplayeridlink(el)<>1 and rocket(ri).owner<>multiplayeridlink(el)
+     if abs(statex(el)-rocket(ri).rocketx#)<5 and abs(statez(el)-rocket(ri).rockety#)<5
+      rem this EL player stopped rocket
+      rocket(ri).rocketmode=2 : rocket(ri).exploderadius=2
+      `
+      rem inform owner of rocket that it has collided
+      MULTIPLAYER SEND FROM PLAYER rocket(ri).owner
+      write memblock byte 2, 0, 12
+      write memblock dword 2, 4, ri
+      MULTIPLAYER SEND MESSAGE MEMBLOCK 2,8
+      inc guarenteedbytes,0 : inc unreliablebytes,8
+      `
+     endif
+    endif
+   next el
+  endif
+  if rocket(ri).rocketmode=2 and rocket(ri).exploderadius=29
+   for el=1 to multiplayeridlinkmax
+    if multiplayeridlink(el)<>1 and rocket(ri).owner<>multiplayeridlink(el)
+     if abs(statex(el)-rocket(ri).rocketx#)<rocket(ri).exploderadius and abs(statez(el)-rocket(ri).rockety#)<rocket(ri).exploderadius
+      `
+      rem this EL player is being damaged by explosion
+      plrindex=multiplayerplrindex(el)
+      player(plrindex).health=player(plrindex).health-1
+      tvalue=player(plrindex).health
+      for tel=1 to multiplayeridlinkmax
+       if multiplayeridlink(tel)<>1
+        MULTIPLAYER SEND FROM PLAYER multiplayeridlink(tel)
+        rem Update client player health
+        write memblock byte 2, 0, 201
+        write memblock dword 2, 4, multiplayeridlink(el)
+        write memblock dword 2, 8, tvalue
+        rem priority communication
+        MULTIPLAYER SEND MESSAGE MEMBLOCK 2,0x0080,12
+        inc guarenteedbytes,12 : inc unreliablebytes,0
+        inc guarenteedloadonmove
+       endif
+      next tel
+      `
+     endif
+    endif
+   next el
+  endif
+ next ri
+ `
+return
+
+function protocol(el)
+ if el=0 then ink rgb(255,255,255),0
+ if el=1 then ink rgb(255,255,0),0
+ if el=2 then ink rgb(255,0,0),0
+ if el=3 then ink rgb(0,255,0),0
+ if el=4 then ink rgb(0,0,255),0
+endfunction
+
+`
+` Dummy functions in proto
+`
+
+_player_obtainaweapon:
+_player_restart:
+_player_takedamage:
+_version_endofinit:
+_version_commandlineprompt:
+_player_spawnsound:
+_player_unmark:
+_player_mark:
+return
+function timestampactivity(i,s$)
+endfunction
+function debugstring(s$,t$)
+endfunction
+
+function debugpeek(s$)
+ while spacekey()=0
+  cls : print s$
+  sync
+ endwhile
+ while spacekey()=1 : sync : endwhile
+endfunction
+
+

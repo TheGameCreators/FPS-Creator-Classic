@@ -1,0 +1,33 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Light candle intensities
+
+;Triggers
+
+;Fade light in and out using LIGHTINTENSITY action
+:state=0:localvar=0,lighton
+:varequal=0,timergreater=50:lightintensity=85,timerstart,incvar=1
+:varequal=1,timergreater=50:lightintensity=80,timerstart,incvar=1
+:varequal=2,timergreater=50:lightintensity=75,timerstart,incvar=1
+:varequal=3,timergreater=50:lightintensity=70,timerstart,incvar=1
+:varequal=4,timergreater=50:lightintensity=85,timerstart,incvar=1
+:varequal=5,timergreater=50:lightintensity=80,timerstart,incvar=1
+:varequal=6,timergreater=50:lightintensity=75,timerstart,incvar=1
+:varequal=7,timergreater=50:lightintensity=80,timerstart,incvar=1
+:varequal=8,timergreater=50:lightintensity=75,timerstart,incvar=1
+:varequal=9,timergreater=50:lightintensity=80,timerstart,incvar=1
+:varequal=10,timergreater=50:lightintensity=75,timerstart,incvar=1
+:varequal=11,timergreater=50:lightintensity=85,timerstart,incvar=1
+:varequal=12,timergreater=50:lightintensity=80,timerstart,incvar=1
+:varequal=13,timergreater=50:lightintensity=75,timerstart,incvar=1
+:varequal=14,timergreater=50:lightintensity=80,timerstart,incvar=1
+:varequal=15,timergreater=50:lightintensity=90,timerstart,incvar=1
+:varequal=16,timergreater=50:lightintensity=85,timerstart,incvar=1
+:varequal=17,timergreater=50:lightintensity=80,timerstart,incvar=1
+:varequal=18,timergreater=50:lightintensity=75,timerstart,incvar=1
+:varequal=19,timergreater=50:lightintensity=70,timerstart,incvar=1
+:varequal=20,timergreater=50:lightintensity=90,timerstart,setvar=0
+
+;End of Script

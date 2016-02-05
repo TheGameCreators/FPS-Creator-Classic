@@ -1,0 +1,44 @@
+;Entity Spec
+
+;Header
+desc          = Small Health 1
+
+;AI
+aiinit	      = appear1.fpi
+aimain	      = pickuphealth.fpi
+aidestroy     = disappear1.fpi
+
+;Spawn
+spawnmax      = 1
+spawndelay    = 200
+spawnqty      = 1
+
+;Itemproperties
+defaultstatic = 0
+materialindex = 3
+collisionmode = 0
+debrisshape   = 0
+explodable    = 0
+
+;Orientation
+model         = small_health_1.x
+offy          = 5
+scale         = 100
+fixnewy       = 0
+
+;Visualinfo
+textured      = small_health_1_D2.TGA
+effect        =
+
+;Identity Details
+isweapon      = 0
+isammo	      = 0
+ishealth      = 1
+isimmobile    = 1
+
+;Specific Data
+quantity      = 30
+
+;Decals
+decalmax      = 1
+decal0        = glowzone

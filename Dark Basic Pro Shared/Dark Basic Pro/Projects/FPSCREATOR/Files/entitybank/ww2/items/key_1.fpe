@@ -1,0 +1,40 @@
+;Entity Spec
+
+;Header
+desc          = %key
+
+;AI
+aiinit	      = appear1.fpi
+aimain	      = pickupkey.fpi
+aidestroy     = disappear1.fpi
+
+;AIUsed
+usekey        = 
+ifused        = 
+ifusednear    = 
+
+;Spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;Itemproperties
+defaultstatic = 0
+materialindex = 3
+collisionmode = 0
+debrisshape   = 0
+explodable    = 0
+isimmobile    = 1
+
+;Orientation
+model         = key_1.x
+offy          = 5
+scale         = 100
+fixnewy       = 0
+
+;Visualinfo
+textured      = key_1_D2.tga
+
+;Decals
+decalmax      = 1
+decal0        = glow

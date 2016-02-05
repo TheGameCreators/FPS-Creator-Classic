@@ -1,0 +1,131 @@
+rem
+rem FLAK TEST AREA
+rem
+
+rem Init app
+sync on : sync rate 60
+
+rem Initialize
+gosub _prepare_test_arena
+gosub _decal_init
+gosub _flak_init
+
+rem Place camera
+position camera 0,65,0
+point camera 0,65,100
+
+rem Test var
+temphealth=1000
+
+rem Main test loop
+do
+
+rem Simple camera movememnt
+control camera using arrowkeys 0,1,2
+rotate listener camera angle x(),camera angle y(),camera angle z()
+position listener camera position x(),camera position y(),camera position z()
+
+rem Test flak fire
+if inkey$()="1" then flakid=1
+if inkey$()="2" then flakid=2
+if firedelay>0 then dec firedelay
+if spacekey()=1 and firedelay=0 and flakid>0
+ flakangle=camera angle y()
+ flakx=camera position x()+newxvalue(0,flakangle+flak(flakid).throwangle,flak(flakid).throwforward)
+ flaky=camera position y()+flak(flakid).throwheight
+ flakz=camera position z()+newzvalue(0,flakangle+flak(flakid).throwangle,flak(flakid).throwforward)
+ gosub _flakelement_create
+ firedelay=20
+endif
+
+rem Test decal drop
+if decaldelay>0 then dec decaldelay
+if returnkey()=1 and decaldelay=0
+ decalid=1+rnd(3) : decaly=0
+ decalx=camera position x()+newxvalue(0,camera angle y(),150)
+ decalz=camera position z()+newzvalue(0,camera angle y(),150)
+ gosub _decalelement_create
+ decaldelay=20
+endif
+
+
+rem Flak in-game handling
+gosub _flakelement_control
+gosub _decalelement_control
+
+rem Debug information
+set cursor 0,0
+print "test health:";temphealth
+print "flakid:";flakid
+if flakid>0
+ print "name:";flak(flakid).name$
+ print "obj:";flak(flakid).obj
+endif
+
+rem Update screen
+sync
+
+rem End loop
+loop
+
+`
+` Player Test Subroutines
+`
+
+_prepare_test_arena:
+
+rem Simple checker texture
+cls rgb(192,192,192)
+ink rgb(128,128,128),0
+box 0,0,128,128
+box 128,128,256,256
+get image 1001,0,0,256,256
+ink rgb(255,255,255),0
+
+rem Create box room for tests
+for x=0 to 9
+ for z=0 to 9
+  for l=0 to 1
+   obj=1001+x+(z*10)+(l*10*10)
+   make object box obj,100,5,100
+   position object obj,(x*100)+50,(l*100),(z*100)+50
+   texture object obj,1001
+  next l
+ next z
+next x
+
+rem Create a box to shoot at
+make object box 2001,25,60,25
+position object 2001,350,30,350
+set effect on 2001,"effectbank\BumpCubeReflectAlpha\BumpCubeReflectAlpha.fx",1
+
+rem Create static universe from objects
+gosub _prepare_universe
+
+rem Create a light in the room
+set point light 0,0,500,0
+
+return
+
+_prepare_universe:
+
+rem set size
+set static universe 32*100,32*100,32*100
+
+rem add objects for our universe
+for obj=1001 to 2001
+ if object exist(obj)=1
+  make static object obj,0,0
+ endif
+next obj
+
+rem create universe
+build static portals
+set static objects wireframe on
+
+rem setup scorch texture
+load image "gamecore\Bulletholes\bulletholes.tga",1002
+set static scorch 1002
+
+return
+

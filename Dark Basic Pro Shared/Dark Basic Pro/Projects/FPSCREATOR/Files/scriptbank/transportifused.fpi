@@ -1,0 +1,13 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Transport To Entity Name
+
+;Triggers
+
+:state=0:rundecal=2,coloff
+:state=0,plrhigher=10,plrdistwithin=50:state=1,plrsound=audiobank\scifi\scenery\lifts\teleport.wav,plrmoveifused
+:state=1,plrdistfurther=55:state=0
+
+;End of Script

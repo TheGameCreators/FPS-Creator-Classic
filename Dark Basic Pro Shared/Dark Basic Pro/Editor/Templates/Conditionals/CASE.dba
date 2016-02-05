@@ -1,0 +1,6 @@
+` Select Case Statement
+SELECT varname : ` Insert the correct variable name
+  CASE value : ` Insert the desired value here
+     ` Insert Commands Here
+  ENDCASE
+ENDSELECT

@@ -1,0 +1,39 @@
+;Header
+
+desc          = vickers
+
+;AI
+aiinit	      = appear2.fpi
+aimain	      = weaponglow.fpi
+aidestroy     = disappear2.fpi
+
+;Spawn
+spawnmax      = 1
+spawndelay    = 3000
+spawnqty      = 1
+
+;Itemproperties
+defaultstatic = 0
+materialindex = 3
+collisionmode = 0
+debrisshape   = 0
+explodable    = 0
+
+;Orientation
+model         = vickers.X
+scale         = 100
+rotx          = 0
+texturepath   = gamecore\guns\scifi\vickers\
+textured      = gun_D2.tga
+reducetexture = -1
+transparency  = 1
+isimmobile    = 1
+
+;Identity Details
+isweapon      = scifi\vickers
+quantity      = 1
+speed         = 100
+
+;Decals
+decalmax      = 1
+decal0        = glowzone

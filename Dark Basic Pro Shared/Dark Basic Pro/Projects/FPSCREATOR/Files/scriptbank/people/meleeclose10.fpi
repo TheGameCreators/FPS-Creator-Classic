@@ -1,0 +1,13 @@
+desc          = Melee Follow and Attack (close)
+
+;Triggers
+
+:state=0,plrdistwithin=500:state=1
+:state=1,plrdistfurther=70:rotatetoplr,movefore=2,animate=2
+:state=1,plrdistfurther=500:animate=1,state=0
+:state=1,plrdistwithin=70,rateoffire:rotatetoplr,setframe=8,state=2
+:state=2,framebeyond=8 60,plrdistwithin=70:plraddhealth=-10,sound=audiobank\misc\melee.wav,state=3
+:state=2:incframe=8,rotatetoplr
+:state=2,frameatend=8:state=1
+:state=3:incframe=8
+:state=3,frameatend=8:state=1

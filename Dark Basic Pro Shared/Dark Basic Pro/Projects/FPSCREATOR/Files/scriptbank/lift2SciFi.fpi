@@ -1,0 +1,25 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Top Platform Lift - SciFi (Down and Up)
+
+;Triggers
+
+:state=0,plrdistwithin=50:state=7,coloff
+:state=4:moveup=-1
+:state=4,raycastup=20 0:state=5
+:state=5,plrdistfurther=50,playerassociated:state=10,unassociateplayer,colon
+
+:state=10,plrdistwithin=50:state=6,coloff
+:state=11:moveup=1
+:state=11,raycastup=20 92.5:state=12
+:state=12,plrdistfurther=50,playerassociated:state=0,unassociateplayer,colon
+
+:state=6,plrdistwithin=50:sound=audiobank\scifi\scenery\lifts\up.wav,state=11,associateplayer
+:state=6,plrdistfurther=50,playerassociated:state=10,unassociateplayer,colon
+
+:state=7,plrdistwithin=50:sound=audiobank\scifi\scenery\lifts\down.wav,state=4,associateplayer
+:state=7,plrdistfurther=50,playerassociated:state=0,unassociateplayer,colon
+
+;End of Script

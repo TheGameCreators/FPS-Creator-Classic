@@ -1,0 +1,12 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Zone Activate if any entity enters it
+
+;Triggers
+
+:state=0,anywithinzone=1:activateifused=1,state=1,sound=$0
+:state=0,anywithinzone=0:activateifused=0,state=0
+
+;End of Script

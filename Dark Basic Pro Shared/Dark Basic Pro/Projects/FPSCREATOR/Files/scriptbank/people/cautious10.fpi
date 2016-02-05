@@ -1,0 +1,18 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Static, React, Listen, Look, When See Player, Rotate To Target, Shoot
+
+;Triggers
+
+:nearactivatable=0:settarget,activatetarget=2
+
+:state=0:state=1
+:state=1,plrcanbeseen:settarget,state=2
+:state=1,shotdamage=10:settarget,state=2
+:state=1,noiseheard=5:settarget,rotatetotarget,rotatetoplr
+:state=1,random=20:rotateheadrandom=65
+:state=2:rotatetotarget,resethead,shootplr,state=1
+
+;End of Script

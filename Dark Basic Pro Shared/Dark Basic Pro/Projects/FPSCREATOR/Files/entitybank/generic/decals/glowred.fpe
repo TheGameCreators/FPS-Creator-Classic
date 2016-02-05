@@ -1,0 +1,27 @@
+
+
+;header
+desc          = Glow Red
+
+;ai
+aiinit	      = repeatsound.fpi
+aimain	      = decal.fpi
+aidestroy     = disappear1.fpi
+
+;orientation
+model         = particles.x
+textured      = particles_d.tga
+transparency  = 0
+forwardfacing = 2
+defaultheight = 50
+soundset      = audiobank\atmos\powerhum.wav
+
+;identity details
+strength      = 0
+isimmobile    = 1
+ismarker      = 4
+
+;decals
+decalmax      = 1
+decal0        = glowred
+

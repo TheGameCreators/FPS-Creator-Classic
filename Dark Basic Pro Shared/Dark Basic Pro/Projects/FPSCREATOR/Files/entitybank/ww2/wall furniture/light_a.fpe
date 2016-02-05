@@ -1,0 +1,36 @@
+
+;header
+
+desc          = light_a
+
+;ai
+aiinit	      = appear1.fpi
+aimain	      = default.fpi
+aidestroy     = disappear1.fpi
+
+;spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;orientation
+
+model         = meshbank\ww2\scenery\lights\light_a\light_a.x
+offx          = 0
+offy          = 0
+offz          = 0
+rotx          = 0
+roty          = 0
+rotz          = 0
+defaultstatic = 1
+forwardfacing = 0
+defaultheight = 90
+materialindex = 3
+collisionmode = 1
+
+;visualinfo
+
+textured      = texturebank\ww2\scenery\lights\light_a\light_a_d2.tga
+effect        = 
+castshadow    = 0
+

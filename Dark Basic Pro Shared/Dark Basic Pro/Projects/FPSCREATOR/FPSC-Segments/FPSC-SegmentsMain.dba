@@ -1,0 +1,2530 @@
+rem
+rem SEGMENT EDITOR INTERFACE
+rem
+
+rem Init app
+sync on : sync rate 0 : autocam off
+always active off
+
+rem Segment Editor mode
+segobjusedforsegeditor=1
+
+rem Interface data
+type menuindextype
+ new open save saveas blank1 import blank3 returntomapeditor blank4 quit
+ cut copy paste delete
+endtype
+menuindex as menuindextype
+type ctrlindextype
+ partlist partlistup partlistdown partlistsort
+ statusbar statustext helptext
+ managementpanel
+ newmesh newcsg newlight newentity
+ meshname x y z ax ay az
+ texture1 texture2 texture3 texture4 effect
+ changemesh changemesh2 changetexture changetexture2 changeeffect changeeffect2
+ csgmode changecsgpunch changecsgweld
+ lightmode changelightstatic changelightdynamic
+ entityname entityanimate
+ defaultvis defaultvis2 defaultvis3 v1 v2 v3 v4 v5 v6 v7 v8 v9
+ blueprint
+endtype
+ctrlindex as ctrlindextype
+type segclipboardtype
+ cut copy paste delete duplicatedata
+ storecopiedobj as integer
+ storecopiedprofile as segmentprofiletype
+endtype
+segclipboard as segclipboardtype
+type segcamtype
+ angle as float
+ distance as float
+ height as float
+endtype
+segcam as segcamtype
+type segiconbanktype
+ mesh csg light entity none
+endtype
+segiconbank as segiconbanktype
+
+rem create partlist array
+dim partlist$(100)
+
+rem Prepare screen-based dimensions
+type screendimtype
+ barheight
+ width height
+ statustop statusinfowidth statushelpwidth
+ panelwidth paneldivide
+ buttonwidth buttonheight buttongap
+endtype
+scr as screendimtype
+scr.barheight=24
+scr.width=screen width()
+scr.height=screen height()
+scr.statustop=scr.height-scr.barheight
+scr.statusinfowidth=150
+scr.statushelpwidth=scr.width-scr.statusinfowidth
+scr.panelwidth=scr.width/4
+scr.paneldivide=scr.width-scr.panelwidth
+scr.buttonwidth=scr.panelwidth/4
+scr.buttonheight=20
+scr.buttongap=((scr.panelwidth-(scr.buttonwidth*3))/3)-1
+
+rem Reset object selections
+type segobjtype
+ file$ as string
+ p as integer
+endtype
+dim segobj(100) as segobjtype
+
+rem Create interface
+gosub _segedit_init
+
+rem Main loop
+do
+
+rem Standby or usage
+`if subappmode=1
+ `
+ rem Usage Mode for SEGEDIT
+ `
+ rem Debug information
+ debugmode=0
+ if debugmode=1
+  set cursor 0,0
+  print "scancode:";scancode()
+  print "segment profiles"
+  segpartmax=segmentprofileheader(0).partmax
+  for p=0 to segpartmax
+   print p;" ";right$(segmentprofile(0,p).meshname$,30)
+  next p
+ endif
+ `
+ rem Handle segment interface
+ gosub _segedit_menucontrols
+ gosub _segedit_controlpartlist
+ gosub _segedit_managementcontrols
+ gosub _segedit_controlvisibility
+ `
+ rem Update status readouts if flagged
+ if updatereadouts=1
+  gosub _segedit_updatecontrols
+  updatereadouts=0
+ endif
+ `
+` rem Return To Map Editor
+` tresult=0
+` if get menu selected(menuindex.returntomapeditor)=1 then tresult=1
+` if tresult<>0
+`  if subappmode=1
+`   filemapname$=subappname$+"(ACTIVE)"
+`   write filemap value filemapname$,0
+`   write filemap string filemapname$,"not active"
+`   filemapname$=subappname$+"(RESULT)"
+`   write filemap value filemapname$,tresult
+`   write filemap string filemapname$,""
+`   subappexitflag=1
+`  endif
+` endif
+` `
+` rem END SESSION
+` if subappexitflag=1
+`  update wingui : sync off
+`  subappexitflag=0
+`  subappmode=0
+` endif
+ `
+ rem Reset WinGUI after control reads
+ update wingui
+ `
+ rem Control 3D area interface
+ gosub _segedit_camera
+ gosub _segedit_objects
+ gosub _segedit_clipboard
+ `
+ rem Update screen
+ sync
+ `
+`else
+` `
+` rem Standby Mode for SEGEDIT
+` ink rgb(255,255,255),0
+` center text 320,20,"STANDBY (DEBUG) "+str$(subappmode)+" "+filemapname$
+` `
+`endif
+
+`rem WAIT FOR NEW SESSION
+`filemapname$=subappname$+"(ACTIVE)"
+`if read filemap value(filemapname$)=1
+` `
+` rem Activate Session to Full
+` subappmode=1 : sync on
+` `
+` rem NEW SESSION
+` write filemap value filemapname$,2
+` write filemap string filemapname$,"up and running"
+` filemapname$=subappname$+"(RESULT)"
+` write filemap value filemapname$,0
+` write filemap string filemapname$,""
+` `
+` rem LOAD SPECIFICS FOR SESSION
+` filemapname$=subappname$+"(MODE)"
+` tsegmodevalue=read filemap value(filemapname$)-1
+` `
+`endif
+
+rem End loop
+loop
+
+_segedit_init:
+
+rem Load all default icons for seg editor
+icondir$="editors\gfx\"
+old$=get dir$()
+`makeicons=1
+`if makeicons=1
+` load bitmap "11.bmp",1
+` iconame$="iconsegmesh.ico" : get image 1,(0*48),(3*48),(0*48)+48,(3*48)+48 : save icon from image iconame$,1
+` iconame$="iconsegcsg.ico" : get image 1,(1*48),(3*48),(1*48)+48,(3*48)+48 : save icon from image iconame$,1
+` iconame$="iconseglight.ico" : get image 1,(2*48),(3*48),(2*48)+48,(3*48)+48 : save icon from image iconame$,1
+` iconame$="iconsegentity.ico" : get image 1,(3*48),(3*48),(3*48)+48,(3*48)+48 : save icon from image iconame$,1
+` iconame$="iconsegnone.ico" : get image 1,(4*48),(3*48),(4*48)+48,(3*48)+48 : save icon from image iconame$,1
+` delete bitmap 1
+`endif
+set dir icondir$
+iconame$="Segment.ico" : segiconbank.mesh=load icon(iconame$)
+iconame$="Csg.ico" : segiconbank.csg=load icon(iconame$)
+iconame$="Light.ico" : segiconbank.light=load icon(iconame$)
+iconame$="AI Script.ico" : segiconbank.entity=load icon(iconame$)
+iconame$="Exit.ico" : segiconbank.none=load icon(iconame$)
+set dir old$
+
+rem Create all menus and controls
+gosub _segedit_initmenus
+gosub _segedit_initcontrols
+
+rem Create empty workspace
+color backdrop rgb(64,64,64)
+make matrix 1,300,300,3,3
+load image "editors\gfx\10.bmp",1
+prepare matrix texture 1,1,2,2
+fill matrix 1,0,2
+set matrix tile 1,0,1,1
+set matrix tile 1,1,0,1
+set matrix tile 1,2,1,1
+set matrix tile 1,1,2,4
+set matrix 1,0,1,0,0,0,0,1
+position matrix 1,-100,0,-100
+
+rem Init camera and light
+camviewwidth#=scr.width-scr.panelwidth : camviewheight#=scr.height
+set camera view 0,0,camviewwidth#,camviewheight#
+make light 1
+
+rem Init camera settings
+segcam.angle=11.25
+segcam.distance=300
+segcam.height=100
+
+rem reset segment data
+segobjstart=1 : segobjend=0
+segid=0 : segmentprofileheader(segid).partmax=-1
+
+rem Init selection settings
+gosub _segedit_newseg
+
+return
+
+_segedit_initmenus:
+
+rem Create menus - main
+add menu item 1,0,0,"File"
+add menu item 2,0,0,"Edit"
+
+rem Create menus - file
+i=11 : menuindex.new=i : add menu item i,1,0,"New Segment"
+i=12 : menuindex.open=i : add menu item i,1,0,"Open Segment.."
+i=13 : menuindex.save=i : add menu item i,1,0,"Save Segment"
+i=14 : menuindex.saveas=i : add menu item i,1,0,"Save Segment As.."
+i=15 : menuindex.blank1=i : add menu item i,1,1,""
+i=16 : menuindex.import=i : add menu item i,1,0,"Import Mesh.."
+i=17 : menuindex.blank3=i : add menu item i,1,1,""
+i=18 : menuindex.returntomapeditor=i : add menu item i,1,0,"Return To Map Editor"
+i=19 : menuindex.blank4=i : add menu item i,1,1,""
+i=20 : menuindex.quit=i : add menu item i,1,0,"Exit"
+
+rem Create menus - edit
+i=31 : menuindex.cut=i : add menu item i,2,0,"Cut"
+i=32 : menuindex.copy=i : add menu item i,2,0,"Copy"
+i=33 : menuindex.paste=i : add menu item i,2,0,"Paste"
+i=34 : menuindex.delete=i : add menu item i,2,0,"Delete"
+
+return
+
+_segedit_initcontrols:
+
+rem Create status panel
+i=1 : ctrlindex.statusbar=i : clear control area i,0,scr.statustop,scr.width,scr.barheight
+i=2 : ctrlindex.statustext=i : make control text i,0,6,"<info>",2,scr.statustop+2,scr.statusinfowidth-4,scr.barheight-4
+
+rem Create help panel
+desc$="Arrows To Move Camera"
+desc$=desc$+"  [LMB] Drag"
+desc$=desc$+"  [RMB] Rotate"
+desc$=desc$+"  [<]+[>] 90Rotate"
+desc$=desc$+"  [SHIFT] YUp"
+desc$=desc$+"  [C] NOPOLY [I] NOCSG [M] MULTIMESH [BN] MATERIAL"
+i=3 : ctrlindex.helptext=i : make control text i,0,6,desc$,2+scr.statusinfowidth,scr.statustop+2,scr.statushelpwidth-4,scr.barheight-4
+
+rem Create management panel
+i=4 : ctrlindex.managementpanel=i : clear control area i,scr.paneldivide,0,scr.panelwidth,scr.statustop
+tx=scr.paneldivide+10 : ty=6 : twidth=scr.panelwidth-20 : tid=5
+tbx=scr.buttonwidth : tby=scr.buttonheight+2 : tbg=scr.buttongap
+storetyofalternatepane=0 : lastalternatepane=-1
+for n=0 to 110
+
+ rem init management item
+ text$="" : textmode=6 : ix=0 : iy=0 : mainmode=-1 : forcehide=0
+
+ rem creation buttons
+ if n=0 then ctrlindex.newmesh=tid : text$="MESH" : twidth=tbx : ix=tbx+tbg : mainmode=1
+ if n=1 then ctrlindex.newcsg=tid : text$="CSG" : ix=tbx+tbg : mainmode=1
+ if n=2 then ctrlindex.newlight=tid : text$="N/A" : ix=tbx+tbg : iy=tby : mainmode=1
+ if n=3 then ctrlindex.newentity=tid : text$="ADD ENTITY" : tx=scr.paneldivide+10 : twidth=scr.panelwidth-20 : iy=tby : mainmode=1
+
+ rem part list control
+ if n=4 then text$="" : ctrlindex.partlist=tid : mainmode=3 : iy=85
+ if n=5 then textmode=0 : iy=4
+ if n=6 then ctrlindex.partlistup=tid : text$="UP" : twidth=tbx : ix=tbx+tbg : mainmode=1
+ if n=7 then ctrlindex.partlistdown=tid : text$="DOWN" : ix=tbx+tbg : mainmode=1
+ if n=8 then ctrlindex.partlistsort=tid : text$="SORT" : ix=tbx+tbg : iy=tby : mainmode=1
+ if n=9 then textmode=0 : iy=4
+
+ rem common data
+ if n=21 then ctrlindex.x=tid : text$="<x>" : twidth=tbx : ix=tbx+tbg : tx=scr.paneldivide+10 : mainmode=0
+ if n=22 then ctrlindex.y=tid : text$="<y>" : ix=tbx+tbg : mainmode=0
+ if n=23 then ctrlindex.z=tid : text$="<z>" : ix=tbx+tbg : iy=tby : mainmode=0
+ if n=24 then ctrlindex.ax=tid : text$="<ax>" : twidth=tbx : ix=tbx+tbg : tx=scr.paneldivide+10 : mainmode=0
+ if n=25 then ctrlindex.ay=tid : text$="<ay>" : ix=tbx+tbg : mainmode=0
+ if n=26 then ctrlindex.az=tid : text$="<az>" : ix=tbx+tbg : iy=tby : mainmode=0
+
+ rem mesh details
+ if n=31 then text$="SELECTION DATA" : tx=scr.paneldivide+10 : twidth=scr.panelwidth-20 : textmode=0 : iy=tby : mainmode=0
+ if n=32 then ctrlindex.texture1=tid : text$="<textureD2>" : iy=tby : mainmode=0 : storetyofalternatepane=ty
+ if n=33 then ctrlindex.texture2=tid : text$="<textureD>" : iy=tby : mainmode=0
+ if n=34 then ctrlindex.texture3=tid : text$="<textureN>" : iy=tby : mainmode=0
+ if n=35 then ctrlindex.effect=tid : text$="<effect>" : iy=tby : mainmode=0
+ if n=36 then ctrlindex.changemesh=tid : ctrlindex.changemesh2=tid+1 : text$="change mesh" : iy=tby : mainmode=2
+ if n=37 then ctrlindex.changetexture=tid : ctrlindex.changetexture2=tid+1 : text$="change texture" : iy=tby : mainmode=2
+ if n=38 then ctrlindex.changeeffect=tid : ctrlindex.changeeffect2=tid+1 : text$="change effect" : iy=tby : mainmode=2
+ if n=39 then textmode=0 : iy=4
+
+ rem visibility
+ if n=51 then text$="VISIBILITY" : textmode=0 : iy=tby : mainmode=0
+ if n=52 then ctrlindex.v1=tid : text$="c,c" : twidth=tbx : ix=tbx+tbg : mainmode=0
+ if n=53 then ctrlindex.v2=tid : text$="n,n" : ix=tbx+tbg : mainmode=0
+ if n=54 then ctrlindex.v3=tid : text$="c,c" : ix=tbx+tbg : iy=tby : mainmode=0
+ if n=55 then ctrlindex.v4=tid : text$="w,w" : tx=scr.paneldivide+10 : ix=tbx+tbg : mainmode=0
+ if n=56 then ctrlindex.v5=tid : text$="f,f" : ix=tbx+tbg : mainmode=0
+ if n=57 then ctrlindex.v6=tid : text$="e,e" : ix=tbx+tbg : iy=tby : mainmode=0
+ if n=58 then ctrlindex.v7=tid : text$="c,c" : tx=scr.paneldivide+10 : ix=tbx+tbg : mainmode=0
+ if n=59 then ctrlindex.v8=tid : text$="s,s" : ix=tbx+tbg : mainmode=0
+ if n=60 then ctrlindex.v9=tid : text$="c,c" : ix=tbx+tbg : iy=tby : mainmode=0
+ if n=61 then ctrlindex.defaultvis=tid : ctrlindex.defaultvis2=tid+1 : ctrlindex.defaultvis3=tid+2 : text$="calculate visibility" : mainmode=5 : tx=scr.paneldivide+10 : twidth=scr.panelwidth-20 : iy=tby
+ if n=62 then textmode=0 : iy=4
+
+ rem blueprint
+ if n=71 then text$="BLUEPRINT" : textmode=0 : iy=tby : mainmode=0
+ if n=72 then ctrlindex.blueprint=tid : iy=tby : mainmode=4
+
+ rem CSG panel
+ if n=82 then ctrlindex.csgmode=tid : text$="<csgmode>" : tx=scr.paneldivide+10 : twidth=scr.panelwidth-20 : iy=tby : mainmode=0 : ty=storetyofalternatepane : forcehide=1
+ if n=83 then ctrlindex.changecsgpunch=tid : text$="punch" : iy=tby : mainmode=1 : forcehide=1
+ if n=84 then ctrlindex.changecsgweld=tid : text$="weld" : iy=tby : mainmode=1 : forcehide=1
+ if n=85 then textmode=0 : iy=4
+
+ rem LIGHT panel
+ if n=92 then ctrlindex.lightmode=tid : text$="<lightmode>" : tx=scr.paneldivide+10 : twidth=scr.panelwidth-20 : iy=tby : mainmode=0 : ty=storetyofalternatepane : forcehide=1
+ if n=93 then ctrlindex.changelightstatic=tid : text$="static" : iy=tby : mainmode=1 : forcehide=1
+ if n=94 then ctrlindex.changelightdynamic=tid : text$="dynamic" : iy=tby : mainmode=1 : forcehide=1
+ if n=95 then textmode=0 : iy=4
+
+ rem ENTITY panel
+ if n=102 then ctrlindex.entityname=tid : text$="<entity name>" : tx=scr.paneldivide+10 : twidth=scr.panelwidth-20 : iy=tby : mainmode=0 : ty=storetyofalternatepane : forcehide=1
+ if n=103 then ctrlindex.entityanimate=tid : text$="animate once" : iy=tby : mainmode=1 : forcehide=1
+ if n=104 then textmode=0 : iy=4
+
+ rem create control
+ if mainmode=0
+  make control text tid,0,textmode,text$,tx,ty,twidth,scr.buttonheight
+ endif
+ if mainmode=1
+  make control button tid,0,0,text$,tx,ty,twidth,scr.buttonheight
+ endif
+ if mainmode=2
+  make control button tid,0,0,text$,tx,ty,twidth-(scr.buttonheight*2),scr.buttonheight
+  make control button (tid+1),0,0,"C",tx+twidth-(scr.buttonheight*2),ty,scr.buttonheight,scr.buttonheight
+  inc tid
+ endif
+ if mainmode=3
+  make control listview tid,0,0,tx,ty,twidth,iy
+ endif
+ if mainmode=4
+  make control combobox tid,3,0,tx,ty,twidth,iy+(3*16)
+  add control item tid,0,"ROOM"
+  add control item tid,1,"FLOOR"
+  add control item tid,2,"EXTERNAL"
+  add control item tid,3,"STRAIGHT"
+  add control item tid,4,"CORNER"
+  add control item tid,5,"T-JUNC"
+  add control item tid,6,"CROSS-JUNC"
+  add control item tid,7,"DEADEND"
+  set control selection tid,0
+ endif
+ if mainmode=5
+  make control button tid,0,0,text$,tx,ty,twidth-(scr.buttonheight*2),scr.buttonheight
+  make control button (tid+1),0,0,"C",tx+twidth-(scr.buttonheight*2),ty,scr.buttonheight,scr.buttonheight
+  make control button (tid+2),0,0,"O",tx+twidth-scr.buttonheight,ty,scr.buttonheight,scr.buttonheight
+  inc tid
+ endif
+ if forcehide=1 then hide control tid
+
+ rem advance coordinates
+ tx=tx+ix : ty=ty+iy
+ inc tid
+
+next n
+
+return
+
+_segedit_controlvisibility:
+
+ rem Button actions
+ segid=0
+ tbutt1=get control click(ctrlindex.defaultvis)
+ tbutt2=get control click(ctrlindex.defaultvis2)
+ if tbutt1=1 or tbutt2=1
+  segmentprofile(segid).vis.f=-1
+  segmentprofile(segid).vis.r=-1
+  segmentprofile(segid).vis.wf=-1
+  segmentprofile(segid).vis.wr=-1
+  segmentprofile(segid).vis.wb=-1
+  segmentprofile(segid).vis.wl=-1
+  segmentprofile(segid).vis.owf=-1
+  segmentprofile(segid).vis.owr=-1
+  segmentprofile(segid).vis.owb=-1
+  segmentprofile(segid).vis.owl=-1
+  segmentprofile(segid).vis.ctl=-1
+  segmentprofile(segid).vis.ctr=-1
+  segmentprofile(segid).vis.cbr=-1
+  segmentprofile(segid).vis.cbl=-1
+  segmentprofile(segid).vis.octl=-1
+  segmentprofile(segid).vis.octr=-1
+  segmentprofile(segid).vis.ocbr=-1
+  segmentprofile(segid).vis.ocbl=-1
+  if tbutt1=1
+  for objid=segobjstart to segobjend
+   if object exist(objid)=1
+    p=segobj(objid).p
+    if segmentprofile(segid,p).partmode=0
+     tx#=object position x(objid)-50
+     ty#=object position y(objid)-50
+     tz#=object position z(objid)-50
+     if abs(ty#)>abs(tx#) and abs(ty#)>abs(tz#)
+      rem Y strong - floor
+      if segmentprofile(segid).vis.f=-1
+       segmentprofile(segid).vis.f=p
+      else
+       if segmentprofile(segid).vis.r=-1
+        segmentprofile(segid).vis.r=p
+       endif
+      endif
+     else
+      if abs(tx#)/3>abs(tz#) or abs(tz#)/3>abs(tx#)
+       rem X or Z strong - wall
+       if abs(tx#)>abs(tz#)
+        if tx#>=0
+         if segmentprofile(segid).vis.wr=-1
+          segmentprofile(segid).vis.wr=p
+         else
+          if segmentprofile(segid).vis.owr=-1
+           segmentprofile(segid).vis.owr=p
+          endif
+         endif
+        else
+         if segmentprofile(segid).vis.wl=-1
+          segmentprofile(segid).vis.wl=p
+         else
+          if segmentprofile(segid).vis.owl=-1
+           segmentprofile(segid).vis.owl=p
+          endif
+         endif
+        endif
+       else
+        if tz#>=0
+         if segmentprofile(segid).vis.wf=-1
+          segmentprofile(segid).vis.wf=p
+         else
+          if segmentprofile(segid).vis.owf=-1
+           segmentprofile(segid).vis.owf=p
+          endif
+         endif
+        else
+         if segmentprofile(segid).vis.wb=-1
+          segmentprofile(segid).vis.wb=p
+         else
+          if segmentprofile(segid).vis.owb=-1
+           segmentprofile(segid).vis.owb=p
+          endif
+         endif
+        endif
+       endif
+      else
+       rem X+Z strong - corner
+       if tx#<0 and tz#<0
+        if segmentprofile(segid).vis.cbl=-1
+         segmentprofile(segid).vis.cbl=p
+        else
+         if segmentprofile(segid).vis.ocbl=-1
+          segmentprofile(segid).vis.ocbl=p
+         endif
+        endif
+       else
+        if tx#>0 and tz#<0
+         if segmentprofile(segid).vis.cbr=-1
+          segmentprofile(segid).vis.cbr=p
+         else
+          if segmentprofile(segid).vis.ocbr=-1
+           segmentprofile(segid).vis.ocbr=p
+          endif
+         endif
+        else
+         if tx#>0 and tz#>0
+          if segmentprofile(segid).vis.ctr=-1
+           segmentprofile(segid).vis.ctr=p
+          else
+           if segmentprofile(segid).vis.octr=-1
+            segmentprofile(segid).vis.octr=p
+           endif
+          endif
+         else
+          if tx#<0 and tz#>0
+           if segmentprofile(segid).vis.ctl=-1
+            segmentprofile(segid).vis.ctl=p
+           else
+            if segmentprofile(segid).vis.octl=-1
+             segmentprofile(segid).vis.octl=p
+            endif
+           endif
+          endif
+         endif
+        endif
+       endif
+      endif
+     endif
+    endif
+   endif
+  next objid
+  endif
+  updatereadouts=1
+ endif
+ tbutt3=get control click(ctrlindex.defaultvis3)
+ if tbutt3=1
+  segmentprofile(segid).vis.overlay=segmentprofile(segid).vis.overlay+1
+  if segmentprofile(segid).vis.overlay>2
+   segmentprofile(segid).vis.overlay=0
+  endif
+  updatereadouts=1
+ endif
+ `
+return
+
+_segedit_updatecontrols:
+
+ rem Control alternate pane visibility
+ if highlightobj=0
+  alternatepane=0
+ else
+  p=segobj(highlightobj).p
+  alternatepane=segmentprofile(segid,p).partmode
+ endif
+ if alternatepane<>lastalternatepane
+  for thideshow=0 to 1
+   if thideshow=0 then paneid=lastalternatepane
+   if thideshow=1 then paneid=alternatepane
+   select paneid
+    case 0
+     if thideshow=0
+      hide control ctrlindex.texture1 : hide control ctrlindex.texture2
+      hide control ctrlindex.texture3 : hide control ctrlindex.effect
+      hide control ctrlindex.changemesh :  hide control ctrlindex.changemesh2
+      hide control ctrlindex.changetexture : hide control ctrlindex.changetexture2
+      hide control ctrlindex.changeeffect : hide control ctrlindex.changeeffect2
+     else
+      show control ctrlindex.texture1 : show control ctrlindex.texture2
+      show control ctrlindex.texture3 : show control ctrlindex.effect
+      show control ctrlindex.changemesh :  show control ctrlindex.changemesh2
+      show control ctrlindex.changetexture : show control ctrlindex.changetexture2
+      show control ctrlindex.changeeffect : show control ctrlindex.changeeffect2
+     endif
+    endcase
+    case 1
+     if thideshow=0
+      hide control ctrlindex.csgmode : hide control ctrlindex.changecsgpunch
+      hide control ctrlindex.changecsgweld
+     else
+      show control ctrlindex.csgmode : show control ctrlindex.changecsgpunch
+      show control ctrlindex.changecsgweld
+     endif
+    endcase
+    case 2
+     if thideshow=0
+      hide control ctrlindex.lightmode : hide control ctrlindex.changelightstatic
+      hide control ctrlindex.changelightdynamic
+     else
+      show control ctrlindex.lightmode : show control ctrlindex.changelightstatic
+      show control ctrlindex.changelightdynamic
+     endif
+    endcase
+    case 3
+     if thideshow=0
+      hide control ctrlindex.entityname : hide control ctrlindex.entityanimate
+     else
+      show control ctrlindex.entityname : show control ctrlindex.entityanimate
+     endif
+    endcase
+   endselect
+  next thideshow
+  lastalternatepane=alternatepane
+ endif
+
+ rem Update Part List
+ if segmentprofileheader(segid).partmax<>lastpartlistcount then refreshpartlist=1
+ if refreshpartlist=1
+  rem Complete Refresh of Psrt List or Update
+  trecreate=0 : refreshpartlist=0
+  lastpartlistcount=segmentprofileheader(segid).partmax
+  delete all control items ctrlindex.partlist
+  trecreate=1
+  `
+`  undim partlist$(0)
+`  dim partlist$(segmentprofileheader(segid).partmax)
+  for tp=0 to segmentprofileheader(segid).partmax
+   text$=getfile(segmentprofile(segid,tp).meshname$)
+   if text$<>""
+    textnum$=right$(str$(100+tp),2)+":"
+    if segmentprofile(segid,tp).partmode=0
+     if segmentprofile(segid,tp).multimeshmode=1 then text$=text$+" (M)"
+     if segmentprofile(segid,tp).colmode=0 then text$=text$+" (P)"
+     if segmentprofile(segid,tp).colmode=1 then text$=text$+" (B)"
+     if segmentprofile(segid,tp).colmode=2 then text$=text$+" (R)"
+     if segmentprofile(segid,tp).colmode=3 then text$=text$+" (NC)"
+     if segmentprofile(segid,tp).csgimmune=1 then text$=text$+" (NO CSG)"
+     if segmentprofile(segid,tp).material.index>0 then text$=text$+" (M"+str$(segmentprofile(segid,tp).material.index)+")"
+     text$=textnum$+"M:"+text$
+     hicon=segiconbank.mesh
+    endif
+    if segmentprofile(segid,tp).partmode=1
+     text$=textnum$+"C:"+text$
+     hicon=segiconbank.csg
+    endif
+    if segmentprofile(segid,tp).partmode=2
+     text$=textnum$+"L:"+text$
+     hicon=segiconbank.light
+    endif
+    if segmentprofile(segid,tp).partmode=3
+     text$=textnum$+"E:"+text$
+     hicon=segiconbank.entity
+    endif
+   else
+    text$="EMPTY"
+    hicon=segiconbank.none
+   endif
+   partlist$(tp)=text$
+   if trecreate=1
+    add control item ctrlindex.partlist,tp,text$
+    set control item icon ctrlindex.partlist,tp,hicon
+   else
+    set control item ctrlindex.partlist,tp,text$
+    set control item icon ctrlindex.partlist,tp,hicon
+   endif
+  next tp
+  updatepartlist=1
+ endif
+
+ rem Choose what to update
+ if updatereadoutposrotonly=1
+    updatereadoutposrotonly=0 : nstart=21 : nend=30
+ else
+    nstart=0 : nend=80
+ endif
+
+ rem Data readouts
+ segid=0
+ for n=nstart to nend
+  tid=-1
+  if n=1
+   for tp=0 to segmentprofileheader(segid).partmax
+    set control item ctrlindex.partlist,tp,partlist$(tp)
+   next tp
+  endif
+  if highlightobj=0
+   if n=21 then tid=ctrlindex.x : text$=""
+   if n=22 then tid=ctrlindex.y : text$=""
+   if n=23 then tid=ctrlindex.z : text$=""
+   if n=24 then tid=ctrlindex.ax : text$=""
+   if n=25 then tid=ctrlindex.ay : text$=""
+   if n=26 then tid=ctrlindex.az : text$=""
+   if n=32 then tid=ctrlindex.texture1 : text$=""
+   if n=33 then tid=ctrlindex.texture2 : text$=""
+   if n=34 then tid=ctrlindex.texture3 : text$=""
+   if n=35 then tid=ctrlindex.effect : text$=""
+  else
+   p=segobj(highlightobj).p
+   if n=21 then tid=ctrlindex.x : text$="x:"+str$(object position x(highlightobj))
+   if n=22 then tid=ctrlindex.y : text$="y:"+str$(object position y(highlightobj))
+   if n=23 then tid=ctrlindex.z : text$="z:"+str$(object position z(highlightobj))
+   if segmentprofile(segid,p).partmode=0
+    if n=32 then tid=ctrlindex.texture1 : text$=getfile(segmentprofile(segid,p).tex$)
+    if n=33 then tid=ctrlindex.texture2 : text$=""
+    if n=34 then tid=ctrlindex.texture3 : text$=""
+    if n=35 then tid=ctrlindex.effect : text$=getfile(segmentprofile(segid,p).effect$)
+   endif
+   if segmentprofile(segid,p).partmode=1
+    if n=32
+     tid=ctrlindex.csgmode
+     if segmentprofile(segid,p).csgmode=0 then text$="PUNCH MODE"
+     if segmentprofile(segid,p).csgmode=1 then text$="WELD MODE"
+    endif
+   endif
+   if segmentprofile(segid,p).partmode=2
+    if n=32
+     tid=ctrlindex.lightmode
+     if segmentprofile(segid,p).lightmode=0 then text$="STATIC LIGHT"
+     if segmentprofile(segid,p).lightmode=1 then text$="DYNAMIC LIGHT"
+    endif
+   endif
+   if segmentprofile(segid,p).partmode=3
+    if n=32
+     tid=ctrlindex.entityname
+     `needs to specify a .FPE file
+`     text$=getfile(segmentprofile(segid,p).meshname$)
+     text$=getfile(segmentprofile(segid,p).meshname$)
+    endif
+   endif
+  endif
+  if n=52 then tid=ctrlindex.v1 : text$=str$(segmentprofile(segid).vis.ctl)+","+str$(segmentprofile(segid).vis.octl)
+  if n=53 then tid=ctrlindex.v2 : text$=str$(segmentprofile(segid).vis.wf)+","+str$(segmentprofile(segid).vis.owf)
+  if n=54 then tid=ctrlindex.v3 : text$=str$(segmentprofile(segid).vis.ctr)+","+str$(segmentprofile(segid).vis.octr)
+  if n=55 then tid=ctrlindex.v4 : text$=str$(segmentprofile(segid).vis.wl)+","+str$(segmentprofile(segid).vis.owl)
+  if n=56
+   tid=ctrlindex.v5
+   if segmentprofile(segid).vis.overlay=1
+    text$="OVDIR"
+   else
+    if segmentprofile(segid).vis.overlay=2
+     text$="OVFULL"
+    else
+     text$=str$(segmentprofile(segid).vis.f)+","+str$(segmentprofile(segid).vis.r)
+    endif
+   endif
+  endif
+  if n=57 then tid=ctrlindex.v6 : text$=str$(segmentprofile(segid).vis.wr)+","+str$(segmentprofile(segid).vis.owr)
+  if n=58 then tid=ctrlindex.v7 : text$=str$(segmentprofile(segid).vis.cbl)+","+str$(segmentprofile(segid).vis.ocbl)
+  if n=59 then tid=ctrlindex.v8 : text$=str$(segmentprofile(segid).vis.wb)+","+str$(segmentprofile(segid).vis.owb)
+  if n=60 then tid=ctrlindex.v9 : text$=str$(segmentprofile(segid).vis.cbr)+","+str$(segmentprofile(segid).vis.ocbr)
+  if n>=52 and n<=60
+   if text$="-1,-1" then text$=""
+   if right$(text$,3)=",-1" then text$=left$(text$,len(text$)-3)
+  endif
+  if n=72
+   tid=ctrlindex.blueprint
+   set control selection tid,segmentprofile(segid).blueprint.mode
+  endif
+  if tid<>-1
+   set control text tid,text$
+  endif
+ next n
+
+return
+
+_segedit_showfilename:
+
+rem Create display filename
+savesegdisplayfile$=""
+if savesegfile$<>""
+ for n=len(savesegfile$) to 1 step -1
+  if mid$(savesegfile$,n)="\" or mid$(savesegfile$,n)="/" then exit
+ next n
+ if n>0 then savesegdisplayfile$=right$(savesegfile$,len(savesegfile$)-n)
+endif
+
+rem Set segment display filename
+if savesegdisplayfile$=""
+ set control text ctrlindex.statustext,"No Segment"
+else
+ set control text ctrlindex.statustext,"Segment : "+savesegdisplayfile$
+endif
+
+return
+
+_segedit_restoreeditor:
+
+rem Restore any current editor activity
+if renderpreviewmode>0
+ gosub _segedit_hide_renderpreview
+ renderpreviewmode=0
+endif
+
+return
+
+_segedit_newseg:
+
+rem Restore any current editor activity
+gosub _segedit_restoreeditor
+
+rem objects deleted
+for objid=segobjstart to segobjend
+ if object exist(objid)=1
+  delete object objid
+ endif
+next objid
+rem reset segment profile data
+segid=0 : gosub _segment_cleardata
+rem reset settings
+segclipboard.storecopiedobj=0
+highlightobj=0 : shadowobj=0
+segobjend=1
+rem clear save-file data
+savesegfile$="" : gosub _segedit_showfilename
+updatereadouts=1
+
+return
+
+_segedit_updatetextureeffect:
+
+rem Texture or Effect (only for mesh and csg parts)
+if segmentprofile(segid,p).partmode<=1
+ if segmentprofile(segid,p).effectid=0
+  rem Apply texture object
+  set object transparency objid,2
+  texture object objid,segmentprofile(segid,p).texid
+ else
+  rem Apply special effect
+  set object transparency objid,0
+  texture object objid,0,segmentprofile(segid,p).texdid
+  texture object objid,1,segmentprofile(segid,p).texiid
+  texture object objid,2,segmentprofile(segid,p).texnid
+  texture object objid,3,segmentprofile(segid,p).texsid
+  set object effect objid,segmentprofile(segid,p).effectid
+ endif
+endif
+updatereadouts=1
+
+return
+
+_segedit_updatemesh:
+
+rem position and rotate object
+p=segobj(highlightobj).p
+position object highlightobj,50+segmentprofile(segid,p).offx,50+segmentprofile(segid,p).offy,50+segmentprofile(segid,p).offz
+rotate object highlightobj,segmentprofile(segid,p).rotx,segmentprofile(segid,p).roty,segmentprofile(segid,p).rotz
+objid=highlightobj : gosub _segedit_updatetextureeffect
+
+return
+
+_segedit_reloadseg:
+
+ rem Restore any current editor activity
+ gosub _segedit_restoreeditor
+
+ menuactivity$="...LOADING SEGMENT..."
+ gosub _segedit_menuactivityprompt
+ `
+ rem Determine segment strings
+ segid=0 : rem zero means no object - data only
+ segdir$="segments\"
+ seg$=right$(loadsegfile$,len(loadsegfile$)-len(rootdir$)-len(segdir$))
+ segcategory$=getfirstdir(seg$)
+ segpath$=getseconddir(seg$)
+ set dir rootdir$
+
+ rem Blank current segment
+ gosub _segedit_newseg
+
+ rem Load segment profile data
+ segmentprofileheader(segid).partmax=-1
+ gosub _segment_loaddata
+ segpartmax=segmentprofileheader(segid).partmax
+ if segpartmax<>-1
+  `
+  rem create all objects based on segment profile
+  for p=0 to segpartmax
+   rem only for mesh parts
+   if segmentprofile(segid,p).partmode=0
+    rem perform auto-conversion on meshname
+    if segmentprofile(segid,p).meshname$<>""
+     if lower$(left$(segmentprofile(segid,p).meshname$,8))<>"meshbank"
+      segobjfile$="meshbank\"+segpath$+segmentprofile(segid,p).meshname$
+      segmentprofile(segid,p).meshname$=segobjfile$
+     endif
+    endif
+    rem make sure TEX$ is not empty, and move from TEXD$ if needed
+    if segmentprofile(segid,p).tex$=""
+     segmentprofile(segid,p).tex$=segmentprofile(segid,p).texd$
+     segmentprofile(segid,p).texd$=""
+    endif
+    rem perform auto-conversion on texture names
+    if segmentprofile(segid,p).tex$<>""
+     if lower$(left$(segmentprofile(segid,p).tex$,11))<>"texturebank"
+      segtexfile$="texturebank\"+segcategory$+segmentprofile(segid,p).tex$
+      segmentprofile(segid,p).tex$=segtexfile$
+     endif
+    endif
+   endif
+  next p
+  `
+  rem Preload textures (as many will be the same)
+  gosub _segment_preloadtextures
+  gosub _segment_preloadeffects
+  `
+  rem Load meshes as objects
+  for tsegp=0 to segpartmax
+   segobjfile$=rootdir$+segmentprofile(segid,tsegp).meshname$
+   segobjprofilenumber=tsegp
+   if segmentprofile(segid,tsegp).partmode=3
+    gosub _segedit_importentity
+   else
+    gosub _segedit_importmesh
+   endif
+   if highlightobj>0
+    if object exist(highlightobj)=1
+     gosub _segedit_updatemesh
+    endif
+   endif
+  next tsegp
+  `
+  rem Set segment filename so can save right back to it
+  savesegfile$=loadsegfile$ : gosub _segedit_showfilename
+  refreshpartlist=1
+  updatereadouts=1
+  `
+ endif
+
+return
+
+_segedit_loadseg:
+
+set dir currentsegdir$
+loadsegfile$=dialog open file$()
+currentsegdir$=get dir$()
+set dir rootdir$
+if loadsegfile$<>""
+ gosub _segedit_reloadseg
+endif
+
+return
+
+_segedit_updateoneprofile:
+
+rem Store object in profile (segid,objid) (do not overwrite FPE name though)
+p=segobj(objid).p
+tfile$=segobj(objid).file$
+tfile$=right$(tfile$,len(tfile$)-len(rootdir$))
+if segmentprofile(segid,p).partmode<>3
+ segmentprofile(segid,p).meshname$=tfile$
+endif
+
+rem Store position and rotation
+segmentprofile(segid,p).offx=object position x(objid)-50
+segmentprofile(segid,p).offy=object position y(objid)-50
+segmentprofile(segid,p).offz=object position z(objid)-50
+segmentprofile(segid,p).rotx=object angle x(objid)
+segmentprofile(segid,p).roty=object angle y(objid)
+segmentprofile(segid,p).rotz=object angle z(objid)
+updatereadouts=1
+
+return
+
+_segedit_updateprofiledata:
+
+rem Prepare profile from objects in workspace
+segid=0
+for objid=segobjstart to segobjend
+ if object exist(objid)=1
+  gosub _segedit_updateoneprofile
+ endif
+next objid
+
+return
+
+_segedit_optimizeprofiledata:
+
+rem Prepare profile from objects in workspace
+segid=0 : newp=0
+for objid=segobjstart to segobjend
+ if object exist(objid)=1
+  oldp=segobj(objid).p
+  segmentprofile(segid,newp)=segmentprofile(segid,oldp)
+  inc newp
+ endif
+next objid
+segmentprofileheader(segid).partmax=newp-1
+
+rem Align segobj data to new profile layout
+newp=0
+for objid=segobjstart to segobjend
+ if object exist(objid)=1 then segobj(objid).p=newp : inc newp
+next objid
+
+rem data changed
+updatereadouts=1
+
+return
+
+_segedit_sortintomeshorder:
+
+rem Sort Segment Profiles into mesh order
+segid=0
+dim tempsegmentprofile(64) as segmentprofiletype
+segpartmax=segmentprofileheader(segid).partmax
+torder=0
+for tmode=0 to 1
+ for tindex=0 to segpartmax
+  if segmentprofile(segid,tindex).meshname$<>""
+   tokay=0
+   if tmode=0 and segmentprofile(segid,tindex).partmode=0 then tokay=1
+   if tmode=1 and segmentprofile(segid,tindex).partmode>0 then tokay=1
+   if tokay=1
+    tempsegmentprofile(torder)=segmentprofile(segid,tindex)
+    inc torder
+   endif
+  endif
+ next tindex
+ if tmode=0 then segmentprofileheader(segid).lastmeshmax=torder-1
+next tmode
+for torder=0 to segpartmax
+ segmentprofile(segid,torder)=tempsegmentprofile(torder)
+next torder
+`undim tempsegmentprofile(0)
+
+return
+
+_segedit_saveseg:
+
+rem Save profile to file
+if savesegfile$<>""
+ `
+ rem Restore any current editor activity
+ gosub _segedit_restoreeditor
+ `
+ rem Prompt action
+ menuactivity$="...SAVING SEGMENT..."
+ gosub _segedit_menuactivityprompt
+ `
+ rem Prepare and save segment
+ gosub _segedit_save_replacedmeshes
+ gosub _segedit_optimizeprofiledata
+ gosub _segedit_updateprofiledata
+ gosub _segedit_sortintomeshorder
+ gosub _segment_savedata
+ `
+ rem Save a preview BMP for thumbnail
+ gosub _snapshot_thumbnail
+ `
+ rem If reordered, must reload to ensure object-id stability
+ gosub _segedit_reloadseg
+ refreshpartlist=1
+ `
+endif
+
+return
+
+_segedit_savesegas:
+
+rem Save segment profile
+set dir currentsegdir$
+trysavesegfile$=dialog save file$()
+currentsegdir$=get dir$()
+set dir rootdir$
+
+rem Set segment display filename
+if lower$(right$(trysavesegfile$,4))=".fps"
+ savesegfile$=trysavesegfile$
+ loadsegfile$=savesegfile$
+ gosub _segedit_saveseg
+ gosub _segedit_showfilename
+else
+ debugstring("","txt required!")
+endif
+
+return
+
+_segedit_loadmesh:
+
+rem Init profile with segobjfile$
+segobj(freeobjid).file$=segobjfile$
+segmentprofile(segid,freep).meshname$=right$(segobjfile$,len(segobjfile$)-len(rootdir$))
+
+rem Import object to edit with
+if object exist(freeobjid)=1 then delete object freeobjid
+load object segobjfile$,freeobjid
+set object diffuse freeobjid,rgb(128,128,128)
+set object specular freeobjid,rgb(8,8,8)
+set object ambience freeobjid,rgb(0,0,0)
+set object emissive freeobjid,rgb(0,0,0)
+position object freeobjid,50,50,50
+highlightobj=freeobjid
+updatereadouts=1
+
+return
+
+_segedit_importmesh:
+
+if file exist(segobjfile$)=1
+ `
+ rem Find free object
+ freeobjid=0
+ for objid=segobjstart to segobjend
+  if object exist(objid)=0 then freeobjid=objid : exit
+ next objid
+ if freeobjid=0
+  inc segobjend
+  freeobjid=segobjend
+ endif
+ if freeobjid>99
+  debugstring(segobjfile$,"exceeded!")
+ endif
+ `
+ rem Find free profile (if not got one)
+ segid=0
+ if segobjprofilenumber<>-1
+  freep=segobjprofilenumber
+ else
+  freep=-1
+  segpartmax=segmentprofileheader(segid).partmax
+  for q=0 to segpartmax
+   if segmentprofile(segid,q).meshname$="" then freep=q : exit
+  next q
+  if freep=-1
+   inc segpartmax
+   segmentprofileheader(segid).partmax=segpartmax
+   freep=segmentprofileheader(segid).partmax
+  endif
+  if freep>99
+   debugstring("segpartmax","exceeded!")
+  endif
+ endif
+ `
+ rem Store object and profile details
+ segobj(freeobjid).p=freep
+ `
+ rem Load segobjfile$ mesh into freeobjid
+ gosub _segedit_loadmesh
+ `
+ rem Record what profile number is now
+ segobjprofilenumber=freep
+ `
+endif
+
+return
+
+_segedit_importentity:
+
+rem Specify entity data
+entdir$=getpath(segobjfile$)
+ent$=getfile(segobjfile$)
+entid=0
+
+rem Load entity data only
+gosub _entity_loaddata
+
+rem Load as mesh for segment editor usage
+segobjfile$=entityprofile(entid).model$
+entpath$=right$(entdir$,len(entdir$)-len(rootdir$))
+entpath$=right$(entpath$,len(entpath$)-len("entitybank\"))
+if file exist(segobjfile$)=0 then segobjfile$=rootdir$+"meshbank\"+entpath$+entityprofile(entid).model$
+gosub _segedit_importmesh
+
+rem Apply texture to mesh representing entity object
+tfile$=entityprofile(entid).texd$
+if tfile$<>""
+ texdir$=tfile$
+ if file exist(texdir$)=0 then texdir$=rootdir$+"texturebank\"+entpath$+entityprofile(entid).texd$
+ texid=loadinternaltexture(texdir$)
+ texture object freeobjid,texid
+endif
+
+rem Change data in segprofile to reflect it is an entity
+if segobjprofilenumber<>-1
+ entdir$=right$(entdir$,len(entdir$)-len(rootdir$))
+ segmentprofile(segid,segobjprofilenumber).meshname$=entdir$+ent$
+endif
+
+return
+
+_segedit_newmeshraw:
+
+rem Restore any current editor activity
+gosub _segedit_restoreeditor
+
+rem Load mesh from file requester
+set dir currentmeshdir$
+meshfile$=browseropen$(3)
+currentmeshdir$=get dir$()
+
+set dir rootdir$
+if meshfile$<>""
+ segobjfile$=meshfile$
+ segobjprofilenumber=-1
+ gosub _segedit_importmesh
+endif
+
+rem Update displays
+refreshpartlist=1
+updatereadouts=1
+
+return
+
+_segedit_newmesh:
+ gosub _segedit_newmeshraw
+ if segobjprofilenumber<>-1
+  segmentprofile(segid,segobjprofilenumber).partmode=0
+ endif
+return
+
+_segedit_newcsg:
+ gosub _segedit_newmeshraw
+ if segobjprofilenumber<>-1
+  segmentprofile(segid,segobjprofilenumber).partmode=1
+  changecsgmode=0 : gosub _segedit_changecsg
+ endif
+return
+
+_segedit_newlight:
+ gosub _segedit_restoreeditor
+ meshfile$=rootdir$+"editors\gfx\bulb.x"
+ if meshfile$<>""
+  segobjfile$=meshfile$
+  segobjprofilenumber=-1
+  gosub _segedit_importmesh
+  refreshpartlist=1
+  updatereadouts=1
+ endif
+ if segobjprofilenumber<>-1
+  segmentprofile(segid,segobjprofilenumber).partmode=2
+  position object highlightobj,50,150,50
+ endif
+return
+
+_segedit_newentity:
+ `
+ rem Restore any current editor activity
+ gosub _segedit_restoreeditor
+ `
+ rem Load mesh from file requester
+ set dir currententitydir$
+ meshfile$=browseropen$(9)
+ currententitydir$=get dir$()
+ set dir rootdir$
+ if meshfile$<>""
+  segobjfile$=meshfile$
+  segobjprofilenumber=-1
+  gosub _segedit_importentity
+  refreshpartlist=1
+  updatereadouts=1
+ endif
+ if segobjprofilenumber<>-1
+  segmentprofile(segid,segobjprofilenumber).partmode=3
+  tx=entityprofile(entid).offx
+  ty=entityprofile(entid).offy
+  tz=entityprofile(entid).offz
+  position object highlightobj,50+tx,ty,50+tz
+  tx=entityprofile(entid).rotx
+  ty=entityprofile(entid).roty
+  tz=entityprofile(entid).rotz
+  rotate object highlightobj,tx,ty,tz
+  segmentprofile(segid,segobjprofilenumber).rotx=tx
+  segmentprofile(segid,segobjprofilenumber).rotz=tz
+ endif
+return
+
+_segedit_menuactivityprompt:
+
+for s=1 to 4
+ ink rgb(192,192,192),rgb(192,192,192)
+ box (camviewwidth#/2)-128,(camviewheight#/2)-32,(camviewwidth#/2)+128,(camviewheight#/2)+32
+ ink rgb(0,0,0),rgb(192,192,192)
+ center text (camviewwidth#/2),(camviewheight#/2)-8,menuactivity$
+ sync
+next s
+
+return
+
+_segedit_menucontrols:
+
+rem New Segment
+if get menu selected(menuindex.new)=1
+ gosub _segedit_newseg
+ menuactivity$="NEW SEGMENT"
+ gosub _segedit_menuactivityprompt
+endif
+rem Open Segment
+if get menu selected(menuindex.open)=1
+ gosub _segedit_loadseg
+ menuactivity$="SEGMENT LOADED"
+ gosub _segedit_menuactivityprompt
+endif
+rem Save Segment
+if get menu selected(menuindex.save)=1
+ gosub _segedit_saveseg
+ menuactivity$="SEGMENT SAVED"
+ gosub _segedit_menuactivityprompt
+endif
+rem Save As Segment
+if get menu selected(menuindex.saveas)=1
+ gosub _segedit_savesegas
+ menuactivity$="NEW SEGMENT SAVED"
+ gosub _segedit_menuactivityprompt
+endif
+
+rem Import mesh
+if get menu selected(menuindex.import)=1
+ gosub _segedit_newmesh
+ menuactivity$="MESH ADDED"
+ gosub _segedit_menuactivityprompt
+endif
+
+rem Exit program
+if get menu selected(menuindex.quit)=1 then end
+
+return
+
+_segedit_selectmesh:
+
+rem Only on a highlighrted object
+if highlightobj>0
+ `
+ rem Requester
+ set dir currentmeshdir$
+ `texfile$=dialog open file$()
+ texfile$=browseropen$(3)
+ currentmeshdir$=get dir$()
+ set dir rootdir$
+ `
+ rem Apply mesh to object (if file selected)
+ if texfile$<>""
+   p=segobj(highlightobj).p : segobjprofilenumber=p
+   tfile$=right$(texfile$,len(texfile$)-len(rootdir$))
+   segmentprofile(segid,p).meshname$=tfile$
+   segobjfile$=rootdir$+segmentprofile(segid,p).meshname$
+   freeobjid=highlightobj : gosub _segedit_loadmesh
+   if object exist(highlightobj)=1
+    gosub _segedit_updatemesh
+   endif
+ endif
+ `
+endif
+
+return
+
+_segedit_selecttexture:
+
+rem Only on a highlighrted object
+if highlightobj>0
+ `
+ rem should be whole screen like PSP browser!
+ set dir currenttexdir$
+` texfile$=dialog open file$()
+ texfile$=browseropen$(2)
+ currenttexdir$=get dir$()
+ set dir rootdir$
+ `
+ rem Apply texture to object (if selected)
+ if texfile$<>""
+  `
+  rem Load Base D2 texture
+  segid=0 : p=segobj(highlightobj).p
+  segtexfile$=right$(texfile$,len(texfile$)-len(rootdir$))
+  segmentprofile(segid,p).tex$=segtexfile$
+  segmentprofile(segid,p).texid=loadinternaltexture(segtexfile$)
+  `
+  rem Create D, N and S textures (if D2 and files exist)
+  remstart
+  rem no need to do this now!
+  if lower$(right$(segtexfile$,6))="d2."+imgext$
+   tfile$=left$(segtexfile$,len(segtexfile$)-6)+"D."+imgext$
+   segmentprofile(segid,p).texdid=loadinternaltexture(tfile$)
+   if segmentprofile(segid,p).texdid<>0
+    segmentprofile(segid,p).texd$=tfile$
+   else
+    segmentprofile(segid,p).texd$=""
+   endif
+   tfile$=left$(segtexfile$,len(segtexfile$)-6)+"N."+imgext$
+   segmentprofile(segid,p).texnid=loadinternaltexture(tfile$)
+   if segmentprofile(segid,p).texnid<>0
+    segmentprofile(segid,p).texn$=tfile$
+   else
+    segmentprofile(segid,p).texn$=""
+   endif
+   tfile$=left$(segtexfile$,len(segtexfile$)-6)+"S."+imgext$
+   segmentprofile(segid,p).texsid=loadinternaltexture(tfile$)
+   if segmentprofile(segid,p).texsid<>0
+    segmentprofile(segid,p).texs$=tfile$
+   else
+    segmentprofile(segid,p).texs$=""
+   endif
+  else
+   segmentprofile(segid,p).texd$=""
+   segmentprofile(segid,p).texn$=""
+   segmentprofile(segid,p).texs$=""
+  endif
+  remend
+  objid=highlightobj : gosub _segedit_updateoneprofile
+  gosub _segedit_updatemesh
+ endif
+ `
+endif
+
+return
+
+_segedit_selecteffect:
+
+rem Only on a highlighrted object
+if highlightobj>0
+ `
+ rem requester
+ set dir currentfxdir$
+` effectfile$=dialog open file$()
+ effectfile$=browseropen$(5)
+ currentfxdir$=get dir$()
+ set dir rootdir$
+ `
+ rem Apply effect name to profile
+ if effectfile$<>""
+  `
+  rem Set effect name
+  segid=0 : p=segobj(highlightobj).p
+  tfile$=right$(effectfile$,len(effectfile$)-len(rootdir$))
+  segmentprofile(segid,p).effect$=tfile$
+  segmentprofile(segid,p).effectid=loadinternaleffect(effectfile$)
+  `
+  rem Apply mesh changes
+  objid=highlightobj : gosub _segedit_updateoneprofile
+  gosub _segedit_updatemesh
+  `
+ endif
+ `
+endif
+
+return
+
+_segedit_cleartexture:
+ if highlightobj>0
+  segid=0
+  objid=highlightobj
+  p=segobj(highlightobj).p
+  segmentprofile(segid,p).tex$=""
+  segmentprofile(segid,p).texid=0
+  segmentprofile(segid,p).texdid=0
+  segmentprofile(segid,p).texiid=0
+  segmentprofile(segid,p).texnid=0
+  segmentprofile(segid,p).texsid=0
+`  segmentprofile(segid,p).texd$=""
+`  segmentprofile(segid,p).texn$=""
+`  segmentprofile(segid,p).texs$=""
+  gosub _segedit_updateoneprofile
+  gosub _segedit_updatemesh
+  updatereadouts=1
+ endif
+return
+
+_segedit_cleareffect:
+ if highlightobj>0
+  segid=0
+  objid=highlightobj
+  p=segobj(highlightobj).p
+  segmentprofile(segid,p).effect$=""
+  segmentprofile(segid,p).effectid=0
+  gosub _segedit_updateoneprofile
+  gosub _segedit_updatemesh
+  updatereadouts=1
+ endif
+return
+
+_segedit_selectblueprint:
+
+rem Assign mode
+segmentprofile(segid).blueprint.mode=bluemode
+updatereadouts=1
+
+rem room
+if bluemode=0
+ segmentprofile(segid).blueprint.symbol=0
+ segmentprofile(segid).blueprint.floorsizey=0
+ segmentprofile(segid).blueprint.sidesizex=100
+ segmentprofile(segid).blueprint.sidesizey=100
+ segmentprofile(segid).blueprint.sidesizez=100
+ segmentprofile(segid).properties.groundmode=0
+endif
+
+rem floor
+if bluemode=1
+ segmentprofile(segid).blueprint.symbol=0
+ segmentprofile(segid).blueprint.floorsizey=1
+ segmentprofile(segid).blueprint.sidesizex=100
+ segmentprofile(segid).blueprint.sidesizey=1
+ segmentprofile(segid).blueprint.sidesizez=100
+ segmentprofile(segid).properties.groundmode=0
+endif
+
+rem external
+if bluemode=2
+ segmentprofile(segid).blueprint.symbol=0
+ segmentprofile(segid).blueprint.floorsizey=1
+ segmentprofile(segid).blueprint.sidesizex=100
+ segmentprofile(segid).blueprint.sidesizey=1
+ segmentprofile(segid).blueprint.sidesizez=100
+ segmentprofile(segid).properties.groundmode=2
+endif
+
+rem straight,corner,tjunc,cross,deadend
+if bluemode>=3 and bluemode<=7
+ segmentprofile(segid).blueprint.symbol=0
+ segmentprofile(segid).blueprint.floorsizey=0
+ segmentprofile(segid).blueprint.sidesizex=100
+ segmentprofile(segid).blueprint.sidesizey=100
+ segmentprofile(segid).blueprint.sidesizez=100
+ segmentprofile(segid).properties.groundmode=0
+ segmentprofile(segid).properties.kindof=bluemode-2
+endif
+
+return
+
+_segedit_incmaterial:
+ if highlightobj>0
+  segid=0
+  p=segobj(highlightobj).p
+  segmentprofile(segid,p).material.index=segmentprofile(segid,p).material.index+1
+  refreshpartlist=1
+  updatereadouts=1
+ endif
+return
+
+_segedit_decmaterial:
+ if highlightobj>0
+  segid=0
+  p=segobj(highlightobj).p
+  segmentprofile(segid,p).material.index=segmentprofile(segid,p).material.index-1
+  if segmentprofile(segid,p).material.index<0
+   segmentprofile(segid,p).material.index=0
+  endif
+  refreshpartlist=1
+  updatereadouts=1
+ endif
+return
+
+_segedit_multimeshmode:
+ if highlightobj>0
+  segid=0
+  p=segobj(highlightobj).p
+  segmentprofile(segid,p).multimeshmode=1-segmentprofile(segid,p).multimeshmode
+  refreshpartlist=1
+  updatereadouts=1
+ endif
+return
+
+_segedit_collisionmode:
+ if highlightobj>0
+  segid=0
+  p=segobj(highlightobj).p
+  segmentprofile(segid,p).colmode=segmentprofile(segid,p).colmode+1
+  if segmentprofile(segid,p).colmode>3 then segmentprofile(segid,p).colmode=0
+  refreshpartlist=1
+  updatereadouts=1
+ endif
+return
+
+_geticontypefromlistname:
+ if lower$(mid$(hicon$,4))="m" then hicon=segiconbank.mesh
+ if lower$(mid$(hicon$,4))="c" then hicon=segiconbank.csg
+ if lower$(mid$(hicon$,4))="l" then hicon=segiconbank.light
+ if lower$(mid$(hicon$,4))="e" then hicon=segiconbank.entity
+return
+
+_segedit_controlpartlist:
+
+rem Select pairt list item to select mesh
+if get control click(ctrlindex.partlist)=1
+ tlistitem=get control selected(ctrlindex.partlist)
+ for objid=segobjstart to segobjend
+  if object exist(objid)=1
+   if segobj(objid).p=tlistitem
+    triggerobjfocus=objid
+    objid=segobjend+1
+   endif
+  endif
+ next objid
+endif
+
+rem Shuffle position of items with arrowkeys
+if scancode()=0 then listkeypress=0
+if listkeypress=0 and listhighlightindex<>-1
+ if get control click(ctrlindex.partlistup)=1 and listhighlightindex>0
+  item1$=partlist$(listhighlightindex-1)
+  item2$=partlist$(listhighlightindex)
+  partlist$(listhighlightindex-1)=item2$
+  partlist$(listhighlightindex)=item1$
+  set control item ctrlindex.partlist,listhighlightindex-1,item2$
+  set control item ctrlindex.partlist,listhighlightindex,item1$
+  hicon$=item2$ : gosub _geticontypefromlistname
+  set control item icon ctrlindex.partlist,listhighlightindex-1,hicon
+  hicon$=item1$ : gosub _geticontypefromlistname
+  set control item icon ctrlindex.partlist,listhighlightindex,hicon
+  set control selection ctrlindex.partlist,listhighlightindex-1
+  listkeypress=1 : updatepartlist=1
+ endif
+ if get control click(ctrlindex.partlistdown)=1 and listhighlightindex<listhighlightmax-1
+  item1$=partlist$(listhighlightindex)
+  item2$=partlist$(listhighlightindex+1)
+  partlist$(listhighlightindex)=item2$
+  partlist$(listhighlightindex+1)=item1$
+  set control item ctrlindex.partlist,listhighlightindex,item2$
+  set control item ctrlindex.partlist,listhighlightindex+1,item1$
+  hicon$=item2$ : gosub _geticontypefromlistname
+  set control item icon ctrlindex.partlist,listhighlightindex,hicon
+  hicon$=item1$ : gosub _geticontypefromlistname
+  set control item icon ctrlindex.partlist,listhighlightindex+1,hicon
+  set control selection ctrlindex.partlist,listhighlightindex+1
+  listkeypress=1 : updatepartlist=1
+ endif
+ if get control click(ctrlindex.partlistsort)=1
+  `
+  rem Sort Segment Profiles by part list re-order
+  segid=0
+  dim tempsegmentprofile(64) as segmentprofiletype
+  for torder=0 to listhighlightmax-1
+   tfind=val(left$(partlist$(torder),2))
+   tempsegmentprofile(torder)=segmentprofile(segid,tfind)
+  next torder
+  for torder=0 to listhighlightmax-1
+   segmentprofile(segid,torder)=tempsegmentprofile(torder)
+  next torder
+`  undim tempsegmentprofile(0)
+  `
+  rem Save To Compact after reordering
+  gosub _segedit_sortintomeshorder
+  gosub _segment_savedata
+  gosub _segedit_reloadseg
+  refreshpartlist=1
+  `
+ endif
+endif
+
+rem Control position of item in list
+listhighlightindex=get control selected(ctrlindex.partlist)
+listhighlightmax=get control count(ctrlindex.partlist)
+
+return
+
+_segedit_changecsg:
+ if highlightobj>0
+  segid=0
+  p=segobj(highlightobj).p
+  segmentprofile(segid,p).csgmode=changecsgmode
+  segmentprofile(segid,p).effect$=""
+  if changecsgmode=0 then segmentprofile(segid,p).tex$="texturebank\common\basepunch."+imgext$
+  if changecsgmode=1 then segmentprofile(segid,p).tex$="texturebank\common\baseweld."+imgext$
+  segtexfile$=segmentprofile(segid,p).tex$
+  segmentprofile(segid,p).texid=loadinternaltexture(segtexfile$)
+  objid=highlightobj : gosub _segedit_updateoneprofile
+  gosub _segedit_updatemesh
+  updatereadouts=1
+ endif
+return
+
+_segedit_changelight:
+ if highlightobj>0
+  segid=0
+  p=segobj(highlightobj).p
+  segmentprofile(segid,p).lightmode=changelightmode
+  if renderpreviewmode>0
+   gosub _segedit_hide_renderpreview
+   gosub _segedit_show_renderpreview
+  endif
+  updatereadouts=1
+ endif
+return
+
+_segedit_managementcontrols:
+
+rem Respond to management controls
+if get control click(ctrlindex.newmesh)=1 then gosub _segedit_newmesh
+if get control click(ctrlindex.newcsg)=1 then gosub _segedit_newcsg
+`if get control click(ctrlindex.newlight)=1 then gosub _segedit_newlight
+if get control click(ctrlindex.newentity)=1 then gosub _segedit_newentity
+`
+rem mesh specific controls
+if get control click(ctrlindex.changemesh)=1 then gosub _segedit_selectmesh
+if get control click(ctrlindex.changetexture)=1 then gosub _segedit_selecttexture
+if get control click(ctrlindex.changeeffect)=1 then gosub _segedit_selecteffect
+if get control click(ctrlindex.changemesh2)=1 then gosub _segedit_deletehighlighed
+if get control click(ctrlindex.changetexture2)=1 then gosub _segedit_cleartexture
+if get control click(ctrlindex.changeeffect2)=1 then gosub _segedit_cleareffect
+`
+rem csg specific controls
+if get control click(ctrlindex.changecsgpunch)=1 then changecsgmode=0 : gosub _segedit_changecsg
+if get control click(ctrlindex.changecsgweld)=1 then changecsgmode=1 : gosub _segedit_changecsg
+`
+rem light specific controls
+if get control click(ctrlindex.changelightstatic)=1 then changelightmode=0 : gosub _segedit_changelight
+if get control click(ctrlindex.changelightdynamic)=1 then changelightmode=1 : gosub _segedit_changelight
+`
+rem entity specific controls
+if get control click(ctrlindex.entityanimate)=1 and highlightobj>0 then set object frame highlightobj,0 : play object highlightobj
+`
+rem segment specific
+if get control click(ctrlindex.blueprint)=1 then bluemode=get control selected(ctrlindex.blueprint) : gosub _segedit_selectblueprint
+`
+rem Toggle CSG immune state of highlighted part
+if highlightobj>0
+ if inkey$()="n"
+  if keyincmaterial=0
+   gosub _segedit_incmaterial
+   keyincmaterial=1
+  endif
+ else
+  keyincmaterial=0
+ endif
+ if inkey$()="b"
+  if keydecmaterial=0
+   gosub _segedit_decmaterial
+   keydecmaterial=1
+  endif
+ else
+  keydecmaterial=0
+ endif
+ if inkey$()="m"
+  if keymultimesh=0
+   gosub _segedit_multimeshmode
+   keymultimesh=1
+  endif
+ else
+  keymultimesh=0
+ endif
+ if inkey$()="c"
+  if keycollision=0
+   gosub _segedit_collisionmode
+   keycollision=1
+  endif
+ else
+  keycollision=0
+ endif
+ if inkey$()="i"
+  if keyimmune=0
+   segid=0 : p=segobj(highlightobj).p
+   if segmentprofile(segid,p).csgimmune=0
+    segmentprofile(segid,p).csgimmune=1
+   else
+    segmentprofile(segid,p).csgimmune=0
+   endif
+   refreshpartlist=1
+   updatereadouts=1
+   keyimmune=1
+  endif
+ else
+  keyimmune=0
+ endif
+endif
+
+rem Respond to key strokes
+if highlightobj>0
+ p=segobj(highlightobj).p
+ if inkey$()="" then vkeypress=0
+ if vkeypress=0
+  if inkey$()="1"
+   if segmentprofile(segid).vis.ctl<>-1 and segmentprofile(segid).vis.octl<>-1
+    segmentprofile(segid).vis.ctl=-1 : segmentprofile(segid).vis.octl=-1
+   else
+    if segmentprofile(segid).vis.ctl=-1 then segmentprofile(segid).vis.ctl=p
+    if segmentprofile(segid).vis.octl=-1 and p<>segmentprofile(segid).vis.ctl then segmentprofile(segid).vis.octl=p
+   endif
+   updatereadouts=1
+   vkeypress=1
+  endif
+  if inkey$()="2"
+   if segmentprofile(segid).vis.wf<>-1 and segmentprofile(segid).vis.owf<>-1
+    segmentprofile(segid).vis.wf=-1 : segmentprofile(segid).vis.owf=-1
+   else
+    if segmentprofile(segid).vis.wf=-1 then segmentprofile(segid).vis.wf=p
+    if segmentprofile(segid).vis.owf=-1 and p<>segmentprofile(segid).vis.wf then segmentprofile(segid).vis.owf=p
+   endif
+   updatereadouts=1
+   vkeypress=1
+  endif
+  if inkey$()="3"
+   if segmentprofile(segid).vis.ctr<>-1 and segmentprofile(segid).vis.octr<>-1
+    segmentprofile(segid).vis.ctr=-1 : segmentprofile(segid).vis.octr=-1
+   else
+    if segmentprofile(segid).vis.ctr=-1 then segmentprofile(segid).vis.ctr=p
+    if segmentprofile(segid).vis.octr=-1 and p<>segmentprofile(segid).vis.ctr then segmentprofile(segid).vis.octr=p
+   endif
+   updatereadouts=1
+   vkeypress=1
+  endif
+  if inkey$()="4"
+   if segmentprofile(segid).vis.wl<>-1 and segmentprofile(segid).vis.owl<>-1
+    segmentprofile(segid).vis.wl=-1 : segmentprofile(segid).vis.owl=-1
+   else
+    if segmentprofile(segid).vis.wl=-1 then segmentprofile(segid).vis.wl=p
+    if segmentprofile(segid).vis.owl=-1 and p<>segmentprofile(segid).vis.wl then segmentprofile(segid).vis.owl=p
+   endif
+   updatereadouts=1
+   vkeypress=1
+  endif
+  if inkey$()="5"
+   if segmentprofile(segid).vis.f<>-1 and segmentprofile(segid).vis.r<>-1
+    segmentprofile(segid).vis.f=-1 : segmentprofile(segid).vis.r=-1
+   else
+    if segmentprofile(segid).vis.f=-1 then segmentprofile(segid).vis.f=p
+    if segmentprofile(segid).vis.r=-1 and p<>segmentprofile(segid).vis.f then segmentprofile(segid).vis.r=p
+   endif
+   updatereadouts=1
+   vkeypress=1
+  endif
+  if inkey$()="6"
+   if segmentprofile(segid).vis.wr<>-1 and segmentprofile(segid).vis.owr<>-1
+    segmentprofile(segid).vis.wr=-1 : segmentprofile(segid).vis.owr=-1
+   else
+    if segmentprofile(segid).vis.wr=-1 then segmentprofile(segid).vis.wr=p
+    if segmentprofile(segid).vis.owr=-1 and p<>segmentprofile(segid).vis.wr then segmentprofile(segid).vis.owr=p
+   endif
+   updatereadouts=1
+   vkeypress=1
+  endif
+  if inkey$()="7"
+   if segmentprofile(segid).vis.cbl<>-1 and segmentprofile(segid).vis.ocbl<>-1
+    segmentprofile(segid).vis.cbl=-1 : segmentprofile(segid).vis.ocbl=-1
+   else
+    if segmentprofile(segid).vis.cbl=-1 then segmentprofile(segid).vis.cbl=p
+    if segmentprofile(segid).vis.ocbl=-1 and p<>segmentprofile(segid).vis.cbl then segmentprofile(segid).vis.ocbl=p
+   endif
+   updatereadouts=1
+   vkeypress=1
+  endif
+  if inkey$()="8"
+   if segmentprofile(segid).vis.wb<>-1 and segmentprofile(segid).vis.owb<>-1
+    segmentprofile(segid).vis.wb=-1 : segmentprofile(segid).vis.owb=-1
+   else
+    if segmentprofile(segid).vis.wb=-1 then segmentprofile(segid).vis.wb=p
+    if segmentprofile(segid).vis.owb=-1 and p<>segmentprofile(segid).vis.wb then segmentprofile(segid).vis.owb=p
+   endif
+   updatereadouts=1
+   vkeypress=1
+  endif
+  if inkey$()="9"
+   if segmentprofile(segid).vis.cbr<>-1 and segmentprofile(segid).vis.ocbr<>-1
+    segmentprofile(segid).vis.cbr=-1 : segmentprofile(segid).vis.ocbr=-1
+   else
+    if segmentprofile(segid).vis.cbr=-1 then segmentprofile(segid).vis.cbr=p
+    if segmentprofile(segid).vis.ocbr=-1 and p<>segmentprofile(segid).vis.cbr then segmentprofile(segid).vis.ocbr=p
+   endif
+   updatereadouts=1
+   vkeypress=1
+  endif
+ endif
+endif
+
+return
+
+_segedit_camera:
+
+rem Control camera view
+mousecamera=0
+if mousecamera=1
+ rem Control camera (with mouse)
+ tdeltax=mousemovex() : tdeltay=mousemovey() : tdeltaz=mousemovez()
+ if mouseclick()<>2 then tdeltax=0 : tdeltay=0 : tdeltaz=0
+else
+ rem Control camera (with cursor)
+ tdeltax=0 : tdeltay=0 : tdeltaz=0
+ if leftkey()=1 then tdeltax=-4
+ if rightkey()=1 then tdeltax=4
+ if upkey()=1 then tdeltay=-4
+ if downkey()=1 then tdeltay=4
+ if keystate(201)=1 then tdeltaz=4
+ if keystate(209)=1 then tdeltaz=-4
+endif
+
+rem Prompt preview of final rendering of the segment
+if renderpreviewmode=0 and keystate(15)=1 then renderpreviewmode=1 : gosub _segedit_show_renderpreview
+if renderpreviewmode=1 and keystate(15)=0 then renderpreviewmode=2
+if renderpreviewmode=2 and keystate(15)=1 then renderpreviewmode=3 : gosub _segedit_hide_renderpreview
+if renderpreviewmode=3 and keystate(15)=0 then renderpreviewmode=0
+if renderpreviewmode>0 then set cursor 0,0 : print "PREVIEW MODE"
+if spacekey()=1 then gosub _snapshot_thumbnail
+
+rem Apply camera changes
+segcam.angle=segcam.angle-tdeltax
+segcam.distance=segcam.distance+tdeltay
+segcam.height=segcam.height+tdeltaz
+if segcam.distance<10 then segcam.distance=10
+set camera to follow 50,50,50,segcam.angle,segcam.distance,segcam.height,10,0
+point camera 50,50,50
+
+rem Lights for camera
+if renderpreviewmode=0
+ if light exist(1)=1
+  set point light 1,camera position x(0),camera position y(0),camera position z(0)
+ endif
+else
+ dynamiclightcount=0
+ for objid=segobjstart to segobjend
+  if object exist(objid)=1
+   segid=0 : p=segobj(objid).p
+   if segmentprofile(segid,p).partmode=2
+    if segmentprofile(segid,p).lightmode=1
+     if dynamiclightcount<7
+      inc dynamiclightcount
+      position light dynamiclightcount, object position x(objid), object position y(objid), object position z(objid)
+     endif
+    endif
+   endif
+  endif
+ next objid
+ if dynamiclightcount=0
+  set point light 0,camera position x(0),camera position y(0),camera position z(0)
+ else
+  set point light 0,0,50000,0
+ endif
+endif
+
+return
+
+_segedit_objects:
+
+rem Drag object under cursor
+if mouseclick()=0 then pickmode=0 : cursorobj=0
+mclick=0 : if mousex()<scr.paneldivide then mclick=mouseclick()
+if mclick<>lastmclick then mclickchange=1 else mclickchange=0
+lastmclick=mclick
+if mclick>0
+ if pickmode=0 and mclickchange=1
+  cursorobj=pick object(mousex(),mousey(),segobjstart,segobjend)
+  if renderpreviewmode>0
+   segid=0 : p=segobj(cursorobj).p
+   if segmentprofile(segid,p).partmode<=1 then cursorobj=0
+  endif
+  if cursorobj>0
+   pickmode=mclick
+   pickdistance#=get pick distance()
+   pickfromx#=get pick vector x()
+   pickfromy#=get pick vector y()
+   pickfromz#=get pick vector z()
+   if pickmode=1
+    objx#=object position x(cursorobj)
+    objy#=object position y(cursorobj)
+    objz#=object position z(cursorobj)
+   else
+    objx#=object angle x(cursorobj)
+    objy#=object angle y(cursorobj)
+    objz#=object angle z(cursorobj)
+    pickdiffx#=mousemovey() : pickdiffx#=0
+    pickdiffy#=mousemovex() : pickdiffy#=0
+   endif
+  else
+   if mclick=2 then highlightobj=0
+  endif
+ endif
+ if pickmode>0
+  if object exist(cursorobj)=0 and pickmode<>0 then pickmode=0 : cursorobj=0
+  if cursorobj>0
+   if pickmode=1
+    pick screen mousex(),mousey(),pickdistance#
+    picktox#=get pick vector x()
+    picktoy#=get pick vector y()
+    picktoz#=get pick vector z()
+    pickdiffx#=picktox#-pickfromx#
+    pickdiffy#=picktoy#-pickfromy#
+    pickdiffz#=picktoz#-pickfromz#
+    `
+    rem control exactly how the object is positioned with the mouse movements
+    if shiftkey()=1
+     pickdiffx#=0 : pickdiffz#=0
+    else
+     if abs(pickdiffy#)>(abs(pickdiffz#)+abs(pickdiffx#))
+      pickdiffx#=0 : pickdiffz#=0
+     else
+      if abs(pickdiffx#)>abs(pickdiffz#)
+       pickdiffz#=0
+      else
+       pickdiffx#=0
+      endif
+     endif
+    endif
+    `
+    pickdiffx#=int(pickdiffx#/5)*5
+    pickdiffy#=int(pickdiffy#/5)*5
+    pickdiffz#=int(pickdiffz#/5)*5
+    position object cursorobj,objx#+pickdiffx#,objy#+pickdiffy#,objz#+pickdiffz#
+    updatereadouts=1 : updatereadoutposrotonly=1
+   else
+    pickdiffy#=pickdiffy#+mousemovex()
+    tpickdiffy#=int(pickdiffy#/22.5)*22.5
+    rotate object cursorobj,wrapvalue(objx#-tpickdiffx#),wrapvalue(objy#-tpickdiffy#),objz#
+    updatereadouts=1 : updatereadoutposrotonly=1
+   endif
+   segid=0 : p=segobj(cursorobj).p
+   segmentprofile(segid,p).offx=object position x(cursorobj)-50
+   segmentprofile(segid,p).offy=object position y(cursorobj)-50
+   segmentprofile(segid,p).offz=object position z(cursorobj)-50
+   segmentprofile(segid,p).rotx=object angle x(cursorobj)
+   segmentprofile(segid,p).roty=object angle y(cursorobj)
+   segmentprofile(segid,p).rotz=object angle z(cursorobj)
+  endif
+ endif
+endif
+
+rem Block Rotate object (if highlighted)
+if keystate(51)+keystate(52)=0 then rkeypress=0
+tblockrot=0
+if rkeypress=0
+ if keystate(51)=1 then tblockrot=-90
+ if keystate(52)=1 then tblockrot=90
+endif
+if tblockrot<>0
+ objid=highlightobj
+ x=object position x(objid)-50 : y=object position z(objid)-50
+ if tblockrot=-90 then ss=x : x=y*-1 : y=ss
+ if tblockrot=90 then ss=x : x=y : y=ss*-1
+ position object objid,50+x,object position y(objid),50+y
+ yrotate object objid,wrapvalue(object angle y(objid)+tblockrot)
+ segmentprofile(segid,p).offx=object position x(objid)-50
+ segmentprofile(segid,p).offz=object position z(objid)-50
+ segmentprofile(segid,p).roty=object angle y(objid)
+ updatereadouts=1 : updatereadoutposrotonly=1
+ rkeypress=1
+endif
+
+rem Make and show shadow for cursor object
+if triggerobjfocus>0 then cursorobj=triggerobjfocus : triggerobjfocus=0
+if cursorobj>0
+ highlightobj=cursorobj
+ if shadowobj=0
+  if segmentprofile(segid,p).partmode<=1
+   shadowobj=highlightobj
+   if object exist(shadowobj)=1
+    if renderpreviewmode=0 then set point light 0,object position x(shadowobj),object position y(shadowobj)+500,object position z(shadowobj)
+    show object bounds shadowobj,1
+    set object emissive shadowobj,rgb(64,64,64)
+    set shadow shading on shadowobj
+   else
+    shadowobj=0
+   endif
+  endif
+ else
+  if object exist(shadowobj)=1
+   if renderpreviewmode=0 then set point light 0,object position x(shadowobj),object position y(shadowobj)+500,object position z(shadowobj)
+  else
+   shadowobj=0
+  endif
+ endif
+else
+ rem When not dragging a shadow around, no shadow
+ if shadowobj>0
+  if object exist(shadowobj)=1
+   rem Shaodw casting off
+   set shading off shadowobj
+   rem Reestablish special effect if any
+   objid=shadowobj : p=segobj(shadowobj).p
+   gosub _segedit_updatetextureeffect
+  endif
+  shadowobj=0
+ endif
+ rem and light at camera position
+ if renderpreviewmode=0 then set point light 0,camera position x(),camera position y(),camera position z()
+endif
+
+rem Show highlighted object
+for objid=segobjstart to segobjend
+ if object exist(objid)=1
+  if objid=highlightobj
+   show object bounds objid,1
+   set object emissive objid,rgb(64,64,64)
+  else
+   hide object bounds objid
+   set object emissive objid,rgb(0,0,0)
+  endif
+ endif
+next objid
+
+return
+
+_segedit_deletehighlighed:
+ if highlightobj>0
+  rem delete entry in profile
+  segid=0 : p=segobj(highlightobj).p
+  segmentprofile(segid,p).meshname$=""
+  rem delete object
+  delete object highlightobj
+  refreshpartlist=1
+  updatereadouts=1
+  highlightobj=0
+ endif
+return
+
+_segedit_copyobject:
+ copyobj=segclipboard.storecopiedobj
+ segclipboard.storecopiedprofile=segmentprofile(segid,copyobj-1)
+return
+
+_segedit_clipboard:
+
+rem cut, copy, paste, delete and selectall selections
+segclipboard.cut=0 : segclipboard.copy=0
+segclipboard.paste=0 : segclipboard.delete=0
+segclipboard.duplicatedata=0
+if get menu selected(menuindex.cut)=1 then segclipboard.cut=1
+if get menu selected(menuindex.copy)=1 then segclipboard.copy=1
+if get menu selected(menuindex.paste)=1 then segclipboard.paste=1
+if get menu selected(menuindex.delete)=1 then segclipboard.delete=1
+if keystate(45)+keystate(46)+keystate(47)+keystate(32)+keystate(211)=0 then keypress=0
+if keypress=0
+ if controlkey()=1
+  if keystate(45)=1 then segclipboard.cut=1 : keypress=1
+  if keystate(46)=1 then segclipboard.copy=1 : keypress=1
+  if keystate(47)=1 then segclipboard.paste=1 : keypress=1
+  if keystate(32)=1 then segclipboard.duplicatedata=1 : keypress=1
+ endif
+ if keystate(211)=1 then segclipboard.delete=1 : keypress=1
+endif
+
+rem Cut (if highlighted)
+if segclipboard.cut=1 and highlightobj>0
+ segclipboard.storecopiedobj=highlightobj : gosub _segedit_copyobject
+ gosub _segedit_deletehighlighed
+ updatereadouts=1
+endif
+
+rem Copy (if highlighted)
+if segclipboard.copy=1 and highlightobj>0
+ segclipboard.storecopiedobj=highlightobj : gosub _segedit_copyobject
+ updatereadouts=1
+endif
+
+rem Paste (if copied object)
+if segclipboard.paste=1 and segclipboard.storecopiedobj>0
+ segobjfile$=segobj(segclipboard.storecopiedobj).file$
+ segobjprofilenumber=-1
+ gosub _segedit_importmesh
+ p=segobj(highlightobj).p
+ segmentprofile(segid,p)=segclipboard.storecopiedprofile
+ gosub _segedit_updatemesh
+ segclipboard.storecopiedobj=highlightobj : gosub _segedit_copyobject
+ triggerobjfocus=highlightobj
+ refreshpartlist=1
+ updatereadouts=1
+endif
+
+rem Delete (if highlighted)
+if segclipboard.delete=1 and highlightobj>0
+ segclipboard.storecopiedobj=0
+ gosub _segedit_deletehighlighed
+ updatereadouts=1
+endif
+
+rem Duplicate key visual data over
+if segclipboard.duplicatedata=1 and highlightobj>0 and segclipboard.storecopiedobj>0
+ `
+ rem data copy
+ freeobjid=highlightobj : p=segobj(freeobjid).p
+ segmentprofile(segid,p).meshname$=segclipboard.storecopiedprofile.meshname$
+ segmentprofile(segid,p).meshid=segclipboard.storecopiedprofile.meshid
+ segmentprofile(segid,p).effect$=segclipboard.storecopiedprofile.effect$
+ segmentprofile(segid,p).effectid=segclipboard.storecopiedprofile.effectid
+ segmentprofile(segid,p).tex$=segclipboard.storecopiedprofile.tex$
+ segmentprofile(segid,p).texid=segclipboard.storecopiedprofile.texid
+ segmentprofile(segid,p).texdid=segclipboard.storecopiedprofile.texdid
+ segmentprofile(segid,p).texiid=segclipboard.storecopiedprofile.texiid
+ segmentprofile(segid,p).texnid=segclipboard.storecopiedprofile.texnid
+ segmentprofile(segid,p).texsid=segclipboard.storecopiedprofile.texsid
+` segmentprofile(segid,p).texd$=segclipboard.storecopiedprofile.texd$
+` segmentprofile(segid,p).texn$=segclipboard.storecopiedprofile.texn$
+` segmentprofile(segid,p).texs$=segclipboard.storecopiedprofile.texs$
+ `
+ rem force new mesh to existing part
+ segobjfile$=segobj(segclipboard.storecopiedobj).file$ : gosub _segedit_loadmesh
+ p=segobj(highlightobj).p : gosub _segedit_updatemesh
+ refreshpartlist=1 : updatereadouts=1
+ `
+endif
+
+return
+
+rem
+rem CSG
+rem
+
+_segedit_show_renderpreview:
+
+menuactivity$=strarr$(381)
+gosub _segedit_menuactivityprompt
+
+rem Show constructed segment as preview (create temp objs)
+tempobjstart=segobjend+101 : tempobj=tempobjstart
+for objid=segobjstart to segobjend
+ if object exist(objid)=1
+  segid=0 : p=segobj(objid).p
+  if segmentprofile(segid,p).partmode<=1
+   clone object tempobj,objid
+   position object tempobj,object position x(objid),object position y(objid),object position z(objid)
+   rotate object tempobj,object angle x(objid),object angle y(objid),object angle z(objid)
+   if object visible(objid)=0 then hide object tempobj
+   hide object objid
+   tempobjend=tempobj
+   inc tempobj
+  endif
+ endif
+next objid
+
+rem Create temo array to store if target object gets CSGd
+tempcsgflagmax=tempobjend
+dim tempcsgflag(tempcsgflagmax)
+for t=0 to tempcsgflagmax : tempcsgflag(t)=0 : next t
+
+rem Perform CSG on temp objects
+tempcsgflagused=0
+tempobj=tempobjstart
+for scanobjid=segobjstart to segobjend
+ if object exist(scanobjid)=1
+  if tempobj>tempcsgflagmax
+   inc tempcsgflagmax
+   dim tempcsgflag(tempcsgflagmax)
+  endif
+  tempcsgflag(tempobj)=0
+  segid=0 : p=segobj(scanobjid).p : tcsgmode=0
+  if segmentprofile(segid,p).partmode<=1
+   if segmentprofile(segid,p).partmode=1 then tcsgmode=1+segmentprofile(segid,p).csgmode
+   if tcsgmode=0
+    if segmentprofile(segid,p).partmode=0 and segmentprofile(segid,p).csgimmune=0
+     for objid=segobjstart to segobjend
+      if objid<>tempobj
+       if object exist(objid)=1
+        p=segobj(objid).p : tcsgmode=0
+        if segmentprofile(segid,p).partmode=1 then tcsgmode=1+segmentprofile(segid,p).csgmode
+        if tcsgmode>0
+         `
+         rem BUG: position is reset in target and brush obj
+         s1x#=object position x(tempobj)
+         s1y#=object position y(tempobj)
+         s1z#=object position z(tempobj)
+         s1ax#=object angle x(tempobj)
+         s1ay#=object angle y(tempobj)
+         s1az#=object angle z(tempobj)
+         s2x#=object position x(objid)
+         s2y#=object position y(objid)
+         s2z#=object position z(objid)
+         s2ax#=object angle x(objid)
+         s2ay#=object angle y(objid)
+         s2az#=object angle z(objid)
+         `
+         rem See if Object BoundBoxes touching, if so, perform CSG
+         set object collision to boxes tempobj : set object collision on tempobj
+         set object collision to boxes objid : set object collision on objid
+         `
+         if object collision(tempobj,objid)<>0
+          if tcsgmode=1 then perform csg difference tempobj, objid
+          if tcsgmode=2 then perform csg union tempobj, objid
+          tempcsgflag(tempobj)=1 : tempcsgflagused=1
+          hide object objid
+         endif
+         `
+         set object collision on tempobj
+         set object collision off objid
+         `
+        endif
+       endif
+      endif
+     next objid
+    endif
+   else
+    hide object tempobj
+   endif
+   inc tempobj
+  endif
+ endif
+next scanobjid
+
+rem Perform LIGHTMAPPING on Preview Objects
+`delete light map pool
+for l=1 to 7
+ if light exist(l)=1 then hide light l : delete light l
+next l
+dynamiclightcount=0
+for tempobj=tempobjstart to tempobjend
+ if object exist(tempobj)=1
+`  add object to light map pool tempobj
+ endif
+next tempobj
+for objid=segobjstart to segobjend
+ if object exist(objid)=1
+  segid=0 : p=segobj(objid).p
+  if segmentprofile(segid,p).partmode=2
+   if segmentprofile(segid,p).lightmode=0
+`    add light map light object position x(objid),object position y(objid),object position z(objid), 5000, 0, 255, 255, 200, 0
+   else
+    if dynamiclightcount<7
+     inc dynamiclightcount
+     make light dynamiclightcount
+     position light dynamiclightcount, object position x(objid), object position y(objid), object position z(objid)
+    endif
+   endif
+  endif
+ endif
+next objid
+`create light maps
+
+rem Move original objs away so can clock only lights&entities
+for objid=segobjstart to segobjend
+ if object exist(objid)=1
+  segid=0 : p=segobj(objid).p
+  if segmentprofile(segid,p).partmode<=1
+   position object objid,object position x(objid),object position y(objid)+20000,object position z(objid)
+  endif
+ endif
+next objid
+
+return
+
+_segedit_hide_renderpreview:
+
+rem Move original objs back to carry on
+for objid=segobjstart to segobjend
+ if object exist(objid)=1
+  segid=0 : p=segobj(objid).p
+  if segmentprofile(segid,p).partmode<=1
+   position object objid,object position x(objid),object position y(objid)-20000,object position z(objid)
+  endif
+ endif
+next objid
+
+rem Delete temp objects
+for tempobj=tempobjstart to tempobjend
+ if object exist(tempobj)=1 then delete object tempobj
+next tempobj
+
+rem Show original segedit objects
+for objid=segobjstart to segobjend
+ if object exist(objid)=1
+  show object objid
+ endif
+next objid
+
+rem Restore lights
+for l=1 to 7
+ if light exist(l)=1 then hide light l : delete light l
+next l
+make light 1 : show light 1
+
+return
+
+_segedit_save_replacedmeshes:
+
+rem Create temp to CSG the segment objects
+gosub _segedit_show_renderpreview
+
+rem If CSG used, use temp objects to create and save meshes
+if tempcsgflagused=0
+ `
+ for scanobjid=segobjstart to segobjend
+  segid=0 : p=segobj(scanobjid).p
+  segmentprofile(segid,p).csgmesh$=""
+ next scanobjid
+ `
+else
+ `
+ set dir currentsegdir$
+ segmeshdir$=left$(savesegfile$,len(savesegfile$)-len(".fps"))
+ segmeshdir$=getfile(segmeshdir$)
+ if path exist(segmeshdir$)=0 then make directory segmeshdir$
+ set dir segmeshdir$
+ `
+ rem Clear mesh folder first of all files
+ perform checklist for files
+ for c=1 to checklist quantity()
+  tfile$=checklist string$(c)
+  if tfile$<>"." and tfile$<>".."
+   delete file tfile$
+  endif
+ next c
+ `
+ tempobj=tempobjstart
+ for scanobjid=segobjstart to segobjend
+  `
+  rem If viable mesh
+  segid=0 : p=segobj(scanobjid).p
+  if segmentprofile(segid,p).partmode<=1
+   `
+   rem Create replacement mesh for target object (A)
+   tcsgmode=0
+   if object exist(tempobj)=1
+    if tempcsgflag(tempobj)=1
+     position object tempobj,0,0,0
+     rotate object tempobj,0,0,0
+     make mesh from object 2,tempobj
+     tfile$="mesh"+str$(tempobj)+".x"
+     if file exist(tfile$)=1 then delete file tfile$
+     if mesh exist(2)=1
+      save mesh tfile$,2
+      delete mesh 2
+      tcsgmode=1
+     endif
+    endif
+    inc tempobj
+   endif
+   `
+   rem Update CSG info in target object (A)
+   segid=0 : p=segobj(scanobjid).p
+   if tcsgmode>0
+    tfilder$=get dir$()
+    tfolder$=right$(tfilder$,len(tfilder$)-len(rootdir$))+"\"+tfile$
+    segmentprofile(segid,p).csgmesh$=tfolder$
+    segmentprofile(segid,p).multimeshmode=0
+   else
+    segmentprofile(segid,p).csgmesh$=""
+   endif
+   `
+  endif
+  `
+ next scanobjid
+ set dir rootdir$
+ `
+endif
+
+rem Restore editor segment objects
+gosub _segedit_hide_renderpreview
+
+return
+
+_snapshot_thumbnail:
+
+rem Hide South and West parts of segment (for better thumbnail view)
+segid=0
+for objid=segobjstart to segobjend
+ if object exist(objid)=1
+  p=segobj(objid).p
+  if segmentprofile(segid).vis.wb=p then hide object objid
+  if segmentprofile(segid).vis.wl=p then hide object objid
+  if segmentprofile(segid).vis.owb=p then hide object objid
+  if segmentprofile(segid).vis.owl=p then hide object objid
+  if segmentprofile(segid).vis.cbl=p then hide object objid
+  if segmentprofile(segid).vis.ocbl=p then hide object objid
+ endif
+next objid
+
+rem Ensure in preview mode for screen grab
+if renderpreviewmode=1 then renderpreviewmode=0 : gosub _segedit_hide_renderpreview
+if renderpreviewmode=0 then renderpreviewmode=1 : gosub _segedit_show_renderpreview
+
+rem Place camera
+set camera fov 37
+set camera view 0,0,512,512
+position camera -100,200,-100
+point camera 50,42,50
+set point light 0,-100,200,-100
+color light 0,1024,1024,10224
+
+rem Set backdrop
+color backdrop rgb(255,255,255)
+position matrix 1,-10000,0,-10000
+
+rem Save render to thumbnail BMP
+sync : sync : get image 65500,0,0,512,512
+if savesegfile$<>""
+ tbmpfile$=left$(savesegfile$,len(savesegfile$)-4)+".bmp"
+ if file exist(tbmpfile$)=1 then delete file tbmpfile$
+ create bitmap 6,64,64
+ create bitmap 5,512,512
+ set current bitmap 5
+ paste image 65500,0,0
+ copy bitmap 5,0,0,512,512,6,0,0,64,64
+ delete bitmap 5
+ set current bitmap 6
+ get image 65500,0,0,64,64
+ delete bitmap 6
+ save image tbmpfile$,65500
+endif
+
+rem Pause while holding space
+while spacekey()=1 : endwhile
+
+rem Restore camera and backdrop
+set camera fov 45
+set camera view 0,0,camviewwidth#,camviewheight#
+color backdrop rgb(64,64,64)
+position matrix 1,-100,0,-100
+color light 0,255,255,255
+
+rem Show all objects again
+segid=0
+for objid=segobjstart to segobjend
+ if object exist(objid)=1
+  show object objid
+ endif
+next objid
+
+rem Update preview!
+if renderpreviewmode=1
+ gosub _segedit_hide_renderpreview
+ gosub _segedit_show_renderpreview
+endif
+
+return
+
+`
+` Subroutines that are needed to allow segment editor to compile
+`
+
+_gun_change:
+_entity_resolveobjective:
+_lighting_postdefaults:
+_flak_findindex:
+_version_commandlineprompt:
+_version_endofinit:
+_ode_entitydrivenphysics:
+_ode_entitydrivenstaticphysics:
+_ode_applyforce:
+_ode_triggermaterialsound:
+_ode_switchoffe:
+_ode_setupewithphysics:
+_ode_ensureeisnotpenetrated:
+_ode_playerborble:
+_ode_unmark:
+_ode_mark:
+_ode_playercamera:
+_ode_listener:
+_ode_applypointforce:
+_ode_pushusingtvelandangle:
+_multi_dealentityedamage:
+_multi_mptrigger:
+_multi_missioncomplete:
+_multi_playershoots:
+_part_createfragment:
+_part_triggerexplosion:
+_part_movedebrisifinray:
+_decalelement_create:
+_flakelement_create:
+_flakelement_explodeinstantly:
+_player_resetobjectives:
+_saveload_savebox_init:
+_saveload_savebox_earlygrab:
+_saveload_savebox_initlist:
+_saveload_savebox_dosave:
+_saveload_savegame:
+_saveload_maindialogloop:
+return
+
+function timestampactivity(i,e$)
+endfunction
+

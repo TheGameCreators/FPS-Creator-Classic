@@ -1,0 +1,38 @@
+;Entity Spec
+
+;Header
+desc          = %remote door
+
+;AI
+aiinit	      = appear1.fpi
+aimain	      = doorremote.fpi
+aidestroy     = disappear1.fpi
+
+;Spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;Orientation
+model         = meshbank\scifi\scenery\doors\door_c\door_c.x
+offx          = 0
+offy          = 50
+offz          = 0
+rotx          = 0
+roty          = 0
+rotz          = 0
+materialindex = 3
+soundset      = audiobank\scifi\scenery\doors\open.wav
+soundset1     = audiobank\scifi\scenery\doors\close.wav
+
+;Visualinfo
+textured      = texturebank\scifi\scenery\doors\door_c\door_c_D2.tga
+effect        = effectbank\bumpent\bumpent.fx
+
+;Identity Details
+strength      = 0
+isimmobile    = 1
+
+;Animationinfo
+animmax       = 1
+anim0         = 0,30

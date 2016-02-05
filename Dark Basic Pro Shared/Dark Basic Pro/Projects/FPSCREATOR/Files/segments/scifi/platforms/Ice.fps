@@ -1,0 +1,55 @@
+;Segment Spec
+
+;Header
+
+partmax = 0
+lastmeshmax = 0
+
+;Segment Parts
+
+partmode0       = 0
+meshname0       = meshbank\common\floor_a.x
+offx0           = 0
+offy0           = -50
+offz0           = 0
+rotx0           = 0
+roty0           = 0
+rotz0           = 0
+texture0        = texturebank\scifi\floors\ice\F_v_01_D2.tga
+transparency0   = 0
+effect0         = 
+colmode0        = 1
+csgmesh0        = 
+csgmode0        = 0
+csgimmune0      = 1
+lightmode0      = 0
+multimeshmode0  = 0
+materialindex0  = 5
+
+;Segment Visibility
+
+visoverlay      = 0
+visfloor        = 0
+visroof         = -1
+viswallb        = -1
+viswallr        = -1
+viswallf        = -1
+viswalll        = -1
+viscornertl     = -1
+viscornertr     = -1
+viscornerbr     = -1
+viscornerbl     = -1
+
+;Segment Blueprint
+
+mode            = 1
+symbol          = 0
+floorsizey      = 1
+sidesizex       = 100
+sidesizey       = 1
+sidesizez       = 100
+groundmode      = 2
+kindof          = 0
+
+;end
+

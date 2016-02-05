@@ -1,0 +1,41 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Chase And Shoot
+
+;Triggers
+
+:nearactivatable=0:settarget,activatetarget=2
+:losetarget=50:freeze,runfpidefault=1
+:plralive=0:freeze,runfpidefault=1
+:ifweapon=1:state=21
+
+:state=21,timergreater=100:timerstart,state=22,rotatetoplr
+:state=21:state=1
+:state=22,plrcanbeseen=46,plringunsight,rateoffire:settarget,useweapon,rundecal=6,choosestrafe
+:state=22:state=1
+
+:ifweapon=0:reloadweapon,freeze,setframe=6,state=4,sound=audiobank\guns\reload.wav
+:shotdamage=1:settarget,freeze,state=0
+
+:state=0,plrdistfurther=100:state=1
+:state=0,plrdistwithin=101:state=2,animate=1
+
+:state=1,plrelevfurther=10,plringunsight:state=11
+
+:state=2:rotatetoplr,resethead
+:state=2:freeze,state=0
+
+:state=4:incframe=6
+:state=4,frameatend=6:state=0
+
+:state=11,timergreater=100:timerstart,state=12
+:state=11:state=1
+:state=12,plrcanbeseen=46:freeze,settarget,animate=1,state=0
+:state=12:state=1
+
+:state=1:followplr=1,animate=5
+:state=1:state=0
+
+;End of Script

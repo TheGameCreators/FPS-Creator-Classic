@@ -1,0 +1,891 @@
+rem
+rem FUNCTIONS FOR COMMON USE
+rem
+
+`
+` SUBROUTINES RELATING TO COMMON ACTIVITIES AND RESOURCES
+`
+
+_common_wipeeffectifnotexist:
+ rem if file not exist, do not try to use effect
+ if file exist(tfile$)=0 then tfile$=""
+return
+
+_common_makeeffecttextureset:
+ `
+ rem used by entitycore and segmentmaker (takes tfile$ and texdir$)
+ gosub _common_wipeeffectifnotexist
+ `
+ rem reset output
+ absolutelyrequirethistexture=0
+ ensureclearlayermax=0
+ texdir1$=""
+ texdir2$=""
+ texdir3$=""
+ texdir4$=""
+ texdir5$=""
+ `
+ rem determine effect textures to use
+ if tfile$<>"" and segnoeffects=0
+  `
+  rem D2=D+I+N+S
+  tstr0$=left$(texdir$,len(texdir$)-4) : rem _01_D2.TGA -> _01_D2
+  tstr1$=left$(texdir$,len(texdir$)-6) : rem _01_D2.TGA -> _01_
+  tstr2$=right$(texdir$,4) : rem _01_D2.TGA -> .TGA
+  `
+  rem D2 must be present to indicate existence of D, N, S, I, etc
+  if upper$(right$(tstr0$,2))="D2"
+   `
+   rem The system used by FPSC is D.I.N.S for 0,1,2,3
+   if guseeffectsonessentials=1
+    rem no EA essential mode in V1
+   else
+    rem we will deal with shaders more thoroughly in V1
+    hardcodedtexturestages=0
+    `
+    rem related to scene universe (lightmap stage present)
+    ttt$="illuminationmap.fx" : if lower$(right$(tfile$,len(ttt$)))=ttt$ then hardcodedtexturestages=1
+    ttt$="bump.fx" : if lower$(right$(tfile$,len(ttt$)))=ttt$ then hardcodedtexturestages=2
+    `
+    rem related to entities (lightmap stage NOT present)
+    ttt$="illuminationent.fx" : if lower$(right$(tfile$,len(ttt$)))=ttt$ then hardcodedtexturestages=11
+    ttt$="bumpent.fx" : if lower$(right$(tfile$,len(ttt$)))=ttt$ then hardcodedtexturestages=12
+    ttt$="bumpbone.fx" : if lower$(right$(tfile$,len(ttt$)))=ttt$ then hardcodedtexturestages=13
+    `
+    if hardcodedtexturestages>0
+     if hardcodedtexturestages=1
+      rem [LM]+[DIFF+ILLU]
+      ensureclearlayermax=2
+      texdir1$=tstr1$+"D2"+tstr2$
+      texdir2$=tstr1$+"D2"+tstr2$
+      texdir3$=tstr1$+"I"+tstr2$
+     endif
+     if hardcodedtexturestages=2
+      rem [LM]+[DIFF+NORM]
+      ensureclearlayermax=2
+      texdir1$=tstr1$+"D"+tstr2$
+      texdir2$=tstr1$+"D"+tstr2$
+      texdir3$=tstr1$+"N"+tstr2$
+      rem Absolutely must have a NORMAL MAP, or fail this effect
+      absolutelyrequirethistexture=3
+     endif
+     if hardcodedtexturestages=11
+      rem [DIFF+ILLU]
+      ensureclearlayermax=1
+      texdir1$=tstr1$+"D2"+tstr2$
+      texdir2$=tstr1$+"I"+tstr2$
+     endif
+     if hardcodedtexturestages=12
+      rem [DIFF+NORM]
+      ensureclearlayermax=1
+      texdir1$=tstr1$+"D"+tstr2$
+      texdir2$=tstr1$+"N"+tstr2$
+      rem Absolutely must have a NORMAL MAP, or fail this effect
+      absolutelyrequirethistexture=2
+     endif
+     if hardcodedtexturestages=13
+      rem [DIFF+NORM+SPEC]
+      ensureclearlayermax=2
+      texdir1$=tstr1$+"D"+tstr2$
+      texdir2$=tstr1$+"N"+tstr2$
+      texdir3$=tstr1$+"S"+tstr2$
+      rem Absolutely must have a NORMAL MAP, or fail this effect
+      absolutelyrequirethistexture=2
+     endif
+    else
+     rem Standard DINS system
+     if teffectuseslightmapstage=1
+      rem [LM]+[DIFF+ILLU+NORM+SPEC+BRIH]
+      texdir1$=tstr1$+"D"+tstr2$
+      texdir2$=tstr1$+"D"+tstr2$
+      texdir3$=tstr1$+"I"+tstr2$
+      texdir4$=tstr1$+"N"+tstr2$
+      texdir5$=tstr1$+"S"+tstr2$
+     else
+      rem [DIFF+ILLU+NORM+SPEC+BRIH]
+      texdir1$=tstr1$+"D"+tstr2$
+      texdir2$=tstr1$+"I"+tstr2$
+      texdir3$=tstr1$+"N"+tstr2$
+      texdir4$=tstr1$+"S"+tstr2$
+      texdir5$=tstr1$+"B"+tstr2$
+     endif
+    endif
+   endif
+   `
+  else
+   `
+   rem not D2.XXX, so just use texdir$ as base texture
+   texdir1$=texdir$
+   `
+  endif
+  `
+ else
+  rem use no effect this time
+  tfile$=""
+ endif
+ `
+return
+
+rem
+rem MESH AND TEXTURE HANDLING
+rem
+`
+function loadinternalmesh(tfile$)
+
+rem Default return
+meshid=0
+
+rem Scan for existing mesh
+if meshbankmax>0
+ for m=1 to meshbankmax
+  if tfile$=meshbank$(m) then meshid=meshbankoffset+m : exit
+ next m
+else
+ m=meshbankmax+1
+endif
+
+rem Did not find, load it
+if m>meshbankmax
+ inc meshbankmax
+ dim meshbank$(meshbankmax)
+ if file exist(tfile$)=1
+  meshid=meshbankoffset+meshbankmax
+  load mesh tfile$,meshid
+  meshbank$(meshbankmax)=tfile$
+ endif
+endif
+
+endfunction meshid
+
+function deleteallinternalimages()
+ if imagebankmax>0
+  for t=1 to imagebankmax
+   imgid=imagebankoffset+t
+   if image exist(imgid)=1
+    delete image imgid
+   endif
+  next t
+  imagebankmax=0
+  undim imagebank$()
+  dim imagebank$(imagebankmax)
+ endif
+ if texturebankmax>0
+  for t=1 to texturebankmax
+   texid=texturebankoffset+t
+   if image exist(texid)=1
+    delete image texid
+   endif
+  next t
+  texturebankmax=0
+  undim texturebank$()
+  dim texturebank$(texturebankmax)
+ endif
+endfunction
+
+function refreshallinternalimages()
+ if imagebankmax>0
+  for t=1 to imagebankmax
+   tfile$=imagebank$(t)
+   imgid=imagebankoffset+t
+   loadinternalimageexcompressquality(tfile$,imgid,1,0)
+  next t
+ endif
+endfunction
+
+function refreshinternalimage(t)
+ tfile$=imagebank$(t)
+ imgid=imagebankoffset+t
+ loadinternalimageexcompressquality(tfile$,imgid,1,0)
+endfunction
+
+function loadinternalimageexcompressquality(tfile$,imgid,compressmode,quality)
+ if lower$(right$(tfile$,4))=".jpg" then tstarttry=2 else tstarttry=1
+ if lower$(right$(tfile$,4))=".png" then tstarttry=2 else tstarttry=1
+ for try=tstarttry to 3
+  if try=1 then tryfile$=left$(tfile$,len(tfile$)-4)+".dds"
+  if try=2 then tryfile$=tfile$
+  if try=3 then tryfile$=left$(tfile$,len(tfile$)-3)+imgext$
+  if image file exist(tryfile$)=1
+   if gincludeonlyvideo=1 and left$(lower$(tryfile$),len(gincludeonlyname$))<>lower$(gincludeonlyname$)
+    rem fill video with basic random color
+    create bitmap 7,4,4
+    cls rgb(rnd(255),rnd(255),rnd(255))
+    get image imgid,0,0,4,4
+    delete bitmap 7
+    set current bitmap 0
+   else
+    `
+    rem low texture use in editor ( Special divide reduction value of 16384=norealload )
+    tempdividetexturesize=gdividetexturesize
+    if segobjusedformapeditor=1 then tempdividetexturesize=8
+    `
+    rem FPSCV104RC10 - can skip 'real load' unless full lightmapping which requires alpha from texture
+    `if gcompilestandaloneexe=1 then tempdividetexturesize=16384 : quality=0
+    if gcompilestandaloneexe=1 and glightshadowsstate=0 then tempdividetexturesize=16384 : quality=0
+    `
+    rem V110 - 290508 - detects and visually shows invalid serial codes to anyone who reports it
+    if serialcodeinvalid=1
+     if file exist("editors\gfx\0.bmp")=1
+      tryfile$="editors\gfx\0.bmp"
+     endif
+    endif
+    `
+    rem load image (skip if building = quicker build)
+    if quality=0
+     if tempdividetexturesize=16384 and currentlyintheAISCIPTloader=1
+      rem load nothing if we are loading for AI SCRIPT (which does not use the images during the construction)
+     else
+      load image tryfile$,imgid,quality,tempdividetexturesize
+     endif
+    else
+     if quality=1
+      load image tryfile$,imgid,quality
+     else
+      rem Quality Mode 2 means only reduce have as much (smaller items blur too much in QM=1)
+      load image tryfile$,imgid,1,tempdividetexturesize/2
+     endif
+    endif
+    `
+    rem and perhaps save it
+    if grealgameviewstate=0
+     tdds$=left$(tfile$,len(tfile$)-4)+".dds"
+     if file exist(tdds$)=0 and tempdividetexturesize=0
+      save image tdds$,imgid,compressmode
+      addfiletocollection(tdds$)
+     else
+      addfiletocollection(tryfile$)
+     endif
+    else
+     addfiletocollection(tryfile$)
+    endif
+    `
+   endif
+   exit
+  endif
+ next try
+endfunction
+
+function loadinternalimageexcompress(tfile$,imgid,compressmode)
+ loadinternalimageexcompressquality(tfile$,imgid,compressmode,0)
+endfunction
+
+function loadinternalimageex(tfile$,imgid)
+ loadinternalimageexcompress(tfile$,imgid,1)
+endfunction
+
+function loadinternalimagecompressquality(tfile$,compressmode,quality)
+
+rem Default return
+imgid=0
+
+rem Scan for existing
+if imagebankmax>0
+ for t=1 to imagebankmax
+  if tfile$=imagebank$(t) then imgid=imagebankoffset+t : exit
+ next t
+else
+ t=imagebankmax+1
+endif
+
+rem Did not find, load it
+if t>imagebankmax
+ inc imagebankmax
+ dim imagebank$(imagebankmax)
+ imgid=imagebankoffset+imagebankmax
+ loadinternalimageexcompressquality(tfile$,imgid,compressmode,quality)
+ if image exist(imgid)=1
+  imagebank$(imagebankmax)=tfile$
+ else
+  dec imagebankmax
+  imgid=0
+ endif
+endif
+
+endfunction imgid
+
+function loadinternalimagecompress(tfile$,compressmode)
+ imgid=loadinternalimagecompressquality(tfile$,compressmode,0)
+endfunction imgid
+
+function loadinternalimage(tfile$)
+ imgid=loadinternalimagecompress(tfile$,1)
+endfunction imgid
+
+function loadinternalimagequality(tfile$)
+ imgid=loadinternalimagecompressquality(tfile$,1,1)
+endfunction imgid
+
+function loadinternaltexture(tfile$)
+
+rem Default return
+texid=0
+
+rem Scan for existing
+if texturebankmax>0
+ for t=1 to texturebankmax
+  if tfile$=texturebank$(t) then texid=texturebankoffset+t : exit
+ next t
+else
+ t=texturebankmax+1
+endif
+
+rem Did not find, load it
+if t>texturebankmax
+ rem Attempt to load
+ inc texturebankmax
+ dim texturebank$(texturebankmax)
+ texturebank$(texturebankmax)=tfile$
+ texid=texturebankoffset+texturebankmax
+ loadinternalimageex(tfile$,texid)
+ if image exist(texid)=0
+  rem failed to load, so reverse creation
+  texturebank$(texturebankmax)=""
+  dec texturebankmax : texid=0
+ endif
+endif
+
+endfunction texid
+
+function loadinternaltextureex(tfile$,compressmode,quality)
+
+rem Default return
+texid=0
+
+rem Scan for existing
+if texturebankmax>0
+ for t=1 to texturebankmax
+  if tfile$=texturebank$(t) then texid=texturebankoffset+t : exit
+ next t
+else
+ t=texturebankmax+1
+endif
+
+rem Did not find, load it
+if t>texturebankmax
+ rem Attempt to load
+ inc texturebankmax
+ dim texturebank$(texturebankmax)
+ texturebank$(texturebankmax)=tfile$
+ texid=texturebankoffset+texturebankmax
+ loadinternalimageexcompressquality(tfile$,texid,compressmode,quality)
+ if image exist(texid)=0
+  rem failed to load, so reverse creation
+  texturebank$(texturebankmax)=""
+  dec texturebankmax : texid=0
+ endif
+endif
+
+endfunction texid
+
+function loadinternaleffectunique(tfile$,makeunique)
+
+rem Default return
+effectid=0
+
+rem Scan for existing
+if effectbankmax>0 and makeunique=0
+ for t=1 to effectbankmax
+  if tfile$=effectbank$(t) then effectid=effectbankoffset+t : exit
+ next t
+else
+ t=effectbankmax+1
+endif
+
+rem Did not find, load it
+if t>effectbankmax
+ if file exist(tfile$)=1
+  inc effectbankmax
+  dim effectbank$(effectbankmax)
+  effectid=effectbankoffset+effectbankmax
+  if lower$(left$(tfile$,14))="effectbank\csg"
+   load effect tfile$,effectid,1
+  else
+   load effect tfile$,effectid,0
+  endif
+  if effect exist(effectid)=1
+   effectbank$(effectbankmax)=tfile$
+  else
+   rem could not use effect
+   dec effectbankmax
+   effectid=0
+  endif
+  addfiletocollection(tfile$)
+ endif
+endif
+
+endfunction effectid
+
+function loadinternaleffect(tfile$)
+ effectid=loadinternaleffectunique(tfile$,0)
+endfunction effectid
+
+function loadinternalsoundcore(tfile$,mode)
+
+rem Default return
+soundid=0
+
+rem No scan for existing - all sounds unique for overlay play
+t=soundbankmax+1
+if t>soundbankmax
+ tspecialogg=0 : if right$(lower$(tfile$),4)=".ogg" then tspecialogg=1
+ if right$(lower$(tfile$),4)=".wav" or tspecialogg=1
+  if file exist(tfile$)=1
+   `
+   inc soundbankmax
+   dim soundbank$(soundbankmax)
+   soundid=soundbankoffset+soundbankmax
+   `
+   rem FPSCV114 - can skip 'real load' if building game
+   if gcompilestandaloneexe=1
+    if globalsmallsound=0
+     globalsmallsound=soundid
+     tfile$="audiobank\voices\squeak\leap.wav"
+     load sound tfile$,globalsmallsound,0,1
+     if sound exist(globalsmallsound)=0 then globalsmallsound=0
+    else
+     clone sound soundid,globalsmallsound
+    endif
+   else
+    if mode=1 and tspecialogg=0
+     load 3dsound tfile$,soundid,1
+     if sound exist(soundid)=0 then load sound tfile$,soundid,0,1
+    else
+     load sound tfile$,soundid,0,1
+    endif
+   endif
+   `
+   if sound exist(soundid)=0
+    rem sound could not loaded
+    soundbank$(soundbankmax)=""
+    dec soundbankmax
+    soundid=0
+   else
+    rem success
+    soundbank$(soundbankmax)=tfile$
+    addfiletocollection(tfile$)
+   endif
+   `
+  endif
+ endif
+endif
+
+endfunction soundid
+
+function loadinternalsound(tfile$)
+ soundid=loadinternalsoundcore(tfile$,0)
+endfunction soundid
+
+function managebroadcastsound()
+ if bcsoundstrength#>0.0
+  dec bcsoundstrength#,1.0
+  if bcsoundstrength#<0 then bcsoundstrength#=0.0
+ endif
+endfunction
+
+function broadcast3dsound(x#,y#,z#,strength#)
+ if strength#>bcsoundstrength#
+  bcsoundstrength#=strength#
+  bcsoundx#=x# : bcsoundy#=y# : bcsoundz#=z#
+ endif
+endfunction
+
+function playinternalBC3dsound(id,x#,y#,z#,strength#)
+ if id>0
+  if sound exist(id)=1
+   broadcast3dsound(x#,y#,z#,strength#)
+   position sound id,x#/10.0,y#/10.0,z#/10.0
+   play sound id
+  endif
+ endif
+endfunction
+
+function playinternal3dsound(id,x#,y#,z#)
+ if id>0
+  if sound exist(id)=1
+   position sound id,x#/10.0,y#/10.0,z#/10.0
+   play sound id
+  endif
+ endif
+endfunction
+
+function loopinternal3dsound(id,x#,y#,z#)
+ if id>0
+  if sound exist(id)=1
+   position sound id,x#/10.0,y#/10.0,z#/10.0
+   if sound playing(id)=0 then loop sound id
+  endif
+ endif
+endfunction
+
+function posinternal3dsound(id,x#,y#,z#)
+ if id>0
+  if sound exist(id)=1
+   position sound id,x#/10.0,y#/10.0,z#/10.0
+  endif
+ endif
+endfunction
+
+function playinternal3dsoundfactor(id,x#,y#,z#,factor#)
+ if id>0
+  if sound exist(id)=1
+   position sound id,x#/10.0,y#/10.0,z#/10.0
+   factor#=(factor#*2.0)+80.0
+   if factor#<0 then factor#=0
+   if factor#>100 then factor#=100
+   set sound volume id,factor#
+   play sound id
+  endif
+ endif
+endfunction
+
+`
+` FUNCTION TO BUILD A SUB-DIRECTORY = filelist$()
+`
+function buildfilelist(folder$,rel$)
+ if path exist(folder$)=1
+  set dir folder$
+  find first : fin=0
+  while get file type()>-1
+   file$=get file name$()
+   if file$="." or file$=".."
+    rem ignore . and ..
+   else
+    if get file type()=1
+     rem folder
+     buildfilelist(file$,rel$+file$+"\")
+     find first
+     if fin>0
+      for t=1 to fin : find next : next t
+     endif
+    else
+     rem file
+     array insert at bottom filelist$()
+     filelist$()=rel$+file$
+    endif
+   endif
+   find next
+   fin=fin+1
+  endwhile
+  set dir ".."
+ endif
+endfunction
+
+`
+` FUNCTIONS TO CUT-UP STRINGS
+`
+function getfirstdir(file$)
+ firstdir$=""
+ for c=1 to len(file$)
+  if mid$(file$,c)="\" or mid$(file$,c)="/"
+   firstdir$=left$(file$,c) : exit
+  endif
+ next c
+endfunction firstdir$
+
+function getseconddir(file$)
+ firstdir$="" : count=2
+ for c=1 to len(file$)
+  if mid$(file$,c)="\" or mid$(file$,c)="/"
+   dec count
+   if count=0
+    firstdir$=left$(file$,c) : exit
+   endif
+  endif
+ next c
+endfunction firstdir$
+
+function getpath(file$)
+ path$=""
+ for c=len(file$) to 1 step -1
+  if mid$(file$,c)="\" or mid$(file$,c)="/"
+   path$=left$(file$,c) : exit
+  endif
+ next c
+endfunction path$
+
+function getfile(file$)
+ for c=len(file$) to 1 step -1
+  if mid$(file$,c)="\" or mid$(file$,c)="/"
+   file$=right$(file$,len(file$)-c) : exit
+  endif
+ next c
+endfunction file$
+
+`
+` SUPPORT FUNCTIONS (DUPLICATED IN GUNSYSTEM)
+`
+function removeedgespaces(text$)
+ returntext$=""
+ if len(text$)>0
+  st=0
+  for c=1 to len(text$)
+   if asc(mid$(text$,c))>32 then st=c : exit
+  next c
+  if st=0
+   rem all sub-spaces
+  else
+   for c=len(text$) to 1 step -1
+    if asc(mid$(text$,c))>32 then en=c : exit
+   next c
+   for c=st to en
+    returntext$=returntext$+mid$(text$,c)
+   next c
+  endif
+ endif
+endfunction returntext$
+
+function minstring(text$,minsize)
+ sizegap=minsize-len(text$)
+ text$=text$+space$(sizegap)
+endfunction text$
+
+`
+` FILECOLLECTOR FUNCTIONS
+`
+
+function resetfilecollection()
+ empty array filecollection$()
+endfunction
+
+function addfiletocollection(filename$)
+ if segobjusedformapeditor=0 and segobjusedforsegeditor=0
+  if len(filename$)>0
+   if mid$(filename$,2)=":"
+    rem absolute paths not allowed for filenames!
+    debugstring(filename$,strarr$(41))
+   else
+    rem verify file not duplicated
+    tokay=1
+    for chk=1 to array count(filecollection$())
+     if lower$(filecollection$(chk))=lower$(filename$)
+      tokay=0
+     endif
+     if lower$(left$(filecollection$(chk),len(filecollection$(chk))-4))=lower$(left$(filename$,len(filename$)-4))
+      rem if have a DDS, and a TGA of the same name, replace it
+      if lower$(right$(filecollection$(chk),4))=".tga"
+       if lower$(right$(filename$,4))=".dds"
+        filecollection$(chk)=filename$
+        tokay=0 : exit
+       endif
+      endif
+     endif
+    next chk
+    rem add file to collection
+    if tokay=1
+     array insert at bottom filecollection$()
+     filecollection$()=filename$
+    endif
+   endif
+  endif
+ endif
+endfunction
+
+  addallfilestocollection(left$(src$,len(src$)-5))
+
+function addallfilestocollection(folder$)
+ storedir$=get dir$()
+ set dir folder$
+ perform checklist for files
+ for c=1 to checklist quantity()
+  file$=checklist string$(c)
+  if file$<>"." and file$<>".."
+   if right$(lower$(file$),4)<>".tga"
+    rem all except raw TGA file
+    addfiletocollection(folder$+"\"+file$)
+   endif
+  endif
+ next c
+ set dir storedir$
+endfunction
+
+`
+` ASSESS FILE FOR HOW OLD IT IS
+`
+function getdatevaluefromdatestring(dayofyear$)
+   rem get year
+   year$=right$(dayofyear$,4)
+   dayofyear$=left$(dayofyear$,len(dayofyear$)-5)
+   rem eat day
+   for c=1 to len(dayofyear$)
+    if mid$(dayofyear$,c)=" "
+     dayofyear$=right$(dayofyear$,len(dayofyear$)-c)
+     exit
+    endif
+   next c
+   rem find month
+   for c=1 to len(dayofyear$)
+    if mid$(dayofyear$,c)=" "
+     month$=lower$(left$(dayofyear$,c-1))
+     dayofyear$=right$(dayofyear$,len(dayofyear$)-c)
+     exit
+    endif
+   next c
+   rem find date
+   for c=1 to len(dayofyear$)
+    if mid$(dayofyear$,c)=" "
+     date$=lower$(left$(dayofyear$,c-1))
+     dayofyear$=right$(dayofyear$,len(dayofyear$)-c)
+     exit
+    endif
+   next c
+   rem get time
+   time$=""
+   for c=1 to len(dayofyear$)
+    if mid$(dayofyear$,c)<>":"
+     time$=time$+mid$(dayofyear$,c)
+    endif
+   next c
+   time$=left$(time$,len(time$)-2)
+   if month$="jan" then month=1
+   if month$="feb" then month=2
+   if month$="mar" then month=3
+   if month$="apr" then month=4
+   if month$="may" then month=5
+   if month$="jun" then month=6
+   if month$="jul" then month=7
+   if month$="aug" then month=8
+   if month$="sep" then month=9
+   if month$="oct" then month=10
+   if month$="nov" then month=11
+   if month$="dec" then month=12
+   filedatevalue=((val(year$)-2004)*12*32*2500)+(month*32*2500)+(val(date$)*2500)+val(time$)
+endfunction filedatevalue
+
+function isbinaryfileolderthantxtfile(binaryfilefull$,textfilefull$)
+ result=0
+ if file exist(binaryfilefull$)=1
+  stdir$=get dir$()
+  binaryfile$=getfile(binaryfilefull$)
+  textfile$=getfile(textfilefull$)
+  set dir getpath(binaryfilefull$)
+  filedatevalueB=0
+  filedatevalueT=0
+  find first
+  while get file type()<>-1
+   if get file type()=0
+    if lower$(get file name$())=lower$(binaryfile$)
+     this$=get file date$()
+     dayofyearB$=this$
+     filedatevalueB=getdatevaluefromdatestring(dayofyearB$)
+    else
+     if lower$(get file name$())=lower$(textfile$)
+      this$=get file date$()
+      dayofyearT$=this$
+      filedatevalueT=getdatevaluefromdatestring(dayofyearT$)
+     endif
+    endif
+    if filedatevalueB<>0 and filedatevalueT<>0 then exit
+   endif
+   find next
+  endwhile
+  if filedatevalueB<>0 and filedatevalueT<>0
+   if filedatevalueB<filedatevalueT
+    result=1
+   endif
+  endif
+  set dir stdir$
+ endif
+endfunction result
+
+function isbinaryfileolderthantxtfileforseg(binaryfilefull$,textfilefull$)
+ rem segment BIN files have version number signalled with a -1 in the first field
+ result=0
+ if file exist(binaryfilefull$)=1
+  stdir$=get dir$()
+  binaryfile$=getfile(binaryfilefull$)
+  textfile$=getfile(textfilefull$)
+  set dir getpath(binaryfilefull$)
+  filedatevalueB=0
+  filedatevalueT=0
+  find first
+  while get file type()<>-1
+   if get file type()=0
+    if lower$(get file name$())=lower$(binaryfile$)
+     this$=get file date$()
+     dayofyearB$=this$
+     filedatevalueB=getdatevaluefromdatestring(dayofyearB$)
+    else
+     if lower$(get file name$())=lower$(textfile$)
+      this$=get file date$()
+      dayofyearT$=this$
+      filedatevalueT=getdatevaluefromdatestring(dayofyearT$)
+     endif
+    endif
+    if filedatevalueB<>0 and filedatevalueT<>0 then exit
+   endif
+   find next
+  endwhile
+  if filedatevalueB<>0 and filedatevalueT<>0
+   if filedatevalueB<filedatevalueT
+    result=1
+   endif
+  endif
+  set dir stdir$
+  if result=0
+   rem V110 - 160508 - added extra code to hold new version number in segment BIN file
+   open to read 3,binaryfilefull$
+    read file 3,tval
+    if tval=-1
+     read file 3,tversion
+     rem if BIN created with older version, trigger delete BIN file
+     if tversion<gversion then result=1
+    else
+     rem if an old BIN, also delete it
+     result=1
+    endif
+   close file 3
+  endif
+ endif
+endfunction result
+
+function isbinaryfileolderthantxtfileforent(binaryfilefull$,textfilefull$)
+ rem entity BIN files have version number signalled with a "version" string lanel, then the integer version number
+ result=0
+ if file exist(binaryfilefull$)=1
+  stdir$=get dir$()
+  binaryfile$=getfile(binaryfilefull$)
+  textfile$=getfile(textfilefull$)
+  set dir getpath(binaryfilefull$)
+  filedatevalueB=0
+  filedatevalueT=0
+  find first
+  while get file type()<>-1
+   if get file type()=0
+    if lower$(get file name$())=lower$(binaryfile$)
+     this$=get file date$()
+     dayofyearB$=this$
+     filedatevalueB=getdatevaluefromdatestring(dayofyearB$)
+    else
+     if lower$(get file name$())=lower$(textfile$)
+      this$=get file date$()
+      dayofyearT$=this$
+      filedatevalueT=getdatevaluefromdatestring(dayofyearT$)
+     endif
+    endif
+    if filedatevalueB<>0 and filedatevalueT<>0 then exit
+   endif
+   find next
+  endwhile
+  if filedatevalueB<>0 and filedatevalueT<>0
+   if filedatevalueB<filedatevalueT
+    result=1
+   endif
+  endif
+  set dir stdir$
+  if result=0
+   open to read 3,binaryfilefull$
+    read string 3,tval$
+    if lower$(tval$)="version"
+     read file 3,tversion
+     rem if BIN created with older version, trigger delete BIN file
+     if tversion<gversion then result=1
+    else
+     rem if an old BIN, also delete it
+     result=1
+    endif
+   close file 3
+  endif
+ endif
+endfunction result
+
+

@@ -1,0 +1,35 @@
+
+
+;header
+
+desc          = terminalb
+
+;ai
+aiinit	      = repeatsound.fpi
+aimain	      = default.fpi
+aidestroy     = disappear1.fpi
+
+;spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;orientation
+
+model         = meshbank\scifi\scenery\furniture\terminalb\terminal_B.x
+offx          = 0
+offy          = 0
+offz          = 0
+rotx          = 0
+roty          = 0
+rotz          = 0
+defaultstatic = 0
+materialindex = 3
+soundset      = audiobank\atmos\computerhum.wav
+
+;visualinfo
+
+textured      = texturebank\scifi\scenery\furniture\terminalb\terminal_B_d2.tga
+effect        = effectbank\illuminationent\illuminationent.fx
+castshadow    = 0
+transparency  = 1

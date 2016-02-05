@@ -1,0 +1,565 @@
+rem
+rem SUBROUTINES AND FUNCTIONS FOR DEBUG ONLY
+rem
+
+rem FUNCTIONS
+
+function hide3d()
+ backdrop off : sync off
+ set current bitmap 0
+ for o=1 to 50000
+  if object exist(o)=1
+   hide object o
+  endif
+ next o
+endfunction
+
+function show3d()
+ backdrop on : sync on
+ for o=1 to 50000
+  if object exist(o)=1
+   show object o
+  endif
+ next o
+endfunction
+
+function debugfilename(tfile$,desc$)
+ texit=0
+ tryfile$=tfile$
+ if lower$(right$(tfile$,3))="tga" then tryfile$=left$(tryfile$,len(tryfile$)-3)+imgext$
+ if file exist(tfile$)=0 and file exist(tryfile$)=0
+  timestampactivity(0,strarr$(53)+tfile$+") info:"+desc$)
+  timestampactivityflagged=1
+ endif
+endfunction
+
+function debugstring(tfile$,desc$)
+ timestampactivity(0,strarr$(54)+tfile$+" - "+desc$+")")
+endfunction
+
+function debugseevar(var)
+ timestampactivity(0,strarr$(55)+str$(var)+")")
+endfunction
+
+function debugpeek(desc$)
+ set text opaque
+ ink rgb(255,255,255),0
+ while spacekey()=0
+  set cursor 100,150
+  print desc$
+  sync
+ endwhile
+ while spacekey()=1 : sync : endwhile
+ set text transparent
+endfunction
+
+`
+` Progress Report Debug Function
+`
+
+function debugviewactivate(mode)
+ `
+ if gdebugreportmodestate=1
+  if mode=1
+   if bitmap exist(1)=0 then create bitmap 1,screen width(),150
+  else
+   if bitmap exist(1)=1 then delete bitmap 1
+  endif
+  set current bitmap 0
+ endif
+ `
+endfunction
+
+function debugviewprogressmax(progressmax)
+ dim mshot(progressmax)
+ lastmshotmem=0
+ gprogressmax=progressmax
+ gprogresscounter=0
+endfunction
+
+function debugviewtext(progress,gamedebugviewtext$)
+ `
+ rem leave immediately if mapeditor
+ if gmapeditmode=1 then exitfunction
+ `
+ rem FPSCV104RC9 - loading time readout to file
+ if gloadreportstate=1
+  rem get time, distance from last time, description, etc..
+  if gloadreporttime=0 then gloadreporttime=timer()
+  thetime=timer()-gloadreporttime
+  thetime$=right$(str$(1000000+thetime),6)
+  thediff=timer()-gloadreportlasttime
+  thediff$=right$(str$(1000000+thediff),6)
+  gloadreportlasttime=timer()
+  loadreport$(gloadreportindex)=thetime$+" : "+thediff$+" : "+gamedebugviewtext$
+  inc gloadreportindex : if gloadreportindex>10000 then gloadreportindex=10000
+  if progress>gprogressmax-10
+   rem only save in last 10 counts before end of progress bar
+   save array rootdir$+"\loadreport.txt",loadreport$()
+  endif
+ endif
+ `
+ rem progress bar based on progress/gprogressmax (some white and black)
+ if progress<>-1
+  rem Memory counters
+  mshoti=progress
+  gamedebugviewtext$="["+right$(str$(1000+mshoti),3)+"] "+gamedebugviewtext$
+  mshotmem=GET MEMORY AVAILABLE(0)
+  if lastmshotmem=0 then lastmshotmem=mshotmem : mshotfirst=GET MEMORY AVAILABLE(0)
+  mshot(mshoti)=lastmshotmem-mshotmem
+  if mshot(mshoti)>mshotmemlargest then mshotmemlargest=mshot(mshoti)
+  if mshoti>lastmshoti
+   rem deposit memory use result to report
+   timestampactivity(0,strarr$(56)+str$(mshot(mshoti))+"K  "+gamedebugviewtext$)
+   lastmshoti=mshoti
+   lastmshotmem=mshotmem
+  endif
+  rem Game GUI Readout
+  if progress>gprogressmax then progress=gprogressmax
+  progress#=progress
+  progress#=progress#/(gprogressmax+0.0001)
+  if internalloaderhud>0 and internalloaderhud<=array count(hud())
+   rem Image Expand Bar Progress
+   t1=hud(internalloaderhud).width*progress#
+   size sprite internalloaderhud,t1,hud(internalloaderhud).height
+   paste sprite internalloaderhud,hud(internalloaderhud).posx,hud(internalloaderhud).posy
+  else
+   rem Default Bar Progress
+   if gdebugreportmodestate=1
+    progressx=54 : progressy=392 : progressh=18
+    progressw=screen width()-100.0001
+    if screen width()=800 then progressw=693
+    t1=progressw*progress# : t2=progressx+t1
+    ty=(screen height()-150)-(screen height()/10)
+    if screen height()=600 then ty=progressy
+    if t2>progressx then ink rgb(255,255,255),0 : box progressx,ty,t2,ty+progressh
+    if t2<progressx+progressw then ink rgb(0,0,0),0 : box t2,ty,progressx+progressw,ty+progressh
+   endif
+  endif
+ endif
+ if gdebugreportmodestate=0 then sync
+ `
+ rem Report On Progress Percentage
+ if progress<>-1
+  if progress>gprogressmax then progress=gprogressmax
+  progress#=progress : progress#=progress#/(gprogressmax+0.0001)
+  progress#=progress#*100.0
+ endif
+ `
+ rem TestGameFromEditor Mode
+ if gtestgamemodefromeditor=1
+  rem detect if CANCEL early (while building)
+  if gtestgamemodefromeditorokaypressed=0
+   open file map 2, "FPSEXCHANGE"
+   wait for file map event 2
+   if get file map dword( 2, 994 ) = 1
+    `
+    rem As can take time, tell user can take time
+    open file map 3, "FPSTESTGAMEDIALOG"
+    set file map dword 3, 12, 1
+    set file map string$ 3, 1000, strarr$(630)
+    wait for file map event 3
+    while get file map dword ( 3, 12 ) = 1
+     wait for file map event 3
+    endwhile
+    close file map 3
+    `
+    rem terminate test game mid-build
+    set file map string$ 2, 1000, "FPSC-MapEditor.exe"
+    set file map string$ 2, 1256, "-r"
+    set file map dword 2, 994, 2
+    set file map dword 2, 924, 1
+    wait for file map event 2
+    close file map 2
+    rem Terminate
+    if 1 then timestampactivity(0,strarr$(57))
+    end
+   else
+    rem Update Test Game Dialog progress and status text
+    open file map 1, "FPSTESTGAMEDIALOG"
+    if progress<>-1
+     set file map dword 1, 8, int(progress#)
+    endif
+    rem Display Status Text
+    set file map string$ 1, 1000, gamedebugviewtext$
+    set file map dword 1, 12, 1
+    wait for file map event 1
+    close file map 1
+   endif
+   close file map 2
+  endif
+ endif
+ rem Build Executable Game Mode
+ if gcompilestandaloneexe=1
+  rem check if build cancelled
+  tokay=0
+  open file map 2, "FPSEXCHANGE"
+  wait for file map event 2
+  if get file map dword( 2, 994 ) = 1 then tokay=1
+  close file map 2
+  if tokay=1
+   rem terminate build early
+   open file map 1, "FPSBUILDGAME"
+   set file map dword 1, 108, 1
+   set file map dword 1, 112, 0
+   rem close dialog (cannot reload data into it when RELOAD MAPEDITOR)
+   set file map dword 1, 24, 1
+   wait for file map event 1
+   close file map 1
+   rem call map editor back
+   open file map 2, "FPSEXCHANGE"
+   set file map string$ 2, 1000, "FPSC-MapEditor.exe"
+   set file map string$ 2, 1256, "-r"
+   set file map dword 2, 994, 0
+   set file map dword 2, 924, 1
+   wait for file map event 2
+   close file map 2
+   rem terminate
+   if 1 then timestampactivity(0,strarr$(58))
+   end
+  else
+   rem game build progress bar and text
+   open file map 1, "FPSBUILDGAME"
+   if progress<>-1
+    set file map dword 1, 108, 1
+    set file map dword 1, 112, int(progress#)
+   endif
+   set file map dword 1, 40, 12
+   set file map dword 1, 44, 1
+   if level>0 and level<=glevelmax
+    set file map string$ 1, 1000, strarr$(59)+str$(level)+"\"+str$(glevelmax)+" : "+gamedebugviewtext$
+   else
+    set file map string$ 1, 1000, gamedebugviewtext$
+   endif
+   wait for file map event 1
+   close file map 1
+  endif
+ endif
+ `
+ rem debug view text
+ if gdebugreportmodestate=1 and gmapeditmode=0
+  `
+  thetime=timer()-gamedebugviewtime
+  thetime$=right$(str$(1000000+thetime),6)
+  themem=gamedebugviewmem-GET MEMORY AVAILABLE(0)
+  themem$=right$(str$(10000000+themem),7)
+  themem$=" [ "+themem$+" ] ("
+  if (themem-gamedebugviewlastmem)>0 then themem$=themem$+"+"
+  themem$=themem$+str$(themem-gamedebugviewlastmem)+")  :  "
+  gamedebugview$=thetime$+themem$+gamedebugviewtext$+chr$(13)+chr$(10)+gamedebugview$
+  gamedebugviewlastmem=themem
+  gosub _gamemain_writetexttodebugview
+  debugviewupdate(1)
+  if gdebugreportstepthroughstate=1
+   rem step through debugging
+   wait key
+  endif
+  `
+ endif
+ exitfunction
+ `
+ _gamemain_writetexttodebugview:
+  if gdebugreportmodestate=1
+   if bitmap exist(1)=1
+    set current bitmap 1
+    cls rgb(0,48,0)
+    ink rgb(255,255,255),0
+    print gamedebugview$
+    ink rgb(0,255,0),0
+    gosub _gamemain_updatedebugviewstats
+    set current bitmap 0
+   endif
+   gamedebugrefresh=1
+  endif
+ return
+ `
+ _gamemain_updatedebugviewstats:
+  for stat=1 to 9
+   if stat=1 then stat$=strarr$(60)
+   if stat=2 then stat$=strarr$(61) : stat2=segidmaster
+   if stat=3 then stat$=strarr$(62) : stat2=entidmaster
+   if stat=4 then stat$=strarr$(63) : stat2=entityelementlist
+   if stat=5 then stat$=strarr$(64) : stat2=aiindexmaster
+   if stat=6 then stat$=strarr$(65) : stat2=texturebankmax
+   if stat=7 then stat$=strarr$(66) : stat2=imagebankmax
+   if stat=8 then stat$=strarr$(67) : stat2=effectbankmax
+   if stat=9 then stat$=strarr$(68) : stat2=waypointmax
+   if stat>1
+    stat2$=str$(stat2) : stat3$="" : for st=1 to stat2 step 2 : stat3$=stat3$+"|" : next st
+    stat1$=stat$ : stat2$=stat2$+space$(3-len(stat2$))+stat3$
+   else
+    stat1$=stat$ : stat2$=""
+   endif
+   text screen width()-(screen width()/4),(stat-1)*14,stat1$
+   text screen width()-(screen width()/8),(stat-1)*14,stat2$
+  next stat
+ return
+ `
+endfunction
+
+function debugviewupdate(doisync)
+ `
+ if gdebugreportmodestate=1 and gmapeditmode=0
+  if gamedebugrefresh=1
+   gamedebugrefresh=0
+   if bitmap exist(1)=1
+    set current bitmap 1
+    get image editorimagesoffset+1,0,0,screen width(),150,1
+   endif
+  endif
+  set current bitmap 0
+  if doisync=0 and image exist(editorimagesoffset+1)=1 then paste image editorimagesoffset+1,0,screen height()-150
+  if doisync=1 and image exist(editorimagesoffset+1)=1 then paste image editorimagesoffset+1,0,screen height()-150
+  if doisync=1 then sync
+ endif
+ `
+endfunction
+
+function debuggameoverlaysystem(clearscr)
+`
+rem collect perf data
+perf(1) = statistic(1)
+perf(2) = screen fps()
+if scancode()<>15
+ inc wshoti : if wshoti>400 then wshoti=0
+endif
+wshot(wshoti,0)=perf(1) : if wshot(wshoti,0)>wshotmax(0) then wshotmax(0)=wshot(wshoti,0)
+wshot(wshoti,1)=perf(2) : if wshot(wshoti,1)>wshotmax(1) then wshotmax(1)=wshot(wshoti,1)
+wshot(wshoti,2)=statistic(8) : if wshot(wshoti,2)>wshotmax(2) then wshotmax(2)=wshot(wshoti,2)
+wshot(wshoti,3)=perf(6) : if wshot(wshoti,3)>wshotmax(3) then wshotmax(3)=wshot(wshoti,3)
+wshot(wshoti,4)=perf(7) : if wshot(wshoti,4)>wshotmax(4) then wshotmax(4)=wshot(wshoti,4)
+`
+rem uses perftimer now for cycle accuracy (once a second so I can read changes)
+av#=20.0
+inc gameperftimetracker
+if gameperftimetracker>av#
+ gameperftimetracker=0
+ i=3 : perf(i) = gameperftotalcount/av# : gameperftotalcount=0
+ i=4 : perf(i) = gameperflighting/av# : gameperflighting=0
+ i=5 : perf(i) = gameperfplayer/av# : gameperfplayer=0
+ i=6 : perf(i) = gameperfentities/av# : gameperfentities=0
+ i=7 : perf(i) = gameperfgun/av# : gameperfgun=0
+ i=8 : perf(i) = gameperfmisc/av# : gameperfmisc=0
+ i=9 : perf(i) = gameperfdebug/av# : gameperfdebug=0
+ i=10 : perf(i) = gameperfphysics/av# : gameperfphysics=0
+ i=11 : perf(i) = gameperfsync/av# : gameperfsync=0
+ i=12 : perf(i) = gameperfentities1/av# : gameperfentities1=0
+ i=13 : perf(i) = gameperfentities2/av# : gameperfentities2=0
+ i=14 : perf(i) = gameperfentities3/av# : gameperfentities3=0
+ i=15 : perf(i) = gameperfentities4/av# : gameperfentities4=0
+ i=16 : perf(i) = gameperfentities5/av# : gameperfentities5=0
+endif
+
+rem Optional additional statistics
+if debugviewmode=0
+ `
+ rem Appreviated for game scene (temp)
+ t$=""
+ overalltotal as double integer
+ overalltotal=perf(3)
+ for i=1 to 11
+  if i=1 then t$=t$+"P"
+  if i=2 then t$=t$+"F"
+  if i=3 then t$=t$+"#"
+  if i=4 then t$=t$+"L"
+  if i=5 then t$=t$+"P"
+  if i=6 then t$=t$+"E"
+  if i=7 then t$=t$+"G"
+  if i=8 then t$=t$+"M"
+  if i=9 then t$=t$+"D"
+  if i=10 then t$=t$+"P"
+  if i=11 then t$=t$+"S"
+  if i<=2
+   thevalueB=perf(i)
+  else
+   thevalueA#=1000.0/overalltotal
+   thevalueB=perf(i)*thevalueA#
+  endif
+  t$=t$+":"+str$(thevalueB)
+  if i=6
+   rem extra entity display
+   rem V109 BETA11 - 130508 -= more readable performace values based on 1000.0 representing overall total
+   thevalueB12=perf(12)*thevalueA#
+   thevalueB13=perf(13)*thevalueA#
+   thevalueB14=perf(14)*thevalueA#
+   thevalueB15=perf(15)*thevalueA#
+   thevalueB16=perf(16)*thevalueA#
+   t$=t$+" [SH:"+str$(logicprioritycount)+"/"+str$(int(logicprioritymax#))+"][1:"+str$(thevalueB12)+" 2:"+str$(thevalueB13)+" 3:"+str$(thevalueB14)+" 4:"+str$(thevalueB15)+" 5:"+str$(thevalueB16)+"]"
+  endif
+  t$=t$+"   "
+ next i
+ ink rgb(255,255,0),0
+ center text screen width()/2,screen height()-16,t$
+ `
+ rem V110 - 160508 - added version number in bottom right corner (better transparency for debugging with shots)
+ center text screen width()-32,screen height()-16,"V"+str$(gversion)
+ `
+else
+ `
+ rem Performance meter text
+ sp=14 : spx=((screen width()-200)/2)-100 : spy=screen height()/2
+ ink rgb(255,255,0),0
+ sptop=sp+48 : spwidth=400 : spheight=400
+ line spx-44,sptop+14,spx+40+spwidth,sptop+14
+ line spx-44,(sptop+spheight)-4,spx+40+spwidth,(sptop+spheight)-4
+ line spx-44,sptop+14,spx-44,(sptop+spheight)-4
+ line spx+40+spwidth,sptop+14,spx+40+spwidth,(sptop+spheight)-4
+ i=1 : text spx-40,sptop+(sp*i),strarr$(69)+str$(perf(i))
+ ink rgb(255,0,0),0
+ i=2 : text spx-40,sptop+(sp*i),strarr$(70)+str$(perf(i))
+ ink rgb(255,255,0),0
+ i=3 : text spx-40,sptop+(sp*i),strarr$(71)+str$(perf(i))
+ i=4 : text spx-40,sptop+(sp*i),strarr$(72)+str$(perf(i))+"("+str$(lightingsystemdisabled)+")"
+ i=5 : text spx-40,sptop+(sp*i),strarr$(73)+str$(perf(i))
+ ink rgb(255,255,255),0
+ i=6 : text spx-40,sptop+(sp*i),strarr$(74)+str$(perf(i))+"("+str$(entitysystemdisabled)+")"
+ ink rgb(255,128,0),0
+ i=7 : text spx-40,sptop+(sp*i),strarr$(75)+str$(perf(i))
+ ink rgb(255,255,0),0
+ i=8 : text spx-40,sptop+(sp*i),strarr$(76)+str$(perf(i))
+ i=9 : text spx-40,sptop+(sp*i),strarr$(77)+str$(perf(i))
+ i=10 : text spx-40,sptop+(sp*i),strarr$(78)+str$(perf(i))
+ i=11 : text spx-40,sptop+(sp*i),strarr$(79)+str$(perf(i))
+ i=12 : text spx-40,sptop+(sp*i),strarr$(80)+str$(int(camera position x()))+" Y:"+str$(int(camera position y()))+" Z:"+str$(int(camera position z()))+" COL:"+str$(deactivatecollision)
+ `
+ rem AREABOX MESH GROUP STATS
+ ts1$=strarr$(81)+str$(statistic(3))+strarr$(82)+str$(statistic(4))
+ ts2$=strarr$(83)+str$(statistic(1))+strarr$(84)+str$(statistic(5))
+ ts3$=strarr$(85)+str$(statistic(6))+strarr$(86)+str$(statistic(7))
+ i=13 : text spx-40,sptop+(sp*i),ts1$
+ i=14 : text spx-40,sptop+(sp*i),ts2$
+ i=15 : text spx-40,sptop+(sp*i),ts3$
+ i=16 : text spx-40,sptop+(sp*i),strarr$(87)+str$(int(bcsoundstrength#))+strarr$(88)+str$(int(bcsoundx#))+" Y:"+str$(int(bcsoundy#))+" Z:"+str$(int(bcsoundz#))
+ ink rgb(0,255,255),0
+ i=17 : text spx-40,sptop+(sp*i),strarr$(89)+str$(wshot(wshoti,2))+strarr$(90)+str$(statistic(9))
+ ink rgb(255,255,0),0
+ `
+ rem Extra for testgame
+ if debugviewmode<>2
+  `
+  rem Memory chart of usage
+  center text spx-4,(sptop+spheight)+0,str$(mshotmemlargest/1024)+strarr$(91)
+  lock pixels
+  line spx-4,(sptop+spheight)+110,spx+spwidth,(sptop+spheight)+110
+  line spx-4,(sptop+spheight)+110,spx-4,(sptop+spheight)+14
+  tlinex#=spx-4
+  tliney#=(sptop+spheight)+110
+  tlinexbit#=gprogressmax
+  tlinexbit#=(spwidth+4.0)/tlinexbit#
+  toldlinex#=tlinex#
+  toldliney#=tliney#
+  msratio#=mshotmemlargest
+  msratio#=msratio#/100.0
+  toggletext=0
+  for tstep=1 to gprogressmax
+   tperc#=mshot(tstep)/msratio#
+   if mshot(tstep)>0
+    line toldlinex#,toldliney#,tlinex#,tliney#-tperc#
+    if mshot(tstep)>mshotmemlargest/4
+     toggletext=1-toggletext
+     center text tlinex#,(tliney#-tperc#)-10+(toggletext*10),str$(tstep)
+    endif
+    toldlinex#=tlinex#
+    toldliney#=tliney#-tperc#
+   endif
+   tlinex#=tlinex#+tlinexbit#
+  next tstep
+  center text screen width()/2,(sptop+spheight)+114,strarr$(92)+str$(mshotfirst-GET MEMORY AVAILABLE(0))
+  `
+  rem Debug control keys
+  t$=strarr$(94) : t$=t$+strarr$(95)
+  center text screen width()/2,(sptop+spheight)-(sp*3),t$
+  t$=strarr$(96) : t$=t$+strarr$(97)
+  center text screen width()/2,(sptop+spheight)-(sp*2),t$
+  `
+  rem workload chart
+  center text spx-4,(sptop+spheight)+116,"50k"
+  ink rgb(0,255,0),0
+  line spx-4,((sptop+spheight)+220)-32,spx+spwidth,((sptop+spheight)+220)-32
+  ink rgb(255,255,0),0
+  line spx-4,(sptop+spheight)+220,spx+spwidth,(sptop+spheight)+220
+  line spx-4,(sptop+spheight)+220,spx-4,(sptop+spheight)+130
+  tlinex#=(spx-4)+1
+  tliney#=(sptop+spheight)+220
+  toldlinex#=tlinex#
+  toldliney#=tliney#
+  tlinexbit#=((spwidth+4.0)/400.0)*4.0
+  for tstep=0 to 400 step 4
+   tperc#=wshot(tstep,0)/500.0
+   tgap=wshoti-tstep : if tgap<0 then tgap=tgap+400
+   tgap=tgap/2 : if tgap>255 then tgap=255
+   ink rgb(255-tgap,0,0),0
+   tlinescale#=55.0/wshotmax(1)
+   line tlinex#,tliney#-1,tlinex#,(tliney#-1)-(wshot(tstep,1)*tlinescale#)
+   ink rgb(0,255,255),0
+   tlinescale#=55.0/wshotmax(2)
+   line tlinex#,tliney#-33,tlinex#,(tliney#-33)-(wshot(tstep,2)*tlinescale#)
+   ink rgb(255,128,0),0
+   tlinescale#=55.0/wshotmax(4)
+   line tlinex#,tliney#-33,tlinex#,(tliney#-33)-(wshot(tstep,4)*tlinescale#)
+   ink rgb(255,255,255),0
+   tlinescale#=55.0/wshotmax(3)
+   line tlinex#,tliney#,tlinex#,tliney#-(wshot(tstep,3)*tlinescale#)
+   ink rgb(255,255,0),0
+   line toldlinex#,toldliney#,tlinex#,tliney#-tperc#
+   toldlinex#=tlinex#
+   toldliney#=tliney#-tperc#
+   tlinex#=tlinex#+tlinexbit#
+  next tstep
+  unlock pixels
+  ink rgb(255,255,0),0
+  if perf(2)>0
+   center text screen width()/2,(sptop+spheight)+224,strarr$(93)+str$(perf(1)/perf(2))
+  endif
+  `
+ endif
+ `
+endif
+
+rem Current keypress
+if gtalkytoaster=0
+ k$=inkey$()
+else
+ k$=""
+endif
+
+rem Portal Control
+if k$="[" then g_iPortal = 1 : set static portals on : set static objects wireframe on
+if k$="]" then g_iPortal = 0 : set static portals off : set static objects wireframe off
+
+rem Restoration key
+if k$="t" then sync rate 34 : entitysystemdisabled=0 : lightingsystemdisabled=0
+
+rem Disable parts of engin
+if k$="-" then entitysystemdisabled=1
+if k$="=" then lightingsystemdisabled=1
+
+rem Sync control
+if k$="x" then sync rate 0
+if k$="u" then sync rate 5
+
+rem Collision control
+if k$="m" then deactivatecollision=0
+if k$="n" then deactivatecollision=1
+
+rem glide for floating
+if player(1).health>0
+ if k$="z" then grav#=-2.0 : jumpaction=0
+endif
+
+rem Mouse control/pointer
+if (scancode()<>15) and debugviewtog=1 then debugviewtog=0
+if (scancode()=15 or triggerdebugview>0) and debugviewtog=0
+ if triggerdebugview>0
+  debugviewmode=triggerdebugview-1
+  triggerdebugview=0
+ else
+  debugviewmode=1-debugviewmode
+  debugviewtog=1
+ endif
+endif
+
+endfunction
+
+
+

@@ -1,0 +1,14 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Flame
+
+;Triggers
+
+:state=0:rundecal=7,lighton
+:state=0,random=2:lightintensity=99
+:state=0,random=3:lightintensity=93
+:state=0,random=4:lightintensity=85
+
+;End of Script

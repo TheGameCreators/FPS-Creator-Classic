@@ -1,0 +1,95 @@
+[GAMERUN]
+realgameview=set to 1 to force the game executable into a standalone execution mode
+dynamiclighting=set to 1 to allow dynamic lights to operate in the game, otherwise dynamic lights are ignored
+dynamicshadows=discontinued feature
+useeffects=set to 1 to activate ALL shader effects within the game
+useeffectsonguns=set to 1 to activate shader effects on the HUD gun part of the game
+useeffectsonscene=set to 1 to activate shader effects on the static scene geometry of the game
+useeffectsonentities=set to 1 to activate shader effects on the dynamic entities of the game
+dividetexturesize=set to a power of 2 to divide the original texture size by this value (smaller memory footprint)
+vrmode=set to 1 to activate Virtual Reality Mode (currently only compatible with the VR920 device)
+vrmodemag=set the sensitivity of the head tracker in relation to VRMODE (default is 100, 50 is half as sensitive)
+mousesensitivity=set the sensitivity of the mouse tracking (default is 100, 50 is half as sensitive)
+producelogfiles=set to 1 to produce .LOD files alongside the main FPSC executables containing detailed logging of activity
+hsrmode=set the visibility flag used when constructing the static universe of the game (default of 2 for full visibility, 0 for optimised visibility)
+optimizemode=must be set to 1 or some parts of the universe build process will not complete
+aspectratio=set this to 1 to force the game viewport to match the aspect ratio of the resolution used
+newblossershaders=set to 1 by default, instructing the engine to use the effectbank PS2 instead of the original shaders
+postprocessing=set to 1 to enable automatic BLOOM, set to 2 to enable DEPTH OF FIELD rendering
+showaioutlines=set to 1 to show all DarkAI debug outlines, useful for testing complex AI pathfinding
+disablepeeking=set to 1 to disable the ability for the player to use peek controls (Q and E by default)
+
+[GAMEMULTIPLAYER]
+multiplayergame=set to 1 to tell the game it is running as a multiplayer game
+gameobjectivetype=set the objective of the multiplayer game (0-no win,1-trigger to win,2-target frag wins, 3-highest frag when time up)
+gameobjectivevalue=set the value that relates to the objective type above (i.e. 20 frags, 120 seconds, e.t.c. )
+oneshotkills=set to 1 when you want a single shot to kill the arena player
+maxplayers=set the maximum number of players allowed in the multiplayer game (max. 16 players)
+spawnrandom=set to 1 to force the players to start in any of the player start locations randomly (as opposed to their own)
+uniquegamecode=a random 32 digit string representing the server ID that the game will be identified as when linking up remote players
+
+[GAMEMAKE]
+lightmapping=set to 1 to activate light mapping when testing or building the game
+lightmapold=set to 1 to activate the old-style light mapping before DarkLIGHTS engine was integrated
+lightmapshadows=discontinued
+lightmapambientr=set a value between 0 and 100 to control the amount of additional red ambient light to add to light mapping process
+lightmapambientg=set a value between 0 and 100 to control the amount of additional green ambient light to add to light mapping process
+lightmapambientb=set a value between 0 and 100 to control the amount of additional blue ambient light to add to light mapping process
+lightmapsunx=set the X normal direction of where the single point of directional light comes from during the light mapping process
+lightmapsuny=set the Y normal direction of where the single point of directional light comes from during the light mapping process
+lightmapsunz=set the Z normal direction of where the single point of directional light comes from during the light mapping process
+lightmapsunr=set the red component colour of the single point of directional light during the light mapping process
+lightmapsung=set the green component colour of the single point of directional light during the light mapping process
+lightmapsunb=set the blue component colour of the single point of directional light during the light mapping process
+lightmapzerorange=set the zero range used by the light mapping process, which describes the area in which all light is maxed out (default is 100)
+lightmapatten=set the light mapping attenuation when controlling light fall off for all static lights (default is 16)
+lightmapmaxsize=set the curved surface quality setting for the light mapping process (default is -1)
+lightmapboost=set the curved surface quality setting for the light mapping process (default is 4)
+lightmaptexsize=set the size of the texture plate used to hold the light map textures during the lighting process (default is 512)
+lightmapquality=set the quality of the light mapping from a range of 1 to 100 (default is 10, higher quality light map is 25)
+lightmapblurmode=set to 1 to switch on special blurring mode to smooth out the light mapping (default is 1)
+lightmapthreadmax=set the number of CPU threads to use during the lightmapping process (default is -1 which specifies ALL available threads) (-2=single threaded)
+bloodonfloor=set to 1 to activate the feature of splatting blood onto the floor under characters that have been shot (default is 0)
+imageblockmode=set to 1 to activate the ability of the engine to compile all images used by the game into a single image file for security and speed (default is 1)
+showalluniquetextures=set to 1 to force the editor to show all unique textures and effects (impacts performance considerably) (default is 0)
+systemmemorycapoff=set to 1 to disable the forced memory cap, increasing the chances your build may crash
+entitytogglingoff=set this to 1 to disable toggling of entities from dynamic to static in the editor
+extracollisionbuilddisabled=set this to 1 to switch off a second collision improvement pass, improving build times
+alwaysconfirmsave=set this to 1 to cause the editor to ALWAYS prompt you before the SAVE operation is performed
+simplifiedcharacterediting=setting this to 1 will vastly simplify all character property editing (for non-violent experience)
+
+[GAMEDEBUG]
+exitpromptreport=set to 1 to force the game to produce a message prompt on exit, used for debug purposes (default is 0)
+debugreport=set to 1 to produce a verbose debug report on the stages of the game (default is 0)
+showentitygameinfo=set to 1 to show entity details as text overlays during the game, ideal for script debugging (default is 0)
+showdebugtextingame=set to 1 to show full debug information such as script states and visual elements (default is 0)
+debugreportstepthrough=set to 1 to force the game start-up sequence to require a key press after each step (default is 0)
+usesky=set to 1 to allow the engine to use the sky box specified in the global script of the level (default is 1)
+usefloor=set to 1 to use the automatic floor feature which creates a large plane of polygons outside the walkable area of the level (default is 0)
+useenvsounds=discontinued
+useweapons=set to 1 to allow bullet holes to be loaded into universe ready to be pasted to static scene (default is 1)
+includeonlyvideo=set to 1 to replace all texture graphics with low memory random colour (default is 0)
+includeonlyname=provide a folder name rooted to the Files directory which shall be excluded from the above texture exclusion (default is gamecore)
+width=set the default screen width of the game, but this size will be stretched to the size of the desktop (default is 1024)
+height=set the default screen height of the game, but this size will be stretched to the size of the desktop (default is 768)
+depth=set the default screen depth of the game, but this value will be overridden by the desktop native colour depth (default is 32)
+aspectratio=set to 1 to force the game resolution to obey the aspect ratio of the current desktop screen size
+useuniquelynamedentities=set to 1 to force new entities to have unique names (appended by numerics) (default is 0)
+exportassets=set to 1 to force the build game process to also export the original game making assets with the standalone game (FPE/BMP) (default is 0)
+loadreport=set to 1 to create a file called loadreport.txt which reports the loading time of the game after loading (default is 0)
+
+[GAMEPROFILE]
+key1           = scancode key value representing UP
+key2           = scancode key value representing DOWN
+key3           = scancode key value representing LEFT
+key4           = scancode key value representing RIGHT
+key5           = scancode key value representing SPACE
+key6           = scancode key value representing CROUCH
+key7           = scancode key value representing RETURN
+key8           = scancode key value representing RELOAD
+key9           = scancode key value representing PEEK LEFT
+key10          = scancode key value representing PEEK RIGHT
+key11          = scancode key value representing SHIFT
+global         = relative path to global script FPI file for the test game (default is languagebank\english\gamebank\mygame\setuplevel.fpi)
+levelfpm1      = intentionally blank for test/build game
+levelfpi1      = relative path to the loading page FPI file for the game (default is languagebank\english\gamebank\mygame\loadingpage.fpi)

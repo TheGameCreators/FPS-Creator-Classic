@@ -1,0 +1,35 @@
+
+
+;header
+
+desc          = structuralb
+
+;ai
+aiinit	      = appear1.fpi
+aimain	      = default.fpi
+aidestroy     = disappear1.fpi
+
+;spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;orientation
+
+model         = meshbank\scifi\scenery\furniture\structuralb\structural_B.x
+offx          = 0
+offy          = 0
+offz          = 0
+rotx          = 0
+roty          = 0
+rotz          = 0
+defaultstatic = 1
+materialindex = 3
+collisionmode = 2
+
+;visualinfo
+
+textured      = texturebank\scifi\scenery\furniture\structuralb\structural_B_d2.tga
+effect        = effectbank\bumpent\bumpent.fx
+castshadow    = 0
+transparency  = 1

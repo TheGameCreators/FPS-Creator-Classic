@@ -1,0 +1,12 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Disappear then activate another
+
+;Triggers
+
+:state=0:state=1,plrsound=$0,activateifused=1
+:state=1:state=2,destroy
+
+;End of Script

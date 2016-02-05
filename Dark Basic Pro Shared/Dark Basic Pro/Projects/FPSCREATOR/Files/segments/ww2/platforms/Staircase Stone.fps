@@ -1,0 +1,256 @@
+;Segment Spec
+
+;Header
+
+partmax = 9
+lastmeshmax = 9
+
+;Segment Parts
+
+partmode0       = 0
+meshname0       = meshbank\ww2\france\stairs\solid\stair_d_01.x
+offx0           = 0
+offy0           = 39
+offz0           = 40
+rotx0           = 0
+roty0           = 270
+rotz0           = 0
+texture0        = texturebank\ww2\stairs\concrete\stair_d_d2.tga
+textured0       = 
+texturen0       = 
+textures0       = 
+transparency0   = 0
+effect0         = 
+colmode0        = 1
+csgmesh0        = 
+csgmode0        = 0
+csgimmune0      = 0
+lightmode0      = 0
+multimeshmode0  = 0
+materialindex0  = 2
+
+partmode1       = 0
+meshname1       = meshbank\ww2\france\stairs\solid\stair_d_01.x
+offx1           = 0
+offy1           = -50
+offz1           = -50
+rotx1           = 0
+roty1           = 270
+rotz1           = 0
+texture1        = texturebank\ww2\stairs\concrete\stair_d_d2.tga
+textured1       = 
+texturen1       = 
+textures1       = 
+transparency1   = 0
+effect1         = 
+colmode1        = 1
+csgmesh1        = 
+csgmode1        = 0
+csgimmune1      = 0
+lightmode1      = 0
+multimeshmode1  = 0
+materialindex1  = 2
+
+partmode2       = 0
+meshname2       = meshbank\ww2\france\stairs\solid\stair_d_01.x
+offx2           = 0
+offy2           = -40
+offz2           = -40
+rotx2           = 0
+roty2           = 270
+rotz2           = 0
+texture2        = texturebank\ww2\stairs\concrete\stair_d_d2.tga
+textured2       = 
+texturen2       = 
+textures2       = 
+transparency2   = 0
+effect2         = 
+colmode2        = 1
+csgmesh2        = 
+csgmode2        = 0
+csgimmune2      = 0
+lightmode2      = 0
+multimeshmode2  = 0
+materialindex2  = 2
+
+partmode3       = 0
+meshname3       = meshbank\ww2\france\stairs\solid\stair_d_01.x
+offx3           = 0
+offy3           = -30
+offz3           = -30
+rotx3           = 0
+roty3           = 270
+rotz3           = 0
+texture3        = texturebank\ww2\stairs\concrete\stair_d_d2.tga
+textured3       = 
+texturen3       = 
+textures3       = 
+transparency3   = 0
+effect3         = 
+colmode3        = 1
+csgmesh3        = 
+csgmode3        = 0
+csgimmune3      = 0
+lightmode3      = 0
+multimeshmode3  = 0
+materialindex3  = 2
+
+partmode4       = 0
+meshname4       = meshbank\ww2\france\stairs\solid\stair_d_01.x
+offx4           = 0
+offy4           = -20
+offz4           = -20
+rotx4           = 0
+roty4           = 270
+rotz4           = 0
+texture4        = texturebank\ww2\stairs\concrete\stair_d_d2.tga
+textured4       = 
+texturen4       = 
+textures4       = 
+transparency4   = 0
+effect4         = 
+colmode4        = 1
+csgmesh4        = 
+csgmode4        = 0
+csgimmune4      = 0
+lightmode4      = 0
+multimeshmode4  = 0
+materialindex4  = 2
+
+partmode5       = 0
+meshname5       = meshbank\ww2\france\stairs\solid\stair_d_01.x
+offx5           = 0
+offy5           = -10
+offz5           = -10
+rotx5           = 0
+roty5           = 270
+rotz5           = 0
+texture5        = texturebank\ww2\stairs\concrete\stair_d_d2.tga
+textured5       = 
+texturen5       = 
+textures5       = 
+transparency5   = 0
+effect5         = 
+colmode5        = 1
+csgmesh5        = 
+csgmode5        = 0
+csgimmune5      = 0
+lightmode5      = 0
+multimeshmode5  = 0
+materialindex5  = 2
+
+partmode6       = 0
+meshname6       = meshbank\ww2\france\stairs\solid\stair_d_01.x
+offx6           = 0
+offy6           = 0
+offz6           = 0
+rotx6           = 0
+roty6           = 270
+rotz6           = 0
+texture6        = texturebank\ww2\stairs\concrete\stair_d_d2.tga
+textured6       = 
+texturen6       = 
+textures6       = 
+transparency6   = 0
+effect6         = 
+colmode6        = 1
+csgmesh6        = 
+csgmode6        = 0
+csgimmune6      = 0
+lightmode6      = 0
+multimeshmode6  = 0
+materialindex6  = 2
+
+partmode7       = 0
+meshname7       = meshbank\ww2\france\stairs\solid\stair_d_01.x
+offx7           = 0
+offy7           = 10
+offz7           = 10
+rotx7           = 0
+roty7           = 270
+rotz7           = 0
+texture7        = texturebank\ww2\stairs\concrete\stair_d_d2.tga
+textured7       = 
+texturen7       = 
+textures7       = 
+transparency7   = 0
+effect7         = 
+colmode7        = 1
+csgmesh7        = 
+csgmode7        = 0
+csgimmune7      = 0
+lightmode7      = 0
+multimeshmode7  = 0
+materialindex7  = 2
+
+partmode8       = 0
+meshname8       = meshbank\ww2\france\stairs\solid\stair_d_01.x
+offx8           = 0
+offy8           = 20
+offz8           = 20
+rotx8           = 0
+roty8           = 270
+rotz8           = 0
+texture8        = texturebank\ww2\stairs\concrete\stair_d_d2.tga
+textured8       = 
+texturen8       = 
+textures8       = 
+transparency8   = 0
+effect8         = 
+colmode8        = 1
+csgmesh8        = 
+csgmode8        = 0
+csgimmune8      = 0
+lightmode8      = 0
+multimeshmode8  = 0
+materialindex8  = 2
+
+partmode9       = 0
+meshname9       = meshbank\ww2\france\stairs\solid\stair_d_01.x
+offx9           = 0
+offy9           = 30
+offz9           = 30
+rotx9           = 0
+roty9           = 270
+rotz9           = 0
+texture9        = texturebank\ww2\stairs\concrete\stair_d_d2.tga
+textured9       = 
+texturen9       = 
+textures9       = 
+transparency9   = 0
+effect9         = 
+colmode9        = 1
+csgmesh9        = 
+csgmode9        = 0
+csgimmune9      = 0
+lightmode9      = 0
+multimeshmode9  = 0
+materialindex9  = 2
+
+;Segment Visibility
+
+visoverlay      = 1
+visfloor        = -1
+visroof         = -1
+viswallb        = -1
+viswallr        = -1
+viswallf        = -1
+viswalll        = -1
+viscornertl     = -1
+viscornertr     = -1
+viscornerbr     = -1
+viscornerbl     = -1
+
+;Segment Blueprint
+
+mode            = 0
+symbol          = 0
+floorsizey      = 0
+sidesizex       = 0
+sidesizey       = 0
+sidesizez       = 0
+groundmode      = 0
+kindof          = 0
+
+;end
+

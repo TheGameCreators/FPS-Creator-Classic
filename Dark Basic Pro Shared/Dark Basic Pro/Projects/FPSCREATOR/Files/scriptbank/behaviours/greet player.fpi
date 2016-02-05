@@ -1,0 +1,20 @@
+;Script description
+
+desc          = Character will greet player with speech when get close
+
+;Starts level in idle posture, looking around slightly
+
+:state=0:animate=1,state=1
+:state=1,random=40:rotateheadrandom=10
+
+;Talk as soon as get within range (or activated)
+
+:state=1,activated=1:talk=$1,state=2
+:state=1,plrdistwithin=90:talk=$1,state=2
+:state=2,plrcannotbeseen:rotatetoplr
+:state=2:lookatplr=80
+:state=2,soundfinished=1:state=3
+:state=3,plrdistwithin=90:lookatplr=80
+:state=3,plrdistfurther=90,random=40:rotateheadrandom=10
+
+;End of Script

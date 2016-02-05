@@ -1,0 +1,15 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Animate character based on which body part gets shot
+
+;Triggers
+
+:shotdamagetype=2:state=2,animate=81
+:shotdamagetype=3:state=3,animate=31
+:shotdamagetype=4:state=4,animate=31
+:shotdamagetype=5:state=5,animate=91
+:shotdamagetype=6:state=6,animate=91
+
+;End of Script

@@ -1,0 +1,11 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Keep alive (burned out objects)
+
+;Triggers
+
+:state=0:state=1
+
+;End of Script

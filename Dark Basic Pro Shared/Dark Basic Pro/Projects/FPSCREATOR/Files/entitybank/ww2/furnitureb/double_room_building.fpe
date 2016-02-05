@@ -1,0 +1,35 @@
+
+
+;header
+
+desc          = double_room_building
+
+;ai
+aiinit	      = appear1.fpi
+aimain	      = default.fpi
+aidestroy     = disappear1.fpi
+
+;spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;orientation
+
+model         = meshbank\ww2\scenery\special\double_room_building\double_room_building.x
+offx          = 0
+offy          = 0
+offz          = 0
+rotx          = 0
+roty          = 0
+rotz          = 0
+defaultstatic = 1
+materialindex = 2
+collisionmode = 1
+
+;visualinfo
+
+textured      = texturebank\ww2\scenery\special\double_room_building\double_room_building_d2.tga
+effect        = 
+castshadow    = 0
+

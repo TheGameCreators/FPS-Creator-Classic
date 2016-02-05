@@ -1,0 +1,40 @@
+;Entity Spec
+
+;Header
+desc          = False Wall
+
+;AI
+aimain	      = default.fpi
+aidestroy     = destroy\crumble.fpi
+
+;Spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;Orientation
+model         = falsewall.x
+offx          = 0
+offy          = 0
+offz          = 0
+rotx          = 0
+roty          = 0
+rotz          = 0
+materialindex = 2
+defaultheight = 50
+
+;Visualinfo
+textured      = W_e_ALL_01_D2.tga
+effect        = 
+
+;Identity Details
+strength      = 1
+isimmobile    = 1
+
+;Decals
+decalmax      = 1
+decal0        = dust
+
+;Animationinfo
+animmax       = 0
+

@@ -1,0 +1,14 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = When Plr In Zone, stop ALL other trigger zone sounds and play this (all zones must have same name)
+
+;Triggers
+
+; Other zones
+:state=0,plrwithinzone=0,activated=1:stopsound=$0,activate=0
+
+; This zone
+:state=0,plrwithinzone=1:activateifused=1,activate=0,sound=$0,state=1
+:state=1,plrwithinzone=0:state=0

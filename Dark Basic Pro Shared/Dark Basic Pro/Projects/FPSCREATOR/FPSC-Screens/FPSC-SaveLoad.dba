@@ -1,0 +1,859 @@
+`
+` SAVE LOAD SUBROUTINES
+`
+_saveload_maindialogloop:
+ `
+ rem loop to control save/load dialog
+ gosub _saveload_savebox_load
+ saveload.slotselected=0
+ saveloadmousex=(screen width()/4)*3
+ saveloadmousey=screen height()/2
+ while saveload.slotselected=0
+  gosub _saveload_savebox_run
+  inc saveloadmousex,mousemovex() : inc saveloadmousey,mousemovey()
+  if saveloadmousex<saveload.saveloadx then saveloadmousex=saveload.saveloadx
+  if saveloadmousex>saveload.saveloadx+560 then saveloadmousex=saveload.saveloadx+560
+  if saveloadmousey<saveload.saveloady then saveloadmousey=saveload.saveloady
+  if saveloadmousey>saveload.saveloady+310 then saveloadmousey=saveload.saveloady+310
+  paste image aihudpointerimagestore,saveloadmousex,saveloadmousey,1
+  sync
+ endwhile
+ aifreezemouseclicks=0
+ if saveload.loadswitch=1
+  if saveload.slotselected>0 then gosub _saveload_savebox_doload
+ else
+  if saveload.slotselected>0 then gosub _saveload_savebox_dosave
+ endif
+ gosub _saveload_savebox_free
+ `
+return
+
+_saveload_savebox_init:
+ `
+ rem Setup at veru start of game
+ saveload.saveloadimg=530 : rem between muzzle flash and image bank
+ saveload.saveloadx=(screen width()-600)/2
+ saveload.saveloady=(screen height()-350)/2
+ `
+return
+
+_saveload_savebox_earlygrab:
+ `
+ rem Grab screen and reduce to JPG file
+ get image saveload.saveloadimg+3,(screen width()/2)-128,(screen height()/2)-128,(screen width()/2)+128,(screen height()/2)+128
+ `
+return
+
+_saveload_savebox_initlist:
+ `
+ rem Create folder if not exist
+ if path exist("gamesaves")=0 then make directory "gamesaves"
+ `
+ rem Load screen previews
+ ttfile$="gamesaves\saveload.arr"
+ if file exist(ttfile$)=1
+  load array ttfile$,saveloadslot$()
+ else
+  for tclr=1 to 9 : saveloadslot$(tclr)=strarr$(645) : next tclr
+ endif
+ `
+return
+
+_saveload_savebox_load:
+ `
+ rem Load interface gfx
+ saveload.saveloaddir$="languagebank\"+language$+"\gamecore\huds\saveload\"
+ load image saveload.saveloaddir$+"saveload-base.tga",saveload.saveloadimg+1
+ load image saveload.saveloaddir$+"areyousure.tga",saveload.saveloadimg+2
+ `
+ rem Create folder if not exist and init the list
+ gosub _saveload_savebox_initlist
+ `
+ rem Load screen previews
+ for sloti=1 to 9
+  ttfile$="gamesaves\scrshot"+str$(sloti)+".jpg"
+  if file exist(ttfile$)=1
+   load image ttfile$,saveload.saveloadimg+10+sloti
+  else
+   if image exist(saveload.saveloadimg+10+sloti)=1 then delete image saveload.saveloadimg+10+sloti
+  endif
+ next sloti
+ `
+ rem Text for saveload box
+ set text size 18 : set text font "arial"
+ `
+ rem Reset
+ saveload.areyousure=0
+ `
+return
+
+_saveload_savebox_free:
+ `
+ rem Free usages
+ delete image saveload.saveloadimg+1
+ delete image saveload.saveloadimg+2
+ for sloti=1 to 9
+  if image exist(saveload.saveloadimg+10+sloti)=1 then delete image saveload.saveloadimg+10+sloti
+ next sloti
+ `
+return
+
+_saveload_savebox_run:
+ `
+ rem Mouse coords
+ tmmx=saveloadmousex : tmmy=saveloadmousey
+ `
+ rem Refresh saveload box
+ paste image saveload.saveloadimg+1,saveload.saveloadx,saveload.saveloady
+ `
+ rem Slot names
+ ink rgb(32,32,32),0
+ if saveload.areyousure=0 then saveload.slothighlight=0
+ for sloti=1 to 9
+  thoverhighlight=0
+  saveload.liney=saveload.saveloady+20+(sloti*27)
+  if tmmx>=saveload.saveloadx+20 and tmmx<=saveload.saveloadx+300
+   if tmmy>=saveload.liney and tmmy<saveload.liney+26
+    if saveload.areyousure=0 then thoverhighlight=1
+   endif
+  endif
+  if thoverhighlight=1
+   if saveload.loadswitch=0 or saveloadslot$(sloti)<>strarr$(645)
+    saveload.slothighlight=sloti
+    ink rgb(255,255,255),0
+   endif
+  else
+   ink rgb(32,32,32),0
+  endif
+  text saveload.saveloadx+25,saveload.liney+4,str$(sloti)+"  "+saveloadslot$(sloti)
+ next sloti
+ `
+ rem Preview
+ if saveload.slothighlight>0
+  slotimg=saveload.saveloadimg+10+saveload.slothighlight
+  if image exist(slotimg)=1 then paste image slotimg,saveload.saveloadx+320,saveload.saveloady+40,1
+ endif
+ `
+ rem Title of box
+ ink rgb(255,255,255),0
+ if saveload.loadswitch=1
+  center text saveload.saveloadx+300,saveload.saveloady+6,strarr$(646)
+ else
+  center text saveload.saveloadx+300,saveload.saveloady+6,strarr$(647)
+ endif
+ `
+ rem Are You Sure prompt
+ if saveload.areyousure=1
+  tareyousurex=saveload.saveloadx+50
+  tareyousurey=saveload.saveloady+130
+  paste image saveload.saveloadimg+2,tareyousurex,tareyousurey
+  rem choice detection
+  tyesnochoice1=0 : tyesnochoice2=0
+  if tmmy>=tareyousurey+15 and tmmy<tareyousurey+45
+   if tmmx>=tareyousurex+400 and tmmx<=tareyousurex+450 then tyesnochoice1=1 : tyesnochoice2=0
+   if tmmx>=tareyousurex+450 and tmmx<=tareyousurex+500 then tyesnochoice1=0 : tyesnochoice2=1
+  endif
+  if saveload.loadswitch=1 then suretext$=strarr$(648)+" "+saveloadslot$(saveload.slothighlight)+"?" else suretext$=strarr$(649)+" "+saveloadslot$(saveload.slothighlight)+"?"
+  ink rgb(32,32,32),0 : text tareyousurex+30,tareyousurey+22,suretext$
+  ink rgb(tyesnochoice1*255,tyesnochoice1*255,tyesnochoice1*255),0 : text tareyousurex+400,tareyousurey+22,strarr$(650)
+  ink rgb(tyesnochoice2*255,tyesnochoice2*255,tyesnochoice2*255),0 : text tareyousurex+450,tareyousurey+22,strarr$(651)
+  rem select one
+  if mouseclick()=1 and (tyesnochoice1=1 or tyesnochoice2=1)
+   saveload.areyousure=0 : while mouseclick()=1 : endwhile
+   if tyesnochoice1=1 then saveload.slotselected=saveload.slothighlight
+  endif
+  rem Escape from confirmer box
+  if escapekey()=1 then saveload.areyousure=0 : while escapekey()=1 : endwhile
+ else
+  rem Select slot
+  if mouseclick()=1 and saveload.slothighlight>0
+   rem Slot X selected
+   sloti=saveload.slothighlight
+   if saveloadslot$(sloti)=strarr$(645)
+    if saveload.loadswitch=0
+     saveload.slotselected=saveload.slothighlight
+    endif
+   else
+    rem overwrite?
+    saveload.areyousure=1
+   endif
+  endif
+  if escapekey()=1
+   saveload.slotselected=-1
+   while escapekey()=1 : endwhile
+  endif
+ endif
+ `
+return
+
+_saveload_savebox_dosave:
+ `
+ rem Fill details
+ tname$=strarr$(652)+" "+str$(level)
+ tdate$=left$(get time$(),5)+"-"+left$(get date$(),5)
+ tnameanddate$=tname$+" "+tdate$
+ `
+ rem Make entry in slot list and save
+ ttfile$="gamesaves\saveload.arr"
+ if file exist(ttfile$)=1 then delete file ttfile$
+ saveloadslot$(saveload.slotselected)=tnameanddate$
+ save array ttfile$,saveloadslot$()
+ `
+ rem Save JPG to slot
+ ttfile$="gamesaves\scrshot"+str$(saveload.slotselected)+".jpg"
+ if file exist(ttfile$)=1 then delete file ttfile$
+ save image ttfile$,saveload.saveloadimg+3,1
+ `
+ rem Actual slot filename
+ saveloadfile$="gamesaves\slot"+str$(saveload.slotselected)+".dat"
+ `
+return
+
+_saveload_savebox_doload:
+ `
+ rem Actual slot filename
+ saveloadfile$="gamesaves\slot"+str$(saveload.slotselected)+".dat"
+
+return
+
+
+`
+` SAVELOAD Actual Save and Load Game
+`
+
+
+
+_saveload_savegame:
+ `
+ rem CREATE SAVEGAMEDATA FROM GAME DATA
+ gosub _saveload_storesavedata
+ `
+ rem SAVE
+ if file exist(saveloadfile$)=1 then delete file saveloadfile$
+ open to write 1,saveloadfile$
+ version=115 : write file 1,version
+ if version>=104
+  rem V104
+  rem Player
+  a#=saveloadgameposition.level : write float 1,a#
+  a#=saveloadgameposition.playerx : write float 1,a#
+  a#=saveloadgameposition.playery : write float 1,a#
+  a#=saveloadgameposition.playerz : write float 1,a#
+  a#=saveloadgameposition.playerry : write float 1,a#
+  a#=saveloadgameposition.playerhealth : write float 1,a#
+  a#=saveloadgameposition.playerlives : write float 1,a#
+  a#=saveloadgameposition.playerinventorymax : write float 1,a#
+  a#=saveloadgameposition.missiongoaltotal : write float 1,a#
+  rem Inventory
+  for lsi=0 to 100
+   a#=saveloadgamepositionplayerinventory(lsi).new : write float 1,a#
+   a#=saveloadgamepositionplayerinventory(lsi).drop : write float 1,a#
+   a#=saveloadgamepositionplayerinventory(lsi).index : write float 1,a#
+  next lsi
+  rem Objectives
+  for lsi=0 to 99
+   a#=saveloadgamepositionplayerobjective(lsi) : write float 1,a#
+  next lsi
+  rem Entities
+  a#=entityelementmax : write float 1,a#
+  for lsi=0 to entityelementmax
+   a#=saveloadgamepositionentity(lsi).spawnleaderid : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).ailibindex : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).aistate : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).aioldstate : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).active : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).dormant : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).beenkilled : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).x : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).y : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).z : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).rx : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).ry : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).rz : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).floorposy : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).animset : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).animdo : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).currentammo : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).health : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).collected : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).activated : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).collisionactive : write float 1,a#
+  next lsi
+  rem Weapons
+  for lsi=0 to 10
+   a#=saveloadgamepositionweaponslot(lsi).pref : write float 1,a#
+   a#=saveloadgamepositionweaponslot(lsi).got : write float 1,a#
+   a#=saveloadgamepositionweaponslot(lsi).invpos : write float 1,a#
+   a#=saveloadgamepositionweaponslot(lsi).weaponammo : write float 1,a#
+   a#=saveloadgamepositionweaponslot(lsi).weaponclipammo : write float 1,a#
+   a#=saveloadgamepositionweaponslot(lsi).weaponhud : write float 1,a#
+  next lsi
+ endif
+ if version>=109
+  rem V109BETA4
+  rem Global values from FPI scripting
+  for lsi=0 to 99
+   a#=aiglobals(lsi) : write float 1,a#
+  next lsi
+ endif
+ if version>=113
+  rem V113BETA4
+  rem Local values from FPI scripting
+  for lsi=0 to entityelementmax
+   for lsii=0 to 99
+    a#=ailocals(lsi,lsii) : write float 1,a#
+   next lsii
+  next lsi
+ endif
+ if version>=115
+  rem V115BETA1
+  rem Restore all waypoint and spawn states of entity
+  rem to correct invisible spawns and wrong direction of waypoint users
+  for lsi=0 to entityelementmax
+   a#=saveloadgamepositionentity(lsi).actualtarget : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).waypointstate : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).waypointcurrent : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).waypointtracker : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).waypointdirection : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).waypointxstart : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).waypointystart : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).waypointzstart : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).waypointxinc : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).waypointyinc : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).waypointzinc : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).aiusinginternalai : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).aioldwaypointstate : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).aioldanimframe : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).aiolddestanimframe : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).spawnatstart : write float 1,a#
+   a#=saveloadgamepositionentity(lsi).spawnupto : write float 1,a#
+  next lsi
+ endif
+ close file 1
+ `
+return
+
+_saveload_loadgame:
+ `
+ rem LOAD
+ open to read 1,saveloadfile$
+ read file 1,version
+ if version>=104
+  rem V104
+  rem Player
+  read float 1,a# : saveloadgameposition.level=a#
+  read float 1,a# : saveloadgameposition.playerx=a#
+  read float 1,a# : saveloadgameposition.playery=a#
+  read float 1,a# : saveloadgameposition.playerz=a#
+  read float 1,a# : saveloadgameposition.playerry=a#
+  read float 1,a# : saveloadgameposition.playerhealth=a#
+  read float 1,a# : saveloadgameposition.playerlives=a#
+  read float 1,a# : saveloadgameposition.playerinventorymax=a#
+  read float 1,a# : saveloadgameposition.missiongoaltotal=a#
+  rem Inventory
+  dim saveloadgamepositionplayerinventory(100) as inventorytype
+  for lsi=0 to 100
+   read float 1,a# : saveloadgamepositionplayerinventory(lsi).new=a#
+   read float 1,a# : saveloadgamepositionplayerinventory(lsi).drop=a#
+   read float 1,a# : saveloadgamepositionplayerinventory(lsi).index=a#
+  next lsi
+  rem Objectives
+  dim saveloadgamepositionplayerobjective(99)
+  for lsi=0 to 99
+   read float 1,a# : saveloadgamepositionplayerobjective(lsi)=a#
+  next lsi
+  rem Entities
+  read float 1,a# : entityelementmax=a#
+  dim saveloadgamepositionentity(entityelementmax) as saveloadgamepositionentitytype
+  for lsi=0 to entityelementmax
+   read float 1,a# : saveloadgamepositionentity(lsi).spawnleaderid=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).ailibindex=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).aistate=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).aioldstate=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).active=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).dormant=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).beenkilled=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).x=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).y=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).z=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).rx=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).ry=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).rz=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).floorposy=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).animset=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).animdo=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).currentammo=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).health=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).collected=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).activated=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).collisionactive=a#
+  next lsi
+  rem Weapons
+  dim saveloadgamepositionweaponslot(10) as saveloadgamepositionweaponslottype
+  for lsi=0 to 10
+   read float 1,a# : saveloadgamepositionweaponslot(lsi).pref=a#
+   read float 1,a# : saveloadgamepositionweaponslot(lsi).got=a#
+   read float 1,a# : saveloadgamepositionweaponslot(lsi).invpos=a#
+   read float 1,a# : saveloadgamepositionweaponslot(lsi).weaponammo=a#
+   read float 1,a# : saveloadgamepositionweaponslot(lsi).weaponclipammo=a#
+   read float 1,a# : saveloadgamepositionweaponslot(lsi).weaponhud=a#
+  next lsi
+ endif
+ if version>=109
+  rem V109BETA4
+  rem Global values from FPI scripting
+  for lsi=0 to 99
+   read float 1,a# : aiglobals(lsi)=a#
+  next lsi
+ endif
+ if version>=113
+  rem V113BETA4
+  rem Local values from FPI scripting
+  rem V113BETA5 - ensure DIM the array before try to write to it
+  dim ailocals(entityelementmax,99)
+  for lsi=0 to entityelementmax
+   for lsii=0 to 99
+    read float 1,a# : ailocals(lsi,lsii)=a#
+   next lsii
+  next lsi
+ endif
+ if version>=115
+  rem V115BETA1
+  rem Restore all waypoint and spawn states of entity
+  rem to correct invisible spawns and wrong direction of waypoint users
+  for lsi=0 to entityelementmax
+   read float 1,a# : saveloadgamepositionentity(lsi).actualtarget=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).waypointstate=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).waypointcurrent=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).waypointtracker=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).waypointdirection=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).waypointxstart=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).waypointystart=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).waypointzstart=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).waypointxinc=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).waypointyinc=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).waypointzinc=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).aiusinginternalai=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).aioldwaypointstate=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).aioldanimframe=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).aiolddestanimframe=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).spawnatstart=a#
+   read float 1,a# : saveloadgamepositionentity(lsi).spawnupto=a#
+  next lsi
+ endif
+ close file 1
+ `
+ rem Immediate data required (prior to level loading) - 'saveload_retrievesavedata' used after level loaded
+ level=saveloadgameposition.level
+ `
+return
+
+_saveload_storesavedata:
+ `
+ rem Move player data from actual game to the game data structures
+ player(1).x=camerapositionx
+ player(1).y=camerapositiony-phyeyeheight#
+ player(1).z=camerapositionz
+ `
+ rem Create savedata arrays and copy game data to them
+ saveloadgameposition.level=level
+ saveloadgameposition.playerx=player(1).x
+ saveloadgameposition.playery=player(1).y
+ saveloadgameposition.playerz=player(1).z
+ saveloadgameposition.playerry=camera angle y(0)
+ saveloadgameposition.playerhealth=player(1).health
+ saveloadgameposition.playerlives=player(1).lives
+ saveloadgameposition.playerinventorymax=player(1).inventorymax
+ saveloadgameposition.missiongoaltotal=missiongoaltotal
+ rem Inventory
+ dim saveloadgamepositionplayerinventory(100) as inventorytype
+ for lsi=0 to 100
+  rem V109 BETA7 - 300408 - access to array incorrect!
+  `saveloadgamepositionplayerinventory(lsi).new=playerinventory(lsi).new
+  `saveloadgamepositionplayerinventory(lsi).drop=playerinventory(lsi).drop
+  `saveloadgamepositionplayerinventory(lsi).index=playerinventory(lsi).index
+  saveloadgamepositionplayerinventory(lsi).new=playerinventory(1,lsi).new
+  saveloadgamepositionplayerinventory(lsi).drop=playerinventory(1,lsi).drop
+  saveloadgamepositionplayerinventory(lsi).index=playerinventory(1,lsi).index
+ next lsi
+ rem Objectives
+ dim saveloadgamepositionplayerobjective(99)
+ for lsi=0 to 99
+  saveloadgamepositionplayerobjective(lsi)=playerobjective(lsi)
+ next lsi
+ rem Entities
+ dim saveloadgamepositionentity(entityelementmax) as saveloadgamepositionentitytype
+ for lsi=0 to entityelementmax
+  saveloadgamepositionentity(lsi).spawnleaderid=entityelement(lsi).spawn.leaderid
+  saveloadgamepositionentity(lsi).ailibindex=entityelement(lsi).ai.libindex
+  saveloadgamepositionentity(lsi).aistate=entityelement(lsi).ai.state
+  saveloadgamepositionentity(lsi).aioldstate=entityelement(lsi).ai.oldstate
+  saveloadgamepositionentity(lsi).active=entityelement(lsi).active
+  saveloadgamepositionentity(lsi).dormant=entityelement(lsi).dormant
+  saveloadgamepositionentity(lsi).beenkilled=entityelement(lsi).beenkilled
+  saveloadgamepositionentity(lsi).x=entityelement(lsi).x
+  saveloadgamepositionentity(lsi).y=entityelement(lsi).y
+  saveloadgamepositionentity(lsi).z=entityelement(lsi).z
+  tttobj=entityelement(lsi).obj
+  if tttobj>0
+   if object exist(tttobj)=1
+    lsientid=entityelement(lsi).bankindex
+    if entityprofile(lsientid).ischaracter=1
+     saveloadgamepositionentity(lsi).rx=0
+     saveloadgamepositionentity(lsi).ry=entityelement(lsi).ry
+     saveloadgamepositionentity(lsi).rz=0
+    else
+     saveloadgamepositionentity(lsi).rx=object angle x(tttobj)
+     saveloadgamepositionentity(lsi).ry=object angle y(tttobj)
+     saveloadgamepositionentity(lsi).rz=object angle z(tttobj)
+    endif
+   endif
+  endif
+  saveloadgamepositionentity(lsi).floorposy=entityelement(lsi).floorposy
+  saveloadgamepositionentity(lsi).animset=entityelement(lsi).animset
+  saveloadgamepositionentity(lsi).animdo=entityelement(lsi).animdo
+  saveloadgamepositionentity(lsi).currentammo=entityelement(lsi).currentammo
+  saveloadgamepositionentity(lsi).health=entityelement(lsi).health
+  saveloadgamepositionentity(lsi).collected=entityelement(lsi).collected
+  saveloadgamepositionentity(lsi).activated=entityelement(lsi).activated
+  saveloadgamepositionentity(lsi).collisionactive=entityelement(lsi).collisionactive
+ next lsi
+ rem Weapons
+ dim saveloadgamepositionweaponslot(10) as saveloadgamepositionweaponslottype
+ for lsi=0 to 10
+  saveloadgamepositionweaponslot(lsi).pref=weaponslot(lsi).pref
+  saveloadgamepositionweaponslot(lsi).got=weaponslot(lsi).got
+  saveloadgamepositionweaponslot(lsi).invpos=weaponslot(lsi).invpos
+  saveloadgamepositionweaponslot(lsi).weaponammo=weaponammo(lsi)
+  saveloadgamepositionweaponslot(lsi).weaponclipammo=weaponclipammo(lsi)
+  saveloadgamepositionweaponslot(lsi).weaponhud=weaponhud(lsi)
+ next lsi
+ rem Waypoint information
+ for lsi=0 to entityelementmax
+  saveloadgamepositionentity(lsi).actualtarget=entityelement(lsi).actualtarget
+  saveloadgamepositionentity(lsi).waypointstate=entityelement(lsi).ai.waypoint.state
+  saveloadgamepositionentity(lsi).waypointcurrent=entityelement(lsi).ai.waypoint.current
+  saveloadgamepositionentity(lsi).waypointtracker=entityelement(lsi).ai.waypoint.tracker
+  saveloadgamepositionentity(lsi).waypointdirection=entityelement(lsi).ai.waypoint.direction
+  saveloadgamepositionentity(lsi).waypointxstart=entityelement(lsi).ai.waypoint.xstart
+  saveloadgamepositionentity(lsi).waypointystart=entityelement(lsi).ai.waypoint.ystart
+  saveloadgamepositionentity(lsi).waypointzstart=entityelement(lsi).ai.waypoint.zstart
+  saveloadgamepositionentity(lsi).waypointxinc=entityelement(lsi).ai.waypoint.xinc
+  saveloadgamepositionentity(lsi).waypointyinc=entityelement(lsi).ai.waypoint.yinc
+  saveloadgamepositionentity(lsi).waypointzinc=entityelement(lsi).ai.waypoint.zinc
+  saveloadgamepositionentity(lsi).aiusinginternalai=entityelement(lsi).ai.usinginternalai
+  saveloadgamepositionentity(lsi).aioldwaypointstate=entityelement(lsi).ai.oldwaypointstate
+  saveloadgamepositionentity(lsi).aioldanimframe=entityelement(lsi).ai.oldanimframe
+  saveloadgamepositionentity(lsi).aiolddestanimframe=entityelement(lsi).ai.olddestanimframe
+  saveloadgamepositionentity(lsi).spawnatstart=entityelement(lsi).spawn.atstart
+  saveloadgamepositionentity(lsi).spawnupto=entityelement(lsi).spawn.upto
+ next lsi
+ `
+return
+
+_saveload_retrievesavedata:
+ `
+ rem Create savedata arrays and copy game data to them
+ `level=saveloadgameposition.level (already done when loaded savedata)
+ player(1).x=saveloadgameposition.playerx
+ player(1).y=saveloadgameposition.playery
+ player(1).z=saveloadgameposition.playerz
+ player(1).health=saveloadgameposition.playerhealth
+ player(1).lives=saveloadgameposition.playerlives
+ player(1).inventorymax=saveloadgameposition.playerinventorymax
+` missiongoaltotal=saveloadgameposition.missiongoaltotal
+ rem Inventory
+ for lsi=0 to 100
+  rem V109 BETA7 - 300408 - access to array incorrect!
+  `playerinventory(lsi).new=saveloadgamepositionplayerinventory(lsi).new
+  `playerinventory(lsi).drop=saveloadgamepositionplayerinventory(lsi).drop
+  `playerinventory(lsi).index=saveloadgamepositionplayerinventory(lsi).index
+  playerinventory(1,lsi).new=saveloadgamepositionplayerinventory(lsi).new
+  playerinventory(1,lsi).drop=saveloadgamepositionplayerinventory(lsi).drop
+  playerinventory(1,lsi).index=saveloadgamepositionplayerinventory(lsi).index
+ next lsi
+ rem Objectives (FPSCV104RC4 - put back for this version)
+ rem and also added to to objective countdown which resets objectives
+ gsaveloadobjectivesloaded=1
+ for lsi=0 to 99
+  playerobjective(lsi)=saveloadgamepositionplayerobjective(lsi)
+ next lsi
+ rem Entities
+ if entityelementmax>0
+  for lsi=1 to entityelementmax
+   `
+   entityelement(lsi).spawn.leaderid=saveloadgamepositionentity(lsi).spawnleaderid
+   entityelement(lsi).active=saveloadgamepositionentity(lsi).active
+   entityelement(lsi).dormant=saveloadgamepositionentity(lsi).dormant
+   entityelement(lsi).beenkilled=saveloadgamepositionentity(lsi).beenkilled
+   `
+   lsientid=entityelement(lsi).bankindex
+   if entityprofile(lsientid).ischaracter=1
+    rem leeadd - 111208 - v114b4 - introduce saving character positions and states
+    entityelement(lsi).ai.libindex=saveloadgamepositionentity(lsi).ailibindex
+    entityelement(lsi).ai.state=saveloadgamepositionentity(lsi).aistate
+    entityelement(lsi).ai.oldstate=saveloadgamepositionentity(lsi).aioldstate
+    entityelement(lsi).active=saveloadgamepositionentity(lsi).active
+    entityelement(lsi).dormant=saveloadgamepositionentity(lsi).dormant
+    entityelement(lsi).beenkilled=saveloadgamepositionentity(lsi).beenkilled
+    rem V109 - 090209 - moved below the VISCOL removal, as it left a viscol marker when moved entities
+    `entityelement(lsi).x=saveloadgamepositionentity(lsi).x
+    `entityelement(lsi).y=saveloadgamepositionentity(lsi).y
+    `entityelement(lsi).z=saveloadgamepositionentity(lsi).z
+   else
+    `entityelement(lsi).ai.libindex=saveloadgamepositionentity(lsi).ailibindex
+    if entityprofile(lsientid).ismarker>0
+     entityelement(lsi).ai.state=saveloadgamepositionentity(lsi).aistate
+    endif
+    `entityelement(lsi).ai.oldstate=saveloadgamepositionentity(lsi).aioldstate
+    rem V109 - 090209 - moved below the VISCOL removal, as it left a viscol marker when moved entities
+    `entityelement(lsi).x=saveloadgamepositionentity(lsi).x
+    `entityelement(lsi).y=saveloadgamepositionentity(lsi).y
+    `entityelement(lsi).z=saveloadgamepositionentity(lsi).z
+
+    `entityelement(lsi).rx=saveloadgamepositionentity(lsi).rx : rem see below
+    `entityelement(lsi).ry=saveloadgamepositionentity(lsi).ry
+    `entityelement(lsi).rz=saveloadgamepositionentity(lsi).rz
+    entityelement(lsi).floorposy=saveloadgamepositionentity(lsi).floorposy
+    `entityelement(lsi).animset=saveloadgamepositionentity(lsi).animset
+    `entityelement(lsi).animdo=saveloadgamepositionentity(lsi).animdo
+    `entityelement(lsi).collisionactive=saveloadgamepositionentity(lsi).collisionactive
+   endif
+   rem V109 - 090209 - added ANIM SET AND DO back in so can retain the animating of the entities (and collision)
+   entityelement(lsi).animset=saveloadgamepositionentity(lsi).animset
+   entityelement(lsi).animdo=saveloadgamepositionentity(lsi).animdo
+   entityelement(lsi).collisionactive=saveloadgamepositionentity(lsi).collisionactive
+   entityelement(lsi).currentammo=saveloadgamepositionentity(lsi).currentammo
+   entityelement(lsi).health=saveloadgamepositionentity(lsi).health
+   entityelement(lsi).collected=saveloadgamepositionentity(lsi).collected
+   entityelement(lsi).activated=saveloadgamepositionentity(lsi).activated
+   `
+  next lsi
+ endif
+ rem Weapons
+ for lsi=0 to 10
+  weaponslot(lsi).pref=saveloadgamepositionweaponslot(lsi).pref
+  weaponslot(lsi).got=saveloadgamepositionweaponslot(lsi).got
+  weaponslot(lsi).invpos=saveloadgamepositionweaponslot(lsi).invpos
+  weaponammo(lsi)=saveloadgamepositionweaponslot(lsi).weaponammo
+  weaponclipammo(lsi)=saveloadgamepositionweaponslot(lsi).weaponclipammo
+  weaponhud(lsi)=saveloadgamepositionweaponslot(lsi).weaponhud
+ next lsi
+ rem Waypoint information
+ if entityelementmax>0
+  for lsi=1 to entityelementmax
+   entityelement(lsi).actualtarget=saveloadgamepositionentity(lsi).actualtarget
+   entityelement(lsi).ai.waypoint.state=saveloadgamepositionentity(lsi).waypointstate
+   entityelement(lsi).ai.waypoint.current=saveloadgamepositionentity(lsi).waypointcurrent
+   entityelement(lsi).ai.waypoint.tracker=saveloadgamepositionentity(lsi).waypointtracker
+   entityelement(lsi).ai.waypoint.direction=saveloadgamepositionentity(lsi).waypointdirection
+   entityelement(lsi).ai.waypoint.xstart=saveloadgamepositionentity(lsi).waypointxstart
+   entityelement(lsi).ai.waypoint.ystart=saveloadgamepositionentity(lsi).waypointystart
+   entityelement(lsi).ai.waypoint.zstart=saveloadgamepositionentity(lsi).waypointzstart
+   entityelement(lsi).ai.waypoint.xinc=saveloadgamepositionentity(lsi).waypointxinc
+   entityelement(lsi).ai.waypoint.yinc=saveloadgamepositionentity(lsi).waypointyinc
+   entityelement(lsi).ai.waypoint.zinc=saveloadgamepositionentity(lsi).waypointzinc
+   entityelement(lsi).ai.usinginternalai=saveloadgamepositionentity(lsi).aiusinginternalai
+   entityelement(lsi).ai.oldwaypointstate=saveloadgamepositionentity(lsi).aioldwaypointstate
+   entityelement(lsi).ai.oldanimframe=saveloadgamepositionentity(lsi).aioldanimframe
+   entityelement(lsi).ai.olddestanimframe=saveloadgamepositionentity(lsi).aiolddestanimframe
+   entityelement(lsi).spawn.atstart=saveloadgamepositionentity(lsi).spawnatstart
+   entityelement(lsi).spawn.upto=saveloadgamepositionentity(lsi).spawnupto
+  next lsi
+ endif
+ `
+ rem Refresh game objects and player with new level states
+ playerstartx#=player(1).x
+ playerstarty#=player(1).y
+ playerstartz#=player(1).z
+ playerstartry#=saveloadgameposition.playerry
+ playerstarthasweapon=0
+ gosub _player_restart
+ `
+ rem Now refresh gun
+ gosub _gun_loadonlypresent
+ `
+ rem Go through all entities and remove those which are no longer in level
+ for e=1 to entityelementmax
+  `
+  rem entity identity
+  entid=entityelement(e).bankindex
+  obj=entityelement(e).obj
+  `
+  rem if filled, flag it
+  tentityhasbeenkilledsoremove=0 : if entityelement(e).beenkilled=1 then tentityhasbeenkilledsoremove=1
+  `
+  `rem ignore characters (and spawned objects) (complex setups) unless removing them
+  `rem ignore spawned objects unless removing them
+  `if (entityprofile(entid).ischaracter=0 and entityelement(e).spawn.leaderid=0) or tentityhasbeenkilledsoremove=1
+  rem leeadd - 111208 - v114b4 - restore character positions, and corpses, and dropped weapons
+  rem ignore spawned objects unless removing them
+  rem V109 - 090209 - do NOT ignore spawned objects as they can be restored
+  `if entityelement(e).spawn.leaderid=0 or tentityhasbeenkilledsoremove=1
+  `
+  rem clear entity from col map
+  thadcolbit=0
+  tx=entityelement(e).x/25
+  ty=entityelement(e).y/100
+  tz=entityelement(e).z/-25
+  if tx>=0 and ty>=0 and tz>=0
+   if tx<=viscolx and ty<=viscoly and tz<=viscolz
+    if viscolmap(tx,ty,tz)=e then viscolmap(tx,ty,tz)=0 : thadcolbit=1
+   endif
+  endif
+  if obj>0
+   if object exist(obj)=1
+    if entityelement(e).eleprof.physics<>0
+     gosub _ode_switchoffe
+    else
+     set object collision off obj
+    endif
+   endif
+  endif
+  `
+  rem rem V109 - 090209 - Move entity to restore position (AFTER viscol removal)
+  entityelement(e).x=saveloadgamepositionentity(e).x
+  entityelement(e).y=saveloadgamepositionentity(e).y
+  entityelement(e).z=saveloadgamepositionentity(e).z
+  `
+  if entityelement(e).active<>0 and tentityhasbeenkilledsoremove=0
+   rem update object in relation to this entity
+   if obj>0
+    rem object itself
+    if object exist(obj)=1
+     rem position from entity pos, but rotation direct from savedata
+     position object obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
+     rem V114 BETA5 - reversed characters bug, so only apply if character is dead (corpse)
+     if entityelement(e).ai.libindex=entityelement(e).ai.libdestroy
+      rotate object obj,saveloadgamepositionentity(e).rx,saveloadgamepositionentity(e).ry,saveloadgamepositionentity(e).rz
+     else
+      rem must be 0,0,0 before apply physics to the object
+      rotate object obj,0,0,0
+     endif
+     rem create the physics body
+`     tspawnhide=0
+     rem V109 - 090209 - any active spawned entities should be woken!
+     if entityelement(e).spawn.leaderid>0
+      if entityelement(e).spawn.leader=0
+       entityelement(e).collisionactive=1
+       set object collision on obj
+       show object obj
+      endif
+     endif
+`     if tspawnhide=0
+      if entityelement(e).spawn.leader=1
+       rem spawn master does not need physics object
+       gosub _ode_ensurephysicsobjvalid
+      else
+       rem everything else has physics to create
+       gosub _ode_setupewithphysics
+      endif
+`     else
+`      rem still need to reserve all obj ids with E
+`      gosub _ode_ensurephysicsobjvalid
+`     endif
+     rem ensure animation is the same
+     rem V109 - 090209 - did not work for waypoint following characters
+     `entityelement(e).animdo=1+entityelement(e).animset
+     rem V115 - 180309 - BETA3 - only set anim for characters, not animating non-character entities
+     if entityprofile(entid).ischaracter=1
+      if entityelement(e).ai.waypoint.state>=99
+       entityelement(e).animset=2
+      else
+       entityelement(e).animset=1+entityelement(e).animdo
+      endif
+     else
+      entityelement(e).animset=0
+     endif
+     entityelement(e).animdo=0
+     entityelement(e).destanimframe=0
+     entityelement(e).animframe=0
+     entityelement(e).animtime=0
+     rem V109 - 090209 - after physics applied, ensure entitydriven and pseudo-static than uses RY for rotation
+     entityelement(e).rx=saveloadgamepositionentity(e).rx
+     entityelement(e).ry=saveloadgamepositionentity(e).ry
+     entityelement(e).rz=saveloadgamepositionentity(e).rz
+     entityelement(e).mover.da=saveloadgamepositionentity(e).ry
+     rem ensure entitydriven and pseudo-static than uses RY for rotation
+     if entityelement(e).eleprof.physics=2 or entityelement(e).eleprof.physics=3
+      ode set body rotation obj,0,0,0
+      ode set body rotation obj,0,entityelement(e).ry,0
+     endif
+    endif
+   endif
+   `
+   rem replace in colmap
+   if thadcolbit=1
+    tx=entityelement(e).x/25
+    ty=entityelement(e).y/100
+    tz=entityelement(e).z/-25
+    if tx>=0 and ty>=0 and tz>=0
+     if tx<=viscolx and ty<=viscoly and tz<=viscolz
+      viscolmap(tx,ty,tz)=e
+     endif
+    endif
+   endif
+   `
+  else
+   `
+   rem V109 - 090209 - Move entity to restore position (AFTER viscol removal)
+   entityelement(e).x=saveloadgamepositionentity(e).x
+   entityelement(e).y=saveloadgamepositionentity(e).y
+   entityelement(e).z=saveloadgamepositionentity(e).z
+   `
+   rem destroy this entity for good
+   entityelement(e).active=0
+   entityelement(e).dormant=0
+   rem hide the object
+   if obj>0
+    if object exist(obj)=1
+     `
+     rem leeadd - 111208 - v114 - if character in DESTROY script (may be a left corpse), so treat as active during re-load
+     if entityprofile(entid).ischaracter=1 and entityelement(e).ai.libindex=entityelement(e).ai.libdestroy
+      `
+      rem character as corpse should use last frame of fall over animation, and de-activate (and drop weapon)
+      entityelement(e).animset=0
+      entityelement(e).animdo=11
+      entityelement(e).animtime=0
+      entityelement(e).health=0
+      entityelement(e).ai.state=0
+      entityelement(e).activated=0
+      tbaseframe=entityelement(e).animdo : gosub _entity_getactualframefinish : tffinish=tactualframe
+      tcorpseanim=tffinish : entityelement(e).animframe=tcorpseanim
+      stop object obj : set object interpolation obj,100
+      set object frame obj,tcorpseanim
+      rem final object position different
+      tmvszy#=(object size y(obj)/2)*(entityprofile(entid).scale/100.0)
+      tmvy#=entityelement(e).y+entityprofile(entid).raisefactor+tmvszy#
+      position object obj,entityelement(e).x,tmvy#,entityelement(e).z
+      rotate object obj,saveloadgamepositionentity(e).rx,saveloadgamepositionentity(e).ry,saveloadgamepositionentity(e).rz
+      `
+     else
+      `
+      rem regular entity destroy
+      hide object obj
+      if tentityhasbeenkilledsoremove=1
+       rem if it has been killed - drain health to zero
+       entityelement(e).eleprof.cantakeweapon=0
+       entityelement(e).health=0
+       entityelement(e).ai.state=0
+       entityelement(e).activated=0
+       entityelement(e).obj=0
+      endif
+      `
+     endif
+     `
+    endif
+   endif
+   rem stop any looping sound
+   gosub _ai_stopentsounds
+   `
+  endif
+  `
+`  rem ignore spawned objects
+`  endif
+  `
+ next e
+ `
+return
+

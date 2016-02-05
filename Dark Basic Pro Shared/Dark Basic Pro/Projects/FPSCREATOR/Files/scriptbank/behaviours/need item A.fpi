@@ -1,0 +1,27 @@
+;Script description
+
+desc          = Character will activate IFUSED if given item described in speech $1 (uses global:collecteditemA)
+
+;Starts level in idle posture
+:state=0:animate=1,hudreset,hudx=50,hudy=90,hudimagefine=gamecore\text\pressenter.tga,hudname=talktoprompt,hudhide=1,hudmake=display,state=1
+
+;Looking around slightly
+:state=1,random=40:rotateheadrandom=10
+
+;Talk as soon as get within range (if not collected item)
+:state=1,plrdistwithin=90:hudshow=talktoprompt,hudfadeout=talktoprompt
+:state=1,plrdistwithin=90,varequal=collecteditemA 0,plrusingaction=1:talk=$1,state=2
+
+;Activate as soon as get within range (if collected item)
+:state=1,plrdistwithin=90,varequal=collecteditemA 1,plrusingaction=1:activateifused=1,plrsound=audiobank\misc\ping.wav,state=3
+
+;Wait for talk to finish
+:state=2,plrcannotbeseen:rotatetoplr
+:state=2:lookatplr=80
+:state=2,soundfinished=1:state=1
+
+;Finished talking and activating
+:state=3,plrdistwithin=90:lookatplr=80
+:state=3,plrdistfurther=90,random=40:rotateheadrandom=10
+
+;End of Script

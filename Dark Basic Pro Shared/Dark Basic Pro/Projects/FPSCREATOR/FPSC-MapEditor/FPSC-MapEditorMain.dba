@@ -1,0 +1,211 @@
+rem
+rem MAP EDITOR MAIN
+rem
+
+rem Init app
+sync on : sync rate 60
+show window : window to front strarr$(475)+" - [Editor]"
+always active off
+
+if 1 then timestampactivity(2,"FPSC-MapEditor.exe Begin")
+
+rem Setup default paths
+levelmapptah$="mapbank\testmap\"
+projectfilename$=""
+
+rem Setup segment selection flags for later loading
+segnoeffects=1 : segobjusedformapeditor=1 : lastgrideditselect=-1
+
+rem Get list of guns and flak for data
+gosub _gun_scaninall_ref
+gosub _gun_scaninall_dataonly
+gosub _flak_scaninall_ref
+gosub _flak_scaninall_dataonly
+
+rem Initialise meshes and editor resources
+global gmapeditmode
+gmapeditmode=1
+gosub _editor_init
+gosub _editor_loadhelppage
+
+rem Load map editior settings
+if grestoreeditorsettings=1
+ tfile$="editors\gridedit\cfg.cfg"
+ if file exist(tfile$)=1
+  rem load settings from CFG (_editor_loadcfg (used inside load_map))
+  rem load contents of old testmap
+  projectfilename$="editors\gridedit\temp.fpm"
+  gosub _mapfile_loadproject_fpm
+  rem load FPM data
+  skipfpmloading=1
+  gosub _gridedit_load_map
+  skipfpmloading=0
+  rem so any changed data can optionally be saved if try to leave
+  projectmodified=1
+ endif
+else
+ rem Start Splash (only one which does not wait for sync-as interface not avail. in debug)
+ open file map 2, "FPSSPLASH"
+ while get file map dword( 2, 0 ) = 0 : sync : endwhile
+ close file map 2
+ rem Version Control - Splash Text
+ gosub _version_splashtext
+endif
+
+window to back
+
+rem Set editor fonts and text style and size
+set text font "Verdana"
+ink rgb(255,255,0),0
+set text size 16
+
+rem Main loop
+if 1 then timestampactivity(3,"FPSC-MapEditor.exe Loop Starts")
+do
+
+ rem User input calls
+ gosub _input_getcontrols
+ gosub _input_calculatelocalcursor
+
+ rem Editor Controls and Map Edit handling
+ gosub _editor_constructionselection
+ if grideditselect=3 or grideditselect=4
+  gosub _editor_viewfunctionality
+ else
+  gosub _editor_gridfunctionality
+ endif
+ gosub _editor_overallfunctionality
+ gosub _gridedit_mapediting
+
+ rem handle visual components
+ gosub _editor_detect_invalid_screen
+ gosub _editor_visuals
+ gosub _editor_fadeeditmarkers
+
+ rem Interface code
+ gosub _interface_handlepropertywindow
+
+ rem Handle buildgame (cannot wait after 758 as straight into domodal)
+ open file map 3, "FPSEXCHANGE"
+ tokay=get file map dword( 3, 758 )
+ if tokay=1
+  set file map dword 3, 758, 2
+  wait for file map event 3
+  close file map 3
+  rem Version Control - no build EXE in demo
+  gosub _version_buildgame
+ else
+  close file map 3
+ endif
+ `
+ rem Handle prefs (cannot wait after 754 as straight into domodal)
+ open file map 3, "FPSEXCHANGE"
+ tokay=get file map dword( 3, 754 )
+ if tokay=1
+  set file map dword 3, 754, 2
+  wait for file map event 3
+  gosub _interface_openprefs
+  if tokay=1 then gosub _interface_handleprefs
+  gosub _interface_closeprefs
+ else
+  close file map 3
+ endif
+
+ rem Update screen (if mouse in 3D are)
+ if inputsys.activemouse=1
+  rem constant update
+  sync
+ else
+  rem check for PAINT message
+  open file map 3, "FPSEXCHANGE"
+  wait for file map event 3
+  if get file map dword( 3, 60 )=1
+   set file map dword 3,60,0 : syncthreetimes=3
+   wait for file map event 3
+  endif
+  close file map 3
+  if syncthreetimes>0 then dec syncthreetimes : sync
+ endif
+
+ rem detect if resolution changed (windows)
+ gosub _editor_detect_invalid_screen
+
+rem End loop
+loop
+
+_editor_detect_invalid_screen:
+ if screen invalid()<>0
+  rem recover map editor
+  inc recoverplease
+  if recoverplease>1
+   rem message box - resolution has been changed - must restart - save changes?
+   open file map 1, "FPSEXCHANGE"
+   set file map dword 1, 900, 1
+   set file map string$ 1, 1256, strarr$(622)
+   set file map string$ 1, 1000, strarr$(623)
+   wait for file map event 1
+   while get file map dword(1, 900)=1
+    wait for file map event 1
+   endwhile
+   tokay=get file map dword(1, 904)
+   close file map 1
+   if tokay=1
+    rem no references to 3D objects (all gone now)
+    recoverdonotuseany3dreferences=1
+    rem save now
+    gosub _gridedit_save_map_ask
+   endif
+   rem call a new map editor
+   open file map 2, "FPSEXCHANGE"
+   set file map string$ 2, 1000, "FPSC-MapEditor.exe"
+   set file map string$ 2, 1256, "-r"
+   set file map dword 2, 994, 0
+   set file map dword 2, 924, 1
+   wait for file map event 2
+   close file map 2
+   rem end this old mapeditor
+   end
+  endif
+ endif
+return
+`
+` Counter dependence on some subroutines
+`
+
+_entity_completerayhit:
+_entity_hasbulletrayhit:
+_entity_doscorch:
+_entity_addforcesphere:
+_entity_spherecollision:
+_entity_resolveobjective:
+_entity_deducthealth:
+_decal_find:
+_decalelement_create:
+_decal_triggermaterialdebris:
+_ode_setupewithphysics:
+_ode_switchoffe:
+_ode_applypointforce:
+_ode_ensureeisnotpenetrated:
+_ode_triggermaterialsound:
+_player_resetobjectives:
+_part_movedebrisifinray:
+_part_triggerexplosion:
+_multi_mptrigger:
+_multi_playershoots:
+_player_restart:
+_gun_loadonlypresent:
+_ode_ensurephysicsobjvalid:
+_ode_setupewithphysics:
+_ode_ensurephysicsobjvalid:
+_ai_stopentsounds:
+return
+
+function loadgun(f$)
+endfunction 0
+function loadmuzzle(f$)
+endfunction 0
+function loadbrass(f$)
+endfunction 0
+function loadsmoke(f$)
+endfunction 0
+

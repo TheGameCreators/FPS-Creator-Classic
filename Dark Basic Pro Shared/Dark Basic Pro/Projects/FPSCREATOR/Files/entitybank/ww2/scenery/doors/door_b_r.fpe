@@ -1,0 +1,38 @@
+
+;header
+desc          = %remote door
+
+;ai
+aiinit	      = appear1.fpi
+aimain	      = doorremote.fpi
+aidestroy     = disappear1.fpi
+
+;spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;orientation
+model         = meshbank\ww2\scenery\doors\door_b\door_b.x
+offx          = 0
+offy          = 50
+offz          = 0
+rotx          = 0
+roty          = 0
+rotz          = 0
+materialindex = 3
+soundset      = audiobank\ww2\scenery\doors\open.wav
+soundset1     = audiobank\ww2\scenery\doors\close.wav
+
+;visualinfo
+textured      = texturebank\ww2\scenery\doors\door_b\door_b_d2.tga
+effect        = 
+
+;identity details
+strength      = 0
+isimmobile    = 1
+
+;animationinfo
+animmax       = 1
+anim0         = 0,30
+

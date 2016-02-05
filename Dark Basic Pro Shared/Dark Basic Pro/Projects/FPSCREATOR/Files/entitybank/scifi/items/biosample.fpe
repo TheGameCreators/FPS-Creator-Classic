@@ -1,0 +1,36 @@
+
+
+;header
+desc          = biosample
+
+;ai
+aiinit	      = appear1.fpi
+aimain	      = pickup1.fpi
+aidestroy     = disappear1.fpi
+
+;aiused
+usekey        = 
+ifused        = 
+ifusednear    = 
+
+;spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;Itemproperties
+defaultstatic = 0
+materialindex = 3
+collisionmode = 0
+debrisshape   = 0
+explodable    = 0
+
+;Orientation
+model         = biosample.x
+offy          = 0
+scale         = 100
+fixnewy       = 0
+
+;visualinfo
+textured      = biosample_d2.tga
+

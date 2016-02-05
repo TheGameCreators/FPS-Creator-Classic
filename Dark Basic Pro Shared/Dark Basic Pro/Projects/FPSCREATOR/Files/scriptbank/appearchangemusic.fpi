@@ -1,0 +1,11 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Override global script music with local level music
+
+;Triggers
+
+:state=0:musicoverride=$0,runfpidefault=1
+
+;End of Script

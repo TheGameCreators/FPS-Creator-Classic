@@ -1,0 +1,893 @@
+rem
+rem GAME MAIN
+rem
+
+rem Create controls for debug view
+global gamedebugrefresh : gamedebugrefresh=0
+global gamedebugviewtime : gamedebugviewtime=0
+global gamedebugviewmem : gamedebugviewmem=GET MEMORY AVAILABLE(0)
+global gamedebugviewlastmem : gamedebugviewlastmem=0
+global gamedebugview$ : debugviewactivate(1)
+global debugviewmode
+global debugviewtog
+
+rem For status text if any
+set text font "Verdana"
+
+rem Init app
+sync on : sync rate 34 : autocam off : disable systemkeys
+hide mouse : backdrop off : disable escapekey
+
+if 0
+ set cameras to stereoscopic stereoscopicmode,1,2,3,4
+endif
+
+rem If Game is NOT IN TEST MODE, default is full screen shown
+if gtestgamemodefromeditor=0 and gcompilestandaloneexe=0
+ `
+ rem Show window
+ timestampactivity(0,"Start Fullscreen")
+ gosub _main_game_showwindownow
+ `
+ `rem If FREEWARE PROMPT tampered, exit (EA ONLY VERSION)
+ `if grealgameviewstate=1
+ ` filename$="languagebank\"+language$+"\gamecore\huds\freeware.jpg"
+ ` fsize=file size(filename$)
+ ` if fsize=47319
+ `  load image filename$,1
+ `  if image exist(1)=1
+ `   delete image 1
+ `  else
+ `   fsize=0
+ `  endif
+ ` endif
+ ` if fsize<>47319
+ `  screenprompt(img,strarr$(121))
+ `  timestampactivity(0,strarr$(122))
+ `  sleep 5000
+ `  end
+ ` endif
+ `endif
+ `
+ rem optional splash or blank screen at Very Start of Execution
+ cls 0 : sync : cls 0 : sync
+ if file exist("..\splash.bmp")=1
+  rem perhaps publisher splash optional here (finds a specific file name)
+  load image "..\splash.bmp",1
+  if image exist(1)=1
+   set sprite 1,0,1
+   sprite 1,0,0,1
+   set sprite alpha 1,0
+   size sprite 1,1024,768
+   for f=0 to 255 step 10
+    cls 0 : set sprite alpha 1,f : sync
+   next f
+   set sprite alpha 1,255
+   cls 0 : sync : cls 0 : sync
+  endif
+ endif
+ rem get the actual server IP for information purposes
+ if gmultiplayergame=1
+  `
+  rem connection check and IP gathering
+  show mouse
+  `
+  rem FPSCV105 - 090307 - check FIREWALL
+  rem FPSCV105RC2 - 100307 - AND puts the actual HOSTable IP address in serveripaddress$
+  gosub _ai_gamelist_checkforfirewall
+  `
+  rem FPSCV105RC3 - 140307 - also gather the local IP (in case they want a LAN game) ;localipaddress$;
+  MULTIPLAYER CREATE TCP SERVER servername$
+  localipaddress$=MULTIPLAYER GET IP ADDRESS()
+  if left$(localipaddress$,8)<>"192.168." then localipaddress$=""
+  for c=1 to len(serveripaddress$)
+   if mid$(localipaddress$,c)=":" then localipaddress$=left$(localipaddress$,c-1) : exit
+  next c
+  MULTIPLAYER DISCONNECT
+  `
+  rem OLD WAY
+  remstart
+  rem get IP
+  timestampactivity(0,"Getting serveripaddress$..")
+  if serveripaddress$=""
+   MULTIPLAYER CREATE TCP SERVER servername$
+   if len(glocalserveroverride$)=0
+    serveripaddress$=MULTIPLAYER GET IP ADDRESS()
+    for c=1 to len(serveripaddress$)
+     if mid$(serveripaddress$,c)=":" then serveripaddress$=left$(serveripaddress$,c-1) : exit
+    next c
+   else
+    serveripaddress$=glocalserveroverride$
+   endif
+   MULTIPLAYER DISCONNECT
+  endif
+  timestampactivity(0,"serveripaddress$="+serveripaddress$)
+  remend
+  `
+  rem done with network stuff for now
+  hide mouse
+  `
+ endif
+ if image exist(1)=1
+  for f=255 to 0 step -20
+   cls 0 : set sprite alpha 1,f : sync
+  next f
+  set sprite alpha 1,0
+  cls 0 : sync : cls 0 : sync
+  delete sprite 1
+  delete image 1
+ endif
+ `
+endif
+
+rem Reset file collector
+resetfilecollection()
+
+rem Add localisation text to final game
+if gcompilestandaloneexe=1
+ addfiletocollection("languagebank\"+language$+"\textfiles\fpsc-050.ini")
+ addfiletocollection("languagebank\"+language$+"\textfiles\fpsc-050.txt")
+endif
+
+rem Add ODE licenses text files to final game
+if gcompilestandaloneexe=1
+ addfiletocollection("License\LICENSE-BSD.TXT")
+endif
+
+rem Add SAVELOAD mandatory media
+if gcompilestandaloneexe=1
+ addfiletocollection("languagebank\"+language$+"\gamecore\huds\saveload\saveload-base.tga")
+ addfiletocollection("languagebank\"+language$+"\gamecore\huds\saveload\areyousure.tga")
+endif
+
+rem Forced 'Shader Compatibility Warning' PROMPT
+if gcompilestandaloneexe=1 or grealgameviewstate=1
+ filename$="languagebank\"+language$+"\gamecore\huds\noshader.tga"
+ img=loadinternalimagecompressquality(filename$,5,1)
+endif
+if grealgameviewstate=1
+ tneed#=0.0
+ if guseeffectstate=1
+  tneed#=1.0
+  if guseeffectonscenesstate=1
+   tneed#=2.0
+  endif
+ endif
+ tpsv#=get maximum pixel shader version()
+ timestampactivity(0,"Shaders - Need:"+str$(tneed#)+" Got:"+str$(tpsv#))
+ if tneed#>tpsv#
+  screenprompt(img,strarr$(123))
+ endif
+endif
+`
+rem V109 BETA3 - 220408 - build image block OPEN
+if gcompilestandaloneexe=1 and gimageblockmode=1
+ if file exist("imageblock.bin")=1 then delete file "imageblock.bin"
+ open imageblock "imageblock.bin",0
+ exclude from imageblock "levelbank"
+endif
+if grealgameviewstate=1
+ if file exist("imageblock.bin")=1
+  open imageblock "imageblock.bin",1
+ endif
+endif
+`
+rem V109BETA5 - 250408 - reset material usage flags before entity/segment load
+rem V109BETA10 - 1204508 - flak loads data only (to keep flak indexing same as gun usage)
+gosub _flak_init
+gosub _ode_loadmateriallist_init
+gosub _player_resetmaterialsused
+if grealgameviewstate=1 then gosub _player_loadmaterialsused
+gosub _ode_loadmateriallist_core
+`
+rem Run gameflow default screen path
+timestampactivity(0,"Game Flow Started..")
+gosub _gameflow_default
+
+`rem Forced FREEWARE PROMPT (EA ONLY PROMPT)
+`if gcompilestandaloneexe=1 or grealgameviewstate=1
+` filename$="languagebank\"+language$+"\gamecore\huds\freeware.jpg"
+` img=loadinternalimagecompressquality(filename$,5,1)
+`endif
+`if grealgameviewstate=1
+` screenprompt(img,strarr$(124))
+`endif
+`
+rem V109BETA5 - 250408 - save materials that have been used in this game
+if gcompilestandaloneexe=1
+ rem call list_core again so we can add only used files ot build
+ gosub _ode_loadmateriallist_core
+ gosub _player_savematerialsused
+endif
+`
+rem Export game as standalone if -B used
+if gcompilestandaloneexe=1
+ rem Generate unique code
+ guniquegamecode$=genuniqueservercode(gbuildname$)
+ rem Build Executable Game Mode
+ gosub _main_game_buildexe
+ rem close dialog (cannot reload data into it when RELOAD MAPEDITOR)
+ open file map 1, "FPSBUILDGAME"
+ set file map dword 1, 24, 1
+ wait for file map event 1
+ close file map 1
+ rem call map editor back
+ open file map 1, "FPSEXCHANGE"
+ set file map string$ 1, 1000, "FPSC-MapEditor.exe"
+ set file map string$ 1, 1256, "-r"
+ set file map dword 1, 994, 0
+ set file map dword 1, 924, 1
+ wait for file map event 1
+ close file map 1
+ rem FPSXV10X - time for CPU(FPSCreator.exe) to conduct filemap scan
+ `if gexitpromptreportmodestate<>0
+ ` backdrop off
+ ` show window
+ ` position camera 0,50000,0
+ ` while shiftkey()=0
+ `  cls 0
+ `  ink rgb(rnd(255),rnd(255),rnd(255)),0
+ `  center text screen width()/2,(screen height()/2)-20,"USE 'FPSCREATORDUMPMEM.EXE' NOW!"
+ `  center text screen width()/2,(screen height()/2)+00,"USE PROCESS VIEW TO SEE IF FPSC-MAPEDITOR.EXE APPEARS (give it one minute)"
+ `  center text screen width()/2,(screen height()/2)+20,"PRESS SHIFT WHEN TESTS COMPLETE"
+ `  sleep 1
+ `  sync
+ ` endwhile
+ `endif
+endif
+`
+rem V109 BETA3 - 220408 - close read imageblock (write imageblock closed inside buildexe)
+if grealgameviewstate=1
+ if file exist("imageblock.bin")=1
+  close imageblock
+ endif
+endif
+`
+rem End executable
+if gexitpromptreportmodestate<>0 then exit prompt "Terminated Game Exe","FPSCV10X Debug Report"
+timestampactivity(0,strarr$(125))
+end
+
+`
+` EXE Building Subroutines
+`
+
+_main_game_buildexe:
+ `
+ rem Version control on EXE Building
+ gosub _version_main_game_buildexe
+ `
+return
+
+`
+` MAIN GAME SUBROUTINES
+`
+
+_main_game_loadgamedata:
+ `
+ rem Display game loading/creating-game backdrop
+ if gdebugreportmodestate=1
+  if gtestgamemodefromeditor=0
+   for s=0 to 1
+    cls rgb(255,255,0)
+    ink rgb(0,0,255),0 : center text screen width()/2,screen height()/2,"DEBUG REPORT MODE ACTIVE"
+    ink rgb(255,255,255),0
+    sync
+   next s
+  endif
+ endif
+ debugviewprogressmax(330)
+ `
+ rem Place camera faw away (effectively hide all 3D)
+ realrange#=9000.0
+ set camera range 2.0,realrange#
+ position camera -50000,50000,50000
+ point camera -50000,50010,50000
+ `
+ rem Load segment banks
+ segobjusedforfinalgame=1 : segnoeffects=gsegnoeffectstate
+ `
+ rem Load AI Scripts (can be done in elements process-only load as needed)
+ debugviewtext(30,strarr$(126)) : gosub _ai_loadallscripts
+ debugviewtext(60,strarr$(127)) : gosub _decal_init
+ `if gmultiplayergame=0 then debugviewtext(70,strarr$(128)) : gosub _flak_initonlyused `moved after GUN LOADS to know what we are using!
+ debugviewtext(70,strarr$(129)) : gosub _gun_init
+ debugviewtext(75,strarr$(130)) : gosub _gun_setup
+ `
+return
+
+_main_game_freeleveldata:
+ `
+ rem only for final game run ( not test game ) - uses leavegamedataalone in last part
+ if grealgameviewstate=1 or gcompilestandaloneexe=1
+  `
+  rem Free multiplayer resources
+  gosub _multi_free
+  `
+  rem Free fragments
+  if gmultiplayergame=0 then gosub _part_free
+  `
+  rem Free the old gun
+  gosub _gun_freeafterlevel
+  `
+  rem Place camera faw away (effectively hide all 3D)
+  position camera -50000,50000,50000
+  point camera -50000,50010,50000
+  `
+  rem Remove universe (so camera can reset to no-3D-view)
+  gosub _universe_destruct
+  `
+  rem Physics cleanup
+  gosub _ode_cleanup
+  `
+  rem Remove all images
+  deleteallinternalimages()
+  `
+  rem FREE REST OF GAME RESOURCES
+  for p=1 to 65535 : if particles exist(p)=1 : delete particles p : endif : next p
+  for e=1 to 65535 : if effect exist(e)=1 : delete effect e : endif : next e
+  for s=1 to 65535
+   if sound exist(s)=1
+    rem V109 BETA5 - leave core materials alone
+    if s>=materialsoundoffset and s<=materialsoundoffset+materialsoundmax
+     rem do not delete core material sounds loaded prior to level-loading
+    else
+     delete sound s
+    endif
+   endif
+  next s
+  `
+  rem Free all objects
+  rem V115 - BETA3 - 180309 - leave any FLAK objects in tact
+  `delete objects 1,endofallobjectsoffset
+  delete objects 1,flakbankoffset-1
+  delete objects flakelementoffset,endofallobjectsoffset
+  `
+  rem FREE ANY DATA
+  undim undoredolist()
+  undim meshbank$()
+  undim texturebank$()
+  undim effectbank$()
+  undim soundbank$()
+  undim prefabbank$()
+  undim selectionbank$()
+  undim entitybank$()
+  undim gunbank$()
+  undim muzzlebank$()
+  undim brassbank$()
+  undim smokebank$()
+  undim decalbank$()
+  undim imagebank$()
+  undim segmentprofileheader()
+  undim segmentprofile()
+  undim map()
+  undim viscolmap()
+  undim lighttable()
+  undim refmap()
+  undim mapolay()
+  undim olaylist()
+  undim mapentries()
+  undim mastermesh()
+  undim entitybodypart()
+  undim entityanim()
+  undim entityfootfall()
+  undim entityprofileheader()
+  undim entityprofile()
+  undim entityelement()
+  undim entitydebug$()
+  undim aiactionseq()
+  undim aiaction()
+  undim aiconditionseq()
+  undim aicond()
+  undim ailist()
+  undim waypointcoord()
+  undim waypoint()
+  undim debris()
+  undim gun()
+  undim gunsound()
+  undim gunsoundcompanion()
+  undim gunsounditem()
+  undim flakelement()
+  undim decal()
+  undim decalelement()
+  undim player()
+  undim playersound()
+  undim playerinventory()
+  undim infinilight()
+  undim infinilightshortlist()
+  undim shadowlight()
+  undim hud()
+  `
+  rem Ensure loader HUD is not used if resources removed
+  internalloaderhud=0
+  `
+  rem Special exception as only arrays that need carrying to new levels
+  if leavegamedataalone=0
+   undim scriptbank$()
+   undim weaponslot()
+   undim weaponammo()
+   undim weaponclipammo()
+  endif
+  undim weaponhud()
+  `
+  rem Recreate all data for new level (uses leavegamedataalone)
+  gosub _FPSC_Full_Data_Init
+  `
+ endif
+ `
+return
+
+_main_game_core:
+ `
+ rem Transition
+ if gamewarmupcount=0
+  if gametransitionscreen=1
+   dec gametransitionscreencount,30
+   if gametransitionscreencount<=0
+    set camera view 0,0,screen width(),screen height()
+    gametransitionscreen=0 : gametransitionscreencount=0
+    rem Handle Hosting/Joining (multiplayer) when 3D starts
+    if gmultiplayergame=1 and multiplayerinitialised=0 then gosub _multi_start
+   else
+    if gametransitionscreencount<(screen height()/2)-30
+     position camera lastcamx#,lastcamy#,lastcamz#
+     color backdrop rgb(0,0,64)
+    endif
+    set camera view 0,gametransitionscreencount,screen width(),gametransitionscreencount+(screen height()-(gametransitionscreencount*2))
+   endif
+  endif
+ else
+  rem the warmup allows decals to form, player start gravity to settle, etc
+  cls 0 : dec gamewarmupcount : if gamewarmupcount<0 then gamewarmupcount=0
+  if gamewarmupcount=0 then cleardelta=mousemovex() : cleardelta=mousemovey()
+ endif
+ `
+ rem Sky stays with camera
+ if object exist(65123)=1
+  position object 65123,camera position x(0),camera position y(0),camera position z(0)
+ endif
+ if object exist(65124)=1
+  position object 65124,camera position x(0),camera position y(0)+1000,camera position z(0)
+  scroll object texture 65124,0.0004,0.0005
+ endif
+ `
+ rem Control main game
+ gosub _main_game_corecontrol
+ `
+ rem Get time from last sample to SYNC command (rest)
+ inc gameperfresttosync, perftimer()-gameperftimestamp
+ gameperftimestamp=perftimer()
+ `
+ rem Update physics
+ gosub _ode_update
+ `
+ rem Count physics time
+ inc gameperfphysics, perftimer()-gameperftimestamp
+ gameperftimestamp=perftimer()
+ `
+ rem Measure overall performance counts
+ inc gameperftotalcount, perftimer()-gameperftotalcountTOP
+ gameperftotalcountTOP=perftimer()
+ `
+ rem Update screen
+ sync
+ `
+ rem Can intercept to grab screen
+ if keystate(plrkeyF12)=1
+  tnum=1
+  repeat
+   snapshotfile$="..\snapshot"+str$(tnum)+".bmp"
+   inc tnum
+  until file exist(snapshotfile$)=0
+  get image 21000000,0,0,screen width(),screen height(),1
+  if image exist(21000000)=1
+   save image snapshotfile$,21000000,1
+   delete image 21000000
+  endif
+  while keystate(plrkeyF12)=1
+  endwhile
+ endif
+ `
+ rem Sync Performance check
+ gameperfsync=gameperfsync+(perftimer()-gameperftimestamp)
+ gameperftimestamp=perftimer()
+ gamedebugviewtime=timer()
+ `
+ rem Exit Conditions for test game
+ if grealgameviewstate=0
+  if escapekey()=1 then continueokay=1 : levelwon=2 : rem QUIT
+ endif
+ `
+return
+
+
+
+rem
+rem LEES Game Runner Code
+rem
+
+_load_game_scene:
+
+rem Loading Screen
+if gdebugreportmodestate=0 then set camera view 0,0,1,1
+
+rem Direct to realgame or testgame
+if grealgameviewstate=1
+ `
+ rem Set realgame level path
+ levelmapptah$="levelbank\testlevel\"
+ `
+ rem load the FPL file which populates testlevel for current level to play (level var)
+ gosub _mapfile_load_fpl
+ `
+else
+ `
+ rem During test map this path can be used (map edit files)
+ levelmapptah$="mapbank\testmap\"
+ `
+ rem Load the FPM data to mapbank\testmap (level var)
+ if gcompilestandaloneexe=1
+  gosub _mapfile_loadgamemap_fpm
+  elementsfilename$=""
+ endif
+ `
+endif
+
+rem Free any old player resources
+debugviewtext(120,strarr$(131)) : gosub _player_free
+
+rem Flush video for new graphics usages
+debugviewtext(130,strarr$(132)) : flush video memory
+
+rem Free old resources first
+debugviewtext(140,strarr$(133)) : gosub _entity_deleteelements
+
+rem Load waypoints
+if gshowdebugtextingamestate=0 then gdontcreatewaypointobjects=1
+debugviewtext(150,strarr$(134)) : gosub _waypoint_loaddata
+if gshowdebugtextingamestate=1 then gosub _waypoint_createallobjs
+
+rem Ensure segments are loaded (not for final game though - universe dbo does this)
+if grealgameviewstate=0 then debugviewtext(160,strarr$(135)) : gosub _segment_loadbank
+
+rem Ensure segments and entities are up to date
+debugviewtext(170,strarr$(136)) : gosub _entity_loadbank
+
+rem Load individual-elements
+debugviewtext(180,strarr$(137)) : gosub _entity_loadelementsdata
+debugviewtext(185,strarr$(137)) : gosub _entity_switchtostaticformultiplayer
+
+rem Load map (with any segment entitiy-elements)
+debugviewtext(200,strarr$(138)) : gosub _game_loadmap
+
+rem Finally create and attach elements to map
+if gmultiplayergame=0 then debugviewtext(299,strarr$(626)) : gosub _part_init
+debugviewtext(300,strarr$(139)) : gosub _entity_createelements
+debugviewtext(310,strarr$(140)) : gosub _entity_attachelementstogame
+debugviewtext(311,strarr$(141)) : gosub _ai_createentityreferences
+
+rem Load material list and sounds
+debugviewtext(312,strarr$(142)) : gosub _ode_loadmateriallist
+
+rem Entities can intropduce fake players, init all
+debugviewtext(312,strarr$(142)) : gosub _player_startgun
+debugviewtext(313,strarr$(143)) : gosub _gun_loadonlypresent
+rem V109 BETA10 - 120508 - moved here to load FLAK after GUNLOADS (usedinlevel flag)
+if gmultiplayergame=0 then debugviewtext(313,strarr$(128)) : gosub _flak_initonlyused
+debugviewtext(314,strarr$(144)) : gosub _decal_loadonlyactivedecals
+
+rem Entities can intropduce fake players, init all
+debugviewtext(318,strarr$(145)) : gosub _player_init : gosub _player_resetobjectives
+debugviewtext(320,strarr$(146)) : gosub _entity_startentitiesoff
+
+rem Okay for start of game, can skip for exe construction
+if gcompilestandaloneexe=0
+ `
+ rem Physics init of universe and entities (321,322,323)
+ debugviewtext(321,strarr$(627)) : gosub _ode_init
+ `
+ rem Setup camera (player)
+ debugviewtext(324,strarr$(628)) : gosub _player_setup
+ `
+ rem Reset multiplayer state (multiplayer)
+ if gmultiplayergame=1
+  gosub _multi_restartprepare
+  multiplayerinitialised=0
+ endif
+ `
+ rem Starting main loop
+ debugviewtext(329,strarr$(629))
+ `
+endif
+
+rem TestGameFromEditor Mode
+if gtestgamemodefromeditor=1
+ `
+ rem Activate OK button
+ open file map 1, "FPSTESTGAMEDIALOG"
+ set file map dword 1, 12, 1
+ set file map string$ 1, 1000, strarr$(147)
+ set file map dword 1, 8, 100
+ wait for file map event 1
+ close file map 1
+ while 1
+  open file map 1, "FPSEXCHANGE"
+  wait for file map event 1
+  rem Wait for Test Game Dialog OK button pressed
+  if get file map dword( 1, 974 ) = 1 then exit
+  if get file map dword( 1, 994 ) = 1
+   rem terminate test game mid-build
+   set file map string$ 1, 1000, "FPSC-MapEditor.exe"
+   set file map string$ 1, 1256, "-r"
+   set file map dword 1, 994, 2
+   set file map dword 1, 924, 1
+   wait for file map event 1
+   close file map 1
+   rem Terminate
+   end
+  else
+   close file map 1
+  endif
+  sync
+ endwhile
+ close file map 1
+ `
+ rem make sure the cancel code is not detected for anymore in debug function
+ gtestgamemodefromeditorokaypressed=1
+ `
+ rem Version Control - possible logo use
+ gosub _version_onscreenlogos
+ `
+ rem Show Test Game Window
+ gosub _main_game_showwindownow
+ `
+endif
+
+rem Sample transition IN
+gametransitionscreen=1 : gametransitionscreencount=600/2
+
+return
+
+_main_game_showwindownow:
+ set window layout 0,0,0
+ maximize window
+ show window
+ window to front
+return
+
+_main_game_corecontrol:
+
+rem Stamp time for performance meter
+if showgamemenu=0 then position mouse screen width()/2,screen height()/2
+
+rem STATUS AND HUD GRAPHICS
+if gamewarmupcount=0
+ gosub _screen_control
+endif
+
+rem FPSCV104RC4 - i want to see this
+`if grealgameviewstate=0
+if gdebugreportmodestate=1 or grealgameviewstate=0
+ `
+ rem Debug info
+ debuggameoverlaysystem(0)
+ inc gameperfdebug, perftimer()-gameperftimestamp
+ gameperftimestamp=perftimer()
+ `
+else
+ `
+ rem Ingame debug FPS
+ if keystate(15)=0 then keystate15pressed=0
+ if keystate(15)=1 and keystate15pressed=0
+  inc showfpsinrealgame
+  if ggodmodestate=0
+   if showfpsinrealgame>1 then showfpsinrealgame=0
+  else
+   if showfpsinrealgame>2 then showfpsinrealgame=0
+  endif
+  keystate15pressed=1
+ endif
+ if showfpsinrealgame=1 then set cursor 0,0 : print screen fps()
+ `
+ rem suicide key
+ if gmultiplayergame=1
+  if lower$(inkey$())="i" and gtalkytoaster=0
+   tdamage=10 : e=characterchoiceentityindex(iLocalEL)
+   if entityelement(e).health>0
+    gosub _multi_dealentityedamage
+   endif
+  endif
+ endif
+ `
+ rem Talk system
+ if gmultiplayergame=1
+  tylinevalue=screen height()-20
+  if lower$(inkey$())="t" and gtalkytoaster=0
+   gtalkytoaster=1 : clear entry buffer
+  endif
+  if gtalkytoaster=1
+   set cursor 0,tylinevalue
+   print "TALK>";entry$();
+  endif
+  if returnkey()=1 and gtalkytoaster=1
+   rem send message to all
+   gtalkytoaster=0
+   tmessage$=entry$()
+   MULTIPLAYER SEND FROM PLAYER dwLocalPlayerID
+   MULTIPLAYER SEND MESSAGE STRING ">>"+tmessage$,0x0080
+   clear entry buffer
+   rem see own message (only if server)
+   if createorjoin=1
+    talkscript$(talkindex)=">>"+tmessage$
+    talkscriptcount(talkindex)=200
+    talkscriptwho(talkindex)=iLocalEL
+    inc talkindex : if talkindex>10 then talkindex=0
+   endif
+  endif
+ endif
+ `
+ rem Ingame debug SPEEDTESTS
+ if showfpsinrealgame=2
+  rem multiplayer data
+  if gmultiplayergame=1
+   if timer()-totalbytestime>1000
+    totalbytestime=timer()
+    totalguarenteedbytes=guarenteedbytes
+    totalunreliablebytes=unreliablebytes
+    guarenteedbytes=0
+    unreliablebytes=0
+   endif
+   tt$="GD="+str$(totalguarenteedbytes)
+   text (screen width()/2)-75,screen height()-80,tt$
+   tt$="UD="+str$(totalunreliablebytes)
+   text (screen width()/2)+00,screen height()-80,tt$
+   tt$="QUEUE="+str$(multiplayer get queue size(0))+","+str$(multiplayer get queue size(1))
+   text (screen width()/2)+75,screen height()-80,tt$
+  endif
+  rem regular stats
+  debugviewmode=0
+  debuggameoverlaysystem(0)
+  inc gameperfdebug, perftimer()-gameperftimestamp
+  gameperftimestamp=perftimer()
+ endif
+ `
+endif
+
+rem Dynamic lighting control
+gosub _lighting_ambientcontrol
+if (gdynamiclightingstate=1 and lightingsystemdisabled=0) or forceambientlightsetting>0
+ gosub _lighting_control
+ gosub _lighting_managedynamiclights
+ gosub _lighting_managegloballighting
+ gosub _lighting_applyplayerlighting
+ gosub _lighting_applytoscene
+endif
+gosub _lighting_controlupdate
+inc gameperflighting, perftimer()-gameperftimestamp
+gameperftimestamp=perftimer()
+
+rem Game Active
+if gamewarmupcount=0
+ `
+ rem Skip input (if not multiplayer ready or talkmode on)
+ tokay=1
+ if gmultiplayergame=1 and PlayerCanStart=0 then tokay=0
+ if gtalkytoaster=1 then tokay=0
+ if tokay=1
+  `
+  rem Player management
+  gosub _player_input
+  gosub _player_manager
+  gosub _player_itemmanager
+  gosub _player_mission
+  `
+  rem The Player Camera
+  gosub _player_camera
+  gosub _gun_update_hud
+  `
+ endif
+ `
+endif
+
+rem Measure plr calcs time
+inc gameperfplayer, perftimer()-gameperftimestamp
+gameperftimestamp=perftimer()
+
+rem Entity Control Handling Here
+gosub _entity_controlelements
+inc gameperfentities, perftimer()-gameperftimestamp
+gameperftimestamp=perftimer()
+
+rem Control multiplayer communicaions (multiplayer)
+if gmultiplayergame=1 and multiplayerinitialised=1 and multiplayersystemdisabled=0
+ gosub _multi_control
+endif
+
+rem Game Active
+if gamewarmupcount=0
+ `
+ rem After AutoCol (after plr move and entity push-back, use autocol so stay in walls)
+ gosub _ode_playeraftermove
+ gosub _ode_playerpickup
+ `
+ rem The Gun Manager after new camera pos/rot
+ gosub _gun_manager
+ inc gameperfgun, perftimer()-gameperftimestamp
+ gameperftimestamp=perftimer()
+ `
+endif
+
+rem Flak in-game handling
+gosub _particles_control
+if gmultiplayergame=0 then gosub _flakelement_control
+if supportsystemdisabled=0
+ gosub _decalelement_control
+endif
+gosub _part_controlexploders
+gosub _gun_update_overlay
+inc gameperfmisc, perftimer()-gameperftimestamp
+gameperftimestamp=perftimer()
+
+return
+
+function screenprompt(img,desc$)
+ backdrop off : position camera -50000,-50000,-50000 : point camera -550000,-550000,-550000
+ ink rgb(255,255,255),0 : set text font "Verdana" : set text size 24
+ cls 0 : sync : cls 0 : sync
+ for s=1 to 20
+  center text screen width()/2,(screen height()/2)-16,desc$
+  if img>0
+   if image exist(img)=1
+    paste image img,(screen width()-512)/2,(screen height()-384)/2
+   endif
+  endif
+  sync : sleep 200
+ next s
+endfunction
+
+function timestampactivity(i,desc$)
+ if gproducelogfiles=1
+  if i=0
+   inc timestampactivityindex
+   timestampactivityflagged=1
+   i=timestampactivityindex
+  else
+   timestampactivityindex=i
+  endif
+  if i>timestampactivitymax
+   timestampactivitymax=i
+  endif
+  dim timestampactivity$(timestampactivitymax)
+  timestampactivity$(i)=str$(timer())+" : "+desc$
+  file$="..\FPSC-Game.log" : if file exist(file$)=1 then delete file file$
+  open to write 1,file$
+   for t=1 to timestampactivitymax
+    write string 1,timestampactivity$(t)
+   next t
+  close file 1
+ endif
+endfunction
+
+rem Function to use anywhere
+function genuniqueservercode(name$)
+ date$=get date$()
+ time$=get time$()
+ code$=""
+ for index=0 to 10
+  ci1=index mod len(name$) : c1$=mid$(name$,1+ci1) : if c1$="," then c1$="."
+  ci2=index mod len(date$) : c2$=mid$(date$,1+ci2) : if c2$="," then c2$="."
+  ci3=index mod len(time$) : c3$=mid$(time$,1+ci3) : if c3$="," then c3$="."
+  code$=code$+c1$+c2$+c3$
+ next index
+ code$=right$(code$,32)
+endfunction code$
+
+`
+` TO resolve share issue with new version attachment
+`
+
+_interface_openbuildgame:
+_interface_handlebuildgame:
+_interface_closebuildgame:
+return
+

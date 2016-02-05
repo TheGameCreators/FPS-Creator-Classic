@@ -1,0 +1,138 @@
+;Entity Spec
+
+;Header
+
+desc          = %template2%
+
+;AI
+aiinit	      = appear1.fpi
+aimain	      = people\hunt.fpi
+aidestroy     = people\leavecorpse.fpi
+aishoot       = people\hunt-shoot.fpi
+soundset      = male
+
+;Spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;Orientation
+model         = %template1%
+offx          = 0
+offy          = 0
+offz          = 0
+rotx          = 0
+roty          = 0
+rotz          = 0
+scale         = 80
+fixnewy       = 180
+
+;Cone of Sight
+coneheight    = 53
+coneangle     = 50
+
+;Visualinfo
+textured      = %template4%_D2.tga
+effect        = effectbank\bump\bump.fx
+castshadow    = 0
+
+;Decals
+decalmax      = 2
+decal0        = red
+decal1        = blood
+
+;Identity Details
+strength      = 100
+ischaracter   = 1
+hasweapon     = %template3%
+isobjective   = 0
+
+;bodypartslimbinfo (1=head/2=body/3+4=armsLR/5+6=legsLR)
+limbmax       = 0
+
+;Animationinfo
+animmax       = 124
+anim0         = 0,29
+anim1         = 31,49
+anim2         = 71,99
+anim3         = 100,129
+anim4         = 130,159
+anim5         = 160,189
+anim6         = 190,219
+anim7         = 440,459
+anim8         = 50,59
+anim9         = 60,69
+anim11        = 220,239
+anim12        = 240,259
+anim13        = 380,409
+anim14        = 260,279
+anim15        = 280,299
+anim16        = 410,439
+anim17        = 300,319
+anim18        = 320,339
+anim20        = 340,359
+anim21        = 360,379
+anim30        = 460,479
+anim31        = 460,479
+anim32        = 500,529
+anim33        = 530,559
+anim34        = 560,589
+anim35        = 500,529
+anim36        = 590,619
+anim37        = 700,719
+anim38        = 480,489
+anim39        = 490,499
+anim41        = 620,639
+anim42        = 640,659
+anim43        = 380,409
+anim44        = 640,659
+anim45        = 620,639
+anim46        = 410,439
+anim47        = 660,679
+anim48        = 680,699
+anim50        = 680,699
+anim51        = 660,679
+anim60        = 720,739
+anim61        = 720,739
+anim62        = 740,769
+anim63        = 770,789
+anim64        = 770,789
+anim65        = 740,769
+anim66        = 790,819
+anim67        = 720,739
+anim68        = 720,739
+anim69        = 720,739
+anim71        = 820,839
+anim72        = 820,839
+anim73        = 720,739
+anim74        = 820,839
+anim75        = 820,839
+anim76        = 720,739
+anim77        = 820,839
+anim78        = 820,839
+anim80        = 820,839
+anim81        = 820,839
+anim90        = 840,859
+anim91        = 840,859
+anim92        = 860,889
+anim93        = 860,889
+anim94        = 860,889
+anim95        = 860,889
+anim96        = 890,919
+anim97        = 890,919
+anim98        = 860,889
+anim99        = 860,889
+anim101       = 920,939
+anim102       = 920,939
+anim103       = 840,859
+anim104       = 940,959
+anim105       = 940,959
+anim106       = 840,859
+anim107       = 960,979
+anim108       = 840,859
+anim110       = 980,999
+anim111       = 840,859
+anim120       = 1000,1029
+anim121       = 1030,1049
+anim122       = 1050,1079
+anim123       = 1080,1099

@@ -1,0 +1,80 @@
+;Segment Spec
+
+;Header
+
+partmax = 1
+lastmeshmax = 1
+
+;Segment Parts
+
+partmode0       = 0
+meshname0       = meshbank\ww2\france\gantries\gantry_c\floor_tjunc_a.x
+offx0           = 0
+offy0           = -51
+offz0           = 0
+rotx0           = 0
+roty0           = 0
+rotz0           = 0
+texture0        = texturebank\ww2\gantries\metal\g_c_01_d2.tga
+textured0       = 
+texturen0       = 
+textures0       = 
+transparency0   = 1
+effect0         = 
+colmode0        = 1
+csgmesh0        = 
+csgmode0        = 0
+csgimmune0      = 0
+lightmode0      = 0
+multimeshmode0  = 0
+materialindex0  = 3
+
+partmode1       = 0
+meshname1       = meshbank\ww2\france\gantries\gantry_c\wall_a.x
+offx1           = 0
+offy1           = -50
+offz1           = 50
+rotx1           = 0
+roty1           = 0
+rotz1           = 0
+texture1        = texturebank\ww2\gantries\metal\g_c_01_d2.tga
+textured1       = 
+texturen1       = 
+textures1       = 
+transparency1   = 0
+effect1         = 
+colmode1        = 1
+csgmesh1        = 
+csgmode1        = 0
+csgimmune1      = 0
+lightmode1      = 0
+multimeshmode1  = 0
+materialindex1  = 3
+
+;Segment Visibility
+
+visoverlay      = 2
+visfloor        = -1
+visroof         = -1
+viswallb        = -1
+viswallr        = -1
+viswallf        = -1
+viswalll        = -1
+viscornertl     = -1
+viscornertr     = -1
+viscornerbr     = -1
+viscornerbl     = -1
+
+;Segment Blueprint
+
+mode            = 5
+symbol          = 0
+floorsizey      = 0
+sidesizex       = 100
+sidesizey       = 100
+sidesizez       = 100
+groundmode      = 0
+kindof          = 3
+
+;end
+

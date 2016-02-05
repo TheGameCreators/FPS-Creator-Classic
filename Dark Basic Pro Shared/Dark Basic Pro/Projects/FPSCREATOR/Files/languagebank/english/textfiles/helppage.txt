@@ -1,0 +1,58 @@
+FPS Creator Quick Help
+
+MAP MOVEMENT
++           Move up a layer
+-           Move down a layer
+Z           Zoom view
+<           Zoom into map
+>           Zoom out from map
+Mse wheel   Zoom in and out of map
+#           Increase render shroud size
+'           Decrease render shroud size
+
+
+GENERAL KEYS
+L Mouse     Paint
+R Mouse     Delete
+R           Rotate selection 90 degrees
+Shift+R     Rotate selection 1 degree
+Ctrl+Z      Undo
+TAB         Clip 3D view (3 modes)
+SPACE       Hide/Show Waypoint Lines
+Arrow keys  Move 3D cursor
+F1          Quick key help
+
+SEGMENT EDITING
+P           Segment editing
+K           Pick segment from map
+A           Paint walls & floor int
+X           Paint walls & floor ext
+M           Paint walls only
+F           Paint floor only
+E           Clipboard Edit mode
+
+
+
+CLIPBOARD EDITING
+L Mouse     Drag selected area
+Ctrl+C      Copy area
+Ctrl+P      Paste clipboard
+
+
+ENTITY EDITING	
+N           Entity Editing
+B           Grid mode (3 modes)
+L           Mouse Select and Paint entity
+R           Mouse Edit properties
+Y           Entity to Static (red)
+            or Dynamic (green)
+
+
+ENTITY PROPERTIES
+R           Mouse Drag to rotate view
+L           Mouse Exit edit properties
+
+
+MARKERS
+[           Decrease light range
+]           Increase light range

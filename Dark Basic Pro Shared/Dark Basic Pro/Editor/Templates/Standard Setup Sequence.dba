@@ -1,0 +1,4 @@
+rem Standard Setup Code
+sync on : sync rate 0 :
+color backdrop rgb(0,0,128) : hide mouse
+set text font "arial" : set text size 12 : set text transparent

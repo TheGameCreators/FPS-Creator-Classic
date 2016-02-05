@@ -1,0 +1,13 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Pickup Key
+
+;Triggers
+
+:state=0:hudreset,hudx=50,hudy=90,hudimagefine=gamecore\text\pickedupakey.tga,hudname=keyprompt,hudhide=1,hudmake=display,state=10
+:state=10,plrdistwithin=40:state=1,playertake,coloff,plrsound=audiobank\misc\ping.wav,hudshow=keyprompt,hudfadeout=keyprompt
+:state=1:rundecal=5
+
+;End of Script

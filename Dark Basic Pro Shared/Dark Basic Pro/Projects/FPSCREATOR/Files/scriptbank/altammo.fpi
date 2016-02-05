@@ -1,0 +1,12 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Ammo Pickup
+
+;Triggers
+::isaltammo
+:state=0:hudreset,hudx=50,hudy=90,hudimagefine=gamecore\text\pickedupammo.tga,hudname=ammoprompt,hudhide=1,hudmake=display,state=10
+:state=10,plrdistwithin=40,cantake:state=1,playertake,coloff,plrsound=audiobank\items\pickup.wav,hudshow=ammoprompt,hudfadeout=ammoprompt
+
+;End of Script

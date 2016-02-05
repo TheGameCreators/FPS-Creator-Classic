@@ -1,0 +1,160 @@
+rem
+rem Interface Dialog tests
+rem
+
+rem Type test
+typeof=2
+
+rem Backdrop
+sync on : sync rate 60
+make object cube 1,100
+
+rem Place text in splash-dialog
+open file map 2, "FPSSPLASH"
+`while get file map dword( 2, 0 ) = 0 : sync : endwhile
+set file map dword 2, 4, 1
+set file map string$ 2, 1000, strarr$(171)
+close file map 2
+
+rem Remove splash dialog
+sleep 500
+open file map 2, "FPSSPLASH"
+set file map dword 2, 8, 1
+close file map 2
+
+rem PROPERTIES
+if typeof=1
+ gosub _setupentity
+ e=1 : gosub _interface_openpropertywindow
+ editorinterfaceleave=0
+endif
+
+rem Main loop
+do
+
+rem Backdrop 3D
+set cursor 0,0
+print screen fps();" ";str$(rnd(100))
+yrotate object 1,wrapvalue(object angle y(1)+0.1)
+
+rem Handle properties
+if typeof=1
+ gosub _interface_handlepropertywindow
+ if editorinterfaceleave=1 then gosub _interface_closepropertywindow
+endif
+
+rem Handle buildgame
+if typeof<>1
+ tokay=0
+ open file map 1, "FPSBUILDGAME"
+ if get file map dword( 1, BUILD_GAME_SETUP ) = 1 then tokay=1
+ close file map 1
+ if tokay=1
+  gosub _interface_openbuildgame
+  gosub _interface_handlebuildgame
+  gosub _interface_closebuildgame
+ endif
+endif
+
+rem Handle prefs
+if typeof<>1
+ tokay=0
+ open file map 1, "FPSPREFERENCES"
+ if get file map dword( 1, 0 ) = 1 then tokay=1
+ close file map 1
+ if tokay=1
+  gosub _interface_openprefs
+  gosub _interface_handleprefs
+  gosub _interface_closeprefs
+ endif
+endif
+
+rem Update screen
+sync
+
+rem End loop
+loop
+
+rem PROPERTIES
+_setupentity:
+
+rem type of entity
+gridentity=7
+if gridentity=1
+ grideleprof.name$="Item"
+ entityprofile(gridentity).ismarker=0
+ entityprofile(gridentity).ischaracter=0
+ entityprofile(gridentity).isweapon=0
+endif
+if gridentity=2
+ grideleprof.name$="Player"
+ entityprofile(gridentity).ismarker=1
+ entityprofile(gridentity).ischaracter=0
+ entityprofile(gridentity).isweapon=0
+endif
+if gridentity=3
+ grideleprof.name$="Light"
+ entityprofile(gridentity).ismarker=2
+ entityprofile(gridentity).ischaracter=0
+ entityprofile(gridentity).isweapon=0
+endif
+if gridentity=4
+ grideleprof.name$="Trigger"
+ entityprofile(gridentity).ismarker=3
+ entityprofile(gridentity).ischaracter=0
+ entityprofile(gridentity).isweapon=0
+endif
+if gridentity=5
+ grideleprof.name$="Emission"
+ entityprofile(gridentity).ismarker=4
+ entityprofile(gridentity).ischaracter=0
+ entityprofile(gridentity).isweapon=0
+endif
+if gridentity=6
+ grideleprof.name$="Character"
+ entityprofile(gridentity).ismarker=0
+ entityprofile(gridentity).ischaracter=1
+ entityprofile(gridentity).isweapon=0
+endif
+if gridentity=7
+ grideleprof.name$="Weapon Pickup"
+ entityprofile(gridentity).ismarker=0
+ entityprofile(gridentity).ischaracter=0
+ entityprofile(gridentity).isweapon=1
+endif
+
+rem ai
+grideleprof.aiinit$="default.fpi"
+grideleprof.aimain$="default.fpi"
+grideleprof.aidestroy$="default.fpi"
+grideleprof.aishoot$="default.fpi"
+grideleprof.coneheight=65
+grideleprof.coneangle=30
+
+rem interactivity
+grideleprof.usekey$="Locked Door"
+
+rem Visual
+grideleprof.scale=100
+grideleprof.texd$="woodON.tga"
+grideleprof.texaltd$="woodOFF.tga"
+grideleprof.effect$="bump.fx"
+grideleprof.transparency=2
+
+rem Statistics
+grideleprof.strength=100
+grideleprof.isimmobile=0
+grideleprof.hasweapon$="uzi"
+grideleprof.quantity=30
+grideleprof.isobjective=0
+grideleprof.lives=1
+
+rem Light data
+grideleprof.light.range=500
+grideleprof.light.color=rgb(255,0,255)
+
+rem Decal data
+grideleprof.basedecal$="steam1"
+
+return
+

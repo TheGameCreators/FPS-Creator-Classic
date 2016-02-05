@@ -1,0 +1,16 @@
+;AIScript from Wizard
+;Header
+desc          = Game Server Lost Page Wizard
+;Script
+:state=0:music=audiobank\music\generic\victory.wav
+:state=0:hudreset,hudx=50,hudy=20,hudimage=languagebank\english\gamecore\backdrops\basic\youlose.tga,hudmake=display
+:state=0:hudreset,hudx=50,hudy=70,hudimage=languagebank\english\gamecore\backdrops\basic\playagain.tga,hudname=playagain,hudtype=1,hudmake=button
+:state=0:hudreset,hudx=50,hudy=80,hudimage=languagebank\english\gamecore\backdrops\basic\exitgame.tga,hudname=exitgame,hudtype=2,hudmake=button
+:state=0:hudreset,hudx=50,hudy=35,hudmake=winnersname
+:state=0:hudreset,hudx=50,hudy=50,hudimage=gamecore\huds\pointer.tga,hudname=ptr,hudmake=pointer
+:state=0:state=1
+
+:state=1:backdrop=gamecore\backdrops\Basic\background.jpg
+:state=1,hudselectionmade=1:repeatgame,destroy
+:state=1,hudselectionmade=2:destroy
+

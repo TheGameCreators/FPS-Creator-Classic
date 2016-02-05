@@ -1,0 +1,9 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Story In Zone
+
+;Triggers
+
+:state=0,plrwithinzone=1:state=1,sound=$0,video=$1,stopsound=$0,activateifused=1

@@ -1,0 +1,136 @@
+rem
+rem Waypoint Test Program
+rem
+
+rem Init app
+sync on : sync rate 60 : autocam off
+
+rem Start of waypoint
+gosub _waypoint_createnew
+
+rem Load All AI Scripts
+gosub _ai_setkeywords
+gosub _ai_scanfornewscripts
+
+rem Fill visibility map with scene no-walk areas ( viscolmap )
+gosub _entity_fillfakeviscolmap
+
+rem Create test element to test AI Waypoint
+entid=1 : ent$="entitybank\scifi\characters\aiko\aiko.fpe"
+entitybank$(entid)=ent$
+entpath$=getpath(ent$)
+gosub _entity_load
+gosub _entity_addelement
+gosub _entity_createelements
+gosub _player_init
+
+rem Kill player for this proto
+player(1).lives=0
+
+rem Load waypoint from testmap
+gosub _waypoint_loaddata
+gosub _waypoint_recreateobjs
+
+rem Place camera
+position camera 0,400,0
+point camera 0,0,0
+
+rem Main loop
+while escapekey()=0
+
+rem Create New Waypoint strand
+if inkey$()="a" and keypress=0
+ keypress=1 : mx#=rnd(300)-150 : mz#=rnd(200)-100 : gosub _waypoint_createnew
+endif
+
+rem Load existing waypoint from test map
+if inkey$()="l"
+ print "Loading Waypoints..." : sync : sync
+ gosub _waypoint_loaddata
+ gosub _waypoint_recreateobjs
+ sleep 1000
+endif
+
+rem Set a dynamic target
+if mouseclick()<>1 then testtargetset=0
+if mouseclick()=1 and testtargetset=0
+ e=1
+ entityelement(e).mover.dx=mx#
+ entityelement(e).mover.dy=0.0
+ entityelement(e).mover.dz=mz#
+ entityelement(e).ai.waypoint.state=101
+ entityelement(e).logiccount=100 : rem so it does not reset mover
+ testtargetset=1
+endif
+
+rem Waypoint strand management
+mx#=camera position x()+((mousex()-320)*5)
+mz#=camera position z()+((240-mousey())*5)
+gosub _waypoint_mousemanage
+
+rem Control level height
+if scancode()=0 then keypress=0
+if scancode()=201 and keypress=0
+ keypress=1 : inc waypointeditheight#,100.0
+ for twayp=1 to waypointmax : createwaypointobj(editorwaypointoffset+twayp,twayp) : next twayp
+endif
+if scancode()=209 and keypress=0
+ keypress=1 : dec waypointeditheight#,100.0
+ for twayp=1 to waypointmax : createwaypointobj(editorwaypointoffset+twayp,twayp) : next twayp
+endif
+position camera 0,400+waypointeditheight#,0
+
+rem User prompt
+center text 320,20,"BASIC WAYPOINT CREATE-DESTROY-LINK SYSTEM"
+center text 320,380,"[A] CREATE NEW WAYPOINT STRAND"
+center text 320,400,"MOUSE: LEFT=MOVE  DOUBLE LEFT=INSERT  DOUBLE RIGHT=DELETE"
+center text 320,420,"MOUSE: DRAG-ONE-TO-ANOTHER=LINK  RIGHT=BREAK"
+center text 320,440,"PGUP/PGDN KEY TO RAISE LOWER LEVEL - SPACE TO ZOOM"
+center text 320,460,"CUROSR KEYS TO SCROLL"
+
+rem pure debug code
+set cursor 0,0
+print "LINK INFORMATION"
+for w=1 to waypointcoordmax
+ if waypointcoord(w).index=0 then ink rgb(0,0,0),0
+ if waypointcoord(w).index=1 then ink rgb(255,0,0),0
+ if waypointcoord(w).index=2 then ink rgb(0,255,0),0
+ if waypointcoord(w).index=3 then ink rgb(255,255,0),0
+ if waypointcoord(w).index=4 then ink rgb(255,0,255),0
+ if waypointcoord(w).index=5 then ink rgb(0,255,255),0
+ print w;" ";
+ if waypointcoord(waypointcoord(w).link).index=0 then ink rgb(255,255,255),0
+ if waypointcoord(waypointcoord(w).link).index=1 then ink rgb(255,0,0),0
+ if waypointcoord(waypointcoord(w).link).index=2 then ink rgb(0,255,0),0
+ if waypointcoord(waypointcoord(w).link).index=3 then ink rgb(255,255,0),0
+ if waypointcoord(waypointcoord(w).link).index=4 then ink rgb(255,0,255),0
+ if waypointcoord(waypointcoord(w).link).index=5 then ink rgb(0,255,255),0
+ print waypointcoord(w).link;"  x:";waypointcoord(w).x;"  z:";waypointcoord(w).z
+next w
+ink rgb(255,255,255),0
+e=1 : print "CURRENT:";entityelement(e).ai.waypoint.current
+
+rem Move camera around
+if upkey()=1 then cz#=cz#+10.0
+if downkey()=1 then cz#=cz#-10.0
+if leftkey()=1 then cx#=cx#-10.0
+if rightkey()=1 then cx#=cx#+10.0
+
+rem SPACE is zoom
+if spacekey()=1
+ position camera entityelement(1).x,entityelement(1).y+200,entityelement(1).z
+ point camera entityelement(1).x,entityelement(1).y,entityelement(1).z
+else
+ position camera cx#,2000,cz#
+ point camera cx#,0,cz#
+endif
+
+rem Control Entity Element (AI WAYPOINT STATE ENGINE)
+gosub _entity_controlelements
+
+rem Update screen
+sync
+
+rem End loop
+endwhile
+

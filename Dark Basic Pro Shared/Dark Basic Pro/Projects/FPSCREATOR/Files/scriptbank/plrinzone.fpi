@@ -1,0 +1,9 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Plr In Zone
+
+;Triggers
+
+:state=0,plrwithinzone=1:activateallinzone=1,sound=$0,state=1

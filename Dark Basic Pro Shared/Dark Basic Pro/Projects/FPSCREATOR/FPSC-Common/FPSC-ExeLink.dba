@@ -1,0 +1,261 @@
+rem
+rem FUNCTIONS FOR LINKING EXES
+rem
+
+`
+` FUNCTION TO LAUNCH BROWSER
+`
+function browseropen$(browsemode)
+
+rem this way still used by segment editor
+localdesc$=""
+if segobjusedforsegeditor=1
+
+ `
+ ` FOR SEGMENT EDITOR
+ `
+
+ rem Clear result
+ resultstring$=""
+
+ rem Store directory
+ curdir$=get dir$()
+
+ rem Launch browser in freeze mode
+ set dir rootdir$ : set dir ".."
+
+ rem Run if not currently active
+ if window exist(browsername$)=0
+  execute file browserexe$,"",""
+  while window exist(browsername$)=0
+   sync
+  endwhile
+ else
+  window to front browsername$
+ endif
+
+ rem Trigger it to provide correct cateogory for browse
+ filemapname$=browsername$+"(ACTIVE)"
+ write filemap value filemapname$,1
+ filemapname$=browsername$+"(MODE)"
+ write filemap value filemapname$,browsemode
+ write filemap string filemapname$,strarr$(42)
+
+ rem Switch this app to processor friendly
+ sync off : always active off
+
+ rem Must wait for response..
+ filemapname$=browsername$+"(ACTIVE)"
+ while read filemap value(filemapname$)<>2
+ endwhile
+
+ rem This app must wait for..
+ tresult=0
+ tresult$=""
+ filemapname$=browsername$+"(RESULT)"
+ while tresult=0
+  if window exist(browsername$)=1
+   window to front browsername$
+   tresult=read filemap value(filemapname$)
+  else
+   exit
+  endif
+ endwhile
+
+ rem Take action based on result
+ if tresult=0 then resultstring$=""
+ if tresult=1 then resultstring$=read filemap string(filemapname$)
+ if tresult=2 then resultstring$=""
+
+ rem Restore primary activity
+ window to back browsername$
+ window to front
+ sync on : always active on : sync
+
+ rem set directory to return string (or restore)
+ if len(resultstring$)>0
+  tfile$=getfile(resultstring$)
+  tpath$=left$(resultstring$,len(resultstring$)-len(tfile$))
+  set dir rootdir$ : set dir tpath$
+  resultstring$=get dir$()+"\"+tfile$
+ else
+  set dir curdir$
+ endif
+
+else
+
+`
+` FOR MAP EDITOR
+`
+
+rem Prepare browse type settings
+browsetype=browsemode
+baseimagepath$=".\editors\gfx\browser\"
+if browsetype=1
+ browsetitle$=strarr$(43)
+ baselib$=""
+ baseimage$="all.bmp"
+endif
+if browsetype=2
+ browsetitle$=strarr$(44)
+ baselib$="texturebank\"
+ baseimage$="texture.bmp"
+endif
+if browsetype=3
+ browsetitle$=strarr$(45)
+ baselib$="meshbank\"
+ baseimage$="mesh.bmp"
+endif
+if browsetype=4
+ browsetitle$=strarr$(46)
+ baselib$="audiobank\"
+ baseimage$="audio.bmp"
+endif
+if browsetype=5
+ browsetitle$=strarr$(47)
+ baselib$="effectbank\"
+ baseimage$="effect.bmp"
+endif
+if browsetype=6
+ browsetitle$=strarr$(48)
+ baselib$="segments\"
+ baseimage$="segment.bmp"
+endif
+if browsetype=7
+ browsetitle$=strarr$(49)
+ baselib$="prefabs\"
+ baseimage$="prefab.bmp"
+endif
+if browsetype=8
+ browsetitle$=strarr$(50)
+ baselib$="mapbank\"
+ baseimage$="map.bmp"
+endif
+if browsetype=9
+ browsetitle$=strarr$(51)
+ baselib$="entitybank\"
+ baseimage$="entity.bmp"
+endif
+
+rem Assign filters to browse types
+browseextcount=0
+dim browseext$(64)
+if browsetype=1
+ browseext$(browseextcount+1)=".*"
+ inc browseextcount,1
+endif
+if browsetype=2
+ browseext$(browseextcount+1)="tga"
+ inc browseextcount,1
+endif
+if browsetype=3
+ browseext$(browseextcount+1)="x"
+ inc browseextcount,1
+endif
+if browsetype=4
+ browseext$(browseextcount+1)="wav"
+ browseext$(browseextcount+2)="mp3"
+ inc browseextcount,2
+endif
+if browsetype=5
+ browseext$(browseextcount+1)="fx"
+ inc browseextcount
+endif
+if browsetype=6
+ browseext$(browseextcount+1)="fps"
+ inc browseextcount
+endif
+if browsetype=7
+ browseext$(browseextcount+1)="fpp"
+ inc browseextcount
+endif
+if browsetype=8
+ browseext$(browseextcount+1)="fpm"
+ inc browseextcount
+endif
+if browsetype=9
+ browseext$(browseextcount+1)="fpe"
+ inc browseextcount
+endif
+
+rem Build extension string (ie .wav,.mp3)
+extstring$=""
+for t=1 to browseextcount
+ if t>1 then extstring$=extstring$+","
+ extstring$=extstring$+browseext$(t)
+next t
+
+rem Call up browser dialog
+set file map string$ 1, 1000, rootdir$+"\"+baselib$
+set file map string$ 1, 1256, browsetitle$
+
+rem File Filter
+set file map string$ 1, 1768,extstring$
+
+rem Default image if no thumbnail found
+set file map string$ 1, 2024, rootdir$+"\"+baseimagepath$+baseimage$
+
+rem Window Title
+set file map string$ 1, 2280, browsetitle$
+
+rem Set last location for navigation
+if browserfolderhistory$(browsetype)<>""
+ set file map string$ 1, 2536, browserfolderhistory$(browsetype)
+endif
+
+rem Wait for dialog session to end
+set file map dword 1, 800, 1
+wait for file map event 1
+while get file map dword(1,800)=1
+ wait for file map event 1
+endwhile
+
+rem localized description of selection
+rem V109 BETA7 - 30408 - prevents editor overwriting when click item and change category (from 1768)
+`localdesc$=get file map string$( 1, 1768 )
+localdesc$=get file map string$( 1, 1256 )
+
+rem return string from browser dialog
+set dir rootdir$
+resultstring$=get file map string$( 1, 1512 )
+if resultstring$<>""
+ rem Final return string
+ rem Store location as we leave browser
+ resultstring$=right$(resultstring$,len(resultstring$)-len(rootdir$+"\"))
+ browserfolderhistory$(browsetype)=right$(resultstring$,len(resultstring$)-len(baselib$))
+ resultstring$=get dir$()+"\"+resultstring$
+else
+ rem No return string
+endif
+
+rem Seg Or Map Browser version
+endif
+
+endfunction resultstring$
+
+`
+` FUNCTION TO LAUNCH SEGEDIT (INDEPENDENT TOOL)
+`
+function segedit$(segeditmode)
+
+rem Clear result
+resultstring$=""
+
+rem Store directory
+curdir$=get dir$()
+
+rem Launch in freeze mode
+set dir rootdir$ : set dir ".."
+
+rem Run if not currently active
+if window exist(segeditname$)=0
+ execute file segeditexe$,"",""
+ while window exist(segeditname$)=0
+  sync
+ endwhile
+else
+ window to front segeditname$
+endif
+
+endfunction
+

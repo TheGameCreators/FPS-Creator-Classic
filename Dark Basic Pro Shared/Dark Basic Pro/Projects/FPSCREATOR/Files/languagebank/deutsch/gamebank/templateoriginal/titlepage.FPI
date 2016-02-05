@@ -1,0 +1,15 @@
+;AIScript from Wizard
+;Header
+desc          = Title Page Wizard V103
+;Script
+:state=0:music=audiobank\music\generic\title.wav
+:state=0:hudreset,hudx=50,hudy=10,hudimage=languagebank\english\gamecore\backdrops\basic\gamemenu.tga,hudmake=display
+:state=0:hudreset,hudx=50,hudy=45,hudimage=languagebank\english\gamecore\backdrops\basic\newgame.tga,hudtype=1,hudmake=button
+:state=0:hudreset,hudx=50,hudy=55,hudimage=languagebank\english\gamecore\backdrops\basic\loadgame.tga,hudtype=2,hudmake=button
+:state=0:hudreset,hudx=50,hudy=65,hudimage=languagebank\english\gamecore\backdrops\basic\exitgame.tga,hudtype=5,hudmake=button
+:state=0:hudreset,hudx=50,hudy=50,hudimage=gamecore\huds\pointer.tga,hudmake=pointer
+:state=0:state=2
+:state=2:backdrop=gamecore\backdrops\Basic\background.jpg
+:state=2,hudselectionmade=1:destroy
+:state=2,hudselectionmade=5:quitgame,destroy
+:state=2,hudselectionmade=2:loadgame

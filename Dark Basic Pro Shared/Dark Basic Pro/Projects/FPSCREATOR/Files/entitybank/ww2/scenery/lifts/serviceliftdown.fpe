@@ -1,0 +1,35 @@
+;Entity Spec
+
+;Header
+
+desc          = %Lift
+
+;AI
+aiinit	      = appear1.fpi
+aimain	      = lift2WW2.fpi
+aidestroy     = disappear1.fpi
+
+;Spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;Orientation
+
+model         = meshbank\ww2\scenery\lifts\Lift_a\plat_a.x
+offx          = 0
+offy          = 0
+offz          = 0
+rotx          = 0
+roty          = 0
+rotz          = 0
+materialindex = 3
+textured      = texturebank\ww2\scenery\lifts\Lift_a\L_a_01_D2.tga
+
+;identity details
+strength      = 0
+isimmobile    = 1
+speed         = 200
+
+;Animationinfo
+animmax       = 0

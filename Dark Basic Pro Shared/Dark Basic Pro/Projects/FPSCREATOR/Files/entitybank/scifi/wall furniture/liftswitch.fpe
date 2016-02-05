@@ -1,0 +1,45 @@
+;Entity Spec
+
+;Header
+desc          = Lift Switch
+
+;AI
+aiinit	      = appear1.fpi
+aimain	      = switch1.fpi
+aidestroy     = disappear1.fpi
+
+;AIUsed
+ifused        = Lift
+
+;Spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;Orientation
+model         = meshbank\scifi\scenery\switches\switch9\switch9.X
+offx          = 0
+offy          = 0
+offz          = 0
+rotx          = 0
+roty          = 0
+rotz          = 0
+materialindex = 3
+defaultstatic = 0
+forwardfacing = 1
+defaultheight = 50
+
+;Visualinfo
+textured      = texturebank\scifi\scenery\switches\switch9\switch9_D2.tga
+texturealtd   = 
+effect        = effectbank\illuminationent\illuminationent.fx
+
+;Identity Details
+isimmobile    = 1
+strength      = 0
+
+;Animationinfo
+animmax       = 1
+anim0         = 0,30
+
+

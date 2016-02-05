@@ -1,0 +1,175 @@
+rem
+rem VERSIONS (PC Gamer Demo)
+rem
+
+_version_commandlineprompt:
+ `
+ rem Triggers use of file map messaging
+ if lower$(cl$())="-demo"
+  gtestgamemodefromeditor=1
+ endif
+ `
+return
+
+_version_endofinit:
+ `
+ rem Ensure full game flag never set!!
+ grealgameviewstate=0
+ `
+ rem Game Engine Demo would send this into filemap of OS (dummy code)
+ filemapname$="FPSCComm"
+ write filemap value filemapname$,42
+ write filemap string filemapname$,"demo version"
+ `
+ rem Counts down a 30/45 day trial using first-time launch as first date
+ demodatetotal=get registry("SOFTWARE\The Game Creators\FPSCreatorInfo","demodatepleasedonothackV1")
+ if demodatetotal=0
+  rem work out first day of using demo total
+  thedate$=get date$()
+  date$=left$(thedate$,2) : month=val(date$)
+  month$=left$(right$(thedate$,len(thedate$)-3),2) : date=val(month$)
+  year$=right$(thedate$,2) : year=val(year$)
+  demodatetotal=date+(month*31)+(year*365)
+  write to registry "SOFTWARE\The Game Creators\FPSCreatorInfo","demodatepleasedonothackV1",demodatetotal
+ else
+  rem get todays date in values
+  thedate$=get date$()
+  date$=left$(thedate$,2) : month=val(date$)
+  month$=left$(right$(thedate$,len(thedate$)-3),2) : date=val(month$)
+  year$=right$(thedate$,2) : year=val(year$)
+  todaydatetotal=date+(month*31)+(year*365)
+  rem work out difference in dates
+  diffindays=todaydatetotal-demodatetotal
+  info$=" [INFO:"+date$+","+month$+","+year$+","+str$(todaydatetotal)+","+str$(demodatetotal)+","+str$(diffindays)+"]"
+  if diffindays<0
+   rem somehow the current date is older than the first run, possible hack
+   exit prompt strarr$(382),strarr$(383)+info$
+   end
+  else
+   if diffindays>45
+    rem demo has expired
+    exit prompt strarr$(384),strarr$(385)+info$
+    end
+   else
+    rem demo can be used
+    rem CONTINUE
+   endif
+  endif
+ endif
+ `
+return
+
+_version_splashtext:
+ `
+ rem Update Splash Text (actual text is in editor.ini in Editor\Host folder)
+ open file map 2, "FPSSPLASH"
+ set file map dword 2, 4, 1
+ set file map string$ 2, 1000, strarr$(396)
+ set file map dword 2, 8, 1
+ wait for file map event 2
+ close file map 2
+ sleep 1000
+ `
+return
+
+_version_onscreenlogos:
+ `
+ rem Stick a demo logo in bottom-right corner
+ if file exist("languagebank\english\gamecore\huds\demoware.dds")=1
+  load image "languagebank\english\gamecore\huds\demoware.dds",gamehudimagesoffset-1
+  sprite 501,screen width()-256,screen height()-73,gamehudimagesoffset-1
+  size sprite 501,256,73
+ else
+  end
+ endif
+ `
+return
+
+_version_permittestgame:
+ `
+ rem Add DEMO text to progress text (as -T not sent it will inform if demo exe not correct)
+ open file map 1, "FPSTESTGAMEDIALOG"
+ set file map dword 1, 12, 1
+ set file map string$ 1, 1000, strarr$(397)
+ wait for file map event 1
+ while get file map dword( 1, 12 ) = 1
+  wait for file map event 1
+  sync
+ endwhile
+ close file map 1
+ `
+ rem Map Editor launches test game
+ open file map 1,"FPSEXCHANGE"
+ set file map string$ 1, 1000, "FPSC-Game.exe"
+ set file map string$ 1, 1256, "-demo"
+ set file map dword 1, 920, 1
+ wait for file map event 1
+ `
+return
+
+_version_universe_construct:
+ rem Does nothing - ate code :)
+return
+
+_version_buildgame:
+ `
+ rem Is called when BUILD GAME selected from file menu
+ `
+ rem Close the dialog instantly!
+ open file map 1, "FPSBUILDGAME"
+ set file map dword 1, BUILD_GAME_CLOSE, 1
+ wait for file map event 1
+ while get file map dword(1, BUILD_GAME_CLOSE)=1
+  wait for file map event 1
+ endwhile
+ close file map 1
+ sleep 250 : sync
+ sleep 250 : sync
+ `
+ rem Instead asks if user wants to buy full version>
+ open file map 1,"FPSEXCHANGE"
+ set file map string$ 1, 1000, strarr$(398)
+ set file map string$ 1, 1256, strarr$(399)
+ set file map dword 1, 900, 1
+ wait for file map event 1
+ while get file map dword(1, 900)=1
+  wait for file map event 1
+ endwhile
+ tokay=get file map dword(1, 904)
+ close file map 1
+ if tokay=1
+  rem yes i want to buy, webiste link
+  execute file "http://www.fpscreator.com","",""
+ endif
+ `
+return
+
+_version_resourcewarning:
+ `
+ rem Is called when painting with segs or ents over index 20 (+12 for markers defaults)
+ if (resourceused=1 and gridselection>20) or (resourceused=2 and gridentity>20+12 and entityprofile(gridentity).ismarker=0)
+  `
+  rem Instead asks if user wants to buy full version>
+  open file map 1,"FPSEXCHANGE"
+  set file map dword 1, 900, 1
+  set file map string$ 1, 1000, strarr$(400)
+  set file map string$ 1, 1256, strarr$(401)
+  wait for file map event 1
+  while get file map dword(1, 900)=1
+   wait for file map event 1
+  endwhile
+  tokay=get file map dword(1, 904)
+  close file map 1
+  if tokay=1
+   rem yes i want to buy, webiste link
+   execute file "http://www.fpscreator.com","","",0
+  endif
+  `
+ endif
+ `
+return
+
+_version_main_game_buildexe:
+ rem Does nothing - ate code :)
+return
+

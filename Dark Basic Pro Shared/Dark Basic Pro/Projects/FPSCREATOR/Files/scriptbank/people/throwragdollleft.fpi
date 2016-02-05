@@ -1,0 +1,14 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Throw Left and exit for ragdoll half-way
+
+;Triggers
+
+:state=0,raycast=0 99:runfpidefault=1
+:state=0:state=1,setframe=17
+:state=1:incframe=17
+:state=1,framebeyond=17 70:runfpidefault=1
+
+;End of Script

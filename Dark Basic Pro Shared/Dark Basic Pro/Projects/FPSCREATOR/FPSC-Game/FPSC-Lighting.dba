@@ -1,0 +1,602 @@
+rem
+rem Lighting Routines
+rem
+
+`
+` General Visual Settings
+`
+
+_lighting_init:
+ `
+ rem Set approporiate ambience (FPI controlled)
+ guivisualsettings.ambience=0
+ `
+ rem Lighting defaults
+ guivisualsettings.shadows=1
+ guivisualsettings.shadowstrength=128
+ guivisualsettings.shadowshades=1
+ guivisualsettings.dynamiclightcount=0
+ guivisualsettings.updateflag=1
+ `
+ rem Initialize lighting objects
+ if gdynamiclightingstate=1
+  gosub _lighting_setupdynamiclights
+  if gshowdebugtextingamestate=1
+   activatedynamiclightsdebug=1
+  else
+   activatedynamiclightsdebug=0
+  endif
+ endif
+ `
+ rem Hero Light (used for source point for shadows and effects)
+` set point light 0,50,50,-50
+ color light 0,rgb(0,0,0)
+ set light range 0,1
+ hide light 0
+ `
+return
+
+_lighting_postdefaults:
+
+rem if no lights, set ambience to full
+tokay=0
+array index to top infinilight()
+while array index valid(infinilight())
+ if infinilight().islit=1
+  tokay=1
+ endif
+ next array index infinilight()
+ inc currentindex
+endwhile
+if tokay=0
+ rem no lights, use full ambience (zero means no FPI aetting, go for defaults)
+ if guseeffectonscenesstate=1
+  guivisualsettings.ambience=25
+ else
+  guivisualsettings.ambience=75
+ endif
+endif
+forceambientlightsetting=10
+
+return
+
+_lighting_ambientcontrol:
+
+rem Irrespective of dynamic light setting
+if inkey$()="," and guivisualsettings.ambience>0 then dec guivisualsettings.ambience : guivisualsettings.updateflag=1
+if inkey$()="." and guivisualsettings.ambience<100 then inc guivisualsettings.ambience : guivisualsettings.updateflag=1
+
+return
+
+_lighting_control:
+ `
+ rem Direct keyboard control of adjustments
+ tupdate=0
+ if gdynamicshadowsstate=1
+  if inkey$()="e" then guivisualsettings.shadows=0 : tupdate=1
+  if inkey$()="r" then guivisualsettings.shadows=1 : tupdate=1
+  if inkey$()="t" and guivisualsettings.shadowstrength>0 then dec guivisualsettings.shadowstrength : tupdate=1
+  if inkey$()="y" and guivisualsettings.shadowstrength<255 then inc guivisualsettings.shadowstrength : tupdate=1
+  if inkey$()="'" then guivisualsettings.shadowshades=1 : tupdate=1
+  if inkey$()="#" then guivisualsettings.shadowshades=5 : tupdate=1
+ endif
+ if tupdate=1 then guivisualsettings.updateflag=1
+ `
+ rem Display lighting info
+ if gshowdebugtextingamestate=1
+  t$=strarr$(148)+str$(guivisualsettings.ambience)+strarr$(149)
+`  if gdynamicshadowsstate=1
+`   t$=t$+"  shad[E][R]:"+str$(guivisualsettings.shadows)+"  str[T][Y]:"+str$(guivisualsettings.shadowstrength)+"  shade['][#]:"+str$(guivisualsettings.shadowshades)
+`  endif
+  center text screen width()/2,screen height()-60, t$
+ endif
+ `
+ rem Constantly handle spot lighting
+ gosub _lighting_spotflash
+ `
+return
+
+_lighting_controlupdate:
+ `
+ rem Automated update from force value
+ if forceambientlightsetting>0 then guivisualsettings.updateflag=1 : dec forceambientlightsetting
+ `
+ rem Make adjustments to game settings
+ if guivisualsettings.updateflag=1
+  `
+  rem make adjustments
+  set ambient light guivisualsettings.ambience
+  if guivisualsettings.shadows=1
+   set global shadows on
+  else
+   set global shadows off
+  endif
+  set global shadow color 0,0,0,guivisualsettings.shadowstrength
+  set global shadow shades guivisualsettings.shadowshades
+  `
+  rem reset update flag
+  guivisualsettings.updateflag=0
+  `
+ endif
+ `
+return
+
+`
+` Dynamic Light Handling
+`
+
+_lighting_setupdynamiclights:
+
+rem Create dynamic hardware lights
+if light exist(1)=1 then hide light 1
+for lightindex=2 to 7
+ if light exist(lightindex)=0
+  make light lightindex
+ endif
+ color light lightindex,0,0,0
+next lightindex
+
+rem Hero Gun/Fire Light
+if light exist(1)=0 then make light 1
+if light exist(1)=1 then hide light 1
+
+rem Reset dynamic light array
+activatedynamiclightscount=0
+empty array infinilight(0)
+testmarkerstart=50000
+testmarker=testmarkerstart
+
+return
+
+_lighting_restore:
+
+rem Delete all spare lights
+for lightindex=1 to 7
+ if light exist(lightindex)=1
+  hide light lightindex
+  delete light lightindex
+ endif
+next lightindex
+
+rem Delete any test objects
+for tobj=testmarkerstart to testmarker
+ if object exist(tobj)=1 then delete object tobj
+next tobj
+
+rem Default directional light
+color light 0,rgb(255,255,255)
+set directional light 0,0.1,-0.7,0.2
+set light range 0,3000
+show light 0
+
+return
+
+
+_lighting_adddynamiclight:
+
+rem Add dynamic light
+inc testmarker
+if lgtype=1 then inc activatedynamiclightscount
+array insert at bottom infinilight()
+infinilight().used=0
+infinilight().type=lgtype
+infinilight().x=lgx#
+infinilight().y=lgy#
+infinilight().z=lgz#
+infinilight().colrgb.r=lgr#
+infinilight().colrgb.g=lgg#
+infinilight().colrgb.b=lgb#
+infinilight().range=lgrange#
+infinilight().id=testmarker
+infinilight().islit=1
+if activatedynamiclightsdebug=1
+ make object sphere testmarker,20
+ set object collision off testmarker
+ position object testmarker,infinilight().x,infinilight().y,infinilight().z
+ color object testmarker,rgb(infinilight().colrgb.r,infinilight().colrgb.g,infinilight().colrgb.b)
+ set object diffuse testmarker,rgb(infinilight().colrgb.r,infinilight().colrgb.g,infinilight().colrgb.b)
+ set object ambient testmarker,0
+endif
+
+rem return index for possible entity tie
+infinilightindex=array count(infinilight())
+
+return
+
+_lighting_managedynamiclights:
+
+rem Only if dynamic lights in scene
+if activatedynamiclightscount>0
+
+rem Specify current location
+mex#=camera position x()
+mey#=camera position y()
+mez#=camera position z()
+mea#=camera angle y()
+
+rem Fill list with six nearest lights
+tnumlights=6
+empty array infinilightshortlist(0)
+worstoveralldist#=0
+bestoveralldist#=999999
+for l=1 to tnumlights
+ if array count(infinilightshortlist(0))<tnumlights-1
+  rem find nearest light
+  currentindex=0
+  bestdist#=999999 : bestindex=-1
+  array index to top infinilight()
+  while array index valid(infinilight())
+   if activatedynamiclightsdebug=1
+    scale object infinilight().id,25,25,25
+   endif
+   if infinilight().used=0 and infinilight().type=1
+    `
+    rem And only those lights that are LIT
+    if infinilight().islit=1
+     `
+     distx#=infinilight().x-mex#
+     disty#=infinilight().y-mey#
+     distz#=infinilight().z-mez#
+     dist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
+     tat#=atanfull(distx#,distz#)
+     if tat#<0 then tat#=tat#+360
+     tat#=abs(tat#-wrapvalue(mea#))
+     if tat#>180 then tat#=360-tat#
+     tokay=0
+     if dist#<600.0 then tokay=1
+     if dist#>=600.0
+      if tat#<90.0 then tokay=1
+     endif
+     if tokay=1
+      if dist#<bestdist#
+       bestdist#=dist# : bestindex=currentindex
+      endif
+     endif
+     `
+    endif
+    `
+   endif
+   next array index infinilight()
+   inc currentindex
+  endwhile
+  if bestindex<>-1
+   rem work out best and worst
+   if bestdist#<bestoveralldist# then bestoveralldist#=bestdist#
+   if bestdist#>worstoveralldist# then worstoveralldist#=bestdist#
+   rem add to shortlist
+   infinilight(bestindex).used=1
+   infinilight(bestindex).dist=bestdist#
+   array insert at bottom infinilightshortlist()
+   infinilightshortlist()=bestindex
+  endif
+ endif
+next l
+
+rem Reveal lights in shortlist
+lightindex=2
+array index to top infinilightshortlist()
+while array index valid(infinilightshortlist())
+ `
+ rem Place and configure light for this pass
+ tindex=infinilightshortlist() : tobj=infinilight(tindex).id
+ infinilight(tindex).used=0 : perc#=1.0
+ set point light lightindex,infinilight(tindex).x,infinilight(tindex).y,infinilight(tindex).z
+ color light lightindex,infinilight(tindex).colrgb.r*perc#,infinilight(tindex).colrgb.g*perc#,infinilight(tindex).colrgb.b*perc#
+ set light range lightindex,infinilight(tindex).range
+ next array index infinilightshortlist()
+ show light lightindex
+ `
+ rem Show light as object if in debug mode
+ if activatedynamiclightsdebug=1
+  distx#=infinilight(tindex).x-mex#
+  disty#=infinilight(tindex).y-mey#
+  distz#=infinilight(tindex).z-mez#
+  tat#=atanfull(distx#,distz#)
+  if tat#<0 then tat#=tat#+360
+  tat#=abs(tat#-wrapvalue(mea#))
+  if tat#>180 then tat#=360-tat#
+  if object in screen(tobj)=1
+   t$=strarr$(150)+str$(tindex)+strarr$(151)+str$(lightindex)+strarr$(152)+str$(int(tat#))
+   center text object screen x(tobj),object screen y(tobj),t$
+  endif
+ endif
+ `
+ rem Next light
+ inc lightindex
+ `
+endwhile
+
+rem Then Hide The Rest of the lights
+while lightindex<=7
+ if light exist(lightindex)=1
+  hide light lightindex
+ endif
+ inc lightindex
+endwhile
+
+rem can skip if ZERO dynamic lights anywhere
+endif
+
+return
+
+_lighting_managegloballightingreciever:
+
+rem Optimisation Table for quick-re-reference of a particular grid location
+recx=recx#/25
+recy=recy#/100
+recz=recz#/-25
+if recx<0 then recx=0
+if recy<0 then recy=0
+if recz<0 then recz=0
+if recx>viscolx then recx=viscolx
+if recy>viscoly then recy=viscoly
+if recz>viscolz then recz=viscolz
+`if lighttable(recx,recy,recz).x>0
+if lighttable(recx,recy,recz).x>0 and 0
+ `
+ rem Return quick info from pre-calculated table
+ avlightposx#=lighttable(recx,recy,recz).x
+ avlightposy#=lighttable(recx,recy,recz).y
+ avlightposz#=lighttable(recx,recy,recz).z
+ avlightcolr#=lighttable(recx,recy,recz).r
+ avlightcolg#=lighttable(recx,recy,recz).g
+ avlightcolb#=lighttable(recx,recy,recz).b
+ `
+else
+ `
+ rem Reset ready to store strongest point
+ avlightposx#=0 : avlightposy#=0 : avlightposz#=0
+ avlightcolr#=0 : avlightcolg#=0 : avlightcolb#=0
+ tlightinfluencedbydynamiclight=0
+ avlightrange#=0
+ `
+ rem Go through ALL scene lights
+ titer=0 : tqty=0
+ closestdist#=99999
+ array index to top infinilight()
+ while array index valid(infinilight())
+  `
+  rem Collect position of light
+  ldistx#=infinilight().x-recx#
+  ldisty#=infinilight().y-recy#
+  ldistz#=infinilight().z-recz#
+  ldist#=sqrt(abs(ldistx#*ldistx#)+abs(ldisty#*ldisty#)+abs(ldistz#*ldistz#))
+  `
+  rem for all lights within range
+  if ldist#<infinilight().range and infinilight().islit=1
+   `
+   rem Relatve to overall distance (influence)
+   tlightpower#=cos((ldist#/infinilight().range)*90)
+   `
+   rem Count visible illuminations
+   avlightposx#=avlightposx#+infinilight().x
+   avlightposy#=avlightposy#+infinilight().y
+   avlightposz#=avlightposz#+infinilight().z
+   avlightcolr#=avlightcolr#+(infinilight().colrgb.r*tlightpower#)
+   avlightcolg#=avlightcolg#+(infinilight().colrgb.g*tlightpower#)
+   avlightcolb#=avlightcolb#+(infinilight().colrgb.b*tlightpower#)
+   avlightrange#=avlightrange#+(ldist#*tlightpower#)
+   inc tqty
+   `
+   rem check for dynamic type
+   if infinilight().type=1
+    tlightinfluencedbydynamiclight=1
+   endif
+   `
+  endif
+  `
+  next array index infinilight()
+  `
+ endwhile
+ `
+ rem Center to player for correct averaged single light position
+ avlightposx#=avlightposx#/tqty
+ avlightposy#=avlightposy#/tqty
+ avlightposz#=avlightposz#/tqty
+ `
+ rem get correct average light color
+ avlightcolr#=avlightcolr#/tqty
+ avlightcolg#=avlightcolg#/tqty
+ avlightcolb#=avlightcolb#/tqty
+ `
+ rem FPSCV104RC8 - ensure colours not maxed
+ if avlightcolr#>255 then avlightcolr#=255
+ if avlightcolg#>255 then avlightcolg#=255
+ if avlightcolb#>255 then avlightcolb#=255
+ `
+ rem Record info in light table
+ lighttable(recx,recy,recz).x=avlightposx#
+ lighttable(recx,recy,recz).y=avlightposy#
+ lighttable(recx,recy,recz).z=avlightposz#
+ lighttable(recx,recy,recz).r=avlightcolr#
+ lighttable(recx,recy,recz).g=avlightcolg#
+ lighttable(recx,recy,recz).b=avlightcolb#
+ `
+ rem if ANY of the light is dynamically generated, cannot keep quick-ref as it might change
+ if tlightinfluencedbydynamiclight=1
+  lighttable(recx,recy,recz).x=0
+ endif
+ `
+endif
+
+return
+
+_lighting_managegloballighting:
+ `
+ recx#=mex# : recy#=mey# : recz#=mez#
+ gosub _lighting_managegloballightingreciever
+ `
+return
+
+_lighting_applyplayerlighting:
+
+rem Display test objects to show key markers
+if activatedynamiclightsdebug=1
+ tobj=49998 : if object exist(tobj)=0 then make object cone tobj,25 : xrotate object tobj,180
+ set object collision off tobj
+ position object tobj,avlightposx#,avlightposy#+20,avlightposz#
+ if object in screen(tobj)=1
+  center text object screen x(tobj),object screen y(tobj)-20,strarr$(153)
+ endif
+` if gdynamicshadowsstate=1
+`  tsli=1
+`  if array count(shadowlight())>=tsli
+`   tobj=49999 : if object exist(tobj)=0 then make object cube tobj,25
+`   set object collision off tobj
+`   position object tobj,shadowlight(tsli).x#,shadowlight(tsli).y#,shadowlight(tsli).z#
+`   if object in screen(tobj)=1
+`    center text object screen x(tobj),object screen y(tobj)-20,strarr$(154)
+`   endif
+`  endif
+` endif
+endif
+
+rem Apply averaged colour to player (avlightcolX#)
+gosub _lighting_applyplayercolor
+
+rem Shadow light controlled by most prominant light zero
+`if gdynamicshadowsstate=1
+` scene shadows disabled for V1.0
+` for tsli=1 to array count(shadowlight())
+`  set shadow light tsli,shadowlight(tsli).x#,shadowlight(tsli).y#,shadowlight(tsli).z#,shadowlight(tsli).range#
+` next tsli
+`endif
+
+return
+
+_lighting_applyplayercolor:
+ `
+ rem Apply player average colour to gun
+ if gunid>0 then teffectid=gun(gunid).effectidused else teffectid=0
+ if teffectid>0
+  rem apply shader values
+  r=make vector4(1)
+  set vector4 1,avlightposx#,avlightposy#,avlightposz#,1.0
+  set effect constant vector teffectid,"LightSource",1
+  set vector4 1,avlightcolr#/255.0,avlightcolg#/255.0,avlightcolb#/255.0,1.0
+  set effect constant vector teffectid,"SurfColor",1
+  tamb#=guivisualsettings.ambience/100.0 : set vector4 1,tamb#,tamb#,tamb#,1.0
+  set effect constant vector teffectid,"AmbiColor",1
+  r=delete vector4(1)
+ else
+  rem illumonate player without shader
+  if currentgunobj>0
+   tcurrentguncolr=avlightcolr# : tcurrentguncolg=avlightcolg# : tcurrentguncolb=avlightcolb#
+   if tcurrentguncolr<>currentguncolr or tcurrentguncolg<>currentguncolg or tcurrentguncolb<>currentguncolb
+    currentguncolr=tcurrentguncolr : currentguncolg=tcurrentguncolg : currentguncolb=tcurrentguncolb
+    set object emissive currentgunobj,rgb(avlightcolr#,avlightcolg#,avlightcolb#)
+   endif
+  endif
+ endif
+ `
+return
+
+_lighting_applyentitycolor:
+ `
+ rem Position of entity to calc light for
+ recx#=entityelement(e).x
+ recy#=entityelement(e).y
+ recz#=entityelement(e).z
+ `
+ rem Optimise by only calculating light of entity shifts position
+ tcurrentcolx=recx#/25
+ tcurrentcoly=recy#/25
+ tcurrentcolz=recz#/25
+ if tcurrentcolx<>entityelement(e).colr or tcurrentcoly<>entityelement(e).colg or tcurrentcolz<>entityelement(e).colb
+  `
+  rem Record new color-light-calc position
+  entityelement(e).colr=tcurrentcolx : entityelement(e).colg=tcurrentcoly : entityelement(e).colb=tcurrentcolz
+  `
+  rem calculate light from base position
+  gosub _lighting_managegloballightingreciever
+  `
+  rem Apply average colour
+  teffectid=entityelement(e).eleprof.usingeffect
+  if teffectid>0
+   rem apply shader values
+   r=make vector4(1)
+   set vector4 1,avlightposx#,avlightposy#,avlightposz#,1.0
+   set effect constant vector teffectid,"LightSource",1
+   set vector4 1,avlightcolr#/255.0,avlightcolg#/255.0,avlightcolb#/255.0,1.0
+   set effect constant vector teffectid,"LightColor",1
+   set vector4 1,avlightcolr#/255.0,avlightcolg#/255.0,avlightcolb#/255.0,1.0
+   set effect constant vector teffectid,"SurfColor",1
+   tamb#=guivisualsettings.ambience/100.0 : set vector4 1,tamb#,tamb#,tamb#,1.0
+   set effect constant vector teffectid,"AmbiColor",1
+   r=delete vector4(1)
+  else
+   rem no shader color for diffuse entities
+   if activatedynamiclightsdebug=1 then entitydebug$(e)=str$(int(avlightcolr#))+","+str$(int(avlightcolg#))+","+str$(int(avlightcolb#))
+   if entityprofile(entid).isweapon>0 or entityprofile(entid).isammo>0
+    set object emissive entityelement(e).obj,rgb(255,255,255)
+   else
+    set object emissive entityelement(e).obj,rgb(avlightcolr#/2,avlightcolg#/2,avlightcolb#/2)
+   endif
+  endif
+  `
+ endif
+ `
+return
+
+_lighting_applytoscene:
+
+rem Set light zero for dynamic shadows of objects that cast them
+`if gdynamicshadowsstate=1
+` the old system for scene shadows, leave for next version
+` disabled scene shadow for V1.0
+` if array count(shadowlight(0))>0
+` set global shadow color 0,0,0,128
+`  tsli=1 : set point light 0,shadowlight(tsli).x#, shadowlight(tsli).y#, shadowlight(tsli).z#
+`  shadowlight(tsli).range#
+` endif
+`endif
+
+rem Constantly update hero light (for shadows and effects)
+`set point light 0,camera position x(),camera position y(),camera position z()
+rem for V1 need a way to handle this singular-light issue with SHADERS
+rem for the ODE tests, a fixed light zero for the shadows
+rem ultimate problem solver for shadow distance is a Sun-Style Light
+`ODE physics controls shadow light now
+`set point light 0,-1500,3000,1500
+
+rem Scene can have effects in play (which require general parameters passed in)
+tamb#=guivisualsettings.ambience/100.0
+r=make vector4(1)
+for tef=1 to effectbankmax
+ teffectid=effectbankoffset+tef
+ set vector4 1,avlightcolr#/255.0,avlightcolg#/255.0,avlightcolb#/255.0,1.0
+ set effect constant vector teffectid,"LightColor",1
+ set vector4 1,tamb#,tamb#,tamb#,1.0
+ set effect constant vector teffectid,"AmbiColor",1
+next tef
+r=delete vector4(1)
+
+return
+
+_lighting_spotflash:
+ `
+ rem Control spot flash
+ if spotflash=100
+  spotflash=99 : spotflashx#=tx# : spotflashy#=ty# : spotflashz#=tz#
+  if light exist(1)=1
+   set point light 1,spotflashx#,spotflashy#,spotflashz# : set light range 1,600
+   spotlightr#=tcolr : spotlightg#=tcolg : spotlightb#=tcolb
+   color light 1,spotlightr#,spotlightg#,spotlightb#
+   show light 1
+  endif
+ endif
+ if spotflash>0 and spotflash<100
+  dec spotflash,20
+  if spotflash>0
+   if light exist(1)=1
+    spotfadeout#=spotflash/100.0
+    color light 1,spotlightr#*spotfadeout#,spotlightg#*spotfadeout#,spotlightb#*spotfadeout#
+   endif
+  else
+   spotflash=0
+   if light exist(1)=1 then hide light 1
+  endif
+ endif
+ `
+return
+

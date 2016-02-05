@@ -1,0 +1,7 @@
+desc          = Moves constantly towards player (pushing them)
+
+;Triggers
+
+:state=0,plrdistwithin=500:state=1
+:state=1,plrdistfurther=20:rotatetoplr,movefore=2,animate=2
+:state=1,plrdistfurther=500:animate=1,state=0

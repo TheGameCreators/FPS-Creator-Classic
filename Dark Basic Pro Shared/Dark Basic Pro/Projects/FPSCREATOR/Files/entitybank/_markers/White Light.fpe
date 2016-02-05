@@ -1,0 +1,29 @@
+;Entity Spec
+
+;Header
+desc          = %light
+
+;AI
+aiinit	      = appear1.fpi
+aimain	      = light1.fpi
+aidestroy     = disappear1.fpi
+
+
+;Orientation
+model         = lightbulb.X
+offy          = 0
+rotx          = 180
+textured      = lightbulb_white_D.tga
+scale         = 50
+fixnewy       = 0
+forwardfacing = 2
+defaultheight = 55
+defaultstatic = 1
+
+;Marker Extras
+ismarker      = 2
+markerindex   = 0
+
+;Light Extras
+lightcolor    = -1
+lightrange    = 500

@@ -1,0 +1,14 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = 
+
+;Triggers
+:state=0,plrwithinzone=1:state=1
+:state=1:setposteffect=television,state=3
+
+:state=3,plrwithinzone=1:state=4
+:state=3,plrwithinzone=0:state=0
+
+:state=4:state=3

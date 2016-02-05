@@ -1,0 +1,34 @@
+;Entity Spec
+
+;Header
+desc          = Story Zone
+
+;AI For Trigger
+aiinit	      = appear1.fpi
+aimain        = storyinzone.fpi
+aidestroy     = disappear1.fpi
+
+;AIUsed
+ifused        = 
+
+;Sound
+soundset      = audiobank\misc\storytrigger.OGG
+soundset1     = videobank\storyvideo.AVI
+
+;Orientation
+model         = cube.X
+offy          = 25
+textured      = cube_story_D.tga
+scale         = 100
+fixnewy       = 0
+forwardfacing = 2
+
+;Marker Extras
+ismarker      = 3
+markerindex   = 1
+isobjective   = 0
+
+;Trigger Extras
+areax	      = 0,0
+areay	      = 0,0
+areaz	      = 0,0

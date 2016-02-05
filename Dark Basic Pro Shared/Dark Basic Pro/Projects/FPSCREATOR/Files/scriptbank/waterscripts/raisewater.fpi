@@ -1,0 +1,17 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = raise water when triggered
+
+;Triggers
+
+:state=0:water=1,waterfogdist=500,waterred=210,watergreen=230,dimvar=waterlevel,setvar=waterlevel 595,waterheight=%waterlevel,dimvar=waterstate,setvar=waterstate 0,state=1
+
+:state=1,activated=1,varequal=waterstate 0:setvar=waterstate 1,activate=0
+:state=1,activated=1,varequal=waterstate 1:setvar=waterstate 0,activate=0
+
+:state=1,varequal=waterstate 1,varless=waterlevel 995:addvar=waterlevel 1,waterheight=%waterlevel
+:state=1,varequal=waterstate 0,vargreater=waterlevel 595:subvar=waterlevel 1,waterheight=%waterlevel
+
+;End of Script

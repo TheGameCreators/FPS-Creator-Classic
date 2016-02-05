@@ -1,0 +1,39 @@
+
+;header
+
+desc          = Remote Switch
+
+;ai
+aiinit	      = appear1.fpi
+aimain	      = switch3.fpi
+aidestroy     = disappear1.fpi
+
+;AIUsed
+ifused        = %remote door
+
+;orientation
+
+model         = meshbank\ww2\scenery\switches\switch_g\switch_g.x
+offx          = 0
+offy          = 0
+offz          = 0
+rotx          = 0
+roty          = 0
+rotz          = 0
+fixnewy       = 180
+defaultstatic = 0
+forwardfacing = 1
+defaultheight = 50
+materialindex = 3
+collisionmode = 1
+
+;visualinfo
+textured      = texturebank\ww2\scenery\switches\switch_g\switch_g_D2.tga
+
+;Identity Details
+isimmobile    = 1
+strength      = 0
+
+;Animationinfo
+animmax       = 1
+anim0         = 0,30

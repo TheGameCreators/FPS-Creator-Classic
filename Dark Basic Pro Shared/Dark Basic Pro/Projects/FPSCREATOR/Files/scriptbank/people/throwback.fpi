@@ -1,0 +1,29 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Throw Back / Hit Wall / Fall Forwards
+
+;Triggers
+
+:state=0:state=1,setframe=11
+:state=1:incframe=11
+:state=1,framebeyond=11 50,noraycastup=0 -50:setframe=11,incframe=11,advframe=50
+:state=1,raycast=0 40,framewithin=11 50:setframe=12,forcebounce=0,state=2
+:state=1,raycast=0 60,framebeyond=11 50:forcebounce=0
+:state=1,frameatend=11:state=4
+:state=2:incframe=12
+:state=2,frameatend=12:state=5
+:state=4,health=0:runfpidefault=1
+:state=4:state=7,setframe=13
+:state=5,health=0:runfpidefault=1
+:state=5:state=9,setframe=13,incframe=13,advframe=50
+
+:state=7,random=20:state=8
+:state=8:incframe=13
+:state=8,frameatend=13:animate=1,runfpidefault=1
+:state=9,random=20:state=10
+:state=10:incframe=13
+:state=10,frameatend=13:animate=1,runfpidefault=1
+
+;End of Script

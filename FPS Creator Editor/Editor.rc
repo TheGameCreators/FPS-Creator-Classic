@@ -1,0 +1,1854 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.S.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""afxres.h""\r\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "#define _AFX_NO_PROPERTY_RESOURCES\r\n"
+    "\r\n"
+    "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)\r\n"
+    "#ifdef _WIN32\r\n"
+    "LANGUAGE 9, 1\r\n"
+    "#pragma code_page(1252)\r\n"
+    "#endif //_WIN32\r\n"
+    "#include ""res\\Editor.rc2""  // non-Microsoft Visual C++ edited resources\r\n"
+    "#include ""afxres.rc""         // Standard components\r\n"
+    "#include ""afxprint.rc""       // printing/print preview resources\r\n"
+    "#include ""afxolecl.rc""       // OLE container resources\r\n"
+    "#include ""BCGControlBar.rc""\r\n"
+    "#endif\r\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDR_MAINFRAME           ICON                    "res\\Editor.ico"
+IDR_EDITORTYPE          ICON                    "res\\EditorDoc.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDB_WORKSPACE           BITMAP                  "res\\workspace.bmp"
+IDB_TOOLBAR256          BITMAP                  "res\\Toolbar256.bmp"
+IDB_TOOLBARCOLD256      BITMAP                  "res\\ToolbarCold256.bmp"
+IDR_MAINFRAME           BITMAP                  "res\\mainfram.bmp"
+IDR_VIEW                BITMAP                  "res\\toolbar1.bmp"
+IDR_MODE                BITMAP                  "res\\bmp00001.bmp"
+IDR_PROPERTY            BITMAP                  "res\\bmp00002.bmp"
+IDR_DRAW                BITMAP                  "res\\bmp00003.bmp"
+IDR_SELECTION           BITMAP                  "res\\bmp00004.bmp"
+IDR_SEGMENT             BITMAP                  "res\\bmp00005.bmp"
+IDR_ENTITY              BITMAP                  "res\\bmp00006.bmp"
+IDR_WAYPOINT            BITMAP                  "res\\bmp00007.bmp"
+IDB_BITMAP1             BITMAP                  "res\\toolbar1a.bmp"
+IDB_BITMAP2             BITMAP                  "res\\toolbar2a.bmp"
+IDB_BITMAP3             BITMAP                  "res\\toolbar3a.bmp"
+IDB_BITMAP4             BITMAP                  "res\\toolbar4a.bmp"
+IDB_BITMAP5             BITMAP                  "res\\toolbar5a.bmp"
+IDB_BITMAP6             BITMAP                  "res\\toolbar6a.bmp"
+IDB_BITMAP7             BITMAP                  "res\\toolbar7a.bmp"
+IDR_GAME                BITMAP                  "res\\bmp00008.bmp"
+IDB_BITMAP8             BITMAP                  "res\\bitmap8.bmp"
+IDB_BITMAP9             BITMAP                  "res\\bitmap9.bmp"
+IDB_BITMAP14            BITMAP                  "res\\bitmap14.bmp"
+IDB_ADD_MAIN_FRAME      BITMAP                  "res\\mainfram.bmp"
+IDB_ADD_MAIN_FRAME_DIS  BITMAP                  "res\\DISmainfram.bmp"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Toolbar
+//
+
+IDR_MAINFRAME TOOLBAR  16, 15
+BEGIN
+    BUTTON      ID_FILE_NEW
+    BUTTON      ID_FILE_OPEN
+    BUTTON      ID_FILE_SAVE_EX
+    SEPARATOR
+    BUTTON      ID_EDIT_CUT
+    BUTTON      ID_EDIT_COPY
+    BUTTON      ID_EDIT_CLEAR
+END
+
+IDR_VIEW TOOLBAR  16, 16
+BEGIN
+    BUTTON      ID_VIEW_ZOOMIN
+    BUTTON      ID_VIEW_ZOOMOUT
+    BUTTON      ID_VIEW_INCREASE_SHROUD
+    BUTTON      ID_VIEW_DECREASE_SHROUD
+    BUTTON      ID_VIEW_LAYERS
+    BUTTON      ID_VIEW_MOVEUP_LAYER
+    BUTTON      ID_VIEW_MOVEDOWN_LAYER
+    BUTTON      ID_VIEW_OVERVIEW
+    BUTTON      ID_VIEW_CLOSEUP
+END
+
+IDR_MODE TOOLBAR  16, 16
+BEGIN
+    BUTTON      ID_MODE_PAINT
+    BUTTON      ID_MODE_SELECT
+    BUTTON      ID_MODE_ART
+    BUTTON      ID_MODE_ENTITY
+    BUTTON      ID_MODE_WAYPOINT
+END
+
+IDR_PROPERTY TOOLBAR  16, 16
+BEGIN
+    BUTTON      ID_PROPERTY_ROTATE
+    BUTTON      ID_PROPERTY_FLIP
+    BUTTON      ID_PROPERTY_MIRROR
+END
+
+IDR_DRAW TOOLBAR  16, 16
+BEGIN
+    BUTTON      ID_ENTITY_VIEW
+    BUTTON      ID_SEGMENT_VIEW
+    BUTTON      ID_DRAW_A
+    BUTTON      ID_DRAW_B
+    BUTTON      ID_DRAW_C
+    BUTTON      ID_DRAW_D
+    BUTTON      ID_DRAW_STATE_NONE
+    BUTTON      ID_DRAW_PICK
+END
+
+IDR_SELECTION TOOLBAR  16, 16
+BEGIN
+    BUTTON      ID_SELECTION_CUT
+    BUTTON      ID_SELECTION_COPY
+    BUTTON      ID_SELECTION_PASTE
+    BUTTON      ID_SELECTION_REPLACE
+    BUTTON      ID_SELECTION_CLEAR
+    BUTTON      ID_SELECTION_CLEAR_NOPASTE
+END
+
+IDR_SEGMENT TOOLBAR  16, 16
+BEGIN
+    BUTTON      ID_SEGMENT_LINE
+    BUTTON      ID_SEGMENT_BOX
+    BUTTON      ID_SEGMENT_CIRCLE
+    BUTTON      ID_SEGMENT_SPRAY
+    BUTTON      ID_SEGMENT_INCREASE
+    BUTTON      ID_SEGMENT_DECREASE
+END
+
+IDR_ENTITY TOOLBAR  16, 16
+BEGIN
+    BUTTON      ID_ENTITY_DELETE
+    BUTTON      ID_ENTITY_ROTATE_X
+    BUTTON      ID_ENTITY_ROTATE_Y
+    BUTTON      ID_ENTITY_ROTATE_Z
+END
+
+IDR_WAYPOINT TOOLBAR  16, 16
+BEGIN
+    BUTTON      ID_WAYPOINT_CREATE
+    BUTTON      ID_WAYPOINT_SELECT
+END
+
+IDR_GAME TOOLBAR  16, 15
+BEGIN
+    BUTTON      ID_TEST_GAME
+    BUTTON      ID_TEST_MAP
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MAINFRAME MENU 
+BEGIN
+    POPUP "&File"
+    BEGIN
+        MENUITEM "&New\tCtrl+N",                ID_FILE_NEW
+        MENUITEM "New Arena",                   ID_FILE_NEWARENA, GRAYED
+        MENUITEM "&Open...\tCtrl+O",            ID_FILE_OPEN
+        MENUITEM SEPARATOR
+        MENUITEM "P&rint Setup...",             ID_FILE_PRINT_SETUP
+        MENUITEM SEPARATOR
+        MENUITEM "Recent File",                 ID_FILE_MRU_FILE1, GRAYED
+        MENUITEM SEPARATOR
+        MENUITEM "E&xit",                       ID_APP_EXIT
+    END
+    POPUP "&View"
+    BEGIN
+        POPUP "&Toolbars"
+        BEGIN
+            MENUITEM "",                            ID_VIEW_TOOLBARS
+        END
+        MENUITEM "&Status Bar",                 ID_VIEW_STATUS_BAR
+    END
+    POPUP "&Help"
+    BEGIN
+        MENUITEM "Index",                       ID_HELP_INDEX
+        MENUITEM "Website",                     ID_HELP_WEBSITE
+        MENUITEM "Updates...",                  ID_HELP_UPDATES
+        MENUITEM "&About FPSC...",              ID_APP_ABOUT
+    END
+END
+
+IDR_EDITORTYPE MENU 
+BEGIN
+    POPUP "File"
+    BEGIN
+        MENUITEM "&New\tCtrl+N",                ID_FILE_NEW
+        MENUITEM "New Arena",                   ID_FILE_NEWARENA, GRAYED
+        MENUITEM "&Open...\tCtrl+O",            ID_FILE_OPEN
+        MENUITEM "&Save\tCtrl+S",               ID_FILE_SAVE_EX
+        MENUITEM "Save &As...",                 ID_FILE_SAVE_AS_EX
+        MENUITEM SEPARATOR
+        MENUITEM "Build Game...",               ID_FILE_BUILDGAME
+        MENUITEM SEPARATOR
+        MENUITEM "Preferences...",              ID_FILE_PREFERENCES
+        MENUITEM SEPARATOR
+        MENUITEM "Recent File",                 ID_FILE_MRU_FILE1, GRAYED
+        MENUITEM SEPARATOR
+        MENUITEM "E&xit",                       ID_APP_EXIT
+    END
+    POPUP "Edit"
+    BEGIN
+        MENUITEM "&Undo\tCtrl+Z",               ID_EDIT_UNDO_1
+        MENUITEM "&Redo\tCtrl+Y",               ID_EDIT_REDO_1
+        MENUITEM SEPARATOR
+        MENUITEM "Cu&t\tCtrl+X",                ID_EDIT_CUT_1
+        MENUITEM "&Copy\tCtrl+C",               ID_EDIT_COPY_1
+        MENUITEM "&Paste\tCtrl+V",              ID_EDIT_PASTE_1
+        MENUITEM SEPARATOR
+    END
+    POPUP "Segments"
+    BEGIN
+        MENUITEM "Paint All Of Segments",       ID_SEGMENTS_PAINTALLOFSEGMENTS
+        MENUITEM "Paint Only Walls",            ID_SEGMENTS_PAINTONLYWALLS
+        MENUITEM "Paint Only Floors",           ID_SEGMENTS_PAINTONLYFLOORS
+        MENUITEM "Pick Segment From Grid",      ID_SEGMENTS_PICKSEGMENTFROMGRID
+        MENUITEM "External Draw Mode",          ID_SEGMENTS_EXTERNALDRAWMODE
+        MENUITEM "Internal Draw Mode",          ID_SEGMENTS_INTERNALDRAWMODE
+    END
+    POPUP "Editing"
+    BEGIN
+        MENUITEM "Segment mode",                ID_EDITING_SEGMENTMODE
+        MENUITEM "Entity mode",                 ID_EDITING_ENTITYMODE
+        MENUITEM "Clipboard edit",              ID_EDITING_CLIPBOARDEDIT
+        MENUITEM "Zoom In",                     ID_EDITING_ZOOMIN
+        MENUITEM "Zoom Out",                    ID_EDITING_ZOOMOUT
+        MENUITEM "Move Up A Layer",             ID_EDITING_MOVEUPALAYER
+        MENUITEM "Move Down A Layer",           ID_EDITING_MOVEDOWNALAYER
+        MENUITEM "View Entire Level",           ID_EDITING_VIEWENTIRELEVEL
+    END
+    POPUP "View"
+    BEGIN
+        POPUP "&Toolbars", INACTIVE
+        BEGIN
+            MENUITEM "",                            ID_VIEW_TOOLBARS
+        END
+        MENUITEM "&Status Bar",                 ID_VIEW_STATUS_BAR
+    END
+    POPUP "Help"
+    BEGIN
+        MENUITEM "&About FPSC...",              ID_APP_ABOUT
+        MENUITEM "Credits...",                  ID_APP_CREDITS
+        MENUITEM "Read Manual",                 ID_HELP_READMANUAL
+        MENUITEM "Check For Updates...",        ID_HELP_CHECKFORUPDATES
+        MENUITEM SEPARATOR
+        MENUITEM "Open Game Creator Store...",  ID_HELP_TGCSTORE
+        MENUITEM "Watch Store Video",           ID_HELP_WATCHSTOREVIDEO
+        MENUITEM "View Item Licenses",          ID_HELP_VIEWITEMLICENSES
+    END
+END
+
+IDR_EDITORTYPE_CNTR_IP MENU 
+BEGIN
+    POPUP "&File"
+    BEGIN
+        MENUITEM "&New\tCtrl+N",                ID_FILE_NEW
+        MENUITEM "&Open...\tCtrl+O",            ID_FILE_OPEN
+        MENUITEM "&Save\tCtrl+S",               ID_FILE_SAVE_EX
+        MENUITEM "Save &As...",                 ID_FILE_SAVE_AS_EX
+        MENUITEM SEPARATOR
+        MENUITEM "&Print...\tCtrl+P",           ID_FILE_PRINT
+        MENUITEM "Print Pre&view",              ID_FILE_PRINT_PREVIEW
+        MENUITEM "P&rint Setup...",             ID_FILE_PRINT_SETUP
+        MENUITEM SEPARATOR
+        MENUITEM "Recent File",                 ID_FILE_MRU_FILE1, GRAYED
+        MENUITEM SEPARATOR
+        MENUITEM "E&xit",                       ID_APP_EXIT
+    END
+    MENUITEM SEPARATOR
+    MENUITEM SEPARATOR
+END
+
+IDR_CONTEXT_MENU MENU 
+BEGIN
+    POPUP "_POPUP_"
+    BEGIN
+        MENUITEM "Cu&t",                        ID_EDIT_CUT
+        MENUITEM "&Copy",                       ID_EDIT_COPY
+        MENUITEM "&Paste",                      ID_EDIT_PASTE
+    END
+END
+
+IDR_POPUP_TOOLBAR MENU 
+BEGIN
+    POPUP "DUMMY"
+    BEGIN
+        MENUITEM "Standard Toolbar",            ID_VIEW_TOOLBAR
+        MENUITEM "&Library",                    ID_VIEW_OUTPUT
+        MENUITEM "&View",                       ID_VIEW_VIEW
+        MENUITEM "&Segments",                   ID_VIEW_PREFAB
+        MENUITEM "&Draw",                       ID_VIEW_DRAW
+        MENUITEM "W&aypoint",                   ID_VIEW_WAYPOINT
+        MENUITEM "&Test Game / Level",          ID_VIEW_TEST_GAME
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_ABOUTBOX DIALOGEX 0, 0, 249, 292
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+CAPTION "About FPS Creator"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    CTEXT           "FPS Creator (Early Adopter Version)",IDC_ABOUT_LINE1,7,116,235,12,SS_NOPREFIX | SS_CENTERIMAGE
+    CTEXT           "© Copyright 2005-2008 The Game Creators Ltd. All Rights Reserved.",IDC_ABOUT_LINE2,7,137,235,18
+    DEFPUSHBUTTON   "OK",IDOK,93,268,63,14,WS_GROUP
+    PUSHBUTTON      "http://www.thegamecreators.com",IDC_COMPANY_URL,19,238,186,14,BS_CENTER | BS_VCENTER
+    CTEXT           "Designed and Developed by The Game Creators",IDC_ABOUT_LINE3,7,156,235,19
+    LTEXT           "Visit the web site to join the community and download extras:",IDC_ABOUT_LINE4,19,191,223,12
+    PUSHBUTTON      "http://www.fpscreator.com",IDC_COMPANY_URL2,18,204,189,14,BS_CENTER | BS_VCENTER
+    LTEXT           "Visit The Game Creators Web site to view other game making software:",IDC_ABOUT_LINE5,19,225,223,12
+END
+
+IDR_MAINFRAME DIALOG  0, 0, 330, 16
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif"
+BEGIN
+    LTEXT           "TODO: layout dialog bar ",IDC_STATIC,12,4,300,8
+END
+
+IDD_BROWSER DIALOGEX 0, 0, 119, 73
+STYLE DS_SETFONT | WS_CHILD
+EXSTYLE WS_EX_TRANSPARENT
+FONT 8, "MS Sans Serif", 0, 0, 0x1
+BEGIN
+    CONTROL         "List1",IDC_PREVIEW_LIST,"SysListView32",LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS | WS_TABSTOP,0,0,117,66,WS_EX_STATICEDGE
+END
+
+IDD_NEWPROJECT DIALOG  0, 0, 296, 58
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+CAPTION "Create a New Project"
+FONT 8, "MS Sans Serif"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,78,37,67,14
+    PUSHBUTTON      "Cancel",IDCANCEL,150,37,67,14
+    LTEXT           "Game Project Filename",IDC_STATIC_NEW_PROJECT_1,12,14,127,8
+    EDITTEXT        IDC_EDIT_NEW,144,12,141,12,ES_AUTOHSCROLL | NOT WS_TABSTOP
+END
+
+IDD_LEVELRESIZE DIALOG  0, 0, 288, 204
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Resize Level"
+FONT 8, "MS Sans Serif"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,85,183,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,146,183,50,14
+    LTEXT           "North",IDC_STATIC,129,10,18,8
+    LTEXT           "West",IDC_STATIC,37,66,18,8
+    LTEXT           "South",IDC_STATIC,128,156,20,8
+    LTEXT           "East",IDC_STATIC,221,66,15,8
+    EDITTEXT        IDC_EDIT1,119,21,44,13,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT2,30,78,44,13,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT3,119,135,44,13,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT4,209,78,44,13,ES_AUTOHSCROLL
+    CONTROL         "",IDC_STATIC,"Static",SS_BLACKFRAME,94,47,93,70
+    LTEXT           "Up",IDC_STATIC,59,156,10,8
+    EDITTEXT        IDC_EDIT5,43,135,44,13,ES_AUTOHSCROLL
+    LTEXT           "Down",IDC_STATIC,202,156,20,8
+    EDITTEXT        IDC_EDIT6,191,135,44,13,ES_AUTOHSCROLL
+END
+
+IDD_PREFERENCES DIALOGEX 0, 0, 384, 338
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+CAPTION "Test Level Settings"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,115,317,71,14
+    PUSHBUTTON      "Cancel",IDCANCEL,194,317,71,14
+    CONTROL         "Dynamic Lighting",IDC_DYNAMIC_LIGHTING,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,24,18,118,14
+    GROUPBOX        "Lighting && Shadows",IDC_TEST_BOX1,7,7,371,46
+    CONTROL         "Dynamic Shadows",IDC_DYNAMIC_SHADOWS,"Button",BS_AUTOCHECKBOX | NOT WS_VISIBLE | WS_TABSTOP,139,18,119,14
+    GROUPBOX        "Effects",IDC_TEST_BOX2,7,54,370,38
+    GROUPBOX        "Texture Quality",IDC_TEST_BOX3,7,93,370,38
+    CONTROL         "Low (128x128)",IDC_LOW,"Button",BS_AUTORADIOBUTTON | WS_GROUP,23,107,109,16
+    CONTROL         "Medium (256x256)",IDC_MEDIUM,"Button",BS_AUTORADIOBUTTON | WS_GROUP,145,107,118,16
+    CONTROL         "High (512x512)",IDC_HIGH,"Button",BS_AUTORADIOBUTTON | WS_GROUP,266,107,109,16
+    GROUPBOX        "Optimizations",IDC_TEST_BOX4,7,132,370,38
+    CONTROL         "Hidden Surface Removal",IDC_HSR,"Button",BS_AUTOCHECKBOX | NOT WS_VISIBLE | WS_TABSTOP,182,146,144,14
+    CONTROL         "Quick Light Mapping",IDC_QUICK_LIGHT_MAPPING,"Button",BS_AUTORADIOBUTTON | WS_GROUP,139,31,116,16
+    CONTROL         "Full Light Mapping",IDC_FULL_LIGHT_MAPPING,"Button",BS_AUTORADIOBUTTON | WS_GROUP,269,30,108,16
+    GROUPBOX        "Debug",IDC_TEST_BOX5,7,171,370,38
+    CONTROL         "Show Entity Game Information",IDC_SHOW_ENTITY,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,23,185,149,14
+    CONTROL         "Show Debug Visuals",IDC_SHOW_DEBUG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,182,185,141,14
+    RADIOBUTTON     "No Pixel Shader",IDC_NO_EFFECTS,25,68,103,15,WS_GROUP
+    RADIOBUTTON     "1.X Pixel Shader",IDC_ESSENTIAL_EFFECTS,147,68,115,15,WS_GROUP
+    RADIOBUTTON     "2.0+ Pixel Shader",IDC_FULL_EFFECTS,267,68,106,15,NOT WS_VISIBLE | WS_GROUP
+    CONTROL         "No Light Mapping",IDC_NO_LIGHT_MAPPING,"Button",BS_AUTORADIOBUTTON | WS_GROUP,24,31,114,16
+    CONTROL         "Automatic Floor",IDC_NO_FLOOR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,23,146,147,14
+    GROUPBOX        "Multiplayer",IDC_TEST_BOX6,7,210,370,38
+    RADIOBUTTON     "Single Player",IDC_SINGLE_PLAYER,23,225,103,15,WS_GROUP
+    RADIOBUTTON     "Multiplayer",IDC_MULTIPLAYER,145,225,115,15,WS_GROUP
+    GROUPBOX        "Game Creator Store",IDC_TEST_BOX7,7,249,370,66
+    CONTROL         "Save Username",IDC_AUTO_LOGIN,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,177,258,91,14
+    EDITTEXT        IDC_USERNAME,65,258,106,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_PASSWORD,65,275,106,14,ES_PASSWORD | ES_AUTOHSCROLL
+    RTEXT           "Username:",IDC_TEXT_USERNAME,10,262,53,8
+    RTEXT           "Password:",IDC_TEXT_PASSWORD,10,278,53,8
+    CONTROL         "Always Display Purchased Items",IDC_CHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,300,149,10
+    CONTROL         "Save Password",IDC_CHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,177,278,91,10
+END
+
+IDD_BROWSER_NEW DIALOGEX 0, 0, 101, 346
+STYLE DS_SETFONT | WS_CHILD | WS_VISIBLE
+FONT 8, "MS Sans Serif", 0, 0, 0x1
+BEGIN
+    CONTROL         "Tab1",IDC_TAB1,"SysTabControl32",TCS_HOTTRACK | TCS_MULTILINE | TCS_TOOLTIPS,0,0,94,283,WS_EX_CLIENTEDGE
+    PUSHBUTTON      "",IDC_BUTTON1,14,300,70,19,BS_BITMAP
+END
+
+IDD_CREDITS DIALOGEX 0, 0, 249, 350
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+CAPTION "Credits"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    CTEXT           "FPS Creator was thought up and lovingly developed over a three year period by the following individuals:",IDC_STATIC_CREDITS_1,19,115,211,31,SS_NOPREFIX
+    DEFPUSHBUTTON   "OK",IDOK,93,322,62,14,WS_GROUP
+    LTEXT           "Lead Programmer",IDC_STATIC_CREDITS_2,27,152,97,9,SS_NOPREFIX
+    LTEXT           "Programming",IDC_STATIC_CREDITS_3,27,165,97,9,SS_NOPREFIX
+    LTEXT           "Project Manager",IDC_STATIC_CREDITS_4,27,186,97,9,SS_NOPREFIX
+    LTEXT           "Lead Artist",IDC_STATIC_CREDITS_5,27,201,97,9,SS_NOPREFIX
+    LTEXT           "Artist",IDC_STATIC_CREDITS_6,27,215,97,9,SS_NOPREFIX
+    LTEXT           "Animation",IDC_STATIC_CREDITS_7,27,229,97,9,SS_NOPREFIX
+    LTEXT           "Icon art",IDC_STATIC_CREDITS_8,27,244,97,9,SS_NOPREFIX
+    LTEXT           "Music",IDC_STATIC_CREDITS_9,27,259,97,9,SS_NOPREFIX
+    LTEXT           "Manual",IDC_STATIC_CREDITS_10,27,274,97,9,SS_NOPREFIX
+    LTEXT           "Lee Bamber",IDC_STATIC_VERSION11,140,151,66,9,SS_NOPREFIX
+    LTEXT           "Mike Johnson\nPaul Johnston",IDC_STATIC_VERSION12,140,165,66,16,SS_NOPREFIX
+    LTEXT           "Richard Vanner",IDC_STATIC_VERSION13,140,186,66,9,SS_NOPREFIX
+    LTEXT           "Simon Benge",IDC_STATIC_VERSION14,140,200,66,9,SS_NOPREFIX
+    LTEXT           "Michael Palm",IDC_STATIC_VERSION15,140,215,66,9,SS_NOPREFIX
+    LTEXT           "Chris Bamber",IDC_STATIC_VERSION16,140,229,66,9,SS_NOPREFIX
+    LTEXT           "Peter Jovanovic",IDC_STATIC_VERSION17,140,244,66,9,SS_NOPREFIX
+    LTEXT           "Willem Cramer",IDC_STATIC_VERSION18,140,259,66,9,SS_NOPREFIX
+    LTEXT           "Richard Vanner, Lee Bamber and Colin Pritchard",IDC_STATIC_VERSION19,140,274,94,19,SS_NOPREFIX
+    LTEXT           "Website",IDC_STATIC_CREDITS_11,27,297,97,9,SS_NOPREFIX
+    LTEXT           "Richard Davey",IDC_STATIC_VERSION21,140,297,94,13,SS_NOPREFIX
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,0,0,1
+ PRODUCTVERSION 1,0,0,1
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x4L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "FileDescription", "Editor MFC Application"
+            VALUE "FileVersion", "1, 0, 0, 1"
+            VALUE "InternalName", "Editor"
+            VALUE "LegalCopyright", "Copyright (C) 2004"
+            VALUE "OriginalFilename", "Editor.EXE"
+            VALUE "ProductName", "Editor Application"
+            VALUE "ProductVersion", "1, 0, 0, 1"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO 
+BEGIN
+    IDD_ABOUTBOX, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 242
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 282
+    END
+
+    IDD_BROWSER, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 112
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 66
+    END
+
+    IDD_NEWPROJECT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 289
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 51
+    END
+
+    IDD_LEVELRESIZE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 281
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 197
+    END
+
+    IDD_PREFERENCES, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 377
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 331
+    END
+
+    IDD_BROWSER_NEW, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 94
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 339
+    END
+
+    IDD_CREDITS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 242
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 340
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE 
+BEGIN
+    IDP_OLE_INIT_FAILED     "OLE initialization failed.  Make sure that the OLE libraries are the correct version."
+    IDS_MAIN_TOOLBAR        "Standard"
+    IDP_FAILED_TO_CREATE    "Failed to create object.  Make sure the object is entered in the system registry."
+    IDS_WINDOWS_MANAGER     "&Windows..."
+END
+
+STRINGTABLE 
+BEGIN
+    IDR_MAINFRAME           "Editor"
+    IDR_EDITORTYPE          "\nEditor\nEditor\nEditor Files (*.fpm)\n.fpm\nEditor.Document\nEditor Document"
+END
+
+STRINGTABLE 
+BEGIN
+    AFX_IDS_APP_TITLE       "Editor"
+    AFX_IDS_IDLEMESSAGE     "Ready"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_INDICATOR_EXT        "EXT"
+    ID_INDICATOR_CAPS       "CAP"
+    ID_INDICATOR_NUM        "NUM"
+    ID_INDICATOR_SCRL       "SCRL"
+    ID_INDICATOR_OVR        "OVR"
+    ID_INDICATOR_REC        "REC"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_FILE_NEW             "Create a new document\nNew Level"
+    ID_FILE_OPEN            "Open an existing document\nOpen Level"
+    ID_FILE_CLOSE           "Close the active document\nClose"
+    ID_FILE_PAGE_SETUP      "Change the printing options\nPage Setup"
+    ID_FILE_PRINT_SETUP     "Change the printer and printing options\nPrint Setup"
+    ID_FILE_PRINT           "Print the active document\nPrint"
+    ID_FILE_PRINT_PREVIEW   "Display full pages\nPrint Preview"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_VIEW_ROTATE          "Show or hide the rotate bar\nToggle Rotate"
+    ID_VIEW_PREFAB          "Show or hide the segments bar\nToggle Segments"
+    ID_VIEW_SELECTION       "Show or hide the selection bar\nToggle Selection"
+    ID_VIEW_DRAW            "Show or hide the draw bar\nToggle Draw"
+    ID_VIEW_WAYPOINT        "Show or hide the waypoint bar\nToggle Waypoint"
+    ID_VIEW_ROTATE_ENTITY   "Show or hide the rotate entity bar\nToggle Rotate Entity"
+    ID_BUTTON_TEST_GAME     "Test Game\nTest Game"
+    ID_TEST_GAME            "Test Level\nTest Level"
+    ID_EDIT_UNDO_1          "Undo\nUndo Segment Editing"
+    ID_FILE_SAVE_EX         "Save the active document\nSave Level"
+    ID_FILE_SAVE_AS_EX      "Save the active document with a new name\nSave As"
+    ID_EDIT_REDO_1          "Redo\nRedo Segment Editing"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_VIEW_WORKSPACE       "Show or hide the entity properties bar\nToggle Entity Properties"
+    ID_VIEW_OUTPUT          "Show or hide the library bar\nToggle Library"
+    ID_TOOLS_ENTRY          "User-defined tools\nUser Tools"
+    ID_USER_TOOL1           "Activates user-defined tool\nUser Tool"
+    ID_USER_TOOL2           "Activates user-defined tool\nUser Tool"
+    ID_USER_TOOL3           "Activates user-defined tool\nUser Tool"
+    ID_USER_TOOL4           "Activates user-defined tool\nUser Tool"
+    ID_USER_TOOL5           "Activates user-defined tool\nUser Tool"
+    ID_USER_TOOL6           "Activates user-defined tool\nUser Tool"
+    ID_USER_TOOL7           "Activates user-defined tool\nUser Tool"
+    ID_USER_TOOL8           "Activates user-defined tool\nUser Tool"
+    ID_USER_TOOL9           "Activates user-defined tool\nUser Tool"
+    ID_USER_TOOL10          "Activates user-defined tool\nUser Tool"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_APP_ABOUT            "Display program information, version number and copyright\nAbout"
+    ID_APP_EXIT             "Quit the application; prompts to save documents\nExit"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_FILE_MRU_FILE1       "Open this document"
+    ID_FILE_MRU_FILE2       "Open this document"
+    ID_FILE_MRU_FILE3       "Open this document"
+    ID_FILE_MRU_FILE4       "Open this document"
+    ID_FILE_MRU_FILE5       "Open this document"
+    ID_FILE_MRU_FILE6       "Open this document"
+    ID_FILE_MRU_FILE7       "Open this document"
+    ID_FILE_MRU_FILE8       "Open this document"
+    ID_FILE_MRU_FILE9       "Open this document"
+    ID_FILE_MRU_FILE10      "Open this document"
+    ID_FILE_MRU_FILE11      "Open this document"
+    ID_FILE_MRU_FILE12      "Open this document"
+    ID_FILE_MRU_FILE13      "Open this document"
+    ID_FILE_MRU_FILE14      "Open this document"
+    ID_FILE_MRU_FILE15      "Open this document"
+    ID_FILE_MRU_FILE16      "Open this document"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_NEXT_PANE            "Switch to the next window pane\nNext Pane"
+    ID_PREV_PANE            "Switch back to the previous window pane\nPrevious Pane"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_WINDOW_NEW           "Open another window for the active document\nNew Window"
+    ID_WINDOW_ARRANGE       "Arrange icons at the bottom of the window\nArrange Icons"
+    ID_WINDOW_CASCADE       "Arrange windows so they overlap\nCascade Windows"
+    ID_WINDOW_TILE_HORZ     "Arrange windows as non-overlapping tiles\nTile Windows"
+    ID_WINDOW_TILE_VERT     "Arrange windows as non-overlapping tiles\nTile Windows"
+    ID_WINDOW_SPLIT         "Split the active window into panes\nSplit"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_EDIT_CLEAR           "Erase the selection\nErase"
+    ID_EDIT_CLEAR_ALL       "Erase everything\nErase All"
+    ID_EDIT_COPY            "Copy\nCopy"
+    ID_EDIT_CUT             "Cut\nCut"
+    ID_EDIT_FIND            "Find the specified text\nFind"
+    ID_EDIT_PASTE           "Clear\nClear"
+    ID_EDIT_PASTE_LINK      "Insert Clipboard contents and a link to its source\nPaste Link"
+    ID_EDIT_PASTE_SPECIAL   "Insert Clipboard contents with options\nPaste Special"
+    ID_EDIT_REPEAT          "Repeat the last action\nRepeat"
+    ID_EDIT_REPLACE         "Replace specific text with different text\nReplace"
+    ID_EDIT_SELECT_ALL      "Select the entire document\nSelect All"
+    ID_EDIT_UNDO            "Undo the last action\nUndo"
+    ID_EDIT_REDO            "Redo the previously undone action\nRedo"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_VIEW_TOOLBAR         "Show or hide the toolbar\nToggle ToolBar"
+    ID_VIEW_STATUS_BAR      "Show or hide the status bar\nToggle StatusBar"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_WINDOW_MANAGER       "Manages the currently opened window\nWindow List"
+    ID_VIEW_ZOOMIN          "Zoom into level\nZoom in"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_OLE_INSERT_NEW       "Insert new embedded object\nNew Object"
+    ID_OLE_EDIT_LINKS       "Edit linked objects\nEdit Links"
+    ID_OLE_EDIT_CONVERT     "Convert object to different type\nConvert Object"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_OLE_VERB_FIRST       "Activate embedded or linked object"
+    57873                   "Activate embedded or linked object"
+    57874                   "Activate embedded or linked object"
+    57875                   "Activate embedded or linked object"
+END
+
+STRINGTABLE 
+BEGIN
+    AFX_IDS_SCSIZE          "Change the window size"
+    AFX_IDS_SCMOVE          "Change the window position"
+    AFX_IDS_SCMINIMIZE      "Reduce the window to an icon"
+    AFX_IDS_SCMAXIMIZE      "Enlarge the window to full size"
+    AFX_IDS_SCNEXTWINDOW    "Switch to the next document window"
+    AFX_IDS_SCPREVWINDOW    "Switch to the previous document window"
+    AFX_IDS_SCCLOSE         "Close the active window and prompts to save the documents"
+END
+
+STRINGTABLE 
+BEGIN
+    AFX_IDS_SCRESTORE       "Restore the window to normal size"
+    AFX_IDS_SCTASKLIST      "Activate Task List"
+    AFX_IDS_MDICHILD        "Activate this window"
+END
+
+STRINGTABLE 
+BEGIN
+    AFX_IDS_PREVIEW_CLOSE   "Close print preview mode\nCancel Preview"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_VIEW_CUSTOMIZE       "Customize toolbars and menus.\nCustomize"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_VIEW                 "Show or hide the view bar\nToggle Output"
+    ID_VIEW_VIEW            "Show or hide the view bar\nToggle View"
+    ID_VIEW_ZOOMOUT         "Zoom away from level\nZoom out"
+    ID_VIEW_INCREASE_SHROUD "Increase size of realview shroud\nIncrease Render Shroud"
+    ID_VIEW_DECREASE_SHROUD "Decrease size of realview shroud\nDecrease Render Shroud"
+    ID_VIEW_LAYERS          "Toggle multiple view of layers\nToggle layers"
+    ID_VIEW_MOVEDOWN_LAYER  "Move down a layer in the level\nMove down a layer"
+    ID_VIEW_MOVEUP_LAYER    "Move up a layer in the level\nMove up a layer"
+    ID_VIEW_OVERVIEW        "Go to overview of entire level\nView Entire Layer"
+    ID_VIEW_CLOSEUP         "Go to close up view of current location\nClose up view"
+    ID_BUTTON32843          "Mode\nMode"
+    ID_MODE_PAINT           "Paint mode lets you place prefabs and segments into the level\nPaint mode"
+    ID_MODE_SELECT          "Select mode lets you cut out, rotate and paste areas of level\nSelect mode"
+    ID_MODE_ART             "Art mode lets you paint art shapes using segments\nArt mode"
+    ID_MODE_ENTITY          "Entity mode lets you place and manipulate entities in the level\\Entity mode"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_MODE_WAYPOINT        "Waypoint mode lets you select and place and manipulate waypoints in the level\nWaypoint"
+    ID_VIEW_MODE            "Show or hide the mode bar\nToggle Mode"
+    ID_PREFAB_ROTATE        "Rotate prefab, segment or entity selection 90 degrees clockwise\nRotate"
+    ID_PROPERTY_ROTATE      "Rotate prefab, segment or entity\nRotate"
+    ID_PROPERTY_FLIP        "Flip prefab, segment or entity selection\nFlip"
+    ID_PROPERTY_MIRROR      "Mirror prefab, segment or entity selection\nMirror"
+    ID_DRAW_A               "Draw prefab or segment as an interior level piece\nInterior Draw Mode"
+    ID_DRAW_B               "Draw prefab or segment as an exterior level piece\nExterior Draw Mode"
+    ID_DRAW_C               "Draw prefab or segment as an wall level piece\nPaint Only Segment Walls"
+    ID_DRAW_D               "Draw prefab or segment as an floor level piece\nPaint Only Segment Floor"
+    ID_STATE_NONE           "Draw prefab or segment to the level with no state\nPick Segment"
+    ID_DRAW_PICK            "Pick a level segment to copy into current selection\nSelect Area"
+    ID_DRAW_STATE_NONE      "Draw prefab or segment to the level with no interior/exterior state\nPick Segment"
+    ID_SELECTION_CUT        "Cut area specified out of level and into current selection\nCut area"
+    ID_SELECTION_COPY       "Copy selection to the level\nCopy selection"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_SELECTION_PASTE      "Paste selection to the level and clear selection\nPaste selection"
+    ID_SELECTION_REPLACE    "Replace all floor pieces from area selected\nReplace selection"
+    ID_SELECTION_CLEAR      "Clear all floor pieces from area selected\nClear selected area"
+    ID_SELECTION_CLEAR_NOPASTE 
+                            "Clear selection without pasting back to level\nClear without pasting"
+    ID_SEGMENT_LINE         "Draw segment selected as a line\nDraw Segment As Line"
+    ID_SEGMENT_BOX          "Draw segment selected as a filled box\nDraw Segment As Rectangle"
+    ID_SEGMENT_CIRCLE       "Draw segment selected as a filled circle\nDraw Segment As Ellipse"
+    ID_SEGMENT_SPRAY        "Spray segment selected in an area around cursor position\nSpray segment"
+    ID_SEGMENT_INCREASE     "Increase size of draw brush\nIncrease Spray Draw Size"
+    ID_SEGMENT_DECREASE     "Decrease size of draw brush\nDecrease Spray Draw Size"
+    ID_ENTITY_DELETE        "Delete entity currently selected\nDelete entity"
+    ID_ENTITY_ROTATE_X      "Rotate currently selected entity around the X axis\nRotate entity on X axis"
+    ID_ENTITY_ROTATE_Y      "Rotate currently selected entity around the Y axis\nRotate entity on Y axis"
+    ID_ENTITY_ROTATE_Z      "Rotate currently selected entity around the Z axis\nRotate entity on Z axis"
+    ID_WAYPOINT_CREATE      "Create new waypoint object\nCreate New Waypoint"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_WAYPOINT_SELECT      "Select a waypoint object\nWaypoint Editing Mode"
+    ID_TEST_MAP             "Quick Level Preview\nQuick Level Preview"
+    ID_VIEW_TEST_GAME       "Show or hide the test game \\ level bar\nToggle test game \\ level"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_ENTITY_VIEW          "Entity View\nEntity Mode"
+    ID_SEGMENT_VIEW         "Segment View\nSegment Mode"
+    ID_HELP_CREDITS         "Credits..."
+    ID_FILE_NEWARENA        "Click to create a new arena level\nNew Arena"
+END
+
+#endif    // English (U.S.) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.K.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENG)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
+#pragma code_page(1252)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDB_STAR                BITMAP                  "res\\star.bmp"
+IDB_EMPTY_STAR          BITMAP                  "res\\star2.bmp"
+IDB_HELP_INTRO          BITMAP                  "res\\intro.bmp"
+IDB_SAMPLE_IMAGE        BITMAP                  "res\\SampleImage.bmp"
+IDB_UPDATE_LOGO         BITMAP                  "res\\logo.bmp"
+IDB_MASK_STAR           BITMAP                  "res\\starmask.bmp"
+IDB_STORE_ICON          BITMAP                  "res\\tgcstoreicon.bmp"
+IDB_FOLDER_ICON         BITMAP                  "res\\folder.bmp"
+IDB_SEARCH_RESULTS      BITMAP                  "res\\searchresults.bmp"
+IDB_SHOPPING_CART       BITMAP                  "res\\shoppingcart.bmp"
+IDB_ONLINE_ITEMS        BITMAP                  "res\\onlineitems.bmp"
+IDB_IN_CART             BITMAP                  "res\\incart.bmp"
+IDB_NO_THUMBNAIL        BITMAP                  "res\\nothumbnail.bmp"
+IDB_STORE_BUTTON        BITMAP                  "res\\Game Creator Store Button.bmp"
+IDB_MUSIC_PREVIEW       BITMAP                  "res\\Music Icon Preview.bmp"
+IDB_BITMAP18            BITMAP                  "res\\nothumbnail2.bmp"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_CART_MENU MENU 
+BEGIN
+    POPUP "_POPUP_"
+    BEGIN
+        MENUITEM "Remove Item(s) From Cart",    ID__REMOVEITEMFROMCART
+    END
+END
+
+IDR_CART_ADD_MENU MENU 
+BEGIN
+    POPUP "_POPUP_"
+    BEGIN
+        MENUITEM "Add Item(s) To Cart",         ID__ADDITEMTOCART
+    END
+END
+
+IDR_ADMIN_ADD_MENU MENU 
+BEGIN
+    POPUP "_POPUP_"
+    BEGIN
+        MENUITEM "Add Item(s) To Cart",         ID__ADDITEMTOCART
+        MENUITEM SEPARATOR
+        MENUITEM "Approve Item",                ID__APPROVEITEM
+        MENUITEM SEPARATOR
+        MENUITEM "Remove Item From Sale",       ID__REMOVEITEM
+    END
+END
+
+IDR_ADMIN_DELETE_MENU MENU 
+BEGIN
+    POPUP "_POPUP_"
+    BEGIN
+        MENUITEM "Restore Item",                ID__RESTOREITEM
+        MENUITEM "Edit Item",                   ID__EDITITEM
+        MENUITEM SEPARATOR
+        MENUITEM "Delete Item",                 ID__DELETEITEM
+    END
+END
+
+IDR_ADMIN_NORMAL_MENU MENU 
+BEGIN
+    POPUP "_POPUP_"
+    BEGIN
+        MENUITEM "Add Item(s) To Cart",         ID__ADDITEMTOCART
+        MENUITEM SEPARATOR
+        MENUITEM "Remove Item From Sale",       ID__REMOVEITEM
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_LIBRARY DIALOGEX 0, 0, 424, 327
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CONTROL | WS_POPUP | WS_VISIBLE | WS_CLIPCHILDREN | WS_CAPTION | WS_SYSMENU
+CAPTION "Browser"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    CONTROL         "Tree1",IDC_TREE1,"SysTreeView32",TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | TVS_SHOWSELALWAYS | TVS_NOTOOLTIPS | WS_BORDER | WS_TABSTOP,7,7,96,288
+    CONTROL         "List2",IDC_LIST2,"SysListView32",LVS_SINGLESEL | LVS_AUTOARRANGE | WS_BORDER | WS_TABSTOP,111,7,306,287
+    LTEXT           "",IDC_SPLIT_MID,103,7,8,288,SS_NOTIFY | WS_BORDER
+    PUSHBUTTON      "Ok",IDOK,293,305,58,15
+    PUSHBUTTON      "Cancel",IDCANCEL,359,305,58,15
+    PUSHBUTTON      "Search",IDC_BUTTON1,221,305,58,15,NOT WS_VISIBLE
+    RTEXT           "Building Keywords:",IDC_TEXT_SEARCH,108,307,77,8,NOT WS_VISIBLE
+    LTEXT           "Spinner",IDC_PROGRESS_SEARCH,193,305,15,13,NOT WS_VISIBLE
+END
+
+IDD_MARKET DIALOGEX 0, 0, 529, 326
+STYLE DS_SETFONT | DS_MODALFRAME | WS_MINIMIZEBOX | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+CAPTION "Game Creator Store"
+FONT 8, "MS Sans Serif", 0, 0, 0x1
+BEGIN
+    CONTROL         "Tree1",IDC_TREE1,"SysTreeView32",TVS_HASBUTTONS | TVS_HASLINES | TVS_SHOWSELALWAYS | TVS_NOTOOLTIPS | WS_BORDER | WS_TABSTOP,7,7,96,267
+    LTEXT           "",IDC_SPLIT_MID,103,7,8,266,SS_NOTIFY | WS_BORDER
+    PUSHBUTTON      "Cancel",IDCANCEL,389,292,58,15
+    CONTROL         "List3",IDC_LIST6,"SysListView32",LVS_SHOWSELALWAYS | LVS_AUTOARRANGE | NOT WS_VISIBLE | WS_BORDER | WS_TABSTOP,111,6,335,255
+    PUSHBUTTON      "Details",IDDETAILS,273,292,58,15,NOT WS_VISIBLE
+    PUSHBUTTON      "Login",IDLOGIN,5,274,51,14,NOT WS_VISIBLE
+    LTEXT           "<Not Logged In>",IDC_LOADING,43,313,161,11,NOT WS_VISIBLE,WS_EX_TRANSPARENT
+    LTEXT           "Points",IDC_CREDITS,233,314,36,11,NOT WS_VISIBLE,WS_EX_TRANSPARENT
+    RTEXT           "Points:",IDC_CREDITSTEXT,196,314,35,9,NOT WS_VISIBLE,WS_EX_TRANSPARENT
+    RTEXT           "Name:",IDC_LOGGEDINTEXT,5,314,36,10,NOT WS_VISIBLE,WS_EX_TRANSPARENT
+    PUSHBUTTON      "Buy",IDBUY,331,292,58,15,NOT WS_VISIBLE
+    CONTROL         "",IDC_STATUS_PROGRESS,"msctls_progress32",NOT WS_VISIBLE | WS_BORDER,410,314,108,11
+    RTEXT           "Status:",IDC_STATIC_LABEL,319,316,34,10,NOT WS_VISIBLE
+    LTEXT           "Idle",IDC_STATUS_TEXT,362,316,60,10,NOT WS_VISIBLE
+    PUSHBUTTON      "Search",IDSEARCH,214,292,58,15,NOT WS_VISIBLE
+    CONTROL         "Show Purchased",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | NOT WS_VISIBLE | WS_TABSTOP,239,277,95,10
+    COMBOBOX        IDC_COMBO1,372,275,74,60,CBS_DROPDOWNLIST | NOT WS_VISIBLE | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "Order By:",IDC_TEXT_ORDER_BY,330,277,40,8,NOT WS_VISIBLE
+    CTEXT           "..Loading Thumbnails...",IDC_TEXT_NO_ITEMS,229,130,111,9,NOT WS_VISIBLE
+    CONTROL         "",IDC_EXPLORER2,"{8856F961-340A-11D0-A96B-00C04FD705A2}",WS_TABSTOP,0,0,60,25
+    CONTROL         "Ad Banner",IDC_AD_BUTTON,"Button",BS_OWNERDRAW | NOT WS_VISIBLE | WS_TABSTOP,452,7,68,268
+    PUSHBUTTON      "Home",IDC_BUTTON2,112,277,50,14
+    PUSHBUTTON      "Back",IDC_BUTTON3,163,277,50,14
+    PUSHBUTTON      "TopUp",IDC_BUTTON4,57,274,50,14,NOT WS_VISIBLE
+    PUSHBUTTON      "Upload Item",IDC_BUTTON5,112,293,101,13,NOT WS_VISIBLE
+    LTEXT           "Static",IDC_BOX1,465,281,19,8,0,WS_EX_TRANSPARENT
+    LTEXT           "Static",IDC_BOX2,493,282,19,8
+    LTEXT           "Static",IDC_BOX3,465,295,19,8
+    LTEXT           "Static",IDC_BOX4,491,297,19,8
+    RTEXT           "Cart:",IDC_CART_TOTAL_LABEL,268,315,31,10
+    LTEXT           "0",IDC_CART_TOTAL,305,315,25,11,0,WS_EX_TRANSPARENT
+    PUSHBUTTON      "Next",IDC_PAGE_RIGHT,344,261,42,12
+    PUSHBUTTON      "Prev",IDC_PAGE_LEFT,257,261,38,12
+    CTEXT           "Page: 0/0",IDC_PAGE_COUNTER,296,263,48,8
+    PUSHBUTTON      "<<",IDC_PAGE_FIRST,240,261,16,12
+    PUSHBUTTON      ">>",IDC_PAGE_LAST,387,261,16,12
+    COMBOBOX        IDC_PAGE_COMBO,202,262,29,40,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "Items Per Page:",IDC_ITEMS_PER_PAGE,132,264,68,8
+    DEFPUSHBUTTON   "",IDC_BUTTON9,3,290,8,7,NOT WS_VISIBLE
+END
+
+IDD_UPLOADAPP_DIALOG DIALOGEX 0, 0, 355, 361
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+CAPTION "Game Creator Store Uploader"
+FONT 8, "MS Sans Serif", 0, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Upload",IDOK,243,340,50,16
+    PUSHBUTTON      "Cancel",IDCANCEL,298,340,50,16
+    RTEXT           "Model File:",IDC_MODEL_LABEL,8,16,64,8
+    EDITTEXT        IDC_EDIT1,76,14,188,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDC_BUTTON1,266,15,17,11
+    RTEXT           "Preview Images:",IDC_PREVIEW_LABEL,8,55,64,8
+    PUSHBUTTON      "Add",IDC_ADD,266,54,30,11
+    PUSHBUTTON      "Remove",IDC_REMOVE,298,54,39,11
+    EDITTEXT        IDC_EDIT4,189,157,28,14,ES_AUTOHSCROLL | ES_NUMBER
+    RTEXT           "Suggested Cost:",IDC_COST,114,159,71,8
+    RTEXT           "Type:",IDC_TYPE,115,114,52,8
+    RTEXT           "Category:",IDC_CATEGORY,115,128,52,8
+    COMBOBOX        IDC_COMBO1,171,113,62,43,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL
+    EDITTEXT        IDC_EDIT5,171,174,37,14,ES_AUTOHSCROLL | ES_NUMBER
+    RTEXT           "Polygons:",IDC_POLYGONS,117,175,50,8
+    GROUPBOX        "Properties",IDC_STATIC,111,69,186,243
+    RTEXT           "Keywords:",IDC_KEYWORDS,115,191,52,8
+    COMBOBOX        IDC_COMBO2,171,190,80,71,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "+",IDC_BUTTON5,254,191,15,11
+    PUSHBUTTON      "-",IDC_BUTTON6,270,191,15,11
+    RTEXT           "Uploading:",IDC_UPLOAD_TEXT,75,344,53,8,NOT WS_VISIBLE
+    COMBOBOX        IDC_COMBO3,76,53,188,64,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP,WS_EX_RIGHT
+    LTEXT           "",IDC_PROGRESS_SPINNER,226,343,11,10,NOT WS_VISIBLE
+    EDITTEXT        IDC_EDIT8,171,205,110,73,ES_MULTILINE | ES_WANTRETURN | WS_VSCROLL
+    RTEXT           "Description:",IDC_DESCRIPTION,115,207,52,8
+    CTEXT           "Images will be converted to .jpg",IDC_PREVIEW_DESC,44,45,259,8
+    CTEXT           "Zip file containing all model assets",IDC_MODEL_DESC,37,5,266,8
+    CONTROL         "I confirm that all media does not violate TGC's Terms of Use and that I own all copyrights in this media or have express permission from all copyright owners to upload it.",IDC_CHECK2,
+                    "Button",BS_AUTOCHECKBOX | BS_MULTILINE | WS_TABSTOP,16,315,332,25
+    PUSHBUTTON      "?",IDC_BUTTON8,285,15,18,11
+    RTEXT           "Compatible:",IDC_COMPATIBLE_LABEL,115,99,52,8
+    CONTROL         "X9",IDC_CHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,174,99,24,10
+    CONTROL         "X10",IDC_CHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,202,99,28,10
+    COMBOBOX        IDC_COMBO4,171,127,80,55,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "?",IDC_BUTTON9,222,158,18,11
+    RTEXT           "Sub Category:",IDC_SUBCATEGORY,114,143,53,8
+    EDITTEXT        IDC_EDIT6,171,142,67,14,ES_AUTOHSCROLL
+    LTEXT           "(Optional)",IDC_STATIC,240,144,31,8
+    PUSHBUTTON      "Calculate",IDC_BUTTON2,212,175,49,12
+    PUSHBUTTON      "Clear All Fields",IDC_BUTTON10,6,340,68,16
+    CONTROL         "",IDC_PROGRESS1,"msctls_progress32",NOT WS_VISIBLE | WS_BORDER,134,343,83,11
+    LTEXT           "Static",IDC_THUMBNAIL,30,87,43,40,WS_BORDER
+    LTEXT           "Thumbnail:",IDC_THUMBNAIL_LABEL,31,77,36,8
+    RTEXT           "Name:",IDC_NAME_LABEL,114,83,53,8
+    EDITTEXT        IDC_EDIT7,171,81,67,14,ES_AUTOHSCROLL | WS_DISABLED
+    PUSHBUTTON      "Copy From Currently Selected Object",IDC_BUTTON7,116,296,176,14
+    RTEXT           "Link To Video:",IDC_VIDEO_LINK,113,282,53,8
+    EDITTEXT        IDC_EDIT10,171,280,121,14,ES_AUTOHSCROLL
+    RTEXT           "Music Sample:",IDC_MODEL_LABEL2,8,31,64,8
+    EDITTEXT        IDC_EDIT2,76,29,188,14,ES_AUTOHSCROLL | WS_DISABLED
+    PUSHBUTTON      "...",IDC_BUTTON3,266,30,17,11,WS_DISABLED
+    PUSHBUTTON      "?",IDC_BUTTON11,285,30,18,11
+END
+
+IDD_NEW_LIBRARY DIALOG  0, 0, 340, 273
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+CAPTION "Dialog"
+FONT 8, "MS Sans Serif"
+BEGIN
+    CONTROL         "Tree1",IDC_TREE1,"SysTreeView32",WS_BORDER | WS_TABSTOP,17,38,116,143
+    CONTROL         "List1",IDC_LIST1,"SysListView32",WS_BORDER | WS_TABSTOP,141,38,154,143
+    LTEXT           "",IDC_SPLIT_MID,133,38,8,143,SS_NOTIFY | WS_BORDER
+END
+
+IDD_BUILD_GAME DIALOG  0, 0, 405, 353
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+CAPTION "Build Game"
+FONT 8, "MS Sans Serif"
+BEGIN
+    CONTROL         "Tab1",IDC_TAB1,"SysTabControl32",TCS_HOTTRACK | TCS_MULTILINE | TCS_TOOLTIPS,7,7,391,321
+    PUSHBUTTON      "Ok",IDC_BUILD_GAME_BUTTON_OK,278,332,56,15
+    PUSHBUTTON      "Cancel",IDC_BUILD_GAME_BUTTON_CANCEL,342,332,56,15
+END
+
+IDD_BUILD_GAME_PROJECT DIALOG  0, 0, 389, 332
+STYLE DS_SETFONT | WS_CHILD | WS_VISIBLE
+FONT 8, "MS Sans Serif"
+BEGIN
+    LTEXT           "Game Project Filename",IDC_STATIC_2,13,14,141,12
+    EDITTEXT        IDC_EDIT_PROJECT_FILENAME,160,12,148,12,ES_AUTOHSCROLL | WS_DISABLED
+    GROUPBOX        "Key Controls",IDC_STATIC_4,7,30,375,117
+    GROUPBOX        "Project",IDC_STATIC_1,7,3,375,26
+    GROUPBOX        "How To Make Standalone Executables",IDC_STATIC_6,7,250,375,52
+    EDITTEXT        IDC_EDIT_TEXT,21,261,339,35,ES_MULTILINE | ES_READONLY
+    PUSHBUTTON      "...",IDC_BUTTON_PROJECT_FILENAME,318,13,11,11
+    LISTBOX         IDC_LIST_COMMANDS1,23,41,183,101,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    LISTBOX         IDC_LIST_KEY1,215,41,153,101,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    GROUPBOX        "Weapon Slots",IDC_STATIC_5,7,150,375,97
+    LISTBOX         IDC_LIST_WEAPONS_NUMBER,23,161,183,80,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    LISTBOX         IDC_LIST_WEAPONS_TYPE,215,161,153,80,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "New",IDC_BUTTON_PROJECT_NEW,338,13,33,11
+END
+
+IDD_BUILD_GAME_LEVEL DIALOG  0, 0, 389, 336
+STYLE DS_SETFONT | WS_CHILD | WS_VISIBLE
+FONT 8, "MS Sans Serif"
+BEGIN
+    LTEXT           "Title Screen",IDC_STATIC_2,13,17,119,12
+    GROUPBOX        "Game Screens",IDC_STATIC_1,7,3,375,96
+    LTEXT           "Global Script",IDC_STATIC_3,13,38,119,12
+    GROUPBOX        "List of Levels",IDC_STATIC_6,7,106,375,195
+    LISTBOX         IDC_LIST_MAP_NUMBERS,23,132,29,133,LBS_NOINTEGRALHEIGHT | WS_TABSTOP
+    LISTBOX         IDC_LIST_MAP_NAMES,77,132,129,133,LBS_NOINTEGRALHEIGHT | WS_TABSTOP
+    LISTBOX         IDC_LIST_MAP_LOADING_SCREEN,231,132,131,133,LBS_NOINTEGRALHEIGHT | WS_TABSTOP
+    LTEXT           "No.",IDC_STATIC_7,23,117,27,8
+    LTEXT           "Map Name",IDC_STATIC_8,77,117,108,8
+    LTEXT           "Loading Screen",IDC_STATIC_9,231,117,102,8
+    PUSHBUTTON      "Insert New Level",IDC_BUTTON_INSERT_LEVEL,102,271,86,16
+    PUSHBUTTON      "Delete A Level",IDC_BUTTON_DELETE_LEVEL,192,271,85,16
+    LTEXT           "Game Over",IDC_STATIC_4,13,59,119,12
+    LTEXT           "Game Complete",IDC_STATIC_5,13,80,119,12
+    PUSHBUTTON      "Edit",IDC_BUTTON_GAME_OVER,338,59,38,11
+    PUSHBUTTON      "Edit",IDC_BUTTON_GAME_COMPLETE,338,79,38,11
+    PUSHBUTTON      "Edit",IDC_BUTTON_TITLE_SCREEN,338,19,38,11
+    PUSHBUTTON      "Edit",IDC_BUTTON_GLOBAL_SCRIPT,338,39,38,11
+    PUSHBUTTON      "Edit Loading Screen",IDC_BUTTON_NEW_LEVEL_SCRIPT,281,271,86,16
+    LISTBOX         IDC_LIST_TITLE_SCREEN,139,16,194,14,LBS_SORT | LBS_NOINTEGRALHEIGHT | WS_TABSTOP
+    LISTBOX         IDC_LIST_GLOBAL_SCRIPT,139,37,194,14,LBS_SORT | LBS_NOINTEGRALHEIGHT | WS_TABSTOP
+    LISTBOX         IDC_LIST_GAME_OVER,139,58,194,14,LBS_SORT | LBS_NOINTEGRALHEIGHT | WS_TABSTOP
+    LISTBOX         IDC_LIST_GAME_COMPLETE,139,79,194,14,LBS_SORT | LBS_NOINTEGRALHEIGHT | WS_TABSTOP
+    PUSHBUTTON      "Add New Level",IDC_BUTTON_ADD_LEVEL2,16,271,82,16
+END
+
+IDD_BUILD_GAME_BUILD DIALOG  0, 0, 389, 286
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif"
+BEGIN
+    LTEXT           "Game Executable Folder",IDC_STATIC_2,13,17,160,12
+    EDITTEXT        IDC_EDIT_PATH,177,16,157,12,ES_AUTOHSCROLL | WS_DISABLED
+    GROUPBOX        "Executable",IDC_STATIC_1,7,3,375,49
+    PUSHBUTTON      "...",IDC_BUTTON_EXECUTABLE_PATH,344,16,11,11
+    GROUPBOX        "Visuals",IDC_STATIC_5,7,59,375,81
+    RADIOBUTTON     "No Pixel Shader",IDC_RADIO_NO_EFFECTS,33,79,136,15
+    RADIOBUTTON     "1.X Pixel Shader",IDC_RADIO_ESSENTIAL_EFFECTS,204,79,152,15
+    RADIOBUTTON     "2.0+ Pixel Shader",IDC_RADIO_FULL_EFFECTS,59,236,76,15,NOT WS_VISIBLE
+    GROUPBOX        "Progress of Build",IDC_STATIC_8,7,146,375,70
+    CONTROL         "Progress1",IDC_PROGRESS_PROJECT,"msctls_progress32",WS_BORDER,34,158,328,16
+    PUSHBUTTON      "Build Game Executable",IDC_BUTTON_BUILD,129,195,131,16
+    EDITTEXT        IDC_EDIT_PROJECT_STATUS,34,178,328,12,ES_AUTOHSCROLL | ES_READONLY
+    CONTROL         "Hidden Surface Removal",IDC_CHECK_HSR,"Button",BS_AUTOCHECKBOX | NOT WS_VISIBLE | WS_TABSTOP,241,249,97,15
+    CONTROL         "Dynamic Shadows",IDC_CHECK_DYNAMIC_SHADOWS,"Button",BS_AUTOCHECKBOX | NOT WS_VISIBLE | WS_TABSTOP,159,254,81,15
+    CONTROL         "Dynamic Lights",IDC_CHECK_DYNAMIC_LIGHTS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,204,101,146,15
+    CONTROL         "Automatic Floor",IDC_NO_FLOOR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,33,102,141,14
+    LTEXT           "Game Executable Name",IDC_STATIC_3,14,35,156,12
+    EDITTEXT        IDC_EDIT_PATH2,177,34,157,12,ES_AUTOHSCROLL
+END
+
+IDD_TEST_GAME DIALOGEX 0, 0, 336, 110
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+CAPTION "Test Game"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,71,88,91,14,WS_DISABLED
+    PUSHBUTTON      "Cancel",IDCANCEL,171,88,91,14
+    EDITTEXT        IDC_EDIT_INFORMATION,7,7,322,31,ES_MULTILINE | ES_READONLY
+    CONTROL         "Progress1",IDC_PROGRESS,"msctls_progress32",WS_BORDER,7,44,322,17
+    EDITTEXT        IDC_EDIT_STATUS,7,66,322,14,ES_MULTILINE | ES_READONLY
+END
+
+IDD_BUILD_GAME_LIGHT DIALOG  0, 0, 389, 281
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif"
+BEGIN
+    GROUPBOX        "Lightmap Settings",IDC_STATIC_1,7,3,158,63
+    CONTROL         "No Lightmaps",IDC_RADIO_NO_LIGHTMAPS,"Button",BS_AUTORADIOBUTTON | WS_GROUP,30,15,129,15
+    CONTROL         "Soft Lightmaps",IDC_RADIO_SOFT_LIGHTMAPS,"Button",BS_AUTORADIOBUTTON | WS_GROUP,30,30,129,15
+    CONTROL         "Full Shadow Lightmaps",IDC_RADIO_FULL_SHADOW_LIGHTMAPS,
+                    "Button",BS_AUTORADIOBUTTON | WS_GROUP,30,44,129,15
+    GROUPBOX        "Impact of using Lightmaps",IDC_STATIC_3,7,72,375,176
+    EDITTEXT        IDC_EDIT_INFO_1,36,188,134,42,ES_MULTILINE | ES_READONLY
+    EDITTEXT        IDC_EDIT_INFO_2,200,188,134,42,ES_MULTILINE | ES_READONLY
+    GROUPBOX        "Texture Quality",IDC_STATIC_2,201,3,158,63
+    CONTROL         "Low (128x128)",IDC_RADIO_LOW,"Button",BS_AUTORADIOBUTTON | WS_GROUP,223,14,132,15
+    CONTROL         "Medium (256x256)",IDC_RADIO_MEDIUM,"Button",BS_AUTORADIOBUTTON | WS_GROUP,223,30,132,15
+    CONTROL         "High (512x512)",IDC_RADIO_HIGH,"Button",BS_AUTORADIOBUTTON | WS_GROUP,223,44,132,15
+END
+
+IDD_BUILD_GAME_KEYS DIALOG  0, 0, 268, 41
+STYLE DS_SYSMODAL | DS_SETFONT | DS_MODALFRAME | DS_SETFOREGROUND | DS_CENTER | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+CAPTION "Key Action Selection"
+FONT 8, "MS Sans Serif"
+BEGIN
+    CTEXT           "Enter a key for the action",IDC_STATIC_KEY_SELECT,43,15,160,17
+    PUSHBUTTON      "Button1",IDC_OK,210,22,40,12,WS_DISABLED
+END
+
+IDD_BUILD_GAME_WEAPONS DIALOG  0, 0, 268, 134
+STYLE DS_SETFONT | DS_MODALFRAME | DS_SETFOREGROUND | DS_CENTER | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+CAPTION "Weapon Selection"
+FONT 8, "MS Sans Serif"
+BEGIN
+    CONTROL         "",IDC_COMBO_WEAPONS,"ComboBoxEx32",CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP,51,77,155,77
+    PUSHBUTTON      "Ok",IDC_WEAPON_OK,74,109,55,14
+    LTEXT           "This will assign the gun of the given name to the gun slot number indicated in the previous list.",IDC_STATIC_WEAPON_1,7,7,254,31
+    LTEXT           "This will not add weapons to the game, it merely assigns weapons that are collected to the designated slot. ",IDC_STATIC_WEAPON_2,7,41,254,30
+    PUSHBUTTON      "Cancel",IDCANCEL,139,109,55,14
+END
+
+IDD_DIALOG_FPI DIALOG  0, 0, 360, 217
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+CAPTION "Dialog"
+FONT 8, "MS Sans Serif"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,142,196,75,14
+    PUSHBUTTON      "Cancel",IDCANCEL,230,196,75,14
+    PUSHBUTTON      "Preview",IDCPREVIEW,54,196,75,14
+END
+
+IDD_FRONT DIALOG  0, 0, 345, 176
+STYLE DS_SETFONT | DS_3DLOOK | DS_CENTER | WS_POPUP | WS_VISIBLE
+FONT 8, "MS Sans Serif"
+BEGIN
+    CTEXT           "",IDC_STATIC_1,0,161,345,11
+END
+
+IDD_POPUP DIALOG  0, 0, 255, 14
+STYLE DS_ABSALIGN | DS_SETFONT | DS_MODALFRAME | DS_3DLOOK | DS_CENTER | WS_POPUP
+FONT 8, "MS Sans Serif"
+BEGIN
+    CTEXT           "Static",IDC_STATIC_POPUP,2,1,252,12,SS_SUNKEN
+END
+
+IDD_DIALOG1 DIALOG  0, 0, 186, 26
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif"
+BEGIN
+    DEFPUSHBUTTON   "Apply Changes",IDOK,12,4,78,14
+    PUSHBUTTON      "Cancel",IDCANCEL,96,4,78,14
+END
+
+IDD_DIALOG_FRONT DIALOG  0, 0, 342, 142
+STYLE DS_SETFONT | WS_POPUP | WS_VISIBLE | WS_BORDER
+FONT 8, "MS Sans Serif"
+BEGIN
+    DEFPUSHBUTTON   "Continue Trial",IDOK,42,117,122,14
+    PUSHBUTTON      "Purchase FPSC Now",IDCANCEL,176,117,122,14
+    CTEXT           "If you find FPS Creator useful and wish to continue using it then please find the time to purchase it. If you do not want to use the program any further, please remove its copy from your disk within the period stated in the Licence Agreement.",IDC_STATIC_FRONT1,15,8,305,47
+    CONTROL         "Progress1",IDC_PROGRESS_FRONT_1,"msctls_progress32",WS_BORDER,19,61,292,21
+    CTEXT           "Static",IDC_STATIC_FRONT_TEXT,88,91,165,16
+END
+
+IDD_DIALOG_END DIALOG  0, 0, 430, 318
+STYLE DS_SETFONT | WS_POPUP | WS_VISIBLE | WS_BORDER
+FONT 8, "MS Sans Serif"
+BEGIN
+    DEFPUSHBUTTON   "Purchase FPSC Now",IDOK,82,300,127,14
+    PUSHBUTTON      "Quit",IDCANCEL,220,300,127,14
+END
+
+IDD_BUILD_GAME_MULTIPLAYER DIALOGEX 0, 0, 389, 332
+STYLE DS_SETFONT | WS_CHILD | WS_VISIBLE
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    GROUPBOX        "Arena Objective",IDC_STATIC_1,7,7,375,61
+    GROUPBOX        "Arena Settings",IDC_STATIC_10,7,71,375,46
+    GROUPBOX        "Spawning",IDC_STATIC_11,7,121,375,50
+    CONTROL         "First to complete objective",IDC_MP_OBJECTIVE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,26,17,146,13
+    CONTROL         "First to",IDC_MP_FIRSTTO,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,26,33,48,13
+    CONTROL         "Highest frag within",IDC_MP_HIGHESTFRAG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,26,50,84,13
+    EDITTEXT        IDC_MP_EDIT1,75,34,42,11,ES_AUTOHSCROLL
+    EDITTEXT        IDC_MP_EDIT2,115,51,42,11,ES_AUTOHSCROLL
+    LTEXT           "frags",IDC_STATIC_FRAGS,119,35,29,8
+    LTEXT           "seconds",IDC_STATIC_SECONDS,164,53,46,8
+    CONTROL         "One shot kills",IDC_MP_ONESHOT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,26,84,146,13
+    EDITTEXT        IDC_MP_EDIT3,140,100,42,11,ES_AUTOHSCROLL
+    LTEXT           "Maximum number of players",IDC_STATIC_NUMPLR,26,101,111,8
+    CONTROL         "From default start marker",IDC_MP_DEFAULT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,26,134,146,13
+    CONTROL         "From a random start marker",IDC_MP_RANDOM,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,26,151,146,13
+    GROUPBOX        "How To",IDC_STATIC_12,7,174,375,50
+    LTEXT           "The arena mode allows you to create executables that will play as multiplayer death match games.  Make sure you are in arena mode, then adjust the settings above before attempting to build an arena executable.",IDC_STATIC_HOW,31,186,324,33
+END
+
+IDD_OBJECTDETAILSDIALOG DIALOGEX 0, 0, 373, 287
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Object Details"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    PUSHBUTTON      "Buy",IDOK,270,264,44,16
+    DEFPUSHBUTTON   "Close",IDCANCEL,316,264,50,16
+    RTEXT           "Name:",IDC_TEXT_NAME,255,50,44,8
+    RTEXT           "Cost:",IDC_TEXT_COST,258,72,41,8
+    RTEXT           "Rating:",IDC_TEXT_RATING,257,83,42,8
+    PUSHBUTTON      ">",IDC_IMAGE_RIGHT,238,239,16,12,WS_DISABLED
+    PUSHBUTTON      "<",IDC_IMAGE_LEFT,197,239,16,12,WS_DISABLED
+    CTEXT           "0/0",IDC_IMAGE_COUNTER,214,241,23,8,WS_DISABLED
+    LTEXT           "",IDC_IMAGES,6,7,248,229,WS_BORDER
+    LTEXT           "",IDC_NAME,305,50,61,8
+    LTEXT           "",IDC_COST,305,72,61,8
+    RTEXT           "Category:",IDC_TEXT_CATEGORY,255,94,44,8
+    LTEXT           "",IDC_CATEGORY,305,94,61,8
+    RTEXT           "Author:",IDC_TEXT_AUTHOR,258,105,41,8
+    LTEXT           "",IDC_AUTHOR,305,105,61,8
+    LTEXT           "",IDC_RATING,305,82,61,11
+    LTEXT           "Static",IDC_THUMBNAIL,291,7,43,40,WS_BORDER
+    CTEXT           "You have downloaded this item 0 times.\r\n You can download it a maximum of 5 times",IDC_TEXT_REDOWNLOAD,11,240,185,18,NOT WS_VISIBLE
+    LTEXT           "Description:",IDC_TEXT_DESCRIPTION,256,176,51,8
+    PUSHBUTTON      "Previous Object",IDPREVOBJECT,7,264,71,16
+    PUSHBUTTON      "Next Object",IDNEXTOBJECT,80,264,71,16
+    RTEXT           "Your Rating:",IDC_TEXT_RATE,254,164,44,8,NOT WS_VISIBLE
+    COMBOBOX        IDC_COMBO2,299,161,26,70,CBS_DROPDOWNLIST | CBS_SORT | NOT WS_VISIBLE | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Rate",IDC_BUTTON3,326,162,40,13,NOT WS_VISIBLE
+    RTEXT           "Polygons:",IDC_TEXT_POLYGONS,255,138,44,8
+    LTEXT           "",IDC_POLYGONS,305,138,61,8
+    EDITTEXT        IDC_EDIT_DESCRIPTION,256,186,110,76,ES_MULTILINE | ES_READONLY | WS_VSCROLL
+    PUSHBUTTON      "Add To Cart",IDADDTOCART,153,264,115,16
+    RTEXT           "Type:",IDC_TYPE_NAME,255,61,44,8
+    LTEXT           "",IDC_TYPE,305,61,61,8
+    RTEXT           "File Size:",IDC_TEXT_FILESIZE,256,116,43,8
+    LTEXT           "",IDC_FILESIZE,305,116,61,8
+    LTEXT           "Gif",IDC_GIF_BOX,15,14,240,223,WS_BORDER
+    RTEXT           "Downloads:",IDC_TEXT_DOWNLOADS,256,127,43,8
+    LTEXT           "",IDC_DOWNLOADS,305,127,61,8
+    CTEXT           "View Video",IDC_VIDEO_LINK,279,150,61,8,SS_NOTIFY | NOT WS_VISIBLE
+    LTEXT           "Static",IDC_MEDIA_PROGRESS,80,206,121,8,NOT WS_VISIBLE
+    PUSHBUTTON      ">",IDC_BUTTON4,59,203,17,14,NOT WS_VISIBLE
+    CTEXT           "Static",IDC_MEDIA_TEXT,62,194,143,8,NOT WS_VISIBLE,WS_EX_TRANSPARENT
+END
+
+IDD_LOGINDIALOG DIALOGEX 0, 0, 257, 100
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Enter Your Login Details:"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    PUSHBUTTON      "OK",IDOK,77,79,50,16
+    PUSHBUTTON      "Cancel",IDCANCEL,131,79,50,16
+    EDITTEXT        IDC_USERNAME,93,32,102,13,ES_AUTOHSCROLL
+    EDITTEXT        IDC_PASSWORD,93,46,102,13,ES_PASSWORD | ES_AUTOHSCROLL
+    RTEXT           "Username:",IDC_LOGIN_USERNAME,36,34,53,8
+    RTEXT           "Password:",IDC_LOGIN_PASSWORD,36,48,53,8
+    CTEXT           "This should match your TGC website login details.",IDC_LOGIN_STATEMENT,7,7,243,8
+    CTEXT           "Register",IDC_LOGIN_REGISTER,93,61,72,8,SS_NOTIFY
+    CTEXT           "You can save your login details in the main preferences window.",IDC_LOGIN_STATEMENT2,7,18,243,8
+END
+
+IDD_HELPWIZARD DIALOGEX 0, 0, 329, 187
+STYLE DS_SETFONT | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+EXSTYLE WS_EX_TOPMOST
+CAPTION "Intro"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "Close",IDOK,272,168,50,16
+END
+
+IDD_DIALOG2 DIALOGEX 0, 0, 186, 90
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_VISIBLE
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "",IDC_INTRO_IMAGE,7,7,172,76
+END
+
+IDD_TAB2 DIALOGEX 0, 0, 233, 114
+STYLE DS_SETFONT | WS_CHILD | WS_VISIBLE
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    CONTROL         "",IDC_LIST1,"SysListView32",WS_BORDER | WS_TABSTOP,7,7,219,83
+    PUSHBUTTON      "Play Video",IDC_BUTTON1,168,92,58,15
+    PUSHBUTTON      "Close Video",IDC_BUTTON2,44,92,56,15,NOT WS_VISIBLE
+    LTEXT           "",IDC_BLACK_BOX,7,7,28,19,NOT WS_VISIBLE
+    PUSHBUTTON      "Pause Video",IDC_BUTTON3,103,92,62,15,NOT WS_VISIBLE
+END
+
+IDD_TAB3 DIALOGEX 0, 0, 186, 114
+STYLE DS_SETFONT | WS_CHILD | WS_VISIBLE
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    CONTROL         "",IDC_LIST1,"SysListView32",WS_BORDER | WS_TABSTOP,7,7,172,85
+    PUSHBUTTON      "Open",IDC_BUTTON1,121,92,58,15
+END
+
+IDD_AUTOUPDATE DIALOGEX 0, 0, 301, 188
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Automatic Update"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    PUSHBUTTON      "Close",IDCANCEL,244,165,50,16
+    RTEXT           "Current Version:",IDC_CURR_VERSION,90,91,57,8
+    RTEXT           "Latest Version:",IDC_LATEST_VERSION,201,91,56,8
+    EDITTEXT        IDC_EDIT1,151,89,33,12,ES_AUTOHSCROLL | ES_READONLY | WS_DISABLED
+    EDITTEXT        IDC_EDIT2,260,89,33,12,ES_AUTOHSCROLL | ES_READONLY | WS_DISABLED
+    PUSHBUTTON      "Check For Updates",IDC_BUTTON1,92,165,72,16
+    PUSHBUTTON      "Download Update",IDC_BUTTON2,167,165,72,16,NOT WS_VISIBLE
+    CONTROL         "",IDC_PROGRESS1,"msctls_progress32",NOT WS_VISIBLE | WS_BORDER,92,153,202,10
+    CONTROL         "Check at start-up",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,98,69,86,10
+    EDITTEXT        IDC_EDIT4,92,104,202,46,ES_MULTILINE | ES_READONLY
+    LTEXT           "Static",IDC_AUPDATE_TEXT,97,7,197,58
+    LTEXT           "Static",IDC_UPDATE_IMAGE,7,7,80,174
+END
+
+IDD_SEARCHDIALOG DIALOGEX 0, 0, 185, 70
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Keyword Search"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "Search",IDOK,41,47,50,16
+    PUSHBUTTON      "Cancel",IDCANCEL,95,47,50,16
+    RTEXT           "Search:",IDC_SEARCH_NAME,7,11,56,8
+    EDITTEXT        IDC_EDIT1,70,9,84,14,ES_AUTOHSCROLL
+    CONTROL         "Exact Match",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,70,26,82,10
+    CONTROL         "Only Show Approval Items",IDC_APPROVAL_ITEMS,"Button",BS_AUTOCHECKBOX | NOT WS_VISIBLE | WS_TABSTOP,70,36,108,10
+END
+
+IDD_ARTMSGDIALOG DIALOGEX 0, 0, 377, 75
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Dialog"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,163,52,50,16
+    LTEXT           "",IDC_MSG,7,7,363,30
+    CONTROL         "Don't show this message again",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,39,191,10
+END
+
+IDD_EDITDIALOG DIALOGEX 0, 0, 342, 345
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Edit Item"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "Apply",IDOK,232,324,50,16
+    PUSHBUTTON      "Cancel",IDCANCEL,284,324,50,16
+    EDITTEXT        IDC_EDIT4,195,130,28,14,ES_AUTOHSCROLL | ES_NUMBER
+    RTEXT           "Cost:",IDC_LABEL_COST,135,133,54,8
+    EDITTEXT        IDC_EDIT5,195,147,37,14,ES_AUTOHSCROLL | ES_NUMBER
+    RTEXT           "Polygons:",IDC_LABEL_POLYGONS,139,149,50,8
+    EDITTEXT        IDC_EDIT8,195,181,110,73,ES_MULTILINE | ES_WANTRETURN | WS_VSCROLL
+    RTEXT           "Description:",IDC_LABEL_DESC,135,183,56,8
+    RTEXT           "Compatible:",IDC_LABEL_COMPAT,130,118,59,8
+    CONTROL         "X9",IDC_CHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,196,117,24,10
+    CONTROL         "X10",IDC_CHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,224,117,28,10
+    GROUPBOX        "Properties",IDC_STATIC,127,87,206,187
+    GROUPBOX        "Store (Admin Only)",IDC_STORE_BORDER,87,282,163,37
+    CONTROL         "Reset Item Rating",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,125,291,117,10
+    CONTROL         "Reset Total Download Count",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,125,304,118,10
+    EDITTEXT        IDC_EDIT6,195,100,107,14,ES_AUTOHSCROLL | WS_DISABLED
+    RTEXT           "Name:",IDC_LABEL_NAME,143,103,46,8
+    RTEXT           "New Model File:",IDC_MODEL_FILE,5,20,64,8
+    EDITTEXT        IDC_EDIT1,73,18,188,14,ES_AUTOHSCROLL | WS_DISABLED
+    PUSHBUTTON      "...",IDC_BUTTON1,263,19,17,11
+    RTEXT           "Preview Images:",IDC_LABEL_PREVIEW,5,71,64,8
+    PUSHBUTTON      "Add",IDC_BUTTON3,263,70,30,11
+    PUSHBUTTON      "Remove",IDC_BUTTON4,295,70,39,11
+    COMBOBOX        IDC_COMBO3,73,69,188,30,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP,WS_EX_RIGHT
+    CTEXT           "Zip file containing all model assets",IDC_MODEL_DESC,34,9,266,8
+    PUSHBUTTON      "?",IDC_BUTTON8,282,19,18,11
+    RTEXT           "New Thumbnail:",IDC_THUMB_LABEL,5,38,64,8
+    EDITTEXT        IDC_EDIT2,73,35,188,14,ES_AUTOHSCROLL | WS_DISABLED
+    PUSHBUTTON      "...",IDC_BUTTON2,263,37,17,11
+    RTEXT           "Keywords:",IDC_LABEL_KEYWORDS,139,167,52,8
+    COMBOBOX        IDC_COMBO2,195,165,80,36,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "+",IDC_BUTTON5,278,166,15,11
+    PUSHBUTTON      "-",IDC_BUTTON6,294,166,15,11
+    LTEXT           "Static",IDC_SAMPLE_IMAGE,7,153,115,109,WS_BORDER
+    LTEXT           "Preview Image:",IDC_PREVIEW_IMAGE_LABEL,8,143,61,8
+    LTEXT           "Static",IDC_THUMBNAIL,7,100,43,40,WS_BORDER
+    LTEXT           "Thumbnail:",IDC_THUMB_IMAGE_LABEL,8,90,61,8
+    RTEXT           "Uploading:",IDC_UPLOAD_TEXT,13,329,57,8,NOT WS_VISIBLE
+    LTEXT           "",IDC_PROGRESS_SPINNER,77,328,11,10,NOT WS_VISIBLE
+    CONTROL         "",IDC_PROGRESS1,"msctls_progress32",NOT WS_VISIBLE | WS_BORDER,97,327,125,11
+    RTEXT           "Link To Video:",IDC_VIDEO_LINK,129,259,61,8
+    EDITTEXT        IDC_EDIT10,195,257,121,14,ES_AUTOHSCROLL
+    RTEXT           "New Music Sample:",IDC_THUMB_LABEL2,0,54,69,8
+    EDITTEXT        IDC_EDIT3,73,52,188,14,ES_AUTOHSCROLL | WS_DISABLED
+    PUSHBUTTON      "...",IDC_BUTTON7,263,54,17,11,WS_DISABLED
+END
+
+IDD_DISPLAYFILTERS DIALOGEX 0, 0, 112, 74
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Filters"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,31,51,50,16
+    CONTROL         "Show Purchased",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,7,89,10
+    CONTROL         "Show Entities",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,21,89,10
+    CONTROL         "Show Segments",IDC_CHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,35,88,10
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO 
+BEGIN
+    IDD_LIBRARY, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 417
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 320
+    END
+
+    IDD_MARKET, DIALOG
+    BEGIN
+        RIGHTMARGIN, 520
+    END
+
+    IDD_UPLOADAPP_DIALOG, DIALOG
+    BEGIN
+        BOTTOMMARGIN, 356
+    END
+
+    IDD_NEW_LIBRARY, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 333
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 266
+    END
+
+    IDD_BUILD_GAME, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 398
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 346
+    END
+
+    IDD_BUILD_GAME_PROJECT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 382
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 325
+    END
+
+    IDD_BUILD_GAME_LEVEL, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 382
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 329
+    END
+
+    IDD_BUILD_GAME_BUILD, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 382
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 279
+    END
+
+    IDD_TEST_GAME, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 329
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 102
+    END
+
+    IDD_BUILD_GAME_LIGHT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 382
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 274
+    END
+
+    IDD_BUILD_GAME_KEYS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 261
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 34
+    END
+
+    IDD_BUILD_GAME_WEAPONS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 261
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 127
+    END
+
+    IDD_DIALOG_FPI, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 353
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 210
+    END
+
+    IDD_FRONT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 338
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 169
+    END
+
+    IDD_POPUP, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 248
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 7
+    END
+
+    IDD_DIALOG1, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 179
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 19
+    END
+
+    IDD_DIALOG_FRONT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 335
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 135
+    END
+
+    IDD_DIALOG_END, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 423
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 311
+    END
+
+    IDD_BUILD_GAME_MULTIPLAYER, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 382
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 325
+    END
+
+    IDD_OBJECTDETAILSDIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 366
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 280
+    END
+
+    IDD_LOGINDIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 250
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 95
+    END
+
+    IDD_HELPWIZARD, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 322
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 184
+    END
+
+    IDD_DIALOG2, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 179
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 83
+    END
+
+    IDD_TAB2, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 226
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 107
+    END
+
+    IDD_TAB3, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 179
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 107
+    END
+
+    IDD_AUTOUPDATE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 294
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 181
+    END
+
+    IDD_SEARCHDIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 178
+        TOPMARGIN, 6
+        BOTTOMMARGIN, 63
+    END
+
+    IDD_ARTMSGDIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 370
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 68
+    END
+
+    IDD_EDITDIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 335
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 340
+    END
+
+    IDD_DISPLAYFILTERS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 105
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 67
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog Info
+//
+
+IDD_OBJECTDETAILSDIALOG DLGINIT
+BEGIN
+    IDC_COMBO2, 0x403, 2, 0
+0x0030, 
+    IDC_COMBO2, 0x403, 2, 0
+0x0031, 
+    IDC_COMBO2, 0x403, 2, 0
+0x0032, 
+    IDC_COMBO2, 0x403, 2, 0
+0x0033, 
+    IDC_COMBO2, 0x403, 2, 0
+0x0034, 
+    IDC_COMBO2, 0x403, 2, 0
+0x0035, 
+    0
+END
+
+IDD_MARKET DLGINIT
+BEGIN
+    IDC_COMBO1, 0x403, 5, 0
+0x614e, 0x656d, "\000" 
+    IDC_COMBO1, 0x403, 14, 0
+0x6f43, 0x7473, 0x2820, 0x6f4c, 0x6577, 0x7473, 0x0029, 
+    IDC_COMBO1, 0x403, 15, 0
+0x6f43, 0x7473, 0x2820, 0x6948, 0x6867, 0x7365, 0x2974, "\000" 
+    IDC_COMBO1, 0x403, 16, 0
+0x6152, 0x6974, 0x676e, 0x2820, 0x6f4c, 0x6577, 0x7473, 0x0029, 
+    IDC_COMBO1, 0x403, 17, 0
+0x6152, 0x6974, 0x676e, 0x2820, 0x6948, 0x6867, 0x7365, 0x2974, "\000" 
+    IDC_EXPLORER2, 0x376, 160, 0
+0x0000, 0x0000, 0x004c, 0x0000, 0x094d, 0x0000, 0x043d, 0x0000, 0x0000, 
+0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 
+0x0000, 0x0000, 0x004c, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0001, 
+0x0000, 0xd0e0, 0x0057, 0x3573, 0x11cf, 0x69ae, 0x0008, 0x2e2b, 0x6212, 
+0x0008, 0x0000, 0x0000, 0x0000, 0x004c, 0x0000, 0x1401, 0x0002, 0x0000, 
+0x0000, 0x00c0, 0x0000, 0x0000, 0x4600, 0x0080, 0x0000, 0x0000, 0x0000, 
+0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 
+0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0001, 0x0000, 
+0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 
+    IDC_PAGE_COMBO, 0x403, 3, 0
+0x3031, "\000" 
+    IDC_PAGE_COMBO, 0x403, 3, 0
+0x3032, "\000" 
+    IDC_PAGE_COMBO, 0x403, 3, 0
+0x3034, "\000" 
+    IDC_PAGE_COMBO, 0x403, 3, 0
+0x3036, "\000" 
+    IDC_PAGE_COMBO, 0x403, 4, 0
+0x3031, 0x0030, 
+    0
+END
+
+IDD_UPLOADAPP_DIALOG DLGINIT
+BEGIN
+    IDC_COMBO1, 0x403, 7, 0
+0x6e45, 0x6974, 0x7974, "\000" 
+    IDC_COMBO1, 0x403, 8, 0
+0x6553, 0x6d67, 0x6e65, 0x0074, 
+    IDC_COMBO1, 0x403, 6, 0
+0x754d, 0x6973, 0x0063, 
+    IDC_COMBO4, 0x403, 11, 0
+0x6843, 0x7261, 0x6361, 0x6574, 0x7372, "\000" 
+    IDC_COMBO4, 0x403, 8, 0
+0x6557, 0x7061, 0x6e6f, 0x0073, 
+    IDC_COMBO4, 0x403, 6, 0
+0x7449, 0x6d65, 0x0073, 
+    IDC_COMBO4, 0x403, 7, 0
+0x6e49, 0x6f64, 0x726f, "\000" 
+    IDC_COMBO4, 0x403, 8, 0
+0x754f, 0x6474, 0x6f6f, 0x0072, 
+    IDC_COMBO4, 0x403, 8, 0
+0x764f, 0x7265, 0x616c, 0x0079, 
+    IDC_COMBO4, 0x403, 7, 0
+0x6f50, 0x7473, 0x7265, "\000" 
+    0
+END
+
+#endif    // English (U.K.) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+#define _AFX_NO_PROPERTY_RESOURCES
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE 9, 1
+#pragma code_page(1252)
+#endif //_WIN32
+#include "res\Editor.rc2"  // non-Microsoft Visual C++ edited resources
+#include "afxres.rc"         // Standard components
+#include "afxprint.rc"       // printing/print preview resources
+#include "afxolecl.rc"       // OLE container resources
+#include "BCGControlBar.rc"
+#endif
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

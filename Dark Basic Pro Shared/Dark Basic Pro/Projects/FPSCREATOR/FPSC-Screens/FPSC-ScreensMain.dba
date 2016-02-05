@@ -1,0 +1,100 @@
+Rem Project: FPSC-Screens
+Rem Created: 26/07/2004 23:13:56
+
+rem Init app
+sync on : sync rate 55 : autocam off
+hide mouse : backdrop off : disable escapekey
+
+rem basic init
+realrange#=9000.0 : set camera range 2.0,realrange#
+gosub _ai_reset : gosub _ai_setkeywords
+
+rem Load FPI page
+fpitype=val(left$(cl$(),1))
+aifile$=right$(cl$(),len(cl$())-2)
+if file exist(aifile$)=1
+ `
+ rem Init FPI screen
+ gosub _screen_init
+ `
+ rem Some variables
+ if fpitype=2 then debugviewprogressmax(100) : progress=0
+ if fpitype=3
+  rem basic 3d scene (show sky, fog, ambient, etc
+  make object sphere 1,100,50,50 : position object 1,0,50,200
+  make object box 2,5000,5,5000
+  position camera 0,50,0 : point camera 0,50,0
+  if object exist(65123)=1 then position object 65123,0,50,0 : show object 65123
+  set point light 0,0,0,0
+ endif
+ `
+ rem Run page
+ continueokay=0
+ while continueokay=0
+  if fpitype=2 then progress=progress+1 : debugviewtext(progress,"test progress bar")
+  if fpitype=2 and progress>=100 then continueokay=1
+  if fpitype=3 then ink rgb(255,255,0),rgb(32,32,32) : set text size 20 : set text opaque : center text screen width()/2,screen height()-25,strarr$(380) : set text transparent
+  if fpitype=3
+   rem rotate stats for display test
+   player(1).lives=player(1).lives-1
+   if player(1).lives<0 then player(1).lives=99
+   player(1).health=player(1).health-1
+   if player(1).health<0 then player(1).health=999
+   weaponammoindex=1 : gunid=1
+   gun(gunid).settings.reloadqty=99
+   weaponammo(weaponammoindex)=weaponammo(weaponammoindex)-1
+   if weaponammo(weaponammoindex)<0 then weaponammo(weaponammoindex)=99
+   weaponclipammo(weaponammoindex)=weaponclipammo(weaponammoindex)-1
+   if weaponclipammo(weaponammoindex)<0 then weaponclipammo(weaponammoindex)=999
+   if object exist(65123)=1 then yrotate object 65123,object angle y(65123)+1
+  endif
+  gosub _screen_control
+  if fpitype<>2 then sync
+ endwhile
+ `
+ rem End page
+ gosub _screen_close
+ `
+endif
+`
+rem End
+end
+
+`
+` Dummy functions and subroutines
+`
+
+_player_takedamage:
+_entity_resolveobjective:
+_player_resettrail:
+_lighting_postdefaults:
+_version_commandlineprompt:
+_version_endofinit:
+_ode_entitydrivenphysics:
+_ode_entitydrivenstaticphysics:
+_ode_applyforce:
+_ode_triggermaterialsound:
+_ode_switchoffe:
+_ode_setupewithphysics:
+_ode_ensureeisnotpenetrated:
+_ode_playerborble:
+_ode_unmark:
+_ode_mark:
+_ode_playercamera:
+_ode_listener:
+_ode_applypointforce:
+_multi_dealentityedamage:
+_multi_mptrigger:
+_multi_missioncomplete:
+_multi_playershoots:
+_part_createfragment:
+_part_triggerexplosion:
+_part_movedebrisifinray:
+_decalelement_create:
+_flakelement_create:
+_flakelement_explodeinstantly:
+return
+
+function timestampactivity(a,s$)
+endfunction
+

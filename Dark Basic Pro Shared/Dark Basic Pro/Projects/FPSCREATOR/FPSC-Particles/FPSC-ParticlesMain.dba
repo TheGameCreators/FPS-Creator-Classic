@@ -1,0 +1,142 @@
+Rem Project: FPSC-Particles
+Rem Created: 22/04/2005 13:24:44
+
+rem Init prototype
+sync on : sync rate 35
+
+rem Oneoff setup for prototype
+ode start : rem set to regular world stepping
+ode set world gravity 0,-40,0
+ode set world step 0.05 : rem needed for accuracy
+softness#=2.0 : rem soft as the player
+ode set world erp (0.2)*softness#
+ode set world cfm (10^-5)*softness#
+
+rem Basic floor to test debris on
+make object box 100,5000,100,5000
+color object 100,rgb(192,192,192)
+position object 100,0,-50,0
+set object light 100,0
+ode create static box 100
+set shadow position -1,100,5000,100
+
+rem Particle Setup
+gosub _part_init
+
+rem this not only loads but previews to find correct displacement
+rem load fragments (they will be physics objects - 3 of each?!?)
+if 0
+debrisshapeindex=8
+for o=1 to bitdetails(debrisshapeindex).max
+ if 0
+  o$=bitdetails(debrisshapeindex).file$+"_chunk"+str$(o)+".x"
+  load object o$,o
+  set shadow shading on o,0,500,1
+ else
+  o$=bitdetails(debrisshapeindex).file$+"_chunk"+str$(o)+"_a.x"
+  load object o$,o
+  o$=bitdetails(debrisshapeindex).file$+"_chunk"+str$(o)+".x"
+  load object o$,100+o
+  color object 100+o,rgb(255,255,0)
+  x#=0
+  y#=0
+  z#=0
+  while inkey$()<>"x"
+   set cursor 0,0
+   print object position x(100+o)
+   print object position y(100+o)
+   print object position z(100+o)
+   if scancode()<>0
+    if kk=0
+     kk=1
+     if upkey()=1 then y#=y#+1.0
+     if downkey()=1 then y#=y#-1.0
+     if leftkey()=1 then x#=x#-1.0
+     if rightkey()=1 then x#=x#+1.0
+     if shiftkey()=1 then z#=z#-1.0
+     if returnkey()=1 then z#=z#+1.0
+     if y#<0 then y#=0
+    endif
+   else
+    kk=0
+   endif
+   position object 100+o,x#,y#,z#
+   sync
+  endwhile
+  while inkey$()="x"
+   sync
+  endwhile
+  ghost object on o
+  hide object 100+o
+ endif
+next o
+endif
+
+rem texture test
+load image "texturebank\ww2\scenery\furniture\cratec\crate_c_D2.tga",1
+load image "texturebank\scifi\scenery\furniture\cylindera\cylinder_a_D2.tga",2
+load image "texturebank\scifi\scenery\furniture\cylinderb\cylinder_b_D2.tga",3
+load image "texturebank\ww2\scenery\furniture\itemb\item_b_D2.tga",4
+load image "texturebank\ww2\scenery\furniture\cratec\crate_c_D2.tga",5
+load image "texturebank\ww2\scenery\furniture\cratee\crate_e_D2.tga",6
+load image "texturebank\ww2\scenery\furniture\cratef\crate_f_D2.tga",7
+load image "texturebank\ww2\scenery\furniture\cylinderf\cylinder_f_D2.tga",8
+
+rem main loop
+leescroll=8
+position camera 0,100,-200
+point camera 0,10,0
+set point light 0,0,100,-100
+set ambient light 0
+do
+ set cursor 0,0
+ print "RETURN=MAKE  SPACE=SHATTER"
+ if returnkey()=0 then retoff=0
+ if returnkey()=1 and retoff=0
+  retoff=1
+  `
+  rem Place debris to explode in place of real object
+  frox#=(leescroll-4)*25 : froy#=10 : froz#=rnd(50) : froa#=rnd(360)
+  inc leescroll : if leescroll>8 then leescroll=1
+  debrisshapeindex=leescroll : debristextureused=debrisshapeindex
+  debrisexplodable=rnd(2)
+  debrissizex#=20.0 : debrissizey#=20.0 : debrissizez#=20.0
+  gosub _part_createfragment
+  `
+  rem Trigger explosion here
+  gosub _part_triggerexplosion
+  `
+ endif
+ `
+ rem Handle explosions
+ gosub _part_controlexploders
+ `
+ rem Update
+ if spacekey()=1
+  ode update : ode update
+ endif
+ sync
+ `
+loop
+gosub _part_free
+end
+
+
+`
+` No need for redundant subroutines
+`
+
+_player_takedamage:
+_player_leavetrail:
+_version_commandlineprompt:
+_version_endofinit:
+_entity_deducthealth:
+_ode_ensurephysicsobjvalid:
+return
+
+function timestampactivity(i,s$)
+endfunction
+function debugstring(s$,t$)
+endfunction
+
+

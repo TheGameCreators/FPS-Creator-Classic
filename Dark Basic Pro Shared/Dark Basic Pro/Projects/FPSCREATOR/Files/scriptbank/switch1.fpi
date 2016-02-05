@@ -1,0 +1,20 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Instance Switch (activate upon use)
+
+;Triggers
+
+:state=0:hudreset,hudx=50,hudy=90,hudimagefine=gamecore\text\pressentertouse.tga,hudname=useswitchprompt,hudhide=1,hudmake=display,state=10
+:plrdistwithin=100:hudshow=useswitchprompt,hudfadeout=useswitchprompt
+
+:state=10,plrdistwithin=100,plrusingaction=1:state=1,setframe=0,plrsound=$0,activateifused=1
+:state=1:incframe=0
+:state=1,frameatend=0:state=2
+:state=2,plrusingaction=0:state=4
+:state=4:decframe=0
+:state=4,frameatstart=0:state=5,setframe=0
+:state=5:state=10
+
+;End of Script

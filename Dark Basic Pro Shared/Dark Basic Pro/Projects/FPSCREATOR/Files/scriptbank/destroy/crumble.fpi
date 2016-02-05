@@ -1,0 +1,12 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Decal Crumble
+
+;Triggers
+
+:state=1:destroy
+:state=0:sound=audiobank\smash\concrete.wav,rundecal=0,state=1
+
+;End of Script

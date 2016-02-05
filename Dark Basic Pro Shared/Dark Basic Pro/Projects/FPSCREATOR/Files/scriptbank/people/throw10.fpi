@@ -1,0 +1,24 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Look and Throw, Set Use Strength based on Player Distance
+
+;Triggers
+
+:state=0,plrcanbeseen:state=1,settarget
+:state=0:runfpidefault=1
+:state=1,plrcannotbeseen:runfpidefault=1
+:state=1:rotatetoplr
+:state=1,ifweapon=0:reloadweapon
+:state=1,ifweapon=1,rateoffire:state=2,setframe=6
+:state=2:incframe=6
+:state=1,ifweapon=1,plrdistfurther=400,plrelevwithin=10:movetotarget=1,animate=5
+
+:state=2,framebeyond=6 60,plrelevfurther=10:useweapon=1
+:state=2,framebeyond=6 60,plrdistwithin=100:useweapon=1
+:state=2,framebeyond=6 60,plrdistwithin=200:useweapon=30
+:state=2,framebeyond=6 60,plrdistwithin=400:useweapon=60
+:state=2,frameatend=6:state=1,reloadweapon
+
+;End of Script

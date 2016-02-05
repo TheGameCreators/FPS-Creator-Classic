@@ -1,0 +1,14 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Speak to player, then move to next waypoint
+
+;Triggers
+
+:state=0:waypointstart,state=1
+:state=1,activated=1:state=2,sound=audiobank\user\takeaseat.wav,timerstart
+:state=2,timergreater=6000:state=3,waypointnext
+:state=3,plrcanbeseen:settarget,lookattarget=85
+
+;End of Script

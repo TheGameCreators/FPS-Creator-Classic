@@ -1,0 +1,10 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Plr In Zone, activate entity specified in IF USED
+
+;Triggers
+
+:state=0,plrwithinzone=1:activateifused=1,sound=$0,state=1
+:state=1,plrwithinzone=0:state=0

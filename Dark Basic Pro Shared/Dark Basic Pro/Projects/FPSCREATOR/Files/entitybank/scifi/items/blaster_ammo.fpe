@@ -1,0 +1,49 @@
+;Entity Spec
+
+;Header
+desc          = blaster_ammo
+
+;AI
+aiinit	      = appear2.fpi
+aimain	      = ammoglow.fpi
+aidestroy     = disappear2.fpi
+
+;Spawn
+spawnmax      = 1
+spawndelay    = 500
+spawnqty      = 1
+
+;Itemproperties
+defaultstatic = 0
+materialindex = 3
+collisionmode = 0
+debrisshape   = 0
+explodable    = 0
+
+;Orientation
+model         = blaster_ammo.X
+offx          = 0
+offy          = 0
+offz          = 0
+rotx          = 0
+roty          = 0
+rotz          = 0
+scale         = 100
+fixnewy       = 0
+
+;Visualinfo
+texturepath   = gamecore\guns\scifi\blaster\
+textured      = ammo_D2.tga
+transparency  = 1
+isimmobile    = 1
+
+;Identity Details
+isammo	      = 1
+hasweapon     = scifi\blaster
+
+;Specific Data
+quantity      = 1
+
+;Decals
+decalmax      = 1
+decal0        = glowzone

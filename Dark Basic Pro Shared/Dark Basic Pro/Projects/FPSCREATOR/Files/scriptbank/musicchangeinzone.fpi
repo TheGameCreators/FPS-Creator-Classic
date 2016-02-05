@@ -1,0 +1,10 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Music Change When Enter Zone
+
+;Triggers
+
+:state=0,plrwithinzone=1:state=1,musicoverride=$0
+:state=1,plrwithinzone=0:state=0

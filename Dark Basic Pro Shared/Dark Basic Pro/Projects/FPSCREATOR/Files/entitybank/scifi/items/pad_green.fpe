@@ -1,0 +1,37 @@
+
+
+;header
+desc          = pad_green
+
+;ai
+aiinit	      = appear1.fpi
+aimain	      = pickup1.fpi
+aidestroy     = disappear1.fpi
+
+;aiused
+usekey        = 
+ifused        = 
+ifusednear    = 
+isobjective   = 2
+
+;spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;Itemproperties
+defaultstatic = 0
+materialindex = 3
+collisionmode = 0
+debrisshape   = 0
+explodable    = 0
+
+;Orientation
+model         = pad_green.x
+offy          = 0
+scale         = 100
+fixnewy       = 0
+
+;visualinfo
+textured      = pad_green_d2.tga
+

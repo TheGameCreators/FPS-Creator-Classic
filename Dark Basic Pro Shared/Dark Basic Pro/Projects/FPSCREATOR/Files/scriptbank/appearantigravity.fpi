@@ -1,0 +1,11 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Instant On (with No Floor Logic And No Gravity) SWITCH PHYSICS OFF IN PROPERTIES
+
+;Triggers
+
+:state=0:setalphafade=100,floorlogic,nogravity,runfpidefault=1
+
+;End of Script

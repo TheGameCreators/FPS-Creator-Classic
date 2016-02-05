@@ -1,0 +1,11 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Instant Off
+
+;Triggers
+
+:state=0:destroy
+
+;End of Script

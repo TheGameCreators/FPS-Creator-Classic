@@ -1,0 +1,13 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Fade Out Disappear
+
+;Triggers
+
+:state=0:state=1
+:state=1,alphafadeequal=100:decalphafade=0
+:state=1,alphafadeequal=0:state=2,destroy
+
+;End of Script

@@ -1,0 +1,26 @@
+
+
+;header
+desc          = Acid
+
+;ai
+aiinit	      = repeatsound.fpi
+aimain	      = decalflat.fpi
+aidestroy     = disappear1.fpi
+
+;orientation
+model         = particles.x
+textured      = particles_d.tga
+defaultheight = 0.5
+transparency  = 0
+soundset      = audiobank\atmos\acidhum.wav
+
+;identity details
+strength      = 0
+isimmobile    = 1
+ismarker      = 4
+
+;decals
+decalmax      = 1
+decal0        = acid
+

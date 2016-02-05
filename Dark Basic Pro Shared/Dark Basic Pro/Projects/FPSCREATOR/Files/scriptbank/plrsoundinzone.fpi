@@ -1,0 +1,9 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Sound In Zone (no volume reduction for distance)
+
+;Triggers
+
+:state=0,plrwithinzone=1:state=1,plrsound=$0

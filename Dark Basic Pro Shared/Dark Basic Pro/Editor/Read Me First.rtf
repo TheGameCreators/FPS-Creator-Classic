@@ -1,0 +1,270 @@
+{\rtf1\ansi\ansicpg1252\deff0\deflang1033{\fonttbl{\f0\fswiss\fcharset0 Arial;}}
+{\colortbl ;\red0\green0\blue255;\red128\green0\blue128;\red0\green0\blue0;\red255\green0\blue0;\red0\green128\blue0;\red128\green0\blue0;}
+{\*\generator Msftedit 5.41.15.1503;}\viewkind4\uc1\pard\b\f0\fs28 TDK_Man's IDE For Dark Basic Professional  \cf1 V0.1o\cf0\par
+\b0\fs20\par
+\par
+\cf2\b\i\fs24 Recent Update Notes:\par
+\par
+\fs20 Note: V0.1o requires the C:\\TDK_IDE.INI file to be deleted before you run it.\par
+\fs24\par
+\b0\fs20 This version has an improved net update version box which informs you of the changes automatically. If no net connection is found, it should still run, but if you have a dial-up internet connection and you get an error or it crashes when you run it \b if not connected to the net\b0 , please e-mail me as soon as possible and I'll remove the option.\b\par
+\b0\par
+Tabs have been fixed and you can now alter the Tab length in the system options panel.\par
+\par
+Now traps errors in your \b compiled \b0 exe code and jumps to the offending line.\par
+\par
+This version now informs you when there is a new version available for download via the internet. This is done automatically when the IDE is run, but only works if there is an internet connection available. If there is not, nothing should happen. When you do connect to the internet and want to check for an IDE update, you can do it manually from the System Options panel (new update button bottom left corner).\par
+\par
+If anyone with a dial-up internet connection has any problems when running the IDE, please e-mail me at tdkman@matedit.com and I'll disable the auto-check on startup feature and leave it just as a manually operated feature.\par
+\par
+Remstart/Remend:\par
+\par
+There is a bug with the component I am using in the IDE and Remend is not being detected correctly. In this version, the answer (until I can upgrade the component), is to only use \b remstart \b0 and \b remend \b0 in 100% lower case only. Remstart appears to work whatever case is used, but RemEnd, Remend etc will not work. Just stick to lower case for both until I can solve the problem.\par
+\par
+\b\fs24 Add New Media\par
+\b0\fs20\par
+This is still incomplete, but you can see where I'm going with it. Expect errors until it's finished. At the moment, you can preview 2D images, MIDI files, MP3's and some video files. OK and Cancel both do the same thing - nothing yet! :)\par
+\cf0\i0\par
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - \par
+\par
+\par
+\b\fs24 TDK's IDE For Dark Basic Professional\par
+\b0\fs20\par
+Thanks for downloading my DBPro IDE. It is not an official replacement for the existing IDE (written by Guy Savoie), but simply an alternative. I started producing it as a back-burner project a long time before Guy left the DB community and we subsequently discovered that the official IDE was no longer being worked on. I basically wanted a simple \b multi-document \b0 interface - that's all!  This program is the result.\par
+\par
+\par
+\b\fs24 No Huge Downloads Required!\par
+\b0\fs20\par
+This IDE is a totally stand-alone exe file. It requires \b no \b0 additional files or anything extra to be installed on your computer. As such, there are no hefty downloads to worry about or wierd DLL's to locate and install. Just unzip and run!\par
+\par
+\par
+\b\fs24 Aims:\par
+\b0\fs20\par
+I never used many of the advanced features of the official IDE - I prefer a simple environment. As such, the intention is to keep bells and whistles to a bare minimum. Create or load, edit, copy and paste from other windows, save, compile and finally run. That's all I personally need. \par
+\par
+This IDE when finished will probably have little more than that and requests for additional features will only be considered if I would use them myself.\par
+\par
+\par
+\b\fs24 IMPORTANT INFO  (In case you skip the rest of this readme): \par
+\b0\fs20\par
+\cf3\b Please remember though that in it's current state it's only a taster and that although usable, it is neither finished or bug free. REMEMBER ALSO that if you are upgrading an earlier version, \cf4 ALWAYS delete the file C:\\TDK_IDE.INI before running the new version\cf3 .\par
+\cf4\par
+\cf3 And, \cf4 PLEASE READ THE KNOWN ISSUES SECTION AT THE END OF THIS DOCUMENT \cf3 - even if you don't read any of the rest! \par
+\par
+This IDE MUST be placed in the Dark Basic Professional\\Editor folder as it uses the DBPro DLL. If you put it elsewhere it will not work!\par
+\cf0\b0\par
+Finally, you may only use it \b AT YOUR OWN RISK \b0 and if you do not agree to this, please do not use it at all.\par
+\par
+\par
+\b\fs24 Installation:\par
+\b0\fs20\par
+This program does \b not \b0 have any installation and does not make any changes to your system - it simply replaces the existing IDE and uses the system settings already in place for it. All you do is copy the supplied file EDITOR.EXE to the same folder that your existing editor was located.\par
+\par
+\par
+\cf1\b\fs24 Advanced Installation Instructions (For more experienced users):\par
+\cf0\b0\fs20\par
+1. Rename the existing Editor.Exe to OldEditor.Exe\par
+2. Copy the new editor.exe and \cf5 Language \cf0 folder into the \cf5 Dark Basic Professional\\Editor \cf0 Folder\par
+3. To uninstall, delete the new Editor.Exe and rename the original one back to Editor.Exe\par
+\par
+\par
+\cf1\b\fs24 In Depth Installation Instructions (For less experienced users):\par
+\cf0\b0\fs20\par
+\cf4\b IMPORTANT\cf0\b0\par
+\par
+This editor has the same filename as the existing one, so you \b MUST \b0 rename your existing editor before copying this one. If you don't, you won't be able to go back to the original one after trying this one out. If when you copy this editor you get a message telling you that Editor.exe already exists and asks you if it's OK to overwrite it, say \b NO \b0 and rename the existing file first.\par
+\par
+\b\fs22 How To Rename Editor.Exe: \fs24\par
+\b0\fs20\par
+Using Windows Explorer, locate your \cf5 Dark Basic Professional \cf0 folder. Inside it, you will see a folder called \cf5 Editor\cf0 . \par
+\par
+Inside there will be three folders and two files - one of which is the current IDE called \cf1 EDITOR.EXE\cf0 . \b Right click \b0 on this and choose \b rename \b0 from the pop-up menu.\par
+\par
+Simply add 'old' to the start of the filename to make it \cf1 OLDEDITOR.EXE \cf0 ( or \cf1 OLDEDITOR\cf0  if your settings currently have filename extensions hidden). It doesn't really matter what you name it, so long as it's not called Editor.exe any more. As a test, try running DBP now. If you have done all this correctly, DBP should \b not \b0 run as the file Editor.Exe no longer exists.\par
+\par
+You can now copy the new Editor.Exe file and the folder \cf5 Language \cf0 into the Editor folder. That's it!\par
+\par
+To remove this editor and go back to the old one, simply use Windows Explorer to delete Editor.Exe and rename the previous one (OldEditor.Exe) back to Editor.Exe.\par
+\par
+\par
+\b\fs24 Using The New IDE:\par
+\b0\fs20\par
+When first run, you will need to enter a few details. This is done only once and what you enter can be changed from the tools menu entry later on if necessary. Also, some options are not working yet - remember this IDE is still in a basic state at the moment, so only play with copies of your files - not the originals.\par
+\par
+\par
+\cf2\b\fs28 Instructions For Use:\par
+\cf0\b0\fs20\par
+Most of it is pretty standard stuff, so I'll only cover the not so obvious stuff here.\par
+\par
+\par
+\cf5\b Screen Layout\par
+\cf0\b0\par
+At the top of the screen, there is the menu bar. All options are available from drop-down menus.\par
+\par
+Just below the menu bar are the Speed Buttons allowing quick access to the more commonly used functions such as loading and saving. Hold the mouse over a button for a second or so and a description of the button will pop up. The speed buttons running from left to right across the top are as follows:\par
+\par
+New Project/File\par
+Open Project\par
+Open DBA Source\par
+Save Project\par
+Save DBA Source\par
+Save DBA Source As...\par
+Save All\par
+Compile Source\tab\tab\tab\tab\tab\tab F4\par
+Compile & Run\tab\tab\tab\tab\tab\tab F5\par
+Run In Debug Mode\tab\tab\tab\tab\tab F6\par
+Run In StepThrough Mode (Is this really needed)?\tab\tab F7\par
+Run Existing Exe (Without Compiling)\tab\tab\tab F8\par
+Show/Hide Project Panel\par
+Help\par
+Switch Between DBPro & DBC Modes\tab\tab\tab\par
+Exit\par
+\par
+\par
+The large area below this is available for you program window(s). \par
+\par
+At the bottom, is the status bar where information and messages appear. When multiple source files are open, this panel updates to reflect the settings of the currently selected window.\par
+\par
+Although at first invisible, on the right of the screen appears the project settings panel. This can be quickly toggled by the 'Show/Hide Project Panel' speed button as well as via the menu. Some (but not all) of this info is even used if you are using DB Classic!\par
+\par
+\cf5\b\par
+File Saving Security\par
+\cf0\b0\par
+The IDE has two levels of security for your files:\par
+\par
+1. When you save your source code, the editor automatically creates a backup of the .DBA file with the same name, but with the extension .BAK.\par
+\par
+2. When you modify and Compile/Run your new code without saving it first, should your computer crash and require a reset, your new modifications will be lost. Now, each time you successfully compile or run, the IDE creates a file called LastCompiled.dba. This file will always be only one compile/run phase behind the code you lost and you can reload this and save it out with your project name in an emergency.\par
+\par
+\par
+\cf5\b DBPro/DBC Support\par
+\cf0\b0\par
+The IDE now supports Dark Basic Classic too. When first run, you are now able to enter both the DBPro compiler location and the location of Dark Basic Classic's DB.EXE file. Separate Project folder locations for each can be entered. If you do not have both versions of DB, then leave the two relevant boxes empty.\par
+\par
+Also on this panel in the bottom left corner are two check boxes which allow you to set the default running mode of the IDE. This setting is the mode the IDE enters when it is run. You can switch the mode with the Mode speed button, but it does not affect the default setting for the next time the IDE is run.\par
+\par
+These settings can be changed at any time by selecting 'System Options' from the Tools menu.\par
+\par
+The mode speed button at the top of the screen shows which mode you are currently in and the status bar will show DBP when in Pro mode and DBC when in Classic mode.\par
+\par
+With this, you can load a DBC source file, run it in DBC, click the mode button and instantly run it with the DBPro compiler!\par
+\par
+\par
+\cf5\b Multiple Windows\par
+\cf0\b0\par
+You can open multiple source windows to copy and paste code between them. The Project Panel is updated as you switch between them, so hitting the compile or run buttons will compile or run the project in the currently selected window.\par
+\par
+\par
+\cf5\b Goto Line Number\par
+\cf0\b0\par
+Press Ctrl-G. Enter the required line number and press Enter or click on the OK button.\par
+\par
+\par
+\cf5\b Bookmarks\par
+\cf0\b0\par
+Left click on the line number margin running down the left side of the screen. If none is present already, a bookmark will appear. If there is one on that line already, it will be turned off. You can have up to 10 bookmarks and if you try to create another, nothing will happen and you will have to turn one of the existing bookmarks off.\par
+\par
+To jump to a bookmark, press Ctrl-B. Bookmarks available have a lit green LED next to them. Simply click on the required bookmark button to jump to that bookmark. If you select a bookmark that is not lit, then nothing will happen.\par
+\par
+\par
+\cf5\b Code Templates\par
+\cf0\b0\par
+A number of templates are available for inserting block commands. These are the commands which define blocks of code and have a start and end, like For...Next, Repeat...Until and While...EndWhile. Using a template, means that you never forget to put a Next, Until or EndWhile ever again as the layout is entered for you!\par
+\par
+To add a template, left click to place the cursor where you want the code template to be placed, then click the right mouse button. A pop-up will appear listing the currently available templates. Select the required template with the left mouse button.\par
+\par
+A parameter panel will appear. This panel contains all the parameters for all the templates, but only the one you selected will appear in red. The rest will be disabled.\par
+\par
+In this section, you can enter the parameters you require in the template. For example, if you selected For...Next loop, then there will be boxes to enter in the desired counter variable, the start and end value for counting, as well as the optional Step value. Whatever you enter in these boxes will appear in the template frame back in the source window. Once you have entered the parameters, click the small OK button in the respective parameter section. \par
+\par
+If you enter A in the variable name box, 1 for the start value and 10 for the end value, clicking the OK button will produce:\par
+\par
+\cf1 For A=1 To 10\par
+\par
+Next A\par
+\cf0\par
+To exit this panel without creating a template, click on the Cancel button.\par
+\par
+If you would rather create an empty template with no parameters, then select the checkbox in the bottom left corner of the panel. The parameters will still be remembered, so you can return later, remove the check mark and use the same parameters again. With the check mark ticked, the same For...Next example will create:\par
+\par
+\cf1 For  =   To\par
+\par
+Next \par
+\cf0\par
+and you must manually enter the missing parameters.\par
+\par
+The same section is used for both procedures and functions, but only the first parameter is used for procedures. If parameters are entered into the other two boxes, they are ignored if not using the function template.\par
+\par
+\b\par
+\cf5 Project Panel\par
+\cf0\b0\par
+The project panel lets you enter information about the current project. This IDE also creates a .dbpro file for DB Classic files so you can store info, though some options will obviously not be usable. Project panel options include:\par
+\par
+\par
+\cf5\b Comments\par
+\cf0\b0\par
+These are now saved with the project when you save it. Make notes about the project in this section.\par
+\par
+\par
+\cf5\b To Do List\par
+\cf0\b0\par
+This is a list of reminders to jog your memory when you are working on a project - like 'Don't forget to remove debug code at line 224' for example. \par
+\par
+To add a new To Do item, right mouse click in the To Do window and select Add New Item from the pop-up panel that appears. Enter your item in the box that appears and click on OK.\par
+\par
+Each item has a tickbox next to it, so you can tick off the items when you have completed them. The other items on the pop-up are pretty obvious.\par
+\par
+\par
+\cf5\b Variables, Functions & Labels\par
+\cf0\b0\par
+These items are scanned in from the source code itself - you cannot alter the contents of the windows themselves, as they merely reflect what is in the source code itself.\par
+\par
+\par
+\cf5\b Graphics Mode Settings \par
+\cf0\b0\par
+Use this section to set the required graphics mode for your project.\par
+\par
+\par
+\cf5\b External Files\par
+\cf0\b0\par
+This option is not yet implemented (next version). For now, simply use #Include.\par
+\par
+\par
+\cf5\b Toolbox Modules\par
+\cf0\b0\par
+This is available from the Tools menu, thogh there are only two modules available at the moment - Remove Indentation and Indent Source code.\par
+\par
+Remove Indentation will remove all the indentation in the currently selected source window. All the code will be flush aginst the left edge of the window.\par
+\par
+Indent Source code will automatically indent all block sections of code like For Next loops.\par
+\par
+\par
+\par
+\cf6\b\fs28 Known Issues...\par
+\cf0\fs20\par
+\cf4 This version is NOT finished. There are bugs and some parts have not been completed. Even so it is usable.\par
+\cf0\b0\par
+The External Programs section of the Project Panel (Includes & Media) is NOT yet implemented. Set them in your main source code.\par
+\par
+Running a .dbpro or .dba file by double-clicking on the project/source file icon in Windows Explorer results in no cursor in the source code window. Running the IDE and loading a file manually doesn't do this. I'm trying to track down the reason for this.\par
+\par
+Folded functions unfold when another function is added or one is removed. Their current state is also not saved when you save the project so on loading, all procedures are unfolded.\par
+\par
+Enjoy\par
+\par
+TDK_Man (tdkman@matedit.com)\par
+\par
+\par
+\par
+\par
+\par
+\par
+\par
+\par
+\par
+\par
+\par
+\par
+\par
+}
+ 

@@ -1,0 +1,13 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Light Toggle (Off By Default)
+
+;Triggers
+
+:state=0:state=2
+:state=1,activated=1:state=2,lighton
+:state=2,activated=0:state=1,lightoff
+
+;End of Script

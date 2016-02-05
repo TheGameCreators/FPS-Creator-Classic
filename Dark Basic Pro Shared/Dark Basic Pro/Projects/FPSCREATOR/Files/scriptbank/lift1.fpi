@@ -1,0 +1,31 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Auto Lift (Up and Down) (activate brings lift to plr)
+
+;Triggers
+
+:state=0,plrhigher=10,plrdistwithin=30:state=6,coloff
+:state=1:moveup=1
+:state=1,raycastup=20 100:state=2
+:state=2,plrdistfurther=35,playerassociated:state=3,unassociateplayer,colon
+:state=3,plrhigher=10,plrdistwithin=30:state=7,coloff
+:state=4:moveup=-1
+:state=4,raycastup=20 0:state=5
+:state=5,plrdistfurther=35,playerassociated:state=0,unassociateplayer,colon
+
+:state=6,plrdistwithin=30:sound=audiobank\scifi\scenery\lifts\up.wav,state=1,associateplayer
+:state=6,plrdistfurther=35,playerassociated:state=0,colon
+:state=7,plrdistwithin=30:sound=audiobank\scifi\scenery\lifts\down.wav,state=4,associateplayer
+:state=7,plrdistfurther=35,playerassociated:state=3,colon
+
+:activated=1:state=11,activate=0
+:state=11,plrhigher=100:state=21
+:state=11:state=31
+:state=21,raycastup=20 100:state=3
+:state=21:state=1
+:state=31,raycastup=20 0:state=0
+:state=31:state=4
+
+;End of Script

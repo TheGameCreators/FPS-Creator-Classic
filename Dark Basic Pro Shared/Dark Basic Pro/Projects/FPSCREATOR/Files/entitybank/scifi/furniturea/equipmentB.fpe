@@ -1,0 +1,34 @@
+
+
+;header
+
+desc          = equipmentb
+
+;ai
+aiinit	      = repeatsound.fpi
+aimain	      = default.fpi
+aidestroy     = disappear1.fpi
+
+;spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;orientation
+
+model         = meshbank\scifi\scenery\furniture\equipmentb\equipment_B.x
+offx          = 0
+offy          = 0
+offz          = 0
+rotx          = 0
+roty          = 0
+rotz          = 0
+defaultstatic = 0
+soundset      = audiobank\atmos\electrichum.wav
+
+;visualinfo
+
+textured      = texturebank\scifi\scenery\furniture\equipmentb\equipment_B_d2.tga
+effect        = effectbank\illuminationent\illuminationent.fx
+castshadow    = 0
+transparency  = 1

@@ -1,0 +1,38 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Door requiring lock picking (variable used for 'attempts')
+
+;Triggers
+
+;If global variable [G1] is zero (no lock pick), always fail lock picking
+:state=0:globalvar=1
+:state=0,varequal=0:localvar=1,setvar=1
+
+;If local attempts variable [L1] is not reset, can successfully lock pick door
+:state=0:localvar=1
+:state=0,plrdistwithin=120,plrusingaction=1,varequal=0:setvar=1,sound=$0
+:state=0,plrdistwithin=120,plrusingaction=1,varequal=10:incvar=1,sound=$0
+:state=0,plrdistwithin=120,plrusingaction=1,varequal=20:incvar=1,sound=$0
+:state=0,plrdistwithin=120,plrusingaction=1,varequal=30:incvar=1,sound=$0
+:state=0,plrdistwithin=120,plrusingaction=1,varequal=40:incvar=1,sound=$0
+:state=0,plrdistwithin=120,plrusingaction=1,varnotequal=0:incvar=1
+:state=0,vargreater=60:state=1
+
+;Door opens
+:state=1:incframe=0
+:state=1,frameatend=0:state=2,coloff,localvar=1,setvar=20
+
+;Trigger door to close at random point when lock pick effect fades
+:state=2:localvar=1
+:state=2,random=25,varless=21:decvar=1
+:state=2:state=3
+:state=3,varnotequal=0:state=2
+
+;Door closes
+:state=3:localvar=1
+:state=3,varequal=0:decframe=0
+:state=3,frameatstart=0:state=0,setframe=0,colon
+
+;End of Script

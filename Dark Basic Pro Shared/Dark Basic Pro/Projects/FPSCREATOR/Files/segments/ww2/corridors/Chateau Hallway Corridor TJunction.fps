@@ -1,0 +1,146 @@
+;Segment Spec
+
+;Header
+
+partmax = 4
+lastmeshmax = 4
+
+;Segment Parts
+
+partmode0       = 0
+meshname0       = meshbank\ww2\france\corridors\chateau_hallway_corridor\floor_tjunc_a.x
+offx0           = 0
+offy0           = -50
+offz0           = 0
+rotx0           = 0
+roty0           = 0
+rotz0           = 0
+texture0        = texturebank\ww2\corridors\concrete\cd_c_02_d2.tga
+textured0       = 
+texturen0       = 
+textures0       = 
+transparency0   = 0
+effect0         = 
+colmode0        = 0
+csgmesh0        = 
+csgmode0        = 0
+csgimmune0      = 1
+lightmode0      = 0
+multimeshmode0  = 0
+materialindex0  = 2
+
+partmode1       = 0
+meshname1       = meshbank\ww2\france\corridors\chateau_hallway_corridor\wall_a.x
+offx1           = 0
+offy1           = 0
+offz1           = 50
+rotx1           = 0
+roty1           = 0
+rotz1           = 0
+texture1        = texturebank\ww2\corridors\concrete\cd_c_01_d2.tga
+textured1       = 
+texturen1       = 
+textures1       = 
+transparency1   = 0
+effect1         = 
+colmode1        = 1
+csgmesh1        = 
+csgmode1        = 0
+csgimmune1      = 0
+lightmode1      = 0
+multimeshmode1  = 0
+materialindex1  = 2
+
+partmode2       = 0
+meshname2       = meshbank\ww2\france\corridors\chateau_hallway_corridor\ceiling_tjunc_a.x
+offx2           = 0
+offy2           = 50
+offz2           = 0
+rotx2           = 0
+roty2           = 0
+rotz2           = 0
+texture2        = texturebank\ww2\corridors\concrete\cd_c_01_d2.tga
+textured2       = 
+texturen2       = 
+textures2       = 
+transparency2   = 0
+effect2         = 
+colmode2        = 1
+csgmesh2        = 
+csgmode2        = 0
+csgimmune2      = 0
+lightmode2      = 0
+multimeshmode2  = 0
+materialindex2  = 2
+
+partmode3       = 0
+meshname3       = meshbank\ww2\france\corridors\chateau_hallway_corridor\inside_corner_a.x
+offx3           = -50
+offy3           = 0
+offz3           = -50
+rotx3           = 0
+roty3           = 270
+rotz3           = 0
+texture3        = texturebank\ww2\corridors\concrete\cd_c_01_d2.tga
+textured3       = 
+texturen3       = 
+textures3       = 
+transparency3   = 0
+effect3         = 
+colmode3        = 1
+csgmesh3        = 
+csgmode3        = 0
+csgimmune3      = 0
+lightmode3      = 0
+multimeshmode3  = 0
+materialindex3  = 2
+
+partmode4       = 0
+meshname4       = meshbank\ww2\france\corridors\chateau_hallway_corridor\inside_corner_a.x
+offx4           = 50
+offy4           = 0
+offz4           = -50
+rotx4           = 0
+roty4           = 180
+rotz4           = 0
+texture4        = texturebank\ww2\corridors\concrete\cd_c_01_d2.tga
+textured4       = 
+texturen4       = 
+textures4       = 
+transparency4   = 0
+effect4         = 
+colmode4        = 1
+csgmesh4        = 
+csgmode4        = 0
+csgimmune4      = 0
+lightmode4      = 0
+multimeshmode4  = 0
+materialindex4  = 2
+
+;Segment Visibility
+
+visoverlay      = 0
+visfloor        = -1
+visroof         = -1
+viswallb        = -1
+viswallr        = -1
+viswallf        = -1
+viswalll        = -1
+viscornertl     = -1
+viscornertr     = -1
+viscornerbr     = -1
+viscornerbl     = -1
+
+;Segment Blueprint
+
+mode            = 5
+symbol          = 0
+floorsizey      = 0
+sidesizex       = 100
+sidesizey       = 100
+sidesizez       = 100
+groundmode      = 0
+kindof          = 3
+
+;end
+

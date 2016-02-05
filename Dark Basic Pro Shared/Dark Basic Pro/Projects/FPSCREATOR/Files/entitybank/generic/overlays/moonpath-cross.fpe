@@ -1,0 +1,40 @@
+;Entity Spec
+
+;Header
+desc          = Moonpath Cross
+
+;AI
+aiinit	      = appear1.fpi
+aimain	      = default.fpi
+aidestroy     = disappear1.fpi
+
+;Spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;Orientation
+model         = meshbank\common\overlay.x
+offx          = 0
+offy          = 1
+offz          = 0
+rotx          = 0
+roty          = 0
+rotz          = 0
+scale         = 100
+fixnewy       = 0
+collisionmode = 4
+defaultstatic = 1
+
+;Visualinfo
+textured      = texturebank\common\overlays\moonpath\path_b_cross_D2.tga
+effect        =
+transparency  = 4
+
+;Identity Details
+isweapon      = 0
+isammo	      = 0
+isimmobile    = 1
+
+;Specific Data
+quantity      = 0

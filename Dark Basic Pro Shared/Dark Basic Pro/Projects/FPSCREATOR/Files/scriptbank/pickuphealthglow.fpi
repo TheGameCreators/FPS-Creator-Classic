@@ -1,0 +1,12 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Health
+
+;Triggers
+
+:state=0,cantake,plrdistwithin=80:state=1,playertake,plraddhealth=50,plrsound=audiobank\items\healthup.wav
+:state=0:rundecal=5,spinrate=4,floatrate=10
+
+;End of Script

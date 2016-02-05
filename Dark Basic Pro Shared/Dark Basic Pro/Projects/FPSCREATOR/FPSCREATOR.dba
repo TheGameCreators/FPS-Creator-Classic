@@ -1,0 +1,2365 @@
+rem
+rem FPS CREATOR - GLOBAL DATA
+rem
+
+rem App Independent Data
+dim filecollection$()
+
+rem Time stamp outside level scope reset
+global timestampactivitymax=0
+global timestampactivityflagged=0
+global timestampactivityindex=0
+dim timestampactivity$(1000)
+
+rem FPSCV104RC9 - loading time readout to file
+global gloadreportstate : gloadreportstate=0
+global gloadreporttime : gloadreporttime=0
+global gloadreportlasttime : gloadreportlasttime=0
+global gloadreportindex : gloadreportindex=0
+dim loadreport$(100000)
+
+rem Data structure to old player save data
+type saveplayerstatetype
+ lives as integer
+ health as integer
+ weaponindexholding as integer
+endtype
+saveplayerstate as saveplayerstatetype
+global hudhaveplayername as integer : hudhaveplayername=0
+global localipaddress$ : localipaddress$=""
+global serveripaddress$ : serveripaddress$=""
+global playername$ : playername$=""
+`
+rem V109 BETA3 - added to control change to player jump height
+global playerdefaultjumpheight : playerdefaultjumpheight=50
+
+` FPSCV10X SAVE LOAD Data Structures
+type saveloadtype
+ saveloaddir$
+ slothighlight
+ saveloadimg
+ saveloadx
+ saveloady
+ liney
+ slotselected
+ areyousure
+ loadswitch
+endtype
+saveload as saveloadtype
+dim saveloadslot$(9)
+gosub _saveload_savebox_init
+
+` FPSCV10X Game Position Data Structure
+type saveloadgamepositiontype
+ level
+ playerx
+ playery
+ playerz
+ playerry
+ playerhealth
+ playerlives
+ playerinventorymax
+ missiongoaltotal
+endtype
+type saveloadgamepositionentitytype
+ spawnleaderid as integer
+ ailibindex as integer
+ aistate as integer
+ aioldstate as integer
+ active as integer
+ dormant as integer
+ beenkilled as integer
+ x as float
+ y as float
+ z as float
+ rx as float
+ ry as float
+ rz as float
+ floorposy as float
+ animset as integer
+ animdo as integer
+ currentammo as integer
+ health as integer
+ collected as integer
+ activated as integer
+ collisionactive as integer
+ actualtarget as integer
+ waypointstate as integer
+ waypointcurrent as integer
+ waypointtracker as integer
+ waypointdirection as integer
+ waypointxstart as float
+ waypointystart as float
+ waypointzstart as float
+ waypointxinc as float
+ waypointyinc as float
+ waypointzinc as float
+ aiusinginternalai as integer
+ aioldwaypointstate as integer
+ aioldanimframe as float
+ aiolddestanimframe as float
+ spawnatstart as integer
+ spawnupto as integer
+endtype
+type saveloadgamepositionweaponslottype
+ pref got invpos
+ weaponammo
+ weaponclipammo
+ weaponhud
+endtype
+saveloadgameposition as saveloadgamepositiontype
+dim saveloadgamepositionplayerinventory(100) as inventorytype
+dim saveloadgamepositionplayerobjective(99) as integer
+dim saveloadgamepositionentity(entityelementmax) as saveloadgamepositionentitytype
+dim saveloadgamepositionweaponslot(10) as saveloadgamepositionweaponslottype
+global gsaveloadobjectivesloaded : gsaveloadobjectivesloaded=0
+global mefrozentype : mefrozentype=0
+global mefrozen : mefrozen=0
+
+rem V109 BETA5 - 060408 - moved from per-level area
+rem Material settings outside level-loop (loaded once per game)
+type materialsettingstype
+ name$ as string
+ tred0$ as string
+ tred1$ as string
+ tred2$ as string
+ tred3$ as string
+ noise as integer
+ scrape$ as string
+ scrapeid as integer
+ impact$ as string
+ impactid as integer
+ destroy$ as string
+ destroyid as integer
+ freq as integer
+ decal$ as string
+ decalid as integer
+ usedinlevel as integer
+endtype
+dim material(100) as materialsettingstype
+global gmaterialmax=0
+
+rem Debris usage on a per-game basis
+dim debrisshapeindexused(8) as integer
+
+rem Flak Profile Structure
+type flakprofiletype
+ lifespan as integer
+ xinc as float
+ yinc as float
+ zinc as float
+ xspeed as float
+ yspeed as float
+ zspeed as float
+ weight as float
+ spinx as float
+ bounceonhit as integer
+ explodeonhit as integer
+ damage as integer
+endtype
+
+rem Flak Sound Data Structure
+type flaksoundtype
+ sndbounce$ as string
+ sndbounceid as integer
+ sndexplode$ as string
+ sndexplodeid as integer
+endtype
+
+rem Flak Data Structure
+type flaktype
+ obj as integer
+ name$ as string
+ exponfloor$ as string
+ exponfloorid as integer
+ expinair$ as string
+ expinairid as integer
+ profile as flakprofiletype
+ sound as flaksoundtype
+ throwangle as integer
+ throwforward as integer
+ throwheight as integer
+ usedinlevel as integer
+endtype
+dim flak(flakmax) as flaktype
+global flakmax=0
+dim flakbank$(100)
+global flakbankmax=0
+
+rem Init FPSC then leap to SETUP.INI loader
+leavegamedataalone=0
+gosub _FPSC_Full_Data_Init
+goto _FPSC_Setup
+
+rem Subroutine to completely construct FPSCData
+_FPSC_Full_Data_Init:
+
+`
+` Performance globals
+`
+
+rem performance counters
+global gprogressmax as integer
+global dim perf(20) as DWORD
+global gameperftimetracker as DWORD
+global gameperftimestamp as DWORD
+global gameperftimestamp2 as DWORD
+global gameperftimestamplocal as DWORD
+global gameperftotalcountTOP as DWORD
+global gameperftotalcount as DWORD
+global gameperflighting as DWORD
+global gameperfplayer as DWORD
+global gameperfentities1 as DWORD
+global gameperfentities2 as DWORD
+global gameperfentities3 as DWORD
+global gameperfentities4 as DWORD
+global gameperfentities5 as DWORD
+global gameperfentities as DWORD
+global gameperfgun as DWORD
+global gameperfmisc as DWORD
+global gameperfdebug as DWORD
+global gameperfresttosync as DWORD
+global gameperfphysics as DWORD
+global gameperfsync as DWORD
+global deactivatecollision=0
+global entitysystemdisabled=0
+global lightingsystemdisabled=0
+gameperftimetracker=timer()
+
+rem logic control
+global logicprioritycount=0
+global logicprioritymax#=0.0
+
+rem memory counters
+dim mshot(500)
+global mshoti=0
+global mshotmem=0
+global mshotfirst=0
+global mshotmemlargest=0
+global lastmshoti=0
+global lastmshotmem=0
+
+rem workload counters
+dim wshot(400,4)
+dim wshotmax(4)
+global wshoti=0
+
+
+`
+` Editors Data
+`
+
+rem Input Control System Data Structure
+type inputsystemtype
+ activemouse as integer
+ xmouse as integer
+ ymouse as integer
+ xmousemove as integer
+ ymousemove as integer
+ wheelmousemove as integer
+ mclick as integer
+ lockdown as integer
+ k$ as string
+ mmx as integer
+ mmy as integer
+ localx# as float
+ localy# as float
+ kscancode as integer
+ keypress as integer
+ keycontrol as integer
+ keyreturn as integer
+ keyshift as integer
+ keyleft as integer
+ keyright as integer
+ keyup as integer
+ keydown as integer
+ keyspace as integer
+ constructselection as integer
+ dorotation as integer
+ domirror as integer
+ doflip as integer
+ doload as integer
+ dosave as integer
+ doopen as integer
+ donew as integer
+ donewarena as integer
+ dosaveas as integer
+ dosaveandrun as integer
+ domodepaint as integer
+ domodeselect as integer
+ domodeart as integer
+ domodeentity as integer
+ domodewaypoint as integer
+ dowaypointview as integer
+ doentityrotate as integer
+ dozoomin as integer
+ dozoomout as integer
+ doshrouddecrease as integer
+ doshroudincrease as integer
+ doshroudfull as integer
+ doscrollleft as integer
+ doscrollright as integer
+ doscrollup as integer
+ doscrolldown as integer
+ domapresize as integer
+ dolayerchange as integer
+ dogroundmode as integer
+ doundo as integer
+ doredo as integer
+ domapview as integer
+ dozoomview as integer
+ doautozoomview as integer
+ dozoomviewmovex as integer
+ dozoomviewmovey as integer
+ dozoomviewmovez as integer
+ dozoomviewrotatex as integer
+ dozoomviewrotatey as integer
+ dozoomviewrotatez as integer
+ dosinglelayer as integer
+ dopickmapid as integer
+ doartresize as integer
+ undoredoevent as integer
+ undokeypress as integer
+ tselcontrol as integer
+ tselcut as integer
+ tselcopy as integer
+ tselfloor as integer
+ tselpaste as integer
+ tseldelete as integer
+ tselwipe as integer
+ tselsaveselection as integer
+endtype
+inputsys as inputsystemtype
+
+rem UndoRedo list data structure
+type undoredotype
+ event as integer
+ x as integer
+ y as integer
+ z as integer
+ a as integer
+ b as integer
+endtype
+
+rem Empty list with a single null event
+dim undoredolist(0) as undoredotype
+empty array undoredolist(0)
+array insert at top undoredolist()
+
+rem Browser Folder History
+dim browserfolderhistory$(10)
+global localdesc$=""
+
+rem Globals for FPG handling
+global currentSMFPGtype as integer : currentSMFPGtype=1
+global currentSMFPG$ : currentSMFPG$="mygame.fpg"
+global currentAMFPGtype as integer : currentAMFPGtype=2
+global currentAMFPG$ : currentAMFPG$="myarena.fpg"
+global currentFPGtype as integer : currentFPGtype=currentSMFPGtype
+global currentFPG$ : currentFPG$=currentSMFPG$
+
+rem Other structres
+dim gunslots$ ( 10 )
+dim listkey ( 32 )
+dim list$( 100 )
+
+rem Level handling
+type leveltype
+ fpm$ as string
+ fpi$ as string
+endtype
+
+rem Project working on
+global projectfilename$ : projectfilename$=""
+global projectmodified : projectmodified=0
+
+rem File List Buffer Array (multipurpose)
+dim filelist$(0)
+
+`
+` Global Data and Arrays
+`
+
+rem additional globals for BUILD GAME speed-ups
+global globalsmallsound=0 : rem used in BUILD GAME (set to soundid for small cloned sound) - 11/11/08
+global currentlyintheAISCIPTloader=0 : rem used in BUILD GAME (AI SCRIPT so ignore images from AI scripts during build)
+
+rem Resource Banks
+global meshbankmax=0
+global meshbankoffset=1000
+dim meshbank$(100)
+global texturebankmax=0
+global texturebankoffset=1000
+dim texturebank$(100)
+global effectbankmax=0
+global effectbankoffset=1000
+dim effectbank$(100)
+dim soundbank$(10)
+global soundbankmax=0
+global soundbankoffset=1
+global materialsoundoffset=10001
+global materialsoundmax=0
+global explodesoundoffset=11001
+global explodesoundmax=0
+dim prefabbank$(100)
+dim prefabbanklocal$(100)
+global prefabbankmax=100
+dim selectionbank$(100)
+dim selectionbanklocal$(100)
+global entitybankmax=100
+dim entitybank$(entitybankmax)
+global particlebankmax=0
+global particlebankoffset=1
+dim gunbank$(100)
+global gunbankmax=0
+dim muzzlebank$(100)
+global muzzlebankmax=0
+dim brassbank$(100)
+global brassbankmax=0
+dim smokebank$(100)
+global smokebankmax=0
+`
+rem Image order important for texture order
+global imagebankmax=0
+global muzzlebankoffset=500
+global imagebankoffset=550
+dim imagebank$(500)
+`
+rem Object Resource Offsets (COMMON)
+global realviewobjectoffset=1000
+global realviewobjectoffsetend=0
+global entityattachmentsoffset=8900 : rem FPSCV104 - changed from 9900 - extra 1000 for guns/shadows
+global entityattachmentindex=0
+global entityworkobjectoffset=10099
+global entityobjectoffset=10100
+global hudbankoffset=16050
+global gunbankoffset=16100
+global brassbankoffset=16150
+global smokebankoffset=16200
+global flakbankoffset=16300
+global flakelementoffset=16350
+global decalbankoffset=16450
+global decalelementoffset=16500
+global fragmentobjectoffset=17000
+global fragmentobjectoffsetmax
+global explodedecalobjstart=17500
+global explodedecalobjmax
+global explosionscorch
+global explosionstressed
+global editorwaypointoffset=18000
+global editorwaypointoffsetmax=18499
+global debugobjectoffset=18500
+global editormarkeroffset=19000
+`global editormarkeroffsetmax=19999
+global editormarkeroffsetmax=19200
+global gamdebugobjoffset=19300
+global selectionbankoffset=20000
+global entitybankoffset=30000
+global gamehudimagesoffset=64500
+global editorimagesoffset=65000
+global physicsuniverseobj=65533
+global physicsplayerborble=65534
+rem Universe Builing Object Resources for entire universe
+global universebuildobjstartoffset=70001
+global universebuildobjendoffset=166000
+global endofallobjectsoffset=166001
+
+`
+` Segment Data
+`
+
+rem Segment Profile Data Structure
+type segmentprofileheadertype
+ partmax as integer
+ lastmeshmax as integer
+endtype
+rem V110 - 160508 - added flag to control portal generation
+`type segmentprofilevistype overlay f r wb wr wf wl owb owr owf owl ctl ctr cbr cbl octl octr ocbr ocbl endtype
+type segmentprofilevistype overlay f r wb wr wf wl owb owr owf owl ctl ctr cbr cbl octl octr ocbr ocbl portalmode endtype
+type segmentprofileblueprinttype
+ mode as integer
+ symbol as integer
+ floorsizey as integer
+ sidesizex as integer
+ sidesizey as integer
+ sidesizez as integer
+endtype
+type segmentprofileproperties
+ groundmode as integer
+ kindof as integer
+endtype
+type materialtype
+ index as integer
+endtype
+type segmentprofiletype
+ partmode as integer
+ meshname$ as string
+ meshid as integer
+ actuallimb as integer
+ offx as float
+ offy as float
+ offz as float
+ rotx as float
+ roty as float
+ rotz as float
+ tex$ as string
+ texd$ as string
+ texn$ as string
+ texs$ as string
+ effect$ as string
+ texid as integer
+ texdid as integer
+ texiid as integer
+ texnid as integer
+ texsid as integer
+ effectid as integer
+ transparency as integer
+ colmode as integer
+ vis as segmentprofilevistype
+ blueprint as segmentprofileblueprinttype
+ properties as segmentprofileproperties
+ csgmesh$ as string
+ csgmode as integer
+ csgimmune as integer
+ lightmode as integer
+ multimeshmode as integer
+ multimeshstart as integer
+ material as materialtype
+endtype
+global segobjusedformapeditor=0
+global segobjusedforsegeditor=0
+global segidmastermax : segidmastermax=100
+dim segmentprofileheader(segidmastermax) as segmentprofileheadertype
+dim segmentprofile(segidmastermax,64) as segmentprofiletype
+
+`
+` Map Data
+`
+
+rem Prepare map data and texture
+layermax=20 : maxx=40 : maxy=40
+dim map(layermax,maxx,maxy)
+mapid as DWORD
+mapselection as DWORD
+mapscaler as DWORD
+mapground as DWORD
+maprotate as DWORD
+maporient as DWORD
+mapsymbol as DWORD
+maptile as DWORD
+
+rem Visible-Col-Map used for per-cycle quick entity collision checks
+viscolx=160 : viscoly=20 : viscolz=160
+dim viscolmap(viscolx,viscoly,viscolz)
+
+rem Prepare entity reference map (references entityelementlist indexes)
+dim refmap(layermax,maxx,maxy) as DWORD
+newptrbase as DWORD
+refptrbase as DWORD
+ptrbase as DWORD
+refptr as DWORD
+ptr as DWORD
+
+rem Map Overlay (stacked segment list)
+dim mapolay(layermax,maxx,maxy)
+global olaylistmax : olaylistmax=100
+dim olaylist(olaylistmax,50) as DWORD
+
+rem Default settings
+gridzoom#=1.0
+shroudsize=5
+gridground=0
+gridselection=1
+nogridsmart=-1
+gridlayer=5
+bufferlayer=-1
+gridlayershowsingle=0
+grideditartwidth=1
+grideditartwidthx=1
+grideditartwidthy=1
+locallibrarysegidmaster=0
+locallibraryentidmaster=0
+locallibraryentindex=0
+dim locallibraryent(locallibraryentindex)
+
+rem Grid Entity globals
+gridentitylight as entitylighttype
+gridentitytrigger as entitytriggertype
+
+rem Master Mesh Data Structure
+type mapentriestype vertmax1 vertmax2 indexmax1 indexmax2 endtype
+type mastermeshtype obj buffer layer worldx worldy endtype
+
+rem Create master mesh array
+mastermeshmax=0
+mastermeshsize=1
+mastermeshsets=1
+firstmeshobject=101
+currentmeshobject=firstmeshobject
+dim mapentries(mastermeshsize,mastermeshsets,40,40) as mapentriestype
+dim mastermesh(mastermeshsize,mastermeshsets) as mastermeshtype
+
+`
+` Entity Data
+`
+
+rem Entity Profile Data Structure
+type entityprofileheadertype
+ desc$ as string
+endtype
+type entityanimtype
+ start as integer
+ finish as integer
+endtype
+type entityfootfall
+ keyframe as integer
+ soundtype as integer
+endtype
+type entitylighttype
+ index as integer
+ islit as integer
+ color as DWORD
+ range as integer
+endtype
+type entitytriggertype
+ areax1 as integer
+ areax2 as integer
+ areay1 as integer
+ areay2 as integer
+ areaz1 as integer
+ areaz2 as integer
+endtype
+type entityprofiletype
+ aiinit$ as string
+ aimain$ as string
+ aidestroy$ as string
+ aishoot$ as string
+ soundset$ as string
+ soundset1$ as string
+ usekey$ as string
+ ifused$ as string
+ ifusednear$ as string
+ spawnatstart as integer
+ spawnmax as integer
+ spawnupto as integer
+ spawnafterdelay as integer
+ spawnwhendead as integer
+ spawndelay as integer
+ spawnqty as integer
+ spawndelayrandom as integer
+ spawnqtyrandom as integer
+ spawnvel as integer
+ spawnvelrandom as integer
+ spawnangle as integer
+ spawnanglerandom as integer
+ spawnlife as DWORD
+ model$ as string
+ offx as float
+ offy as float
+ offz as float
+ rotx as float
+ roty as float
+ rotz as float
+ scale as float
+ fixnewy as float
+ forwardfacing as integer
+ defaultheight as float
+ defaultstatic as integer
+ collisionmode as integer
+ materialindex as integer
+ debrisshapeindex as integer
+ coneheight as float
+ coneangle as float
+ hurtfall as integer
+ texpath$ as string
+ texd$ as string
+ texdid as integer
+ texaltd$ as string
+ texaltdid as integer
+ tex1id as integer
+ tex2id as integer
+ tex3id as integer
+ tex4id as integer
+ texidmax as integer
+ effect$ as string
+ usingeffect as integer
+ castshadow as integer
+ transparency as integer
+ reducetexture as integer
+ strength as integer
+ lives as integer
+ speed as integer
+ isimmobile as integer
+ ischaracter as integer
+ cantakeweapon as integer
+ isweapon$ as string
+ isweapon as integer
+ isammo as integer
+ hasweapon$ as string
+ hasweapon as integer
+ ishealth as integer
+ isflak as integer
+ limbmax as integer
+ headlimb as integer
+ firespotlimb as integer
+ animmax as integer
+ footfallmax as integer
+ quantity as integer
+ ismarker as integer
+ markerindex as integer
+ isobjective as integer
+ light as entitylighttype
+ trigger as entitytriggertype
+ decalmax as integer
+ bloodscorch as integer
+ rateoffire as integer
+ damage as integer
+ accuracy as integer
+ reloadqty as integer
+ fireiterations as integer
+ lifespan as integer
+ throwspeed as float
+ throwangle as float
+ bounceqty as integer
+ explodeonhit as integer
+ weaponisammo as integer
+ raisefactor as integer
+ physics as integer
+ phyalways as integer
+ phyweight as integer
+ phyfriction as integer
+ phyforcedamage as integer
+ rotatethrow as integer
+ explodable as integer
+ explodedamage as integer
+endtype
+global animmax=200
+global footfallmax=200
+global entidmastermax=100
+dim entitybodypart(100,100) as integer
+dim entityanim(100,animmax) as entityanimtype
+dim entityfootfall(100,footfallmax) as entityfootfall
+dim entityprofileheader(100) as entityprofileheadertype
+dim entityprofile(100) as entityprofiletype
+dim entitydecal$(100,100) as string
+dim entitydecal(100,100) as integer
+
+rem Waypoint Component of entity element
+type aiwaypointtype
+ state as integer
+ current as integer
+ tracker as integer
+ direction as integer
+ timefrom as DWORD
+ xstart as float
+ ystart as float
+ zstart as float
+ xinc as float
+ yinc as float
+ zinc as float
+ timeslice as DWORD
+endtype
+
+rem AI Component of entity element
+type aistatustype
+ libinit as integer
+ libmain as integer
+ libdestroy as integer
+ libshoot as integer
+ libindex as integer
+ state as integer
+ alphafade as integer
+ destalphafade as integer
+ alphafadeupdate as integer
+ headangle as float
+ headdestangle as float
+ waypoint as aiwaypointtype
+ usinginternalai as integer
+ oldstate as integer
+ oldalphafade as integer
+ oldwaypointstate as integer
+ headshot as integer
+ oldanimframe as float
+ olddestanimframe as float
+endtype
+
+rem SPAWN Component of entity element
+type spawntype
+ atstart as integer
+ max as integer
+ delay as integer
+ qty as integer
+ upto as integer
+ afterdelay as integer
+ whendead as integer
+ delayrandom as integer
+ qtyrandom as integer
+ vel as integer
+ velrandom as integer
+ angle as integer
+ anglerandom as integer
+ life as DWORD
+ leader as integer
+ leadercount as integer
+ leaderid as integer
+ x as float
+ y as float
+ z as float
+endtype
+
+rem FORCE Component of entity element
+type forcetype
+ active as integer
+ ix as float
+ iy as float
+ iz as float
+endtype
+
+rem MOVEMENT Component of entity element
+type movertype
+ moved as integer
+ stepcount as float
+ dx as float
+ dy as float
+ dz as float
+ da as float
+ ix as float
+ iy as float
+ iz as float
+ grav as float
+ gravlasty as float
+ inmotion as integer
+ viewconeused as float
+ run as integer
+ strafe as integer
+ slidevel as float
+endtype
+
+rem Entity Element Custom Profile Data
+type entityeleproftype
+ name$ as string
+ aiinit$ as string
+ aiinit as integer
+ aimain$ as string
+ aimain as integer
+ aidestroy$ as string
+ aidestroy as integer
+ aishoot$ as string
+ aishoot as integer
+ usekey$ as string
+ ifused$ as string
+ ifusednear$ as string
+ scale as float
+ coneheight as float
+ coneangle as float
+ uniqueelement as integer
+ texd$ as string
+ texdid as integer
+ texaltd$ as string
+ texaltdid as integer
+ tex1id as integer
+ tex2id as integer
+ tex3id as integer
+ tex4id as integer
+ texidmax as integer
+ effect$ as string
+ usingeffect as integer
+ transparency as integer
+ strength as integer
+ isimmobile as integer
+ cantakeweapon as integer
+ hasweapon$ as string
+ hasweapon as integer
+ quantity as integer
+ isobjective as integer
+ lives as integer
+ markerindex as integer
+ light as entitylighttype
+ trigger as entitytriggertype
+ basedecal$ as string
+ soundset$ as string
+ soundset1$ as string
+ spawnatstart as integer
+ spawnmax as integer
+ spawnupto as integer
+ spawnafterdelay as integer
+ spawnwhendead as integer
+ spawndelay as integer
+ spawnqty as integer
+ spawndelayrandom as integer
+ spawnqtyrandom as integer
+ spawnvel as integer
+ spawnvelrandom as integer
+ spawnangle as integer
+ spawnanglerandom as integer
+ spawnlife as DWORD
+ hurtfall as integer
+ castshadow as integer
+ reducetexture as integer
+ speed as integer
+ rateoffire as integer
+ damage as integer
+ accuracy as integer
+ reloadqty as integer
+ fireiterations as integer
+ lifespan as integer
+ throwspeed as float
+ throwangle as float
+ bounceqty as integer
+ explodeonhit as integer
+ weaponisammo as integer
+ spare1 as DWORD
+ physics as integer
+ phyalways as integer
+ phyweight as integer
+ phyfriction as integer
+ phyforcedamage as integer
+ rotatethrow as integer
+ explodable as integer
+ explodedamage as integer
+ phydw3 as DWORD
+ phydw4 as DWORD
+ phydw5 as DWORD
+endtype
+rem Entity Elements Data
+type entitytype
+ editorfixed as integer
+ servercontrolled as integer
+ fakeplrindex as integer
+ active as integer
+ dormant as integer
+ eleprof as entityeleproftype
+ mover as movertype
+ ai as aistatustype
+ spawn as spawntype
+ force as forcetype
+ maintype as integer
+ bankindex as integer
+ profileobj as integer
+ staticflag as integer
+ obj as integer
+ attachmentobj as integer
+ attachmentbaseobj as integer
+ attachmentweapontype as integer
+ attachmentobjfirespotlimb as integer
+ attachmentblobobj as integer
+ x as float
+ y as float
+ z as float
+ rx as float
+ ry as float
+ rz as float
+ norotate as integer
+ nogravity as integer
+ dry as float
+ floorposy as float
+ colr as integer
+ colg as integer
+ colb as integer
+ limbslerp as integer
+ logiccount as float
+ logiccountburst as integer
+ logictimestamp as DWORD
+ priorityai as integer
+ priorityduration as integer
+ raycastcount as integer
+ raycastlaststate as integer
+ nofloorlogic as integer
+ crouchprofile as integer
+ plrdist as float
+ decalindex as integer
+ decalmode as integer
+ decalloop as integer
+ decalslotused as integer
+ decalsizex as float
+ decalsizey as float
+ animset as integer
+ animdir as integer
+ animdo as integer
+ animtime as integer
+ animframe as float
+ animspeed as float
+ animonce as integer
+ destanimframe as float
+ animframeupdate as integer
+ spinrate as integer
+ spinvalue as float
+ floatrate as integer
+ floatvalue as float
+ possibletarget as integer
+ actualtarget as integer
+ losttargetcount as integer
+ actualtargetx as float
+ actualtargety as float
+ actualtargetz as float
+ plrtrailindex as integer
+ fakeplayerid as integer
+ strafemode as integer
+ currentweapon as integer
+ currentclipammo as integer
+ currentammo as integer
+ fireweapon as integer
+ firestrength as integer
+ firesoundloop as integer
+ firesoundloopremote as integer
+ firesoundlooptime as DWORD
+ health as integer
+ lifecode as integer
+ beenkilled as integer
+ shotdamage as integer
+ shotdamagesource as integer
+ delaydamagecount as integer
+ delaydamagesource as integer
+ delaydamage as integer
+ delayimpact as integer
+ delaydamagex# as float
+ delaydamagey# as float
+ delaydamagez# as float
+ delaydir as integer
+ collected as integer
+ activated as integer
+ collisionactive as integer
+ invincibleactive as integer
+ blockedby as integer
+ blockedtox as integer
+ blockedtoy as integer
+ blockedtoz as integer
+ soundset as integer
+ soundset1 as integer
+ soundlooping as integer
+endtype
+rem Entity Breadcrumbs Data
+type entitybreadcrumbstype
+ x as float
+ y as float
+ z as float
+endtype
+global entityelementlist=0
+global entityelementmax=100
+grideleprof as entityeleproftype
+dim entityelement(entityelementmax) as entitytype
+dim entitybreadcrumbs(entityelementmax,50) as entitybreadcrumbstype
+dim entitydebug$(entityelementmax)
+
+rem Segment and EntityProfile/EntityelementList Vars
+global preidmaster : preidmaster=0
+global segidmaster : segidmaster=0
+global entidmaster : entidmaster=0
+global entityelementlist : entityelementlist=0
+global aiindexmaster : aiindexmaster=0
+global waypointmax : waypointmax=0
+global wayppointoneonlyflaw : wayppointoneonlyflaw=0
+global gheadshotdamage : gheadshotdamage=65500
+`
+` Artificial Intelegence Data
+`
+
+rem AI constants
+#constant AICONDNEVER 1
+#constant AICONDALWAYS 2
+#constant AICONDSTATE 3
+#constant AICONDRANDOM 4
+#constant AICONDHEALTH 5
+#constant AICONDHEALTHLESS 6
+#constant AICONDQUANTITY 7
+#constant AICONDSPEED 8
+#constant AICONDRATEOFFIRE 9
+#constant AICONDVAREQUAL 11
+#constant AICONDVARNOTEQUAL 12
+#constant AICONDVARGREATER 13
+#constant AICONDVARLESS 14
+#constant AICONDPLRHEALTHLESS 21
+#constant AICONDPLRHEALTHGREATER 22
+#constant AICONDLEVELEQUAL 31
+#constant AICONDLEVELNOTEQUAL 32
+#constant AICONDASSOCIATED 51
+#constant AICONDPLRDISTWITHIN 101
+#constant AICONDPLRDISTFURTHER 102
+#constant AICONDPLRHIGHER 103
+#constant AICONDANYWITHIN 104
+#constant AICONDANYFURTHER 105
+#constant AICONDPLRELEVWITHIN 106
+#constant AICONDPLRELEVFURTHER 107
+#constant AICONDPLRALIVE 111
+#constant AICONDSHOTDAMAGE 121
+#constant AICONDIFWEAPON 122
+#constant AICONDCANTAKE 131
+#constant AICONDPLRCANBESEEN 151
+#constant AICONDPLRCANNOTBESEEN 152
+#constant AICONDPLRHASKEY 153
+#constant AICONDPLRUSINGACTION 154
+#constant AICONDACTIVATED 155
+#constant AICONDPLRWITHINZONE 156
+#constant AICONDENTITYWITHINZONE 157
+#constant AICONDPLRINGUNSIGHT 158
+#constant AICONDNEARACTIVATABLE 159
+#constant AICONDNEWWEAPONCANBESEEN 161
+#constant AICONDNOISEHEARD 171
+#constant AICONDANYWITHINZONE 191
+#constant AICONDANYKEYWITHINZONE 192
+#constant AICONDRAYCAST 201
+#constant AICONDRAYCASTUP 202
+#constant AICONDRAYCASTBACK 203
+#constant AICONDNORAYCASTUP 204
+#constant AICONDFRAMEATEND 301
+#constant AICONDFRAMEATSTART 302
+#constant AICONDFRAMEWITHIN 303
+#constant AICONDFRAMEBEYOND 304
+#constant AICONDANIMATIONOVER 305
+#constant AICONDREACHTARGET 351
+#constant AICONDLOSETARGET 352
+#constant AICONDHEADANGLEGREATER 401
+#constant AICONDHEADANGLELESS 402
+#constant AICONDALPHAFADEEQUAL 471
+#constant AICONDWAYPOINTSTATE 501
+#constant AICONDIFMARKER 551
+#constant AICONDIFPLRTRAIL 552
+#constant AICONDHUDSELECTIONMADE 801
+#constant AICONDTIMERGREATER 811
+#constant AICONDESCAPEKEYPRESSED 821
+#constant AICONDHUDEDITDONE 822
+#constant AICONDHUDHAVENAME 823
+#constant AICONDSCANCODEKEYPRESSED 824
+#constant AICONDLAST 900
+
+#constant AIACTNONE 0
+#constant AIACTDESTROY 1
+#constant AIACTSUSPEND 2
+#constant AIACTFLOORLOGIC 11
+#constant AIACTNOGRAVITY 12
+#constant AIACTGLOBALVAR 31
+#constant AIACTLOCALVAR 32
+#constant AIACTSETVAR 33
+#constant AIACTINCVAR 34
+#constant AIACTDECVAR 35
+#constant AIACTRUNFPIDEFAULT 51
+#constant AIACTRUNFPI 52
+#constant AIACTSTATE 101
+#constant AIACTINCSTATE 102
+#constant AIACTMOVEUP 201
+#constant AIACTMOVEFORE 202
+#constant AIACTMOVEBACK 203
+#constant AIACTFREEZE 204
+#constant AIACTRUNFORE 205
+#constant AIACTROTATEY 226
+#constant AIACTROTATETOPLR 227
+#constant AIACTROTATEIY 228
+#constant AIACTNOROTATE 229
+#constant AIACTRESETHEAD 231
+#constant AIACTROTATEHEAD 232
+#constant AIACTROTATEHEADRANDOM 233
+#constant AIACTFORCEBACK 251
+#constant AIACTFORCEFORE 252
+#constant AIACTFORCELEFT 253
+#constant AIACTFORCERIGHT 254
+#constant AIACTFORCEBOUNCE 255
+#constant AIACTSPINRATE 281
+#constant AIACTFLOATRATE 282
+#constant AIACTSETFRAME 301
+#constant AIACTINCFRAME 302
+#constant AIACTDECFRAME 303
+#constant AIACTANIMATE 304
+#constant AIACTADVFRAME 305
+#constant AIACTSETTARGET 351
+#constant AIACTROTATETOTARGET 352
+#constant AIACTLOOKATTARGET 353
+#constant AIACTMOVETOTARGET 354
+#constant AIACTCOLLECTTARGET 355
+#constant AIACTCHOOSESTRAFE 356
+#constant AIACTSTRAFE 357
+#constant AIACTPIVOTRANDOM 358
+#constant AIACTLOOKATPLR 359
+#constant AIACTSETTARGETNAME 360
+#constant AIACTPLRASS 401
+#constant AIACTPLRNOASS 402
+#constant AIACTPLRMOVEUP 403
+#constant AIACTPLRMOVEDOWN 404
+#constant AIACTPLRMOVEEAST 405
+#constant AIACTPLRMOVEWEST 406
+#constant AIACTPLRMOVENORTH 407
+#constant AIACTPLRMOVESOUTH 408
+#constant AIACTPLRMOVETO 409
+#constant AIACTPLRMOVEIFUSED 410
+#constant AIACTPLRFREEZE 411
+#constant AIACTPLRDISABLE 412
+#constant AIACTACTIVATEIFUSED 421
+#constant AIACTACTIVATEIFUSEDNEAR 422
+#constant AIACTACTIVATETARGET 423
+#constant AIACTACTIVATE 424
+#constant AIACTACTIVATEALLINZONE 425
+#constant AIACTPLRADDHEALTH 431
+#constant AIACTPLRSUBHEALTH 432
+#constant AIACTPLRSETHEALTH 433
+#constant AIACTADDHEALTH 441
+#constant AIACTSUBHEALTH 442
+#constant AIACTSETHEALTH 443
+#constant AIACTSOUND 451
+#constant AIACT3DSOUND 452
+#constant AIACTLOOPSOUND 453
+#constant AIACTSTOPSOUND 454
+#constant AIACTALTTEXTURE 461
+#constant AIACTSETALPHAFADE 471
+#constant AIACTINCALPHAFADE 472
+#constant AIACTDECALPHAFADE 473
+#constant AIACTRUNDECAL 481
+#constant AIACTSHAPEDECAL 482
+#constant AIACTTRIGGERFORCE 491
+#constant AIACTWAYPOINTSTART 501
+#constant AIACTWAYPOINTSTOP 502
+#constant AIACTWAYPOINTREVERSE 503
+#constant AIACTWAYPOINTNEXT 504
+#constant AIACTWAYPOINTPREV 505
+#constant AIACTWAYPOINTRANDOM 506
+#constant AIACTDROPMARKER 551
+#constant AIACTNEXTMARKER 552
+#constant AIACTRESETMARKERS 553
+#constant AIACTFOLLOWPLR 554
+#constant AIACTPLRTAKE 601
+#constant AIACTPLRDROP 602
+#constant AIACTSHOOTPLR 701
+#constant AIACTUSEWEAPON 711
+#constant AIACTRELOADWEAPON 712
+#constant AIACTCOLOFF 751
+#constant AIACTCOLON 752
+#constant AIACTSPAWNON 761
+#constant AIACTSPAWNOFF 762
+#constant AIACTHEADSHOT 771
+#constant AIACTHEADSHOTDAMAGE 772
+#constant AIACTAMBIENCE 821
+#constant AIACTAMBIENCERED 822
+#constant AIACTAMBIENCEGREEN 823
+#constant AIACTAMBIENCEBLUE 824
+#constant AIACTFOG 831
+#constant AIACTFOGRED 832
+#constant AIACTFOGGREEN 833
+#constant AIACTFOGBLUE 834
+#constant AIACTSKY 841
+#constant AIACTSKYSCROLL 842
+#constant AIACTNEWJUMPHEIGHT 901
+#constant AIACTBACKDROP 1001
+#constant AIACTMUSIC 1011
+#constant AIACTMUSICVOLUME 1012
+#constant AIACTSOUNDSCALE 1013
+#constant AIACTMUSICOVERRIDE 1014
+#constant AIACTVIDEO 1021
+#constant AIACTLIGHTON 1051
+#constant AIACTLIGHTOFF 1052
+#constant AIACTLIGHTRED 1053
+#constant AIACTLIGHTGREEN 1054
+#constant AIACTLIGHTBLUE 1055
+#constant AIACTLIGHTRANGE 1056
+#constant AIACTLIGHTINTENSITY 1057
+#constant AIACTHUDRESET 1100
+#constant AIACTHUDX 1101
+#constant AIACTHUDY 1102
+#constant AIACTHUDZ 1103
+#constant AIACTHUDSIZEX 1104
+#constant AIACTHUDSIZEY 1105
+#constant AIACTHUDSIZEZ 1106
+#constant AIACTHUDRED 1107
+#constant AIACTHUDGREEN 1108
+#constant AIACTHUDBLUE 1109
+#constant AIACTHUDIMAGE 1110
+#constant AIACTHUDIMAGEFINE 1111
+#constant AIACTHUDFONT 1112
+#constant AIACTHUDSIZE 1113
+#constant AIACTHUDTEXT 1114
+#constant AIACTHUDTYPE 1115
+#constant AIACTHUDHIDE 1116
+#constant AIACTHUDSHOW 1117
+#constant AIACTHUDUNSHOW 1118
+#constant AIACTHUDNAME 1119
+#constant AIACTHUDANIM 1120
+#constant AIACTHUDFADEOUT 1121
+#constant AIACTHUDMAKE 1199
+#constant AIACTNEWGAME 1201
+#constant AIACTLOADGAME 1202
+#constant AIACTSAVEGAME 1203
+#constant AIACTCONTINUEGAME 1204
+#constant AIACTQUITGAME 1205
+#constant AIACTPAUSEGAME 1206
+#constant AIACTRESUMEGAME 1207
+#constant AIACTHOSTGAME 1208
+#constant AIACTJOINGAME 1209
+#constant AIACTREPEATGAME 1210
+#constant AIACTTIMERSTART 1211
+#constant AIACTQUICKLOADGAME 1212
+#constant AIACTQUICKSAVEGAME 1213
+#constant AIACTLAST 1300
+
+rem V109 BETA3 - 210408 - AI variables
+global aivariablemode : aivariablemode=0 : rem 0-global, 1-local
+global aivariableindex : aivariableindex=0
+dim aiglobals(99)
+dim ailocals(1,99) as integer
+
+rem AI Counters
+global actstringmax=0
+global conindexcount=0
+global aicondseqcount=0
+global actindexcount=0
+global aiactseqcount=0
+global hudmax=0
+global hudfadeoutoneatatime=0
+global internalloaderhud=0
+global internaleyehud=0
+global internalfaderhud=0
+
+rem AI BC Sound
+global bcsoundstrength#
+global bcsoundx#
+global bcsoundy#
+global bcsoundz#
+
+rem AI actions
+type aiactiontype
+ type as integer
+ value as float
+ filename as string
+endtype
+dim aiactionseq(10000) as aiactiontype
+type aiactionitemtype
+ first last
+endtype
+dim aiaction(500) as aiactionitemtype
+dim actstring$(actstringmax)
+
+rem AI conditions
+type aiconditiontype
+ type as integer
+ valuea as float
+ valueb as float
+ valuec as float
+endtype
+dim aiconditionseq(10000) as aiconditiontype
+type aiconditionitemtype
+ first last
+ action as integer
+endtype
+dim aicond(500) as aiconditionitemtype
+
+rem AI Library List
+type ailiblisttype
+ loaded as integer
+ file$ as string
+ desc$ as string
+ conditionfirst as integer
+ conditionlast as integer
+endtype
+dim ailist(200) as ailiblisttype
+
+rem AI Library Count
+if leavegamedataalone=0
+ dim scriptbank$(100)
+ aiindexmaster=0
+endif
+
+`
+` Waypoint Data Structures
+`
+
+rem Waypoint data structure
+type waypointtype
+ count as integer
+ start as integer
+ finish as integer
+endtype
+type waypointcoordtype
+ x as float
+ y as float
+ z as float
+ link as integer
+ index as integer
+endtype
+dim waypointcoord(1000) as waypointcoordtype
+dim waypoint(10) as waypointtype
+global waypointeditheight#=0
+global waypointcoordmax=0
+global waypointmax=0
+`
+` Global Particle and Debris Data Structures
+`
+dim debris(32)
+
+
+`
+` Gun Data Structures
+`
+
+rem Gun Sounds Data Structure
+type gunsoundbanktype
+ name$ as string
+ soundid as integer
+endtype
+type gunsoundbankcompaniontype
+ soundid as integer
+endtype
+type gunsounditemtype
+ keyframe as integer
+ playsound as integer
+ lastplay as integer
+endtype
+type gunsoundstype
+ soundframes as integer
+ fireloopend as integer
+endtype
+
+rem Gun Settings Data Structure
+type gunsettingstype
+ muzzleflash as integer
+ muzzlex# as float
+ muzzley# as float
+ muzzlez# as float
+ muzzlesize# as float
+ muzzlecolorr as integer
+ muzzlecolorg as integer
+ muzzlecolorb as integer
+ brass as integer
+ smoke as integer
+ flashlimb as integer
+ brasslimb as integer
+ smokelimb as integer
+ flashlimb2 as integer
+ brasslimb2 as integer
+ smokelimb2 as integer
+ handlimb as integer
+ flashimg as integer
+ brassobjmaster as integer
+ smokeimg as integer
+ crosshairimg as integer
+ flakname$ as string
+ flakindex as integer
+ seconduse as integer
+ damage as integer
+ damagetype as integer
+ scorchtype as integer
+ reloadqty as integer
+ weaponisammo as integer
+ iterate as integer
+ accuracy as integer
+ zoommode as integer
+ zoomaccuracy as integer
+ range as integer
+ smokespeed as integer
+ smokedecal$ as string
+ firerate as integer
+ shotgun as integer
+endtype
+
+rem Gun Actions Data Structure
+type gunanimtype
+ s as integer
+ e as integer
+endtype
+type gunactionstype
+ show as gunanimtype
+ idle as gunanimtype
+ move as gunanimtype
+ start as gunanimtype
+ automatic as gunanimtype
+ finish as gunanimtype
+ startreload as gunanimtype
+ reloadloop as gunanimtype
+ endreload as gunanimtype
+ cock as gunanimtype
+ hide as gunanimtype
+endtype
+
+rem Gun Data Structure (is 10 our maximum for the entire game, ie weapon slots max?)
+type guntype
+ activeingame as integer
+ obj as integer
+ secondobj as integer
+ name$ as string
+ weapontype as integer
+ texd$ as string
+ effect$ as string
+ zoomscope$ as string
+ zoomscope as integer
+ decal$ as string
+ decalid as integer
+ effectidused as integer
+ transparency as integer
+ settings as gunsettingstype
+ sound as gunsoundstype
+ action as gunactionstype
+ hudimage as integer
+ horiz# as float
+ vert# as float
+ forward# as float
+endtype
+dim gun(100) as guntype
+dim gunsound(100,5) as gunsoundbanktype
+dim gunsoundcompanion(100,5,2) as gunsoundbankcompaniontype
+dim gunsounditem(100,50) as gunsounditemtype
+dim brassfallcount(30)
+global autoloadgun=0
+global gunslotmax=0
+global gunmax
+
+rem Flak Elements Data Structure
+type flakelementtype
+ flakid as integer
+ profile as flakprofiletype
+ active as integer
+ range as integer
+ obj as integer
+ xpos as float
+ ypos as float
+ zpos as float
+ owner as integer
+endtype
+global flakelementmax=100
+dim flakelement(flakelementmax) as flakelementtype
+
+rem Decal Structure (explosions, lightdlare, smoke, steam, plasma)
+type decaltype
+ active as integer
+ imageid as integer
+ name$ as string
+ across as integer
+ down as integer
+ offsety as float
+ framemax as integer
+ scale as integer
+endtype
+global decalmax=10
+dim decal(decalmax) as decaltype
+
+rem Decal Element Structure (reusable instances)
+type decalelementtype
+ decalid as integer
+ active as integer
+ obj as integer
+ xpos as float
+ ypos as float
+ zpos as float
+ frame as integer
+ framedelay as integer
+ orient as integer
+ originator as integer
+ scalemodx as float
+ scalemody as float
+endtype
+global decalelementmax=100
+dim decalelement(decalelementmax) as decalelementtype
+
+`
+` Players Data
+`
+
+rem Input Command Structure
+type inputcommandtype
+ take drop newweapon
+endtype
+type playerstatetype
+ moving firingmode
+endtype
+
+rem Weapon Data Structure
+type weaponslottype
+ pref got invpos
+endtype
+if leavegamedataalone=0
+ dim weaponslot(10) as weaponslottype
+ dim weaponammo(10) as integer
+ dim weaponclipammo(10) as integer
+ for ws=1 to 10 : weaponslot(ws).pref=0 : next ws
+endif
+dim weaponhud(10) as integer
+
+rem Inventory Data Structure
+type inventorytype
+ new as integer
+ drop as integer
+ index as integer
+endtype
+
+rem Players Data Structure
+type playertype
+ serverplayer as integer
+ command as inputcommandtype
+ state as playerstatetype
+ x as float
+ y as float
+ z as float
+ envstate as integer
+ envassociatedentity as integer
+ recovershield as integer
+ health as integer
+ lives as integer
+ inventorymax as integer
+ usingaction as integer
+endtype
+type playertrailtype
+ time as DWORD
+ x as float
+ y as float
+ z as float
+endtype
+global playermax=1
+global playertrailmax=0
+dim player(playermax) as playertype
+dim playersound(playermax,520) as integer
+dim playersoundtimeused(playermax,520) as DWORD
+dim playersoundset$(playermax) as string
+dim playermovementstep(playermax) as float
+dim playerinventory(playermax,100) as inventorytype
+dim playertrial(100) as playertrailtype
+playersoundset$(1)=""
+
+rem Player Mission
+global missiongoaltotal as integer
+dim playerobjective(99) as integer
+
+rem Player+Multiplayer Related Data
+global multiplayeridlinkmax : multiplayeridlinkmax=0
+dim multiplayeridlink(16) as DWORD
+dim multiplayername$(16) as string
+dim multiplayerisnew(16) as integer
+dim multiplayerplrindex(16) as integer
+dim multiplayeri(16) as integer
+
+rem Infini-Light Data Structure
+type colrgbtype
+ r g b
+endtype
+type infinilighttype
+ used as integer
+ type as integer
+ x as float
+ y as float
+ z as float
+ range as float
+ id as integer
+ dist as float
+ colrgb as colrgbtype
+ islit as integer
+endtype
+dim infinilight(0) as infinilighttype
+empty array infinilight(0)
+dim infinilightshortlist(0)
+empty array infinilightshortlist(0)
+
+rem Shadow Lights Data Structure
+type shadowlighttype
+ x# y# z# range#
+endtype
+dim shadowlight(0) as shadowlighttype
+
+rem Light Table used to accelerate lighting of entities
+type lighttabletype
+ r as float
+ g as float
+ b as float
+ x as float
+ y as float
+ z as float
+endtype
+dim lighttable(viscolx,viscoly,viscolz) as lighttabletype
+
+rem Data structure for Bit-Fragments
+type bitdetailstype
+ max as integer
+ file$ as string
+ collisionmode as integer
+ fragmentobjstart as integer
+ choice as integer
+ sizex as float
+ sizey as float
+ sizez as float
+endtype
+type bitoffsettype
+ x# y# z#
+endtype
+dim bitdetails(10) as bitdetailstype
+dim bitoffset(10,8) as bitoffsettype
+
+rem Explosion Data Structure
+type explodetype
+ obj as integer
+ explode as integer
+ explodesound as integer
+ dist# as float
+ smoke# as float
+ fade# as float
+ x as float
+ y as float
+ z as float
+endtype
+global explodermax=4
+dim exploder(explodermax) as explodetype
+
+rem GUI Visual Settings
+type guivisualsettingstype
+ updateflag as integer
+ ambience as integer
+ shadows as integer
+ shadowstrength as integer
+ shadowshades as integer
+ dynamiclightcount as integer
+endtype
+guivisualsettings as guivisualsettingstype
+
+rem HUD structure
+type hudtype
+ name$ as string
+ maintype as integer
+ typemode as integer
+ posx as float
+ posy as float
+ posz as float
+ sizex as integer
+ sizey as integer
+ sizez as integer
+ red as integer
+ green as integer
+ blue as integer
+ fadeout as integer
+ baseanim as integer
+ image as integer
+ font$ as string
+ fontsize as integer
+ text$ as string
+ hide as integer
+ hidedelay as integer
+ highlighted as integer
+ width as integer
+ height as integer
+endtype
+dim hud(10) as hudtype
+
+rem Setup work floats (for HUD decimal detail)
+value1 as float
+value2 as float
+value3 as float
+workhudx as float
+workhudy as float
+workhudz as float
+
+rem FPSCV104 Fog globals
+hudfogon as integer
+hudfoglaston as integer
+hudfognear as float
+hudfogfar as float
+hudfogred as float
+hudfoggreen as float
+hudfogblue as float
+
+rem World Physics Settings
+global physicson=1
+global physicsdebug=0 : rem gdebugphysicsstate will set this to one!
+global physicsgravx#=0.0
+global physicsgravy#=0 : physicsgravy#=-40.0
+global physicsgravz#=0.0
+global physicsplayerweight# : physicsplayerweight#=500.0
+global grav# as float : grav#=0
+global camerapositionx as float : camerapositionx=0
+global camerapositiony as float : camerapositiony=0
+global camerapositionz as float : camerapositionz=0
+global cameraspeed as float : cameraspeed=0
+global camerapickup as integer : camerapickup=1
+global cameraholding as integer : cameraholding=0
+global camerapickupkeyrelease : camerapickupkeyrelease=0
+global camerareach# as float : camerareach#=0
+global camerareachatrun# as float : camerareachatrun#=0
+global camerareachmax# as float : camerareachmax#=75
+global camerapickedangle# as float : camerapickedangle#=0
+global camerapicked as integer : camerapicked=0
+global camerapickede as integer : camerapickede=0
+global camerapickeddrop as integer : camerapickeddrop=0
+global camerapickedthrown as integer : camerapickedthrown=0
+global camerathrow# as float : camerathrow#=100.0
+global camerathrowelev# as float : camerathrowelev#=0.0
+global cameradampen# : cameradampen#=1.0
+global cameradampenactive : cameradampenactive=0
+global cameracarryweight# : cameracarryweight#=4000
+dim phyobjvelocity#(1)
+dim phylasttravelled#(1)
+dim phylastfloorstop#(1)
+dim phyobjsounding(1)
+dim phyobjremove(1)
+dim phyobjele(1)
+dim shadowobj(1)
+
+rem Respawn array for arena game
+type respawntype
+ e as integer
+ x as float
+ y as float
+ z as float
+ ry as float
+endtype
+dim respawn(16) as respawntype
+global respawnmax : respawnmax=0
+
+rem Multiplayer globals and structures
+global hudiplistmax : hudiplistmax=-1
+dim hudiplist$(20,1)
+global repeatsamelevel : repeatsamelevel=0
+global winnersname$ as string : winnersname$=""
+global servername$ : servername$="FPSC Creator Portal"
+global ipaddress$
+global multiplayerinitialised as integer
+global createorjoin as integer
+global lagmon# as float
+global startofrecording as DWORD
+global dwBurstTime as DWORD
+global dwStartTime as DWORD
+global dwStartJoinTime as DWORD
+global dwPlayerID as DWORD
+global timestampforlagtest as DWORD
+global locallagtime as DWORD
+global dwMessageCode as DWORD
+global dwCode as DWORD
+global dwLocalPlayerID as DWORD
+global iLocalEL as integer
+global PlayerCanStart as integer
+global Servergameisfull as integer
+global gterminationcountdown as integer
+global tenminutetimer as DWORD
+global cameratimeslice as DWORD
+rem talktoaster arrays
+dim talkscript$(10)
+dim talkscriptcount(10)
+dim talkscriptwho(10)
+global talkindex as integer
+global gtalkytoaster as integer
+global talkpingsound as integer
+rem Characters (chosen is indexed by iLocalEL, list is flaglist of used identities)
+global multiplayermax : multiplayermax=16
+dim characterchosen(multiplayermax)
+dim characterchoiceentityindex(multiplayermax)
+dim characterlist$(multiplayermax) as string
+dim characterlist(multiplayermax)
+dim characterlistentity(multiplayermax)
+rem Dead reckoning temp arrays
+dim cpx#(4)
+dim cpy#(4)
+dim cpz#(4)
+dim stategetready(multiplayermax)
+dim statex(multiplayermax)
+dim statey(multiplayermax)
+dim statez(multiplayermax)
+dim statea(multiplayermax)
+dim stateanim(multiplayermax)
+dim stateanimdir(multiplayermax)
+dim statecolmaterialtype(multiplayermax)
+dim stateanimwait(multiplayermax)
+dim statewhodidit(multiplayermax)
+dim stateplayagain(multiplayermax)
+dim stateviewy(multiplayermax) as float
+dim statesviewdy(multiplayermax) as float
+dim stateweapon(multiplayermax)
+dim stateannounce(multiplayermax)
+dim statesx(multiplayermax)
+dim statesy(multiplayermax)
+dim statesz(multiplayermax)
+dim statesa(multiplayermax)
+dim statesvel(multiplayermax) as float
+dim statetx(multiplayermax)
+dim statety(multiplayermax)
+dim statetz(multiplayermax)
+dim statedx(multiplayermax)
+dim statedy(multiplayermax)
+dim statedz(multiplayermax)
+dim statemove(multiplayermax)
+dim statelag(multiplayermax) as float
+dim statemsgap(multiplayermax) as float
+dim statemytimer(multiplayermax) as DWORD
+dim statecodeupdate(multiplayermax,4)
+dim stateraycastpace(multiplayermax)
+
+rem Server Scores
+dim frags(multiplayermax) as integer
+
+rem End of FULL-DATA-INIT Subroutine
+return
+
+
+`
+` Initialise using SETUP.INI
+`
+
+_FPSC_Setup:
+
+rem Very first task is find and load BUILD.INI (if flagged)
+global gcompilestandaloneexe : gcompilestandaloneexe=0
+global gbuildpath$ as string
+global gbuildname$ as string
+
+rem Find and load SETUP.INI settings as global states
+global grealgameviewstate : grealgameviewstate=0
+global gmultiplayergame : gmultiplayergame=0
+global gdebugreportmodestate : gdebugreportmodestate=0
+global gexitpromptreportmodestate : gexitpromptreportmodestate=0
+global gdebugphysicsstate : gdebugphysicsstate=0
+global gdebugreportstepthroughstate : gdebugreportstepthroughstate=0
+global gshowentitygameinfostate : gshowentitygameinfostate=0
+global gshowdebugtextingamestate : gshowdebugtextingamestate=0
+global gincludeonlyvideo : gincludeonlyvideo=0
+global gincludeonlyname$ : gincludeonlyname$=""
+global gignorefastbone : gignorefastbone=0
+global glightmappingstate : glightmappingstate=0
+`global glightmapsize : glightmapsize=8 `preV104RC8
+`global glightmapquality : glightmapquality=100
+global glightmappingold : glightmappingold=0
+global glightshadowsstate : glightshadowsstate=0
+global glightambientr : glightambientr=0
+global glightambientg : glightambientg=0
+global glightambientb : glightambientb=0
+global glightsunx : glightsunx=0
+global glightsuny : glightsuny=-1
+global glightsunz : glightsunz=0
+global glightsunr : glightsunr=0
+global glightsung : glightsung=0
+global glightsunb : glightsunb=0
+global glightzerorange : glightzerorange=2000
+global glightatten : glightatten=16000
+global glightmaxsize : glightmaxsize=-1
+global glightboost : glightboost=4
+global glighttexsize : glighttexsize=1024
+global glightquality : glightquality=40
+global glightblurmode : glightblurmode=1
+global glightthreadmax : glightthreadmax=4
+global gdynamiclightingstate : gdynamiclightingstate=0
+global gdynamicshadowsstate : gdynamicshadowsstate=1
+global guseeffectstate : guseeffectstate=0
+global guseeffectongunsstate : guseeffectongunsstate=0
+global guseeffectonscenesstate : guseeffectonscenesstate=0
+global guseeffectonentitiesstate : guseeffectonentitiesstate=0
+global gdividetexturesize : gdividetexturesize=0
+global goptimizemode : goptimizemode=0
+global ghsrmode : ghsrmode=0
+global guseskystate : guseskystate=0
+global gusefloorstate : gusefloorstate=0
+global guseenvsoundsstate : guseenvsoundsstate=0
+global guseweaponsstate : guseweaponsstate=0
+global gindieditorstate : gindieditorstate=0
+global gdisplaywidth : gdisplaywidth=1024
+global gdisplayheight : gdisplayheight=768
+global gdisplaydepth : gdisplaydepth=32
+global guniquesignature as DWORD : guniquesignature=0
+global ggameobjectivetype : ggameobjectivetype=0
+global ggameobjectivevalue : ggameobjectivevalue=0
+global goneshotkills : goneshotkills=0
+global numberofplayers : numberofplayers=8
+global gspawnrandom : gspawnrandom=0
+global guniquegamecode$ : guniquegamecode$=""
+global guseuniquelynamedentities : guseuniquelynamedentities=0
+global gexportassets : gexportassets=0
+global gproducelogfiles : gproducelogfiles=0
+global ggodmodestate : ggodmodestate=0
+global glevelmax : glevelmax=1
+global level : level=1
+global glocalserveroverride$ : glocalserveroverride$=""
+global gbloodonfloor : gbloodonfloor=0
+global gimageblockmode : gimageblockmode=0
+global gxbox : gxbox=0
+global gxboxinvert : gxboxinvert=0
+
+rem Version Control - TEST GAME Mode
+global gtestgamemodefromeditor : gtestgamemodefromeditor=0
+global gtestgamemodefromeditorokaypressed : gtestgamemodefromeditorokaypressed=0
+gosub _version_commandlineprompt
+
+rem V110 - 160508 - get version information from version file
+global gversion : gversion=10000
+if file exist("version.ini")=1
+ dim data$(99)
+ load array "version.ini",data$()
+ version$=""
+ for n=1 to len(data$(0))
+  c$=mid$(data$(0),n)
+  if c$<>"." then version$=version$+c$
+ next n
+ gversion=val(version$)
+ undim data$()
+endif
+
+rem V110 - 280508 - get serial code from USERDETAILS.INI
+rem and check against black listed codes, and flag to mess
+rem about with some visual map editor aspects (to show who
+rem is using a dodgy serial code to bug forum/members)
+global serialcodeinvalid : serialcodeinvalid=0
+if file exist("userdetails.ini")=1
+ dim data$(99)
+ load array "userdetails.ini",data$()
+ for n=0 to 98
+  c$=lower$(data$(n))
+  if left$(c$,15)="yourserialcode="
+   serialcode$=right$(c$,len(c$)-15)
+   exit
+  endif
+ next n
+ szSerial$=left$(serialcode$,16)
+ if szSerial$="00v100030031232e" then serialcodeinvalid=1
+ if szSerial$="00v1004004337a76" then serialcodeinvalid=1
+ if szSerial$="00v117850951d643" then serialcodeinvalid=1
+ if szSerial$="00v1042002338900" then serialcodeinvalid=1
+ if szSerial$="0X100000140429b3" then serialcodeinvalid=1
+ undim data$()
+endif
+
+rem Default, unless overridden by BUILD -B
+global setupfilename$
+setupfilename$="setup.ini"
+
+rem COMMANDLINE Info
+if lower$(cl$())="-b"
+ `
+ rem BUILD settings
+ gcompilestandaloneexe=1
+ setupfilename$="buildsetup.ini"
+ tfile$="build.ini"
+ if file exist(tfile$)=1
+  dim data$(99)
+  load array tfile$,data$()
+  for l=0 to 99
+   line$=data$(l)
+   if len(line$)>0
+    if lower$(left$(line$,4))=";end" then exit
+    if left$(line$,1)<>";"
+     `
+     rem take fieldname and values
+     for c=0 to len(line$)
+      if mid$(line$,c)="=" then mid=c : exit
+     next c
+     field$=lower$(removeedgespaces(left$(line$,mid-1)))
+     value$=removeedgespaces(right$(line$,len(line$)-mid))
+     for c=0 to len(value$)
+      if mid$(value$,c)="," then mid=c : exit
+     next c
+     value1=val(removeedgespaces(left$(value$,mid-1)))
+     value2$=removeedgespaces(right$(value$,len(value$)-mid))
+     if len(value2$)>0 then value2=val(value2$) else value2=-1
+     `
+     rem collect data from fields in setup file
+     tryfield$="path" : if field$=tryfield$ then gbuildpath$=value$
+     tryfield$="name" : if field$=tryfield$ then gbuildname$=value$
+     `
+    endif
+   endif
+  next l
+  undim data$()
+ endif
+ `
+endif
+
+rem RESTORE MAP Mode
+global grestoreeditorsettings : grestoreeditorsettings=0
+if lower$(cl$())="-r"
+ grestoreeditorsettings=1
+endif
+
+rem SETUP Info`
+tfile$=setupfilename$
+if file exist(tfile$)=1
+ `
+ rem Load Data from file
+ dim data$(999)
+ load array tfile$,data$()
+ for l=0 to 999
+  line$=data$(l)
+  if len(line$)>0
+   if lower$(left$(line$,4))=";end" then exit
+   if left$(line$,1)<>";"
+    `
+    rem take fieldname and values
+    for c=0 to len(line$)
+     if mid$(line$,c)="=" then mid=c : exit
+    next c
+    field$=lower$(removeedgespaces(left$(line$,mid-1)))
+    value$=removeedgespaces(right$(line$,len(line$)-mid))
+    for c=0 to len(value$)
+     if mid$(value$,c)="," then mid=c : exit
+    next c
+    value1=val(removeedgespaces(left$(value$,mid-1)))
+    value2$=removeedgespaces(right$(value$,len(value$)-mid))
+    if len(value2$)>0 then value2=val(value2$) else value2=-1
+    `
+    rem collect data from fields in setup file
+    tryfield$="version" : if field$=tryfield$ then gversion=value1
+    tryfield$="realgameview" : if field$=tryfield$ then grealgameviewstate=value1
+    tryfield$="multiplayergame" : if field$=tryfield$ then gmultiplayergame=value1
+    tryfield$="debugreport" : if field$=tryfield$ then gdebugreportmodestate=value1
+    tryfield$="exitpromptreport" : if field$=tryfield$ then gexitpromptreportmodestate=value1
+    tryfield$="debugphysics" : if field$=tryfield$ then gdebugphysicsstate=value1
+    tryfield$="debugreportstepthrough" : if field$=tryfield$ then gdebugreportstepthroughstate=value1
+    tryfield$="showentitygameinfo" : if field$=tryfield$ then gshowentitygameinfostate=value1
+    tryfield$="showdebugtextingame" : if field$=tryfield$ then gshowdebugtextingamestate=value1
+    tryfield$="includeonlyvideo" : if field$=tryfield$ then gincludeonlyvideo=value1
+    tryfield$="includeonlyname" : if field$=tryfield$ then gincludeonlyname$=value$
+    tryfield$="ignorefastbone" : if field$=tryfield$ then gignorefastbone=value1
+    tryfield$="loadreport" : if field$=tryfield$ then gloadreportstate=value1
+    `
+    tryfield$="optimizemode" : if field$=tryfield$ then goptimizemode=value1
+    tryfield$="hsrmode" : if field$=tryfield$ then ghsrmode=value1
+    tryfield$="lightmapping" : if field$=tryfield$ then glightmappingstate=value1
+    `tryfield$="lightmapsize" : if field$=tryfield$ then glightmapsize=value1
+    `tryfield$="lightmapquality" : if field$=tryfield$ then glightmapquality=value1
+    tryfield$="lightmapold" : if field$=tryfield$ then glightmappingold=value1
+    tryfield$="lightmapshadows" : if field$=tryfield$ then glightshadowsstate=value1
+    tryfield$="lightmapambientr" : if field$=tryfield$ then glightambientr=value1
+    tryfield$="lightmapambientg" : if field$=tryfield$ then glightambientg=value1
+    tryfield$="lightmapambientb" : if field$=tryfield$ then glightambientb=value1
+    tryfield$="lightmapsunx" : if field$=tryfield$ then glightsunx=value1
+    tryfield$="lightmapsuny" : if field$=tryfield$ then glightsuny=value1
+    tryfield$="lightmapsunz" : if field$=tryfield$ then glightsunz=value1
+    tryfield$="lightmapsunr" : if field$=tryfield$ then glightsunr=value1
+    tryfield$="lightmapsung" : if field$=tryfield$ then glightsung=value1
+    tryfield$="lightmapsunb" : if field$=tryfield$ then glightsunb=value1
+    tryfield$="lightmapzerorange" : if field$=tryfield$ then glightzerorange=value1
+    tryfield$="lightmapatten" : if field$=tryfield$ then glightatten=value1
+    tryfield$="lightmapmaxsize" : if field$=tryfield$ then glightmaxsize=value1
+    tryfield$="lightmapboost" : if field$=tryfield$ then glightboost=value1
+    tryfield$="lightmaptexsize" : if field$=tryfield$ then glighttexsize=value1
+    tryfield$="lightmapquality" : if field$=tryfield$ then glightquality=value1
+    tryfield$="lightmapblurmode" : if field$=tryfield$ then glightblurmode=value1
+    tryfield$="lightmapthreadmax" : if field$=tryfield$ then glightthreadmax=value1
+    tryfield$="bloodonfloor" : if field$=tryfield$ then gbloodonfloor=value1
+    tryfield$="imageblockmode" : if field$=tryfield$ then gimageblockmode=value1
+    `
+    tryfield$="xbox"
+    if field$=tryfield$
+     if value1=0 then gxbox=0 : gxboxinvert=0
+     if value1=1 then gxbox=1 : gxboxinvert=0
+     if value1=2 then gxbox=1 : gxboxinvert=1
+    endif
+    `
+    tryfield$="dynamiclighting" : if field$=tryfield$ then gdynamiclightingstate=value1
+    tryfield$="dynamicshadows" : if field$=tryfield$ then gdynamicshadowsstate=value1
+    tryfield$="useeffects" : if field$=tryfield$ then guseeffectstate=value1
+    tryfield$="useeffectsonguns" : if field$=tryfield$ then guseeffectongunsstate=value1
+    tryfield$="useeffectsonscene" : if field$=tryfield$ then guseeffectonscenesstate=value1
+    tryfield$="useeffectsonentities" : if field$=tryfield$ then guseeffectonentitiesstate=value1
+    tryfield$="dividetexturesize" : if field$=tryfield$ then gdividetexturesize=value1
+    `
+    tryfield$="usesky" : if field$=tryfield$ then guseskystate=value1
+    tryfield$="usefloor" : if field$=tryfield$ then gusefloorstate=value1
+    tryfield$="useenvsounds" : if field$=tryfield$ then guseenvsoundsstate=value1
+    tryfield$="useweapons" : if field$=tryfield$ then guseweaponsstate=value1
+    `
+    tryfield$="indieditor" : if field$=tryfield$ then gindieditorstate=value1
+    tryfield$="godmode" : if field$=tryfield$ then ggodmodestate=value1
+    `
+    tryfield$="width" : if field$=tryfield$ then gdisplaywidth=value1
+    tryfield$="height" : if field$=tryfield$ then gdisplayheight=value1
+    tryfield$="depth" : if field$=tryfield$ then gdisplaydepth=value1
+    `
+    tryfield$="uniquesignature" : if field$=tryfield$ then guniquesignature=value1
+    tryfield$="gameobjectivetype" : if field$=tryfield$ then ggameobjectivetype=value1
+    tryfield$="gameobjectivevalue" : if field$=tryfield$ then ggameobjectivevalue=value1
+    tryfield$="oneshotkills" : if field$=tryfield$ then goneshotkills=value1
+    tryfield$="maxplayers" : if field$=tryfield$ then numberofplayers=value1
+    tryfield$="spawnrandom" : if field$=tryfield$ then gspawnrandom=value1
+    tryfield$="uniquegamecode" : if field$=tryfield$ then guniquegamecode$=value$
+    `
+    tryfield$="useuniquelynamedentities" : if field$=tryfield$ then guseuniquelynamedentities=value1
+    tryfield$="producelogfiles" : if field$=tryfield$ then gproducelogfiles=value1
+    tryfield$="exportassets" : if field$=tryfield$ then gexportassets=value1
+    tryfield$="localserver" : if field$=tryfield$ then glocalserveroverride$=value$
+    `
+    rem all FPI screens
+    tryfield$="title" : if field$=tryfield$ then titlefpi$=value$
+    tryfield$="global" : if field$=tryfield$ then setupfpi$=value$
+    tryfield$="gamewon" : if field$=tryfield$ then gamewonfpi$=value$
+    tryfield$="gameover" : if field$=tryfield$ then gameoverfpi$=value$
+    tryfield$="levelfpi1" : if field$=tryfield$ then loadingfpi$=value$
+    `
+    rem Levels
+    if field$="levelmax" then glevelmax=value1
+    if glevelmax>0
+     for v=1 to glevelmax
+      tryfield$="levelfpm"+str$(v)
+      if field$=tryfield$ then levelfpm$=value$
+      tryfield$="levelfpi"+str$(v)
+      if field$=tryfield$
+       levelfpi$=value$
+       dim level$(v) as leveltype
+       level$(v).fpm$=levelfpm$
+       level$(v).fpi$=levelfpi$
+      endif
+     next l
+    endif
+    `
+    rem all key actions
+    for num=1 to 11
+     tryfield$="key"+str$(num)
+     if field$=tryfield$ then listkey(num)=value1
+    next num
+    `
+    rem all gun slots
+    for num=1 to 9
+     tryfield$="slot"+str$(num)
+     if field$=tryfield$ then gunslots$(num)=value$
+    next num
+    `
+    rem localization data
+    tryfield$="language" : if field$=tryfield$ then language$=value$
+    `
+   endif
+  endif
+ next l
+ undim data$()
+ `
+else
+ `
+ rem No SETUP.INI, default is a standalone game
+ grealgameviewstate=1
+ gdynamiclightingstate=1
+ guseeffectstate=0
+ guseeffectongunsstate=0
+ guseeffectonscenesstate=0
+ guseeffectonentitiesstate=0
+ guseskystate=1
+ gusefloorstate=0
+ guseenvsoundsstate=1
+ guseweaponsstate=1
+ `
+endif
+
+rem USERDETAILS Info`
+global language$ : language$=""
+tfile$="userdetails.ini"
+if file exist(tfile$)=1
+ dim data$(999)
+ load array tfile$,data$()
+ for l=0 to 999
+  line$=data$(l)
+  if len(line$)>0
+   if lower$(left$(line$,4))=";end" then exit
+   if left$(line$,1)<>";"
+    `
+    rem take fieldname and values
+    for c=0 to len(line$)
+     if mid$(line$,c)="=" then mid=c : exit
+    next c
+    field$=lower$(removeedgespaces(left$(line$,mid-1)))
+    value$=removeedgespaces(right$(line$,len(line$)-mid))
+    for c=0 to len(value$)
+     if mid$(value$,c)="," then mid=c : exit
+    next c
+    value1=val(removeedgespaces(left$(value$,mid-1)))
+    value2$=removeedgespaces(right$(value$,len(value$)-mid))
+    if len(value2$)>0 then value2=val(value2$) else value2=-1
+    `
+    rem localization data
+    tryfield$="language" : if field$=tryfield$ then language$=value$
+    `
+   endif
+  endif
+ next l
+ undim data$()
+endif
+
+rem One flag that controls many
+if guseeffectstate=0
+ guseeffectongunsstate=0
+ guseeffectonscenesstate=0
+ guseeffectonentitiesstate=0
+endif
+
+rem Physics debug mode 9to see all collision shapes)
+if gdebugphysicsstate=1 then physicsdebug=1
+
+rem Forced switches
+if gcompilestandaloneexe=1
+ rem Cannot be real game, must optimize
+ grealgameviewstate=0
+ goptimizemode=1
+ rem Wipe any imported unique code (generate when build EXE)
+ guniquegamecode$=""
+endif
+if gtestgamemodefromeditor=1
+ grealgameviewstate=0
+endif
+
+rem The MyGames folder precedes Files\
+global exedir$ : exedir$=get dir$()+"\MyGames\"
+rem Vista Alert!
+`global usersdocumentsfolder$ : usersdocumentsfolder$="?"
+`global exedirmaster$ : exedir$=usersdocumentsfolder$+"\MyGames\"
+`global exedir$ : exedir$=exedirmaster$
+
+rem First task for any program is to enter the Files Folder
+tnopathprotomode=0
+if path exist("Files")=1
+ set dir "Files"
+else
+ tnopathprotomode=1
+` distinquish between runtime final exe and proto
+` print "No Files!"
+` wait key
+` end
+endif
+
+rem Basic globals for all programs
+global gmapeditmode : gmapeditmode=0
+
+rem Establish global files and folders
+global imgext$ : imgext$="tga"
+global rootdir$ : rootdir$=get dir$()+"\"
+global browserexe$ : browserexe$="FPSC-Browser.exe"
+global browsername$ : browsername$="FPSC TEST Browser"
+global segeditexe$ : segeditexe$="FPSC-Segments.exe"
+global segeditname$ : segeditname$="FPSC TEST Segment Editor"
+global gameexe$ : gameexe$="FPSC-Game.exe"
+global gamename$ : gamename$="FPSC Game"
+
+rem Default directories
+global currentmeshdir$ : currentmeshdir$=rootdir$+"meshbank\"
+global currententitydir$ : currententitydir$=rootdir$+"entitybank\"
+global currenttexdir$ : currenttexdir$=rootdir$+"texturebank\"
+global currentfxdir$ : currentfxdir$=rootdir$+"effectbank\"
+global currentpredir$ : currentpredir$=rootdir$+"prefabs\"
+global currentsegdir$ : currentsegdir$=rootdir$+"segments\"
+
+rem And finally switch the resolution if different from default
+if tnopathprotomode=0
+ if gdisplaywidth<>1024 or gdisplayheight<>768 or gdisplaydepth<>32
+  set display mode gdisplaywidth,gdisplayheight,gdisplaydepth
+ endif
+endif
+global gratiox# : gratiox#=gdisplaywidth : gratiox#=gratiox#/1024.0
+global gratioy# : gratioy#=gdisplayheight : gratioy#=gratioy#/768.0
+
+rem Indicate a time stamp for app start time
+timestampactivity(0,"Time Stamp Activity Started")
+
+rem Translation Component (load strarr data)
+if tnopathprotomode=0
+ stdir$=get dir$()
+ if language$="" then language$="english"
+ set dir "languagebank\"+language$+"\textfiles\"
+ global wordlibmax
+ if file exist("fpsc-050.ini")=1
+  open to read 1,"fpsc-050.ini"
+  read string 1,wordlibmax$ : wordlibmax=val(wordlibmax$)
+  close file 1
+  strarrmax=1
+  dim strarr$(wordlibmax)
+  dim wordlib$(wordlibmax)
+  load array "fpsc-050.txt",wordlib$()
+  for n=0 to wordlibmax
+   for c=1 to len(wordlib$(n))
+    if mid$(wordlib$(n),c)="="
+     strarri=val(left$(wordlib$(n),c-1))
+     strarr$(strarri)=right$(wordlib$(n),len(wordlib$(n))-c)
+     if strarri>strarrmax then strarrmax=strarri
+     exit
+    endif
+   next c
+  next n
+  undim wordlib$()
+ else
+  rem language file missing
+  exit prompt "FAIL","CANNOT FIND LANGUAGE FILE!"
+  end
+ endif
+ set dir stdir$
+endif
+
+rem Version control on EXE Building
+gosub _version_endofinit
+

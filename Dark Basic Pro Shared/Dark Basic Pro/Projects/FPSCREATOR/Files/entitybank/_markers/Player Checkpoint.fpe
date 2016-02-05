@@ -1,0 +1,18 @@
+;Entity Spec
+
+;Header
+desc          = Player Checkpoint
+
+;Orientation
+model         = arrow.X
+textured      = arroworange_D.tga
+scale         = 100
+fixnewy       = 270
+ismarker      = 1
+forwardfacing = 2
+
+;Identity Details
+lives         = -1
+
+;Sound
+soundset      = audiobank\misc\checkpoint.wav

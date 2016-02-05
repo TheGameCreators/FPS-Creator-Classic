@@ -1,0 +1,10 @@
+;AIScript from Wizard
+;Header
+desc          = Loading Page Wizard
+;Script
+:state=0:music=audiobank\music\generic\incident.wav
+:state=0:backdrop=gamecore\backdrops\Basic\background.jpg
+:state=0:hudreset,hudx=50,hudy=50,hudimage=languagebank\english\gamecore\backdrops\basic\loading.tga,hudmake=display
+:state=0:hudreset,hudx=50,hudy=95,hudimage=gamecore\huds\loadingbarbox.tga,hudmake=display
+:state=0:hudreset,hudx=50,hudy=95,hudimage=gamecore\huds\loadingbar.tga,hudhide=1,hudtype=1,hudmake=internal
+:state=0:state=1

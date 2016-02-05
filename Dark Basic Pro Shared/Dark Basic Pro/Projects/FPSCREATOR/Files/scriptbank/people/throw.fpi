@@ -1,0 +1,20 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Look and Throw
+
+;Triggers
+
+:state=0,plrcanbeseen:state=1,settarget
+:losetarget=10:runfpidefault=1
+:state=0:runfpidefault=1
+:state=1,plrcannotbeseen:runfpidefault=1
+:state=1:rotatetoplr
+:state=1,ifweapon=0:reloadweapon
+:state=1,ifweapon=1,rateoffire:state=2,setframe=6
+:state=2:incframe=6
+:state=2,framebeyond=6 60:useweapon
+:state=2,frameatend=6:state=1,reloadweapon
+
+;End of Script

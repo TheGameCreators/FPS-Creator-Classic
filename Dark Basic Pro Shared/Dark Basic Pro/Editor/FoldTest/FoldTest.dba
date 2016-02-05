@@ -1,0 +1,61 @@
+Rem Dark Basic Professional Project: FoldTest
+Rem Created: 06/11/2003 12:58:58
+Rem Author: Barrie Capel
+Rem E-Mail: tdkman@matedit.com
+Rem Web Site: http://www.matedit.com
+
+Rem ***** Main Source File *****
+
+Do
+  X=0
+  Repeat
+    Inc X
+  Until X=10
+
+  Z#=100.0
+  While Z#>10.0
+    Dec Z#,0.5
+  EndWhile
+
+  For A=1 To 50
+    Print "Hello"
+  Next A
+Loop
+
+Label:
+
+Sub1:
+  // Subroutine 1
+Return
+
+Label2:
+
+Sub2:
+  // Subroutine 2
+Return
+
+Sub3:
+  // Subroutine 3
+Return
+
+Rem ******************* Functions *******************
+
+Function One
+  Rem Function 1
+  Rem With four lines in total
+  S=22
+  CV=E*22+9
+EndFunction
+
+Function Two
+  Rem Function 2 with three lines in total
+  d=44
+EndFunction
+
+Function Three
+  Rem Function 3
+EndFunction
+
+Function Four
+  Rem Function 4
+EndFunction

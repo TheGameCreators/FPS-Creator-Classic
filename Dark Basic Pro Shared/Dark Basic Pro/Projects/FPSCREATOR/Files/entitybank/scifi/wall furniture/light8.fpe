@@ -1,0 +1,37 @@
+;Entity Spec
+
+;Header
+desc          = Light
+
+;AI
+aiinit	      = appear1.fpi
+aimain	      = default.fpi
+aidestroy     = disappear1.fpi
+
+;Spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;Orientation
+model         = meshbank\scifi\scenery\furniture\light_object_c\light_object_c.X
+offx          = 0
+offy          = 0
+offz          = 0
+rotx          = 0
+roty          = 0
+rotz          = 0
+materialindex = 3
+defaultstatic = 1
+defaultheight = 0
+
+;Visualinfo
+textured      = texturebank\scifi\scenery\furniture\light_object_c\light_object_c_D2.tga
+effect        = effectbank\illuminationent\illuminationent.fx
+
+;Identity Details
+strength      = 0
+
+;Animationinfo
+animmax       = 0
+anim0         = 0,0

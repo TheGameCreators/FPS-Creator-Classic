@@ -1,0 +1,18 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Player Proximity Door (Open and Close)
+
+;Triggers
+
+:state=0,plrdistwithin=120:state=4
+:state=1:incframe=0
+:state=1,frameatend=0:state=2,coloff
+:state=2,plrdistfurther=120:state=3,sound=$1,colon
+:state=3:decframe=0
+:state=3,frameatstart=0:state=0,setframe=0
+:state=4,plrcanbeseen:state=1,setframe=0,sound=$0
+:state=4,state=0
+
+;End of Script

@@ -1,0 +1,38 @@
+;Entity Spec
+
+;Header
+desc          = Ornate Door (use)
+
+;AI
+aiinit	      = appear1.fpi
+aimain	      = dooruse.fpi
+aidestroy     = disappear1.fpi
+
+;Spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;Orientation
+model         = meshbank\ww2\scenery\doors\door_a\door_a.x
+offx          = 0
+offy          = 50
+offz          = 0
+rotx          = 0
+roty          = 0
+rotz          = 0
+materialindex = 4
+soundset      = audiobank\ww2\scenery\doors\open.wav
+soundset1     = audiobank\ww2\scenery\doors\close.wav
+
+;Visualinfo
+textured      = texturebank\ww2\scenery\doors\door_a\door_a_D2.tga
+effect        = 
+
+;Identity Details
+strength      = 0
+isimmobile    = 1
+
+;Animationinfo
+animmax       = 1
+anim0         = 0,30

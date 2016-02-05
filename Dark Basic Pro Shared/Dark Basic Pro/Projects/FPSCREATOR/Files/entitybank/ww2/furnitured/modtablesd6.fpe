@@ -1,0 +1,34 @@
+
+;header
+
+desc          = modtablesd
+
+;ai
+aiinit	      = appear1.fpi
+aimain	      = default.fpi
+aidestroy     = disappear1.fpi
+
+;spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;orientation
+
+model         = meshbank\ww2\scenery\furniture\modtablesd\modtables_d_06.x
+offx          = 0
+offy          = 0
+offz          = 0
+rotx          = 0
+roty          = 0
+rotz          = 0
+defaultstatic = 1
+materialindex = 3
+collisionmode = 1
+
+;visualinfo
+
+textured      = texturebank\ww2\scenery\furniture\modtablesd\modtables_d_d2.tga
+effect        = 
+castshadow    = 0
+

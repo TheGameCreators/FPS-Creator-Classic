@@ -1,0 +1,1203 @@
+rem
+rem UNIVERSE
+rem
+
+_universe_construct_skip:
+ `
+ rem compare this universe with last saved universe
+ rem return flag as true if the universe is the same
+ universeconstructskip=1
+ `
+ rem if no old file, no old data so no skip
+ if file exist("levelbank\testlevel\old.dat")=0 then universeconstructskip=0 : return
+ `
+ rem check static entities/lights
+ versionnumber=100
+ open to read 1,"levelbank\testlevel\old.dat"
+  `
+  rem V109 - BETA11 - 130508 - version control (for bankindex to be inserted)
+  read file 1,oldolaylistmax
+  if oldolaylistmax=-1
+   read file 1,versionnumber
+   read file 1,oldolaylistmax
+  endif
+  `
+  read file 1,oldentityelementlist
+  dim oldentityelement(oldentityelementlist) as entitytype
+  for i=1 to oldentityelementlist
+   read file 1,e
+   if e>0
+    read float 1,a# : oldentityelement(e).x=a#
+    read float 1,a# : oldentityelement(e).y=a#
+    read float 1,a# : oldentityelement(e).z=a#
+    read float 1,a# : oldentityelement(e).rx=a#
+    read float 1,a# : oldentityelement(e).ry=a#
+    read float 1,a# : oldentityelement(e).rz=a#
+    read float 1,a# : oldentityelement(e).eleprof.light.range=a#
+    read file 1,tcolr
+    read file 1,tcolg
+    read file 1,tcolb
+    if versionnumber>=109
+     rem V109 BETA11
+     read file 1,a : oldentityelement(e).bankindex=a
+    endif
+    tcol=rgb(tcolr,tcolg,tcolb)
+    oldentityelement(e).eleprof.light.color=tcol
+    rem current entity must be static, and be identical to old otherwise cannot skip
+    if e<=entityelementlist
+     if entityelement(e).staticflag=1
+      if entityelement(e).x<>oldentityelement(e).x then universeconstructskip=0
+      if entityelement(e).y<>oldentityelement(e).y then universeconstructskip=0
+      if entityelement(e).z<>oldentityelement(e).z then universeconstructskip=0
+      if entityelement(e).rx<>oldentityelement(e).rx then universeconstructskip=0
+      if entityelement(e).ry<>oldentityelement(e).ry then universeconstructskip=0
+      if entityelement(e).rz<>oldentityelement(e).rz then universeconstructskip=0
+      if entityelement(e).eleprof.light.range<>oldentityelement(e).eleprof.light.range then universeconstructskip=0
+      if entityelement(e).eleprof.light.color<>oldentityelement(e).eleprof.light.color then universeconstructskip=0
+      rem V109 BETA10 - 120508 - can remove an entity from the map, which only blanks this value
+      if entityelement(e).bankindex<>oldentityelement(e).bankindex then universeconstructskip=0
+     else
+      universeconstructskip=0 : i=oldentityelementlist
+     endif
+    else
+     universeconstructskip=0 : i=oldentityelementlist
+    endif
+   endif
+  next i
+  if universeconstructskip=1
+   if entityelementlist>oldentityelementlist
+    for e=i to entityelementlist
+     if entityelement(e).staticflag=1
+      rem any new static entities must be used in new construction
+      universeconstructskip=0
+     endif
+    next e
+   else
+    rem V109 BEAT10 - 120508 - if you delete a static entity, it needs to refresh
+    if entityelementlist<oldentityelementlist
+     for e=entityelementlist+1 to oldentityelementlist
+      if oldentityelement(e).bankindex=0
+       universeconstructskip=0
+      endif
+     next e
+    endif
+   endif
+  endif
+ close file 1
+ `
+ rem V109 BETA9 - 070508 - if overlay list changed, full rebuild
+ if oldolaylistmax<>olaylistmax then universeconstructskip=0
+ `
+ rem V109 BETA9 - no skip if new file not present
+ if file exist("levelbank\testlevel\oldmapolay.dat")=0 then universeconstructskip=0
+ `
+ rem check map and overlays
+ if universeconstructskip=1
+  dim oldmap(layermax,maxx,maxy)
+  dim oldmapolay(layermax,maxx,maxy)
+  dim oldolaylist(oldolaylistmax,50) as DWORD
+  load array "levelbank\testlevel\oldmap.dat",oldmap()
+  load array "levelbank\testlevel\oldmapolay.dat",oldmapolay()
+  load array "levelbank\testlevel\oldolaylist.dat",oldolaylist()
+  for lay=0 to layermax
+   for y=0 to maxy-1
+    for x=0 to maxx-1
+     for olay=0 to 1
+      if olay=0 then tolaymax=0
+      if olay=1
+       tolaymax=0 : olayindex=mapolay(lay,x,y)
+       while olaylist(olayindex,tolaymax)>0 and tolaymax<50 : inc tolaymax : endwhile
+       dec tolaymax
+       rem V109 BETA9 - ensure deleting an overlay also triggers full rebuild
+       toldolaymax=0 : oldolayindex=oldmapolay(lay,x,y)
+       while oldolaylist(oldolayindex,toldolaymax)>0 and toldolaymax<50 : inc toldolaymax : endwhile
+       dec toldolaymax
+      endif
+      if olay=1 and tolaymax<>toldolaymax
+       rem V109 BETA9 - if number of overlays on a tile changes, rebuild
+       universeconstructskip=0
+      else
+       if tolaymax>=0
+        for olayti=0 to tolaymax
+         if olay=0 then mapid=map(lay,x,y)
+         if olay=1 then mapid=olaylist(olayindex,olayti)
+         if olay=0 then oldmapid=oldmap(lay,x,y)
+         if olay=1 then oldmapid=oldolaylist(olayindex,olayti)
+         if mapid<>oldmapid
+          rem there is a difference, must not skip construction
+          universeconstructskip=0
+         endif
+        next olayti
+       endif
+      endif
+     next olay
+    next x
+   next y
+  next lay
+ endif
+ `
+ rem free usages
+ undim oldentityelement()
+ undim oldmap()
+ undim oldmapolay()
+ undim oldolaylist()
+ `
+return
+
+_universe_saveforskipcheck:
+ `
+ rem save map, overlay and static entity info
+ rem for above check as to whether to skip universe construction
+ tfile$="levelbank\testlevel\old.dat" : if file exist(tfile$)=1 then delete file tfile$
+ open to write 1,tfile$
+  rem V109 - BETA11 - 130508 - version control (for bankindex to be inserted)
+  versionnumber=109
+  write file 1,-1
+  write file 1,versionnumber
+  write file 1,olaylistmax
+  write file 1,entityelementlist
+  for e=1 to entityelementlist
+   if entityelement(e).staticflag=1
+    write file 1,e
+    write float 1,entityelement(e).x
+    write float 1,entityelement(e).y
+    write float 1,entityelement(e).z
+    write float 1,entityelement(e).rx
+    write float 1,entityelement(e).ry
+    write float 1,entityelement(e).rz
+    write float 1,entityelement(e).eleprof.light.range
+    write file 1,rgbr(entityelement(e).eleprof.light.color)
+    write file 1,rgbg(entityelement(e).eleprof.light.color)
+    write file 1,rgbb(entityelement(e).eleprof.light.color)
+    if versionnumber>=109
+     rem V109 BETA11
+     write file 1,entityelement(e).bankindex
+    endif
+   else
+    write file 1,0
+   endif
+  next e
+ close file 1
+ tfile$="levelbank\testlevel\oldmap.dat" : if file exist(tfile$)=1 then delete file tfile$
+ save array tfile$,map()
+ tfile$="levelbank\testlevel\oldmapolay.dat" : if file exist(tfile$)=1 then delete file tfile$
+ save array tfile$,mapolay()
+ tfile$="levelbank\testlevel\oldolaylist.dat" : if file exist(tfile$)=1 then delete file tfile$
+ save array tfile$,olaylist()
+ `
+return
+
+_universe_construct:
+
+rem Set size of possible node tree (cubeshaped)
+set static universe maxx*100,(layermax+1)*100,maxy*100
+
+rem Reset any lighting information
+delete light map lights
+
+rem Some global statistics for game world
+totalnumberofcollisionboxes=0
+
+rem Lightmapping
+activatelightmapping=glightmappingstate
+if segobjusedformapeditor=1 then activatelightmapping=0
+
+rem Shadow maps for processing data
+dim mapobj(layermax,maxx,maxy)
+dim mapcsg(layermax,maxx,maxy)
+
+rem Free old objects if any
+if lastsegobj>=segobjstart then delete objects segobjstart,lastsegobj
+
+rem Construct scene
+csgpassmax=3
+staticlightcount=0
+for csgpass=1 to csgpassmax
+`
+rem debug info
+if csgpass=1 then debugviewtext(200,strarr$(155))
+if csgpass=2 then debugviewtext(210,strarr$(156))
+if csgpass=3 then debugviewtext(220,strarr$(157))
+`
+rem Reset workvars
+segobj=segobjstart
+highesty=0
+`
+rem Feature to fill void with floor/landscape/horizon
+if 1 and segobjusedformapeditor=0
+ `
+ rem Fill void tiles with floor
+ if csgpass=1
+  `
+  rem if default floor switched on
+  if gusefloorstate=1
+   `
+   rem get map tile ID
+   mapid=map(0,0,0) : mapselection=1
+   if mapid>0 then gosub _gridedit_getmapvalues
+   `
+   rem void tile filler (automatic floor is at layer zero)
+   mapscaler = 0 : mapground = 3 : maprotate = 0
+   maporient = 0 : mapsymbol = 0 : maptile = 0
+   gosub _universe_makemapvalues
+   floormapid=mapid : lay=0
+   for y=0 to maxy-1
+    for x=0 to maxx-1
+     if map(lay,x,y)=0
+      map(lay,x,y)=mapid
+     endif
+    next x
+   next y
+   `
+   rem create horizonplanes
+   gosub _universe_createhorizonplanes
+   `
+  endif
+  `
+ endif
+ if csgpass>1
+  rem Skip horizon objects
+  if gusefloorstate=1
+   inc segobj,4
+  endif
+ endif
+ `
+endif
+`
+rem Start traversal through universe tiles
+for lay=0 to layermax
+ for y=0 to maxy-1
+  for x=0 to maxx-1
+   for olay=0 to 1
+    `
+    rem MAP and MAPOLAY
+    if olay=0 then tolaymax=0
+    if olay=1
+     tolaymax=0 : olayindex=mapolay(lay,x,y)
+     while olaylist(olayindex,tolaymax)>0 and tolaymax<50 : inc tolaymax : endwhile
+     dec tolaymax
+    endif
+    if tolaymax>=0
+     `
+     for olayti=0 to tolaymax
+      if olay=0 then mapid=map(lay,x,y)
+      if olay=1 then mapid=olaylist(olayindex,olayti)
+      if mapid<>0
+       `
+       gosub _gridedit_getmapvalues
+       if object exist(selectionbankoffset+mapselection)=1
+        `
+        rem Set segment identity
+        seg=mapselection
+        `
+        rem Pass 1 - Create
+        if csgpass=1
+         `
+         rem report progress
+         if treportprogressonlayer<>lay or treportprogressonlayerslice<>y
+          tproggy#=(9.0/layermax)*lay
+          debugviewtext(201+tproggy#,strarr$(158)+str$(lay)+strarr$(159)+str$(y)+"...")
+          treportprogressonlayer=lay : treportprogressonlayerslice=y
+         endif
+         `
+         rem check if segment uses CSG, in which case clone not instance
+         tusingcsgforthisegment=0
+         for tp=segmentprofileheader(seg).lastmeshmax to segmentprofileheader(seg).partmax
+          if segmentprofile(seg,tp).partmode=1
+           if segmentprofile(seg,tp).csgmode=0
+            tusingcsgforthisegment=1
+           endif
+          endif
+         next tp
+         `
+         rem clone for manipulation of segment (clone too draining)
+         if ghsrmode=1
+          clone object segobj,selectionbankoffset+mapselection
+         else
+          rem when instance, transparent details come from origin (not for mapeditor preview though)
+          if segobjusedformapeditor=0
+           set object transparency selectionbankoffset+mapselection,4
+          endif
+          instance object segobj,selectionbankoffset+mapselection
+         endif
+         `
+         rem setup segment for universe conversion
+         set object collision off segobj
+         position object segobj,50+(x*100),50+(lay*100),((y*-100)-50)
+         if (100+(lay*100))>highesty then highesty=(100+(lay*100))
+         mapatl=lay : mapatx=x : mapaty=y
+         obj=segobj : gosub _segment_customisesinglesegment
+         if olay=0 then mapobj(lay,x,y)=obj
+         `
+         rem initially hide all non-basic meshes
+         for tlimb=segmentprofileheader(seg).lastmeshmax+1 to segmentprofileheader(seg).partmax
+          if limb exist(segobj,tlimb)=1
+           hide limb segobj,tlimb
+          endif
+         next tlimb
+         `
+         rem show multimesh replacements, hide base mesh in those cases
+         for tlimb=0 to segmentprofileheader(seg).lastmeshmax
+          tmultimesh=segmentprofile(seg,tlimb).multimeshmode
+          if tmultimesh=1
+           if limb visible(segobj,tlimb)=1
+            if segmentprofile(seg,tlimb).multimeshstart>0
+`             r=0 : rem rnd(2) hmm why did I rem this out :)
+             r=rnd(2)
+             if r=0 then tlimbchange=tlimb
+             if r=1 then tlimbchange=segmentprofile(seg,tlimb).multimeshstart+0
+             if r=2 then tlimbchange=segmentprofile(seg,tlimb).multimeshstart+1
+             if limb exist(segobj,tlimbchange)=0 then tlimbchange=tlimb
+             hide limb segobj,tlimb : show limb segobj,tlimbchange
+            endif
+           endif
+          endif
+         next tlimb
+         `
+        endif
+        `
+        rem Pass 2 - Add CSG, Lights and Entities
+        if csgpass=2
+         `
+         rem add any csg punch references
+         for tp=segmentprofileheader(seg).lastmeshmax to segmentprofileheader(seg).partmax
+          if segmentprofile(seg,tp).partmode=1
+           if segmentprofile(seg,tp).csgmode=0
+            rem check boundbox of CSGPUNCH with surrounding segments
+            for surrl=lay-1 to lay+1
+             for surry=y-1 to y+1
+              for surrx=x-1 to x+1
+               if surrl>=0 and surrl<layermax
+                if surry>=0 and surry<40
+                 if surrx>=0 and surrx<40
+                   `
+                   rem for each segment-limb (not this seg though)
+                   mapid=map(surrl,surrx,surry)
+                   if mapid<>0
+                    gosub _gridedit_getmapvalues
+                    if object exist(selectionbankoffset+mapselection)=1
+                     surrseg=mapselection
+                     surrobj=mapobj(surrl,surrx,surry)
+                     for surrlimb=0 to segmentprofileheader(surrseg).lastmeshmax
+                      rem only non-immune meshes
+                      if segmentprofile(surrseg,surrlimb).csgimmune=0
+                       rem first ensure meshes affected by a CSG must use base mesh, not multimesh
+                       if segmentprofile(surrseg,surrlimb).multimeshstart>0
+                        if limb visible(surrobj,segmentprofile(surrseg,surrlimb).multimeshstart+0)=1 or limb visible(surrobj,segmentprofile(surrseg,surrlimb).multimeshstart+1)=1
+                         show limb surrobj,surrlimb
+                         hide limb surrobj,segmentprofile(surrseg,surrlimb).multimeshstart+0
+                         hide limb surrobj,segmentprofile(surrseg,surrlimb).multimeshstart+1
+                        endif
+                       endif
+                       rem if punch limb collides with surrounding segment-limb
+                       tpactual=segmentprofile(seg,tp).actuallimb
+                       if limb collision(segobj,tpactual,surrobj,surrlimb)=1 and limb visible(surrobj,surrlimb)=1
+                        `
+                        rem report progress
+                        tproggy#=(9.0/layermax)*lay
+                        debugviewtext(211+tproggy#,strarr$(160)+str$(lay)+","+str$(x)+","+str$(y))
+                        `
+                        rem make new limb
+                        ttempobj1=lastsegobj+0
+                        ttempobj2=lastsegobj+1
+                        if object exist(ttempobj1)=1 then delete object ttempobj1
+                        if object exist(ttempobj2)=1 then delete object ttempobj2
+                        make object from limb ttempobj1,segobj,tpactual
+                        make object from limb ttempobj2,surrobj,surrlimb
+                        `
+                        rem recreate object from CSG PUNCH MESH
+                        lgx#=limb position x(segobj,tpactual)
+                        lgy#=limb position y(segobj,tpactual)
+                        lgz#=limb position z(segobj,tpactual)
+                        position object ttempobj1,lgx#,lgy#,lgz#
+                        texture object ttempobj1,segmentprofile(seg,tpactual).texid
+                        `
+                        rem recreate object from DEST NEIGHBOR MESH
+                        lgx#=limb position x(surrobj,surrlimb)
+                        lgy#=limb position y(surrobj,surrlimb)
+                        lgz#=limb position z(surrobj,surrlimb)
+                        position object ttempobj2,lgx#,lgy#,lgz#
+                        texture object ttempobj2,segmentprofile(surrseg,surrlimb).texid
+                        `
+                        rem perform CSG Punch on neighboring limb now
+                        perform csg difference ttempobj2,ttempobj1
+                        `
+`                        rem CSG meshes must cast shadows (unless flagged as off)
+`                        if glightshadowsstate=1 then tshadow=3 else tshadow=0
+
+`                        rem scene scadow casting disabled (for performance)
+`                        if gdynamicshadowsstate=1 then tshadow=2
+                        `
+                        rem reapply effect if have one
+                        if segmentprofile(surrseg,surrlimb).effectid>0
+                         texture object ttempobj2,0,segmentprofile(surrseg,surrlimb).texdid
+                         if segmentprofile(surrseg,surrlimb).texiid<>0 then texture object ttempobj2,1,segmentprofile(surrseg,surrlimb).texiid
+                         if segmentprofile(surrseg,surrlimb).texnid<>0 then texture object ttempobj2,2,segmentprofile(surrseg,surrlimb).texnid
+                         if segmentprofile(surrseg,surrlimb).texsid<>0 then texture object ttempobj2,3,segmentprofile(surrseg,surrlimb).texsid
+                         set object effect ttempobj2,segmentprofile(surrseg,surrlimb).effectid
+                        endif
+                        `
+                        rem add new limb to node tree now (polycol after csg)
+                        tarbvalue=segmentprofile(surrseg,surrlimb).material.index
+                        if tarbvalue=0 then tarbvalue=1
+                        set object transparency ttempobj2,4
+                        `
+                        rem X9 - 070208 - new field in segments for V108 so we can specify that a mesh is DEFINATELY A BLOCKER
+                        `make static object ttempobj2,0,tarbvalue,tshadow,1
+                        if segmentprofile(seg).properties.kindof=11
+                         rem 11anytotallysolidsegment - means a FAKE segment which has CSG but then it is filled in SOLID
+                         tdefoblocker=2
+                        else
+                         if segmentprofile(surrseg).properties.kindof=11
+                          rem 11anytotallysolidsegment - means other segments which are solid despite any CSG activity
+                          tdefoblocker=2
+                         else
+                          rem 1straight,2corner,3tjunc,4cross,5deadend - these mean the CSG is cutting through a corridor, okay
+                          tdefoblocker=1
+                         endif
+                        endif
+                        make static object ttempobj2,0,tarbvalue,tshadow,tdefoblocker
+                        `
+                        rem remove temp object
+                        delete object ttempobj1
+                        delete object ttempobj2
+                        `
+                        rem hide the segment-limb
+                        hide limb surrobj,surrlimb
+                        `
+                       endif
+                      endif
+                     next surrlimb
+                    endif
+                   endif
+                   `
+                 endif
+                endif
+               endif
+              next surrx
+             next surry
+            next surrl
+           endif
+          endif
+         next tp
+         `
+         rem restore map data
+         if olay=0 then mapid=map(lay,x,y)
+         if olay=1 then mapid=olaylist(olayindex,olayti)
+         gosub _gridedit_getmapvalues
+         `
+        endif
+        `
+        rem Pass 3 - Add To NodeTree
+        if csgpass=3
+         `
+         rem prepare object with HSR process
+         usesegobj=0
+         if ghsrmode=1
+          `
+          rem report progress
+          tproggy#=(9.0/layermax)*lay
+          debugviewtext(221+tproggy#,strarr$(161)+str$(lay)+","+str$(x)+","+str$(y))
+          `
+          rem create super-ground-punch (arbitary usage)
+`         groundpunchobj=64998
+`         if object exist(groundpunchobj)=0
+`          make object box groundpunchobj,80000,100,80000
+`          position object groundpunchobj,0,-50,0
+`          hide object groundpunchobj
+`         endif
+          `
+          rem check boundbox of CSGPUNCH with surrounding segments
+          for surrl=lay-1 to lay+1
+           for surry=y-1 to y+1
+            for surrx=x-1 to x+1
+             if surrl>=0 and surrl<layermax
+              if surry>=0 and surry<40
+               if surrx>=0 and surrx<40
+                 mapid=map(surrl,surrx,surry)
+                 if mapid<>0
+                  gosub _gridedit_getmapvalues
+                  if object exist(selectionbankoffset+mapselection)=1
+                   rem object bounding object to add to universe
+                   surrobj=mapobj(surrl,surrx,surry)
+                   if surrobj>0
+                    perform csg clip segobj,surrobj
+                   endif
+                  endif
+                 endif
+               endif
+              endif
+             endif
+            next surrx
+           next surry
+          next surrl
+          `
+          rem Now punch out ground (arbitary usage)
+`         perform csg clip segobj,groundpunchobj
+          `
+         endif
+         `
+         rem make node tree addition
+         for tlimb=0 to segmentprofileheader(seg).partmax
+          `
+          rem only visible meshes are used to make universe
+          if limb exist(segobj,tlimb)=1
+          if limb visible(segobj,tlimb)=1
+           `
+           rem shadow all except floor,wall,ceiling (and meshes with shadow switched off)
+`           if glightshadowsstate=1 then tshadow=3 else tshadow=0
+`           if gdynamicshadowsstate=1 then tshadow=2
+
+           if tlimb=segmentprofile(seg).vis.f then tshadow=0
+           if tlimb=segmentprofile(seg).vis.r then tshadow=0
+           if tlimb=segmentprofile(seg).vis.wb then tshadow=0
+           if tlimb=segmentprofile(seg).vis.wr then tshadow=0
+           if tlimb=segmentprofile(seg).vis.wf then tshadow=0
+           if tlimb=segmentprofile(seg).vis.wl then tshadow=0
+           if tlimb=segmentprofile(seg).vis.wl then tshadow=0
+           if tlimb=segmentprofile(seg).vis.owb then tshadow=0
+           if tlimb=segmentprofile(seg).vis.owr then tshadow=0
+           if tlimb=segmentprofile(seg).vis.owf then tshadow=0
+           if tlimb=segmentprofile(seg).vis.owl then tshadow=0
+           if tlimb=segmentprofile(seg).vis.owl then tshadow=0
+           if tlimb=segmentprofile(seg).vis.octl then tshadow=0
+           if tlimb=segmentprofile(seg).vis.octr then tshadow=0
+           if tlimb=segmentprofile(seg).vis.ocbr then tshadow=0
+           if tlimb=segmentprofile(seg).vis.ocbl then tshadow=0
+           `
+           rem set transparency for universe add
+`           set object transparency segobj,segmentprofile(seg,tlimb).transparency
+`           set object transparency segobj,1 `need alpha test active (depth-sort-via-alpha-test)
+           set object transparency segobj,4
+           `
+           rem add mesh to universe
+           tcolmode=segmentprofile(seg,tlimb).colmode
+           tarbvalue=segmentprofile(seg,tlimb).material.index
+           if segmentprofile(seg,tlimb).transparency=2 then tarbvalue=0 : rem FPSCV101 - no bullethole in trasparent(2) static
+           if tcolmode=1 then inc totalnumberofcollisionboxes
+           if segmentprofile(seg).vis.portalmode>0
+            rem choose portal manually form segment profile
+            tportalblocker=segmentprofile(seg).vis.portalmode-1
+           else
+            rem default portal generation
+            if segmentprofile(seg).vis.overlay=0
+             if segmentprofile(seg).properties.kindof>0
+              rem currently only corridors are true for this, and ARE ALL solid!
+              rem 1straight,2corner,3tjunc,4cross,5deadend,11anytotallysolidsegment
+              tportalblocker=2
+             else
+              tportalblocker=1
+             endif
+            else
+             tportalblocker=0
+            endif
+           endif
+           make static limb segobj,tlimb,tcolmode,tarbvalue,tshadow,tportalblocker
+           `
+          endif
+          endif
+          `
+         next tlimb
+         `
+         rem hide original object (still used for SURROBJ HSR culling)
+         hide object segobj
+         `
+        endif
+        `
+        rem PassEnd
+        `
+        rem Increment segment objid
+        inc segobj
+        `
+        rem When run out of segments to build map, leave immediately
+        if segobj>=universebuildobjendoffset
+         rem end all loop conditions - no crash - just shortened level
+         lay=layermax : y=maxy-1 : x=maxx-1
+         olay=1 : olayti=tolaymax
+        endif
+        `
+       endif
+      endif
+     next olayti
+    endif
+   next olay
+  next x
+ next y
+next lay
+`
+rem When all objecta added (first pass)
+if csgpass=1
+ rem leefix - 070408 - V109B2 - four corner markers 9for correct universe culling)
+ rem add a zero-size high object for top of universe (need clearance for player on roofs)
+ `tuniverseheightbuffer=550
+ rem leefix - V111 - 160608 - detect all static entities that poke above highest point, then determine buffer if any
+ textendbufferby=0
+ eleobj=entityobjectoffset
+ for e=1 to entityelementlist
+  obj=eleobj+e
+  entid=entityelement(e).bankindex
+  if obj>0
+   if entityelement(e).staticflag=1
+    if entityprofile(entid).ismarker=0
+     if object exist(obj)=1
+      if entityelement(e).y+object size y(obj)>highesty
+       textendbufferby=(entityelement(e).y+object size y(obj))-highesty
+       textendbufferby=textendbufferby/100
+       textendbufferby=textendbufferby+1
+       textendbufferby=textendbufferby*100
+      endif
+     endif
+    endif
+   endif
+  endif
+ next e
+ tuniverseheightbuffer=50+textendbufferby
+ if highesty+tuniverseheightbuffer>20*100 then tuniverseheightbuffer=(20*100)-highesty
+ make object box segobj,0,100,0 : position object segobj,0,highesty+tuniverseheightbuffer,0 : inc segobj
+ make object box segobj,0,100,0 : position object segobj,40*100,highesty+tuniverseheightbuffer,0 : inc segobj
+ make object box segobj,0,100,0 : position object segobj,40*100,highesty+tuniverseheightbuffer,-39*100 : inc segobj
+ make object box segobj,0,100,0 : position object segobj,0,highesty+tuniverseheightbuffer,-39*100 : inc segobj
+ rem record last segment object
+ lastsegobj=segobj
+endif
+if csgpass=3
+ if object exist(segobj)=1
+  for fourcornermarkers=0 to 3
+   set object transparency segobj,4
+   make static object segobj,0,0,0,1
+   hide object segobj : inc segobj
+  next fourcornermarkers
+ endif
+endif
+`
+rem next pass
+next csgpass
+
+rem V102RC6 remove all segment objects to free up memory for next phase ( except the horizon polys )
+if gusefloorstate=1 then inc segobjstart,4
+if lastsegobj>=segobjstart then delete objects segobjstart,lastsegobj
+if gusefloorstate=1 then dec segobjstart,4
+
+rem FPSCV104RC7 - new lightmapper
+rem FPSCV105RC1 - added new flag 'glightmappingold'
+useoldlightmapper=glightmappingold
+usedarklightmapper=1-glightmappingold
+if usedarklightmapper=1
+ rem DarkLIGHTS Settings
+ LM Start
+endif
+
+rem debug info
+debugviewtext(230,strarr$(162))
+
+rem add pure static entities to node tree now
+eleobj=entityobjectoffset
+ttick=0 : ttickmax=entityelementlist/10 : ttickmax=1
+for e=1 to entityelementlist
+ obj=eleobj+e
+ entid=entityelement(e).bankindex
+ tentid=entityelement(e).bankindex
+ if obj>0
+  rem add static entities to node tree now
+  if entityelement(e).staticflag=1
+   inc ttick : if ttick>ttickmax then ttick=0 : debugviewtext(232,strarr$(163)+str$(e)+"/"+str$(entityelementlist)+" ("+entityprofile(tentid).model$+")")
+   if entityprofile(tentid).ismarker=0
+    rem this next routine should texture, but because entobj is zero, no, need to use OBJ!!!
+    configureobj=obj : gosub _entity_configueelementforuse
+    gosub _entity_createelementasobject
+    if object exist(obj)=1
+     rem collision mode for static entities (0-poly,1-box,2-reduced) dynamic (3-cylinder,4-sphere)
+     tcolmode=2 : rem default is to use a reduced mesh
+     if entityprofile(tentid).collisionmode>0 and entityprofile(tentid).collisionmode<3
+      tcolmode=entityprofile(tentid).collisionmode-1
+     endif
+     rem static entities must cast shadows (unless flagged as off)
+`     if glightshadowsstate=1 then tshadow=3 else tshadow=0
+`     if gdynamicshadowsstate=1 then tshadow=2
+     tarbvalue=entityprofile(tentid).materialindex
+     enable object zwrite obj
+     set object transparency obj,4
+     rem handle entities that animate
+     useobj=obj
+     if 0
+      rem old pre-V109 approach, V109 introduces new 1000+ collison mode to single out one solid mesh amongst non collider limbs
+      make static object useobj,tcolmode,tarbvalue,tshadow,0
+     else
+      if object exist(useobj)=1
+       perform checklist for object limbs useobj
+       for tlimb=0 to checklist quantity()-1
+        tswitchoffcull=0
+        if limb exist(useobj,tlimb)=1
+         tcolmode=2 : rem default is to use a reduced mesh
+         tcollisionmodevalue=entityprofile(tentid).collisionmode
+         if tcollisionmodevalue>=1000
+          rem leeadd - 160308 - new collision mode to specify only ONE collision solid,
+          rem the rest are non-col (for static trees and shrubs)
+          if (tcollisionmodevalue-1000)=tlimb
+           tcolmode=2 : rem redmesh - trunk
+          else
+           tcolmode=3 : rem none - leaves, grass, bushes
+           tswitchoffcull=1 : rem ensure double sided as well!
+          endif
+         else
+          if tcollisionmodevalue>0 and tcollisionmodevalue<3
+           tcolmode=entityprofile(tentid).collisionmode-1
+          endif
+         endif
+         rem leeadd - 160308 - double sided static geometry
+         if tswitchoffcull=1
+          set object cull useobj,0
+         else
+          set object cull useobj,1
+         endif
+         tarbvalue=entityprofile(tentid).materialindex
+         tshadow=0 : tportalblocker=0
+         rem tcolmode : 0-poly, 1-box, 2-redmesh, 3-none (all overridden by ODE universe submitted as collision polygons)
+         rem but we use a modified CONVERT TO SINGLE MESH to extract all the non-culled polygons (leaves, etc)
+         make static limb useobj,tlimb,tcolmode,tarbvalue,tshadow,tportalblocker
+        endif
+       next tlimb
+      endif
+     endif
+     delete object useobj
+    endif
+   endif
+  endif
+  rem add dynamic and static lights from entities
+  if entityprofile(tentid).ismarker=2
+   lgx#=entityelement(e).x
+   lgy#=entityelement(e).y
+   lgz#=entityelement(e).z
+   lgrange#=entityelement(e).eleprof.light.range
+   lgr#=rgbr(entityelement(e).eleprof.light.color)
+   lgg#=rgbg(entityelement(e).eleprof.light.color)
+   lgb#=rgbb(entityelement(e).eleprof.light.color)
+   if entityelement(e).staticflag=0
+    if gdynamiclightingstate=1
+     lgtype=1 : gosub _lighting_adddynamiclight
+     entityelement(e).eleprof.light.index=infinilightindex
+    endif
+   else
+    if activatelightmapping=1
+     if useoldlightmapper=1
+      add light map light lgx#, lgy#, lgz#, lgrange#, lgr#, lgg#, lgb#, 100, 1
+     endif
+     if usedarklightmapper=1
+      size# = lgrange#
+      falloff# = size#/2
+      radius# = size#+falloff#
+      zerorange# = ( radius# * glightzerorange ) / 100.0
+      atten# = glightatten / (radius#*radius#)
+      outer# = 1.0 + falloff#
+      brighter# = radius# / outer#
+      lgr#=lgr#*brighter#
+      lgg#=lgg#*brighter#
+      lgb#=lgb#*brighter#
+      LM Add Custom Point Light lgx#, lgy#, lgz#, radius#, zerorange#, atten#,lgr#/255.0, lgg#/255.0, lgb#/255.0
+     endif
+     lgtype=0 : gosub _lighting_adddynamiclight
+     inc staticlightcount
+    endif
+    if gdynamicshadowsstate=1
+     array insert at bottom shadowlight()
+     shadowlight().x# = lgx#
+     shadowlight().y# = lgy#
+     shadowlight().z# = lgz#
+     shadowlight().range# = lgrange#
+    endif
+   endif
+  endif
+ endif
+next e
+
+rem New portals section of game runner
+debugviewtext(240,strarr$(164))
+build static portals
+
+rem Apply shadow lights to scene (which will compute shadows direct from node tree
+if gdynamicshadowsstate=1
+ debugviewtext(250,strarr$(165))
+ set global shadow shades 1
+ set global shadow color 0,0,0,128
+` disabled scene shadows for performance reasons
+` for tsli=1 to array count(shadowlight(0))
+`  set shadow light tsli, shadowlight(tsli).x#, shadowlight(tsli).y#, shadowlight(tsli).z#, shadowlight(tsli).range#
+` next tsli
+endif
+
+rem New lightmapping section of game runner
+if activatelightmapping=1 and staticlightcount>0
+ rem delete old lightmaps
+ debugviewtext(259,strarr$(166))
+ tl=0
+ while tl<65535
+  neither=0 : rem FPSCV105RC2 - lightmaps where not deleted after PNG was added
+  tl$="levelbank\testlevel\lightmaps\"+str$(tl)+".dds"
+  if file exist(tl$)=1 then delete file tl$ else inc neither
+  tl$="levelbank\testlevel\lightmaps\"+str$(tl)+".png"
+  if file exist(tl$)=1 then delete file tl$ else inc neither
+  if neither=2 then exit
+  inc tl
+ endwhile
+ rem add universe for lightmapping
+ debugviewtext(260,strarr$(167))
+ if useoldlightmapper=1
+  add static objects to light map pool
+  debugviewtext(270,strarr$(168))
+  if glightmapsize>0
+   create light maps glightmapsize,glightmapquality,"levelbank\testlevel\lightmaps\"
+  else
+   create light maps 8,100,"levelbank\testlevel\lightmaps\"
+  endif
+ endif
+endif
+
+rem Must be done 'after' lightmapping phase
+if grealgameviewstate=0 and segobjusedformapeditor=0 and goptimizemode=1
+ `
+ rem Saving effects (as some scene geometry needs setting changes)
+ debugviewtext(273,strarr$(169))
+ filename$="levelbank\testlevel\universe.eff"
+ if file exist(filename$)=1 then delete file filename$
+ open to write 1,filename$
+  write file 1,effectbankmax
+  for eff=1 to effectbankmax
+   write string 1,effectbank$(eff)
+  next eff
+  write string 1,thorizonplanetex$
+ close file 1
+ `
+ rem Builds final universe reload file (even when test game)
+ debugviewtext(275,strarr$(170))
+ universefile$="levelbank\testlevel\universe.dbu" : if file exist(universefile$)=1 then delete file universefile$
+ universefile$="levelbank\testlevel\universe.dbo" : if file exist(universefile$)=1 then delete file universefile$
+ save static objects universefile$
+ `
+ rem FPSCV104RC9 - pregenerate physics universe (faster loading)
+ phyunimesh$="levelbank\testlevel\universephy.dbo" : if file exist(phyunimesh$)=1 then delete file phyunimesh$
+ universeobj=universebuildobjstartoffset-1
+ load object "levelbank\testlevel\universe.dbo",universeobj
+ make mesh from object universeobj,universeobj,1
+ convert mesh to vertexdata universeobj
+ delete object universeobj
+ make object universeobj,universeobj,0
+ delete mesh universeobj
+ save object phyunimesh$,universeobj
+ delete object universeobj
+ `
+ rem If DarkLIGHT lightmapper used
+ if activatelightmapping=1 and staticlightcount>0 and usedarklightmapper=1
+  `
+  rem load and lightmap static universe
+  universeobj=universebuildobjstartoffset-1
+  if object exist(universeobj)=1 then delete object universeobj
+  load object universefile$,universeobj
+  if glightshadowsstate=0
+   rem Quick Lightmapping
+   LM Add Collision Object universeobj
+  else
+   rem Full Lightmapping
+   LM Add Transparent Collision Object universeobj,1
+  endif
+  LM Add Light Map Object universeobj
+  LM Build collision Data
+  `
+  rem ambient setting (full ambient control in scene)
+  LM Set Ambient Light glightambientr/100.0,glightambientg/100.0,glightambientb/100.0
+  if glightsunr<>0 or glightsung<>0 or glightsunb<>0
+   LM Add Directional Light glightsunx,glightsuny,glightsunz,glightsunr/100.0,glightsung/100.0,glightsunb/100.0
+  endif
+  `
+  rem settings
+  LM Boost Curved Surface Quality glightmaxsize,(glightboost*1.0)
+  `
+  rem start the light mapping thread
+  lm set light map name ""
+  lm set light map file format 1 : rem DDS
+  lm set light map folder "levelbank\testlevel\lightmaps\"
+  quality#=glightquality/100.0
+  if glightthreadmax=-2
+   rem FPSCV105 - 090307 - new mode, to revert to non-thread approach (for some users stability)
+   debugviewtext(270,strarr$(168))
+   LM Build Light Maps glighttexsize,quality#,glightblurmode
+  else
+   LM Build Light Maps Thread glighttexsize,quality#,glightblurmode,glightthreadmax
+   load dll "Kernel32.dll",1
+   while LM Get Complete()=0
+    debugviewtext(276,LM Get Status( )+"  "+str$(int(LM Get Percent()))+"%")
+    call dll 1,"Sleep",1
+   endwhile
+   delete dll 1
+  endif
+  `
+  rem close lightmapper
+  LM Reset
+  `
+  rem If lightmaps are PNG (compressed and slow toload), convert to DDS
+  rem NO measurable speed gain with DDS over PNG
+  `if 0
+  ` tl=0
+  ` while tl<65535
+  `  tl$="levelbank\testlevel\lightmaps\"+str$(tl)+".png"
+  `  if file exist(tl$)=1
+  `   tl2$="levelbank\testlevel\lightmaps\"+str$(tl)+".dds"
+  `   tttempimage=imagebankoffset-1
+  `   if image exist(tttempimage)=1 then delete image tttempimage
+  `   load image tl$,tttempimage
+  `   save image tl2$,tttempimage
+  `   delete image tttempimage
+  `  else
+  `   exit
+  `  endif
+  `  inc tl
+  ` endwhile
+  `endif
+  `
+  rem save lightmapped universe
+  if file exist(universefile$)=1 then delete file universefile$
+  set object light universeobj,1
+  set light mapping on universeobj,0,1
+  save object universefile$,universeobj
+  delete object universeobj
+  `
+  rem load static universe back in
+  load static objects universefile$,gdividetexturesize
+  `
+ endif
+ `
+ rem V106 RC3 Save lighting data (for uni-skip)
+ gosub _version_universe_saveELEandLGT
+ `
+ rem Only perform these saves if BUILDING EXE
+ if gcompilestandaloneexe=1
+  `
+  rem Version control on EXE Building
+  gosub _version_universe_construct
+  `
+ endif
+ `
+ rem V106 save old map, overlay and static entity data for future test game pass
+ gosub _universe_saveforskipcheck
+ `
+endif
+
+return
+
+_universe_recreateinfinilights:
+ `
+ rem V109 BETA3 - 210408 - when use DBU-skip, new elements do not tally with inifnilight LGT data, so recreate
+ rem for the test gamwe quick rebuild feature
+ `
+ rem Reset dynamic light array
+ activatedynamiclightscount=0
+ empty array infinilight(0)
+ testmarkerstart=50000
+ testmarker=testmarkerstart
+ staticlightcount=0
+ infinilightindex=0
+ `
+ rem Lighting flag
+ activatelightmapping=glightmappingstate
+ if segobjusedformapeditor=1 then activatelightmapping=0
+ `
+ rem Rebuild inifnilights
+ for e=1 to entityelementlist
+  entid=entityelement(e).bankindex
+  tentid=entityelement(e).bankindex
+  rem add dynamic and static lights from entities
+  if entityprofile(tentid).ismarker=2
+   lgx#=entityelement(e).x
+   lgy#=entityelement(e).y
+   lgz#=entityelement(e).z
+   lgrange#=entityelement(e).eleprof.light.range
+   lgr#=rgbr(entityelement(e).eleprof.light.color)
+   lgg#=rgbg(entityelement(e).eleprof.light.color)
+   lgb#=rgbb(entityelement(e).eleprof.light.color)
+   if entityelement(e).staticflag=0
+    if gdynamiclightingstate=1
+     lgtype=1 : gosub _lighting_adddynamiclight
+     entityelement(e).eleprof.light.index=infinilightindex
+    endif
+   else
+    if activatelightmapping=1
+     if usedarklightmapper=1
+      size# = lgrange#
+      falloff# = size#/2
+      radius# = size#+falloff#
+      zerorange# = ( radius# * glightzerorange ) / 100.0
+      atten# = glightatten / (radius#*radius#)
+      outer# = 1.0 + falloff#
+      brighter# = radius# / outer#
+      lgr#=lgr#*brighter#
+      lgg#=lgg#*brighter#
+      lgb#=lgb#*brighter#
+     endif
+     lgtype=0 : gosub _lighting_adddynamiclight
+     inc staticlightcount
+    endif
+   endif
+  endif
+ next e
+ `
+return
+
+_universe_destruct:
+
+rem Remove universe and all constructed preview assets
+delete static objects : set static universe maxx*100,(layermax+1)*100,maxy*100
+
+return
+
+_universe_camera:
+
+rem Input source
+tkeystate30=0 : tkeystate32=0 : tkeystate17=0 : tkeystate31=0 : tkeystate44=0
+if inputsys.kscancode=87 then tkeystate17=1
+if inputsys.kscancode=83 then tkeystate31=1
+if inputsys.kscancode=65 then tkeystate30=1
+if inputsys.kscancode=68 then tkeystate32=1
+if inputsys.kscancode=90 then tkeystate44=1
+cammovex#=inputsys.xmousemove
+cammovey#=inputsys.ymousemove
+
+rem Camera old information
+cox#=camera position x()
+coy#=camera position y()
+coz#=camera position z()
+
+rem Control camera movement
+movement=0 : speed#=6.0
+x#=camera angle x() : z#=camera angle z() : sy#=camera angle y() : y#=sy#
+if tkeystate30=1 then dec y#,90 : movement=1
+if tkeystate32=1 then inc y#,90 : movement=1
+rotate camera 0,y#,0
+if tkeystate17=1 or tkeystate30=1 or tkeystate32=1 then move camera speed# : movement=1
+if tkeystate31=1 then move camera speed#*-1.0 : movement=1
+rotate camera x#,sy#,z#
+
+rem Float Key
+if tkeystate44=1 then position camera camera position x(),camera position y()+4.0,camera position z() : grav#=-1.0
+
+rem Camera new information
+cmx#=camera position x()
+cmy#=camera position y()-grav#
+cmz#=camera position z()
+
+rem Overall ellipse collision for camera
+tcameraeyey#=20.0
+if deactivatecollision=0
+ if static volume(cox#,coy#-tcameraeyey#,coz#,cmx#,cmy#-tcameraeyey#,cmz#,1.0)=1
+  cmx#=cox#+get static collision x()
+  cmy#=coy#+get static collision y()
+  cmz#=coz#+get static collision z()
+  tcolmaterialtype=get static collision value()-1
+  colmaterialtype=tcolmaterialtype
+  grav#=1
+ else
+  inc grav#,1
+ endif
+endif
+
+rem Non node tree collision floor stopper (and edge of universe stopper)
+if cmx#<0.0 then cmx#=0.0
+if cmx#>maxx*100.0 then cmx#=maxx*100.0
+if cmy#<45.0 then cmy#=45.0
+if cmz#<maxy*-100.0 then cmz#=maxy*-100.0
+if cmz#>0.0 then cmz#=0.0
+
+rem Update camera position
+position camera cmx#,cmy#,cmz#
+zrotate camera curveangle(0,camera angle z(0),1.75)
+position listener cmx#/10.0,cmy#/10.0,cmz#/10.0
+rotate listener 0,camera angle y(0),0
+
+rem Camera rotation speeds
+t=abs(cammovex#)+abs(cammovey#)
+if t=1 then camrotspeed#=0.05
+if t=2 then camrotspeed#=0.1
+if t=3 then camrotspeed#=0.15
+if t=4 then camrotspeed#=0.2
+if t>=5 then camrotspeed#=0.25
+
+rem Control camera view
+camangx#=camera angle x()+(cammovey#*camrotspeed#)
+camangy#=camera angle y()+(cammovex#*camrotspeed#)
+if wrapvalue(camangx#)>85 and wrapvalue(camangx#)<180 then camangx#=85.0
+if wrapvalue(camangx#)>180 and wrapvalue(camangx#)<275 then camangx#=275.0
+rotate camera camangx#,camangy#,camera angle z()
+
+return
+
+_universe_preparelimbflags:
+
+rem Create limb flag array
+limbflagmax=segmentprofileheader(seg).lastmeshmax
+undim limbflag()
+dim limbflag(limbflagmax)
+
+rem Fill array with null limbs
+for tlimb=0 to limbflagmax
+ limbflag(tlimb)=0
+next tlimb
+
+return
+
+_universe_createhorizonplanes:
+ `
+ rem TODO take MAXX and MAXY into account!
+ `
+ rem Load texture for horizon plane
+ thorizonplanetex$=""
+ thorizonplanetexid=segmentprofile(mapselection,0).texid
+ if thorizonplanetexid<>0
+  thorizonplanetex$=segmentprofile(mapselection,0).tex$
+ else
+  thorizonplanetexid=segmentprofile(mapselection,0).texdid
+  if thorizonplanetexid<>0
+   thorizonplanetex$=segmentprofile(mapselection,0).texd$
+  else
+   thorizonplanetex$="texturebank\common\ground_D2.tga"
+   thorizonplanetexid=loadinternalimage(thorizonplanetex$)
+  endif
+ endif
+ `
+ rem Place horizon planes on four sides
+ tdim=(40*100)/2.0 : tdimneg=tdim*-1 : tdimlong=tdim*3 : lay=0
+ rem Left
+ make object box segobj,tdim*2,10,tdimlong*2 : position object segobj,tdimneg,(lay*100)-5,(maxy*-50)
+ scale object texture segobj,40,120
+ texture object segobj,thorizonplanetexid : inc segobj
+ rem Right
+ make object box segobj,tdim*2,10,tdimlong*2 : position object segobj,(maxx*100)+tdim,(lay*100)-5,(maxy*-50)
+ scale object texture segobj,40,120
+ texture object segobj,thorizonplanetexid : inc segobj
+ rem Top
+ make object box segobj,tdim*2,10,tdim*2 : position object segobj,(maxx*50),(lay*100)-5,tdim
+ scale object texture segobj,40,40
+ texture object segobj,thorizonplanetexid : inc segobj
+ rem Bottom
+ make object box segobj,tdim*2,10,tdim*2 : position object segobj,(maxx*50),(lay*100)-5,(maxy*-100)+tdimneg
+ scale object texture segobj,40,40
+ texture object segobj,thorizonplanetexid : inc segobj
+ `
+ rem And place fog to finish horizon blur to sky (by colour)
+ rem FPSCV104RC3 - fog is controlled by FPI elsewhere
+ `fog on : fog distance 2000.0,4000.0 : fog color 0,0,0
+ `
+return
+
+_universe_makemapvalues:
+ `
+ mapid = 0
+ mapid = mapid + ( ( mapselection && %111111111111 ) << 20 )
+ mapid = mapid + ( ( mapscaler && %1111 ) << 16 )
+ mapid = mapid + ( ( mapground && %11 ) << 14 )
+ mapid = mapid + ( ( maprotate && %11 ) << 12 )
+ mapid = mapid + ( ( maporient && %11 ) << 10 )
+ mapid = mapid + ( ( mapsymbol && %111111 ) << 4 )
+ mapid = mapid + ( ( maptile && %1111 ) )
+ rem mapid out
+ `
+return
+
+

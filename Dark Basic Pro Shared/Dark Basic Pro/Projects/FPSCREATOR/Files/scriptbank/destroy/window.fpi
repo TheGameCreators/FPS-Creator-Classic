@@ -1,0 +1,12 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Window Destroy
+
+;Triggers
+
+:state=1:destroy
+:state=0:sound=audiobank\smash\glass.wav,rundecal=1,shapedecal,state=1
+
+;End of Script

@@ -1,0 +1,9 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Zone Activate
+
+;Triggers
+
+:state=0,plrwithinzone=1:activateifused=1,state=1,sound=$0

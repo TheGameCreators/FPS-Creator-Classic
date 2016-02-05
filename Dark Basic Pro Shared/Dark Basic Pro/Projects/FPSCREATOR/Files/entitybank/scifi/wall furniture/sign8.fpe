@@ -1,0 +1,38 @@
+;Entity Spec
+
+;Header
+desc          = Sign
+
+;AI
+aiinit	      = appear1.fpi
+aimain	      = default.fpi
+aidestroy     = disappear1.fpi
+
+;Spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;Orientation
+model         = meshbank\scifi\scenery\signs\sign8\sign8.X
+offx          = 0
+offy          = 0
+offz          = 0
+rotx          = 0
+roty          = 0
+rotz          = 0
+materialindex = 3
+forwardfacing = 1
+defaultheight = 50
+defaultstatic = 1
+
+;Visualinfo
+textured      = texturebank\scifi\scenery\signs\sign8\sign8_D2.tga
+effect        = 
+
+;Identity Details
+strength      = 0
+
+;Animationinfo
+animmax       = 0
+anim0         = 0,0

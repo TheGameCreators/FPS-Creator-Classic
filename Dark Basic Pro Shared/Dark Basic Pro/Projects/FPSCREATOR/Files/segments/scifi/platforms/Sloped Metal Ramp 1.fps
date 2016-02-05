@@ -1,0 +1,58 @@
+;Segment Spec
+
+;Header
+
+partmax = 0
+lastmeshmax = 0
+
+;Segment Parts
+
+partmode0       = 0
+meshname0       = meshbank\scifi\moonbase\ramps\ramp_a.x
+offx0           = 0
+offy0           = -50
+offz0           = 0
+rotx0           = 0
+roty0           = 0
+rotz0           = 0
+texture0        = texturebank\scifi\floors\metal\f_c_01_d2.tga
+textured0       = texturebank\scifi\floors\metal\f_c_01_D.tga
+texturen0       = texturebank\scifi\floors\metal\f_c_01_N.tga
+textures0       = texturebank\scifi\floors\metal\f_c_01_S.tga
+transparency0   = 0
+effect0         = effectbank\bump\bump.fx
+colmode0        = 0
+csgmesh0        = 
+csgmode0        = 0
+csgimmune0      = 0
+lightmode0      = 0
+multimeshmode0  = 0
+materialindex0  = 3
+
+;Segment Visibility
+
+visoverlay      = 1
+visfloor        = 0
+visroof         = -1
+viswallb        = -1
+viswallr        = -1
+viswallf        = -1
+viswalll        = -1
+viscornertl     = -1
+viscornertr     = -1
+viscornerbr     = -1
+viscornerbl     = -1
+
+;Segment Blueprint
+
+mode            = 1
+symbol          = 0
+floorsizey      = 1
+sidesizex       = 100
+sidesizey       = 1
+sidesizez       = 100
+groundmode      = 0
+kindof          = 0
+
+;end
+

@@ -1,0 +1,15 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Appear By Activation, play and set Spawn
+
+;Triggers
+
+:state=0,activated=1:state=1,spawnon
+:state=1:state=2,setalphafade=0,setframe=0
+:state=2:incframe=0,incalphafade=100
+:state=2,frameatend=0:state=3
+:state=3,alphafadeequal=100:state=4,runfpidefault=1
+
+;End of Script

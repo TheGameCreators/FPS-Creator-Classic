@@ -1,0 +1,28 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Throw Fore
+
+;Triggers
+
+:state=0:state=1,setframe=14
+:state=1:incframe=14
+:state=1,raycast=0 40,framewithin=14 50:setframe=15,forcebounce=0,state=2
+:state=1,raycast=0 60,framebeyond=14 50:forcebounce=0
+:state=1,frameatend=14:state=4
+:state=2:incframe=15
+:state=2,frameatend=15:state=5
+:state=4,health=0:runfpidefault=1
+:state=4:state=7,setframe=16
+:state=5,health=0:runfpidefault=1
+:state=5:state=9,setframe=13
+
+:state=7,random=20:state=8
+:state=8:incframe=16
+:state=8,frameatend=16:animate=1,runfpidefault=1
+:state=9,random=20:state=10
+:state=10:incframe=13
+:state=10,frameatend=13:animate=1,runfpidefault=1
+
+;End of Script

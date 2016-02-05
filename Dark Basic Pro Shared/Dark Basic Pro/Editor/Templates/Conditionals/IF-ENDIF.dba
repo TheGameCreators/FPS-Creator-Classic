@@ -1,0 +1,4 @@
+IF condition : ` Replace the condition
+   ` Insert command statements here
+   
+ENDIF

@@ -1,0 +1,3506 @@
+rem
+rem Artificial Intelegence Core
+rem
+
+_ai_setkeywords:
+
+rem Set all condition keywords
+dim conword$(AICONDLAST)
+conword$(AICONDNEVER)="never"
+conword$(AICONDALWAYS)="always"
+conword$(AICONDSTATE)="state"
+conword$(AICONDRANDOM)="random"
+conword$(AICONDHEALTH)="health"
+conword$(AICONDHEALTHLESS)="healthless"
+conword$(AICONDQUANTITY)="quantity"
+conword$(AICONDSPEED)="speed"
+conword$(AICONDRATEOFFIRE)="rateoffire"
+conword$(AICONDVAREQUAL)="varequal"
+conword$(AICONDVARNOTEQUAL)="varnotequal"
+conword$(AICONDVARGREATER)="vargreater"
+conword$(AICONDVARLESS)="varless"
+conword$(AICONDPLRHEALTHLESS)="plrhealthless"
+conword$(AICONDPLRHEALTHGREATER)="plrhealthgreater"
+conword$(AICONDLEVELEQUAL)="levelequal"
+conword$(AICONDLEVELNOTEQUAL)="levelnotequal"
+conword$(AICONDASSOCIATED)="playerassociated"
+conword$(AICONDPLRDISTWITHIN)="plrdistwithin"
+conword$(AICONDPLRDISTFURTHER)="plrdistfurther"
+conword$(AICONDPLRALIVE)="plralive"
+conword$(AICONDPLRHIGHER)="plrhigher"
+conword$(AICONDPLRELEVWITHIN)="plrelevwithin"
+conword$(AICONDPLRELEVFURTHER)="plrelevfurther"
+conword$(AICONDANYWITHIN)="anywithin"
+conword$(AICONDANYFURTHER)="anyfurther"
+conword$(AICONDPLRCANBESEEN)="plrcanbeseen"
+conword$(AICONDPLRCANNOTBESEEN)="plrcannotbeseen"
+conword$(AICONDPLRHASKEY)="plrhaskey"
+conword$(AICONDPLRUSINGACTION)="plrusingaction"
+conword$(AICONDSHOTDAMAGE)="shotdamage"
+conword$(AICONDIFWEAPON)="ifweapon"
+conword$(AICONDCANTAKE)="cantake"
+conword$(AICONDACTIVATED)="activated"
+conword$(AICONDPLRWITHINZONE)="plrwithinzone"
+conword$(AICONDENTITYWITHINZONE)="entitywithinzone"
+conword$(AICONDPLRINGUNSIGHT)="plringunsight"
+conword$(AICONDNEARACTIVATABLE)="nearactivatable"
+conword$(AICONDNEWWEAPONCANBESEEN)="newweaponcanbeseen"
+conword$(AICONDNOISEHEARD)="noiseheard"
+conword$(AICONDANYWITHINZONE)="anywithinzone"
+conword$(AICONDANYKEYWITHINZONE)="anykeywithinzone"
+conword$(AICONDRAYCAST)="raycast"
+conword$(AICONDRAYCASTUP)="raycastup"
+conword$(AICONDRAYCASTBACK)="raycastback"
+conword$(AICONDNORAYCASTUP)="noraycastup"
+conword$(AICONDFRAMEATEND)="frameatend"
+conword$(AICONDFRAMEATSTART)="frameatstart"
+conword$(AICONDFRAMEWITHIN)="framewithin"
+conword$(AICONDFRAMEBEYOND)="framebeyond"
+conword$(AICONDANIMATIONOVER)="animationover"
+conword$(AICONDALPHAFADEEQUAL)="alphafadeequal"
+conword$(AICONDREACHTARGET)="reachtarget"
+conword$(AICONDLOSETARGET)="losetarget"
+conword$(AICONDHEADANGLEGREATER)="headanglegreater"
+conword$(AICONDHEADANGLELESS)="headangleless"
+conword$(AICONDWAYPOINTSTATE)="waypointstate"
+conword$(AICONDIFMARKER)="ifmarker"
+conword$(AICONDIFPLRTRAIL)="ifplrtrail"
+conword$(AICONDHUDSELECTIONMADE)="hudselectionmade"
+conword$(AICONDTIMERGREATER)="timergreater"
+conword$(AICONDESCAPEKEYPRESSED)="escapekeypressed"
+conword$(AICONDSCANCODEKEYPRESSED)="scancodekeypressed"
+conword$(AICONDHUDEDITDONE)="hudeditdone"
+conword$(AICONDHUDHAVENAME)="hudhavename"
+
+rem Set all action keywords
+dim actword$(AIACTLAST)
+actword$(AIACTNONE)="none"
+actword$(AIACTDESTROY)="destroy"
+actword$(AIACTSUSPEND)="suspend"
+actword$(AIACTFLOORLOGIC)="floorlogic"
+actword$(AIACTNOGRAVITY)="nogravity"
+actword$(AIACTGLOBALVAR)="globalvar"
+actword$(AIACTLOCALVAR)="localvar"
+actword$(AIACTSETVAR)="setvar"
+actword$(AIACTINCVAR)="incvar"
+actword$(AIACTDECVAR)="decvar"
+actword$(AIACTRUNFPIDEFAULT)="runfpidefault"
+actword$(AIACTRUNFPI)="runfpi"
+actword$(AIACTSTATE)="state"
+actword$(AIACTINCSTATE)="incstate"
+actword$(AIACTMOVEUP)="moveup"
+actword$(AIACTMOVEFORE)="movefore"
+actword$(AIACTMOVEBACK)="moveback"
+actword$(AIACTRUNFORE)="runfore"
+actword$(AIACTFREEZE)="freeze"
+actword$(AIACTROTATEY)="rotatey"
+actword$(AIACTROTATEIY)="rotateiy"
+actword$(AIACTNOROTATE)="norotate"
+actword$(AIACTROTATETOPLR)="rotatetoplr"
+actword$(AIACTRESETHEAD)="resethead"
+actword$(AIACTROTATEHEAD)="rotatehead"
+actword$(AIACTROTATEHEADRANDOM)="rotateheadrandom"
+actword$(AIACTFORCEBACK)="forceback"
+actword$(AIACTFORCEFORE)="forcefore"
+actword$(AIACTFORCELEFT)="forceleft"
+actword$(AIACTFORCERIGHT)="forceright"
+actword$(AIACTFORCEBOUNCE)="forcebounce"
+actword$(AIACTSPINRATE)="spinrate"
+actword$(AIACTFLOATRATE)="floatrate"
+actword$(AIACTSETFRAME)="setframe"
+actword$(AIACTINCFRAME)="incframe"
+actword$(AIACTDECFRAME)="decframe"
+actword$(AIACTANIMATE)="animate"
+actword$(AIACTADVFRAME)="advframe"
+actword$(AIACTPLRASS)="associateplayer"
+actword$(AIACTPLRNOASS)="unassociateplayer"
+actword$(AIACTPLRMOVEUP)="plrmoveup"
+actword$(AIACTPLRMOVEDOWN)="plrmovedown"
+actword$(AIACTPLRMOVEEAST)="plrmoveeast"
+actword$(AIACTPLRMOVEWEST)="plrmovewest"
+actword$(AIACTPLRMOVENORTH)="plrmovenorth"
+actword$(AIACTPLRMOVESOUTH)="plrmovesouth"
+actword$(AIACTPLRMOVETO)="plrmoveto"
+actword$(AIACTPLRMOVEIFUSED)="plrmoveifused"
+actword$(AIACTPLRFREEZE)="plrfreeze"
+actword$(AIACTPLRDISABLE)="plrdisable"
+actword$(AIACTACTIVATEIFUSED)="activateifused"
+actword$(AIACTACTIVATEIFUSEDNEAR)="activateifusednear"
+actword$(AIACTACTIVATETARGET)="activatetarget"
+actword$(AIACTACTIVATEALLINZONE)="activateallinzone"
+actword$(AIACTACTIVATE)="activate"
+actword$(AIACTPLRADDHEALTH)="plraddhealth"
+actword$(AIACTPLRSUBHEALTH)="plrsubhealth"
+actword$(AIACTPLRSETHEALTH)="plrsethealth"
+actword$(AIACTADDHEALTH)="addhealth"
+actword$(AIACTSUBHEALTH)="subhealth"
+actword$(AIACTSETHEALTH)="sethealth"
+actword$(AIACTSETTARGET)="settarget"
+actword$(AIACTROTATETOTARGET)="rotatetotarget"
+actword$(AIACTLOOKATTARGET)="lookattarget"
+actword$(AIACTMOVETOTARGET)="movetotarget"
+actword$(AIACTCOLLECTTARGET)="collecttarget"
+actword$(AIACTSETTARGETNAME)="settargetname"
+actword$(AIACTCHOOSESTRAFE)="choosestrafe"
+actword$(AIACTSTRAFE)="strafe"
+actword$(AIACTPIVOTRANDOM)="pivotrandom"
+actword$(AIACTLOOKATPLR)="lookatplr"
+actword$(AIACTSOUND)="plrsound"
+actword$(AIACT3DSOUND)="sound"
+actword$(AIACTLOOPSOUND)="loopsound"
+actword$(AIACTSTOPSOUND)="stopsound"
+actword$(AIACTALTTEXTURE)="alttexture"
+actword$(AIACTSETALPHAFADE)="setalphafade"
+actword$(AIACTINCALPHAFADE)="incalphafade"
+actword$(AIACTDECALPHAFADE)="decalphafade"
+actword$(AIACTRUNDECAL)="rundecal"
+actword$(AIACTSHAPEDECAL)="shapedecal"
+actword$(AIACTTRIGGERFORCE)="triggerforce"
+actword$(AIACTWAYPOINTSTART)="waypointstart"
+actword$(AIACTWAYPOINTSTOP)="waypointstop"
+actword$(AIACTWAYPOINTREVERSE)="waypointreverse"
+actword$(AIACTWAYPOINTNEXT)="waypointnext"
+actword$(AIACTWAYPOINTPREV)="waypointprev"
+actword$(AIACTWAYPOINTRANDOM)="waypointrandom"
+actword$(AIACTDROPMARKER)="dropmarker"
+actword$(AIACTNEXTMARKER)="nextmarker"
+actword$(AIACTRESETMARKERS)="resetmarkers"
+actword$(AIACTFOLLOWPLR)="followplr"
+actword$(AIACTPLRTAKE)="playertake"
+actword$(AIACTPLRDROP)="playerdrop"
+actword$(AIACTSHOOTPLR)="shootplr"
+actword$(AIACTUSEWEAPON)="useweapon"
+actword$(AIACTRELOADWEAPON)="reloadweapon"
+actword$(AIACTCOLOFF)="coloff"
+actword$(AIACTCOLON)="colon"
+actword$(AIACTSPAWNON)="spawnon"
+actword$(AIACTSPAWNOFF)="spawnoff"
+actword$(AIACTHEADSHOT)="headshot"
+actword$(AIACTHEADSHOTDAMAGE)="headshotdamage"
+actword$(AIACTAMBIENCE)="ambience"
+actword$(AIACTAMBIENCERED)="ambiencered"
+actword$(AIACTAMBIENCEGREEN)="ambiencegreen"
+actword$(AIACTAMBIENCEBLUE)="ambienceblue"
+actword$(AIACTFOG)="fog"
+actword$(AIACTFOGRED)="fogred"
+actword$(AIACTFOGGREEN)="foggreen"
+actword$(AIACTFOGBLUE)="fogblue"
+actword$(AIACTSKY)="sky"
+actword$(AIACTSKYSCROLL)="skyscroll"
+actword$(AIACTNEWJUMPHEIGHT)="newjumpheight"
+actword$(AIACTBACKDROP)="backdrop"
+actword$(AIACTMUSIC)="music"
+actword$(AIACTMUSICOVERRIDE)="musicoverride"
+actword$(AIACTMUSICVOLUME)="musicvolume"
+actword$(AIACTSOUNDSCALE)="soundscale"
+actword$(AIACTVIDEO)="video"
+actword$(AIACTLIGHTON)="lighton"
+actword$(AIACTLIGHTOFF)="lightoff"
+actword$(AIACTLIGHTRED)="lightred"
+actword$(AIACTLIGHTGREEN)="lightgreen"
+actword$(AIACTLIGHTBLUE)="lightblue"
+actword$(AIACTLIGHTRANGE)="lightrange"
+actword$(AIACTLIGHTINTENSITY)="lightintensity"
+actword$(AIACTHUDRESET)="hudreset"
+actword$(AIACTHUDX)="hudx"
+actword$(AIACTHUDY)="hudy"
+actword$(AIACTHUDZ)="hudz"
+actword$(AIACTHUDSIZEX)="hudsizex"
+actword$(AIACTHUDSIZEY)="hudsizey"
+actword$(AIACTHUDSIZEZ)="hudsizez"
+actword$(AIACTHUDRED)="hudred"
+actword$(AIACTHUDGREEN)="hudgreen"
+actword$(AIACTHUDBLUE)="hudblue"
+actword$(AIACTHUDIMAGE)="hudimage"
+actword$(AIACTHUDIMAGEFINE)="hudimagefine"
+actword$(AIACTHUDFONT)="hudfont"
+actword$(AIACTHUDSIZE)="hudsize"
+actword$(AIACTHUDTEXT)="hudtext"
+actword$(AIACTHUDTYPE)="hudtype"
+actword$(AIACTHUDHIDE)="hudhide"
+actword$(AIACTHUDSHOW)="hudshow"
+actword$(AIACTHUDUNSHOW)="hudunshow"
+actword$(AIACTHUDNAME)="hudname"
+actword$(AIACTHUDANIM)="hudanim"
+actword$(AIACTHUDFADEOUT)="hudfadeout"
+actword$(AIACTHUDMAKE)="hudmake"
+actword$(AIACTNEWGAME)="newgame"
+actword$(AIACTLOADGAME)="loadgame"
+actword$(AIACTSAVEGAME)="savegame"
+actword$(AIACTCONTINUEGAME)="continuegame"
+actword$(AIACTQUITGAME)="quitgame"
+actword$(AIACTPAUSEGAME)="pausegame"
+actword$(AIACTRESUMEGAME)="resumegame"
+actword$(AIACTHOSTGAME)="hostgame"
+actword$(AIACTJOINGAME)="joingame"
+actword$(AIACTREPEATGAME)="repeatgame"
+actword$(AIACTTIMERSTART)="timerstart"
+actword$(AIACTQUICKLOADGAME)="quickloadgame"
+actword$(AIACTQUICKSAVEGAME)="quicksavegame"
+
+return
+
+_ai_reset_presaveposition:
+
+rem V109BETA5 - reset globals on new game
+rem V113BETA4 - only reset GLOBALs BEFORE loading a saved position
+for n=0 to 99 : aiglobals(n)=0 : next n
+
+return
+
+_ai_reset:
+
+rem Reset counters
+actstringmax=0
+conindexcount=0
+aicondseqcount=0
+actindexcount=0
+aiactseqcount=0
+hudmax=0
+
+return
+
+_ai_stopentsounds:
+ `
+ rem stop any looping sound
+ if entityelement(e).firesoundloop>0 then stop sound entityelement(e).firesoundloop
+ entityelement(e).firesoundloop=0
+ rem and entity sounds
+ if entityelement(e).soundset>0
+  if sound exist(entityelement(e).soundset)=1 then stop sound entityelement(e).soundset
+ endif
+ if entityelement(e).soundset1>0
+  if sound exist(entityelement(e).soundset1)=1 then stop sound entityelement(e).soundset1
+ endif
+ if entityelement(e).soundlooping>0
+  if sound exist(entityelement(e).soundlooping)=1 then stop sound entityelement(e).soundlooping
+  entityelement(e).soundlooping=0
+ endif
+ `
+return
+
+_ai_control:
+
+if aiindex>0
+ `
+ rem used to update timestamps if resumegame happens
+ tensureentitytimestampsupdated=0
+ `
+ if gshowdebugtextingamestate=1
+  if debugviewtog=1
+   if entityelement(e).priorityai<>0 then ink rgb(255,255,255),0
+   print upper$(entityelement(e).eleprof.name$)
+   if entityelement(e).priorityai<>0 then ink rgb(128,255,128),0
+  endif
+ endif
+ `
+ rem Go through all triggers
+ for conindex=ailist(aiindex).conditionfirst to ailist(aiindex).conditionlast
+  `
+  rem Result of condition
+  dw as DWORD : dw=0
+  airesult=1
+  `
+  rem Process conditions in 'conindex' (all have to be true)
+  aiconttimer as DWORD : aiconttimer=0
+  for seq=aicond(conindex).first to aicond(conindex).last
+   if gshowdebugtextingamestate=1
+    if debugviewtog=1
+     `if aiconditionseq(seq).type>10 or aiconttimer<>0
+     if aiconditionseq(seq).type>10 or aiconttimer<>0
+      if aiconttimer=0 then print " : ";
+      if aiconttimer<>0 then print ", ";
+      if aiconttimer=0 then aiconttimer=timer()
+      print conword$(aiconditionseq(seq).type)+"("+str$(aiconditionseq(seq).valuea)+","+str$(aiconditionseq(seq).valueb)+")";
+     endif
+    endif
+   endif
+   select aiconditionseq(seq).type
+    case AICONDNEVER: airesult=0 : endcase
+    case AICONDALWAYS: airesult=airesult : endcase
+    case AICONDSTATE:
+     conda=entityelement(e).ai.state
+     condb=aiconditionseq(seq).valuea
+     if conda<>condb then airesult=0
+    endcase
+    case AICONDRANDOM:
+     conda=aiconditionseq(seq).valuea
+     if rnd(conda)>0 then airesult=0
+    endcase
+    case AICONDHEALTH:
+     conda=entityelement(e).health
+     condb=aiconditionseq(seq).valuea
+     if conda<>condb then airesult=0
+    endcase
+    case AICONDHEALTHLESS:
+     conda=entityelement(e).health
+     condb=aiconditionseq(seq).valuea
+     if conda>=condb then airesult=0
+    endcase
+    case AICONDQUANTITY:
+     conda=entityelement(e).eleprof.quantity
+     condb=aiconditionseq(seq).valuea
+     if conda<>condb then airesult=0
+    endcase
+    case AICONDSPEED:
+     conda=entityelement(e).eleprof.speed
+     condb=aiconditionseq(seq).valuea
+     if conda<>condb then airesult=0
+    endcase
+    case AICONDRATEOFFIRE:
+     condb=entityelement(e).eleprof.rateoffire
+     if condb<=0
+      airesult=0
+     else
+      if condb>=100
+       rem always fire
+      else
+       if rnd(100-condb)>0 then airesult=0
+      endif
+     endif
+    endcase
+    `
+    case AICONDVAREQUAL:
+     tindex=aivariableindex
+     if aivariablemode=0
+      conda=aiglobals(tindex)
+     else
+      conda=ailocals(e,tindex)
+     endif
+     condb=aiconditionseq(seq).valuea
+     if conda<>condb then airesult=0
+    endcase
+    case AICONDVARNOTEQUAL:
+     tindex=aivariableindex
+     if aivariablemode=0
+      conda=aiglobals(tindex)
+     else
+      conda=ailocals(e,tindex)
+     endif
+     condb=aiconditionseq(seq).valuea
+     if conda=condb then airesult=0
+    endcase
+    case AICONDVARGREATER:
+     tindex=aivariableindex
+     if aivariablemode=0
+      conda=aiglobals(tindex)
+     else
+      conda=ailocals(e,tindex)
+     endif
+     condb=aiconditionseq(seq).valuea
+     if conda<=condb then airesult=0
+    endcase
+    case AICONDVARLESS:
+     tindex=aivariableindex
+     if aivariablemode=0
+      conda=aiglobals(tindex)
+     else
+      conda=ailocals(e,tindex)
+     endif
+     condb=aiconditionseq(seq).valuea
+     if conda>=condb then airesult=0
+    endcase
+    `
+    case AICONDPLRHEALTHLESS:
+     conda=player(1).health
+     condb=aiconditionseq(seq).valuea
+     if conda>=condb then airesult=0
+    endcase
+    case AICONDPLRHEALTHGREATER:
+     conda=player(1).health
+     condb=aiconditionseq(seq).valuea
+     if conda<=condb then airesult=0
+    endcase
+    `
+    case AICONDLEVELEQUAL:
+     conda=level
+     condb=aiconditionseq(seq).valuea
+     if conda<>condb then airesult=0
+    endcase
+    case AICONDLEVELNOTEQUAL:
+     conda=level
+     condb=aiconditionseq(seq).valuea
+     if conda=condb then airesult=0
+    endcase
+    `
+    case AICONDPLRDISTWITHIN:
+     conda#=dist#
+     condb#=aiconditionseq(seq).valuea
+     if conda#>=condb# then airesult=0
+    endcase
+    case AICONDPLRDISTFURTHER:
+     conda#=dist#
+     condb#=aiconditionseq(seq).valuea
+     if conda#<=condb# then airesult=0
+    endcase
+    case AICONDPLRALIVE:
+     conda=player(1).health
+     if conda<1 then conda=0
+     if conda>1 then conda=1
+     condb=aiconditionseq(seq).valuea
+     if conda<>condb then airesult=0
+    endcase
+    case AICONDPLRHIGHER:
+     conda#=disty#
+     condb#=aiconditionseq(seq).valuea
+     if conda#<=condb# then airesult=0
+    endcase
+    case AICONDPLRELEVWITHIN:
+     tmpy#=(entityelement(e).y+45.0)-mey#
+     conda#=abs(atanfull(dist#,tmpy#)-90)
+     condb#=aiconditionseq(seq).valuea
+     if conda#>=condb# then airesult=0
+    endcase
+    case AICONDPLRELEVFURTHER:
+     tmpy#=(entityelement(e).y+45.0)-mey#
+     conda#=abs(atanfull(dist#,tmpy#)-90)
+     condb#=aiconditionseq(seq).valuea
+     if conda#<=condb# then airesult=0
+    endcase
+    case AICONDANYWITHIN:
+     tokay=0
+     condx=entityelement(e).x/25
+     condy=entityelement(e).y/100
+     condz=entityelement(e).z/-25
+     condb=aiconditionseq(seq).valuea/25
+     for taix=(condb*-1) to condb
+      for taiz=(condb*-1) to condb
+       if condx+taix>=0 and condx+taix<=viscolx
+        if condz+taiz>=0 and condz+taiz<=viscolz
+         tte=viscolmap(condx+taix,condy,condz+taiz)
+         if tte<>0
+          if tte>0
+           ttentid=entityelement(tte).bankindex
+           if entityprofile(ttentid).ischaracter=1
+            tokay=1
+           endif
+          else
+           rem FPSCV105RC2 - only player (-1), not void blocks (-2)
+           if tte=-1
+            tokay=1
+           endif
+          endif
+         endif
+        endif
+       endif
+      next taiz
+     next taix
+     if tokay=0 then airesult=0
+    endcase
+    case AICONDANYFURTHER:
+     tokay=0
+     condx=entityelement(e).x/25
+     condy=entityelement(e).y/100
+     condz=entityelement(e).z/-25
+     condb=aiconditionseq(seq).valuea/25
+     for taix=(condb*-1) to condb
+      for taiz=(condb*-1) to condb
+       if condx+taix>=0 and condx+taix<=viscolx
+        if condz+taiz>=0 and condz+taiz<=viscolz
+         tte=viscolmap(condx+taix,condy,condz+taiz)
+         if tte<>0
+          if tte>0
+           ttentid=entityelement(tte).bankindex
+           if entityprofile(ttentid).ischaracter=1
+            tokay=1
+           endif
+          else
+           rem FPSCV105RC2 - only player (-1), not void blocks (-2)
+           if tte=-1
+            tokay=1
+           endif
+          endif
+         endif
+        endif
+       endif
+      next taiz
+     next taix
+     if tokay=1 then airesult=0
+    endcase
+    case AICONDPLRCANBESEEN:
+     if player(1).lives=0 or player(1).health=0
+      airesult=0
+     else
+      entityelement(e).mover.viewconeused=10
+      tdiffangle#=diffangle#-entityelement(e).ai.headangle
+      conda#=abs(tdiffangle#-entityelement(e).mover.da)
+      if conda#>180 then conda#=360-conda#
+      conda#=abs(conda#)
+      condb#=entityelement(e).eleprof.coneangle
+      if entityelement(e).eleprof.coneangle=0 then condb#=361
+      if conda#>=condb#
+       airesult=0
+      else
+       if obj=0
+        airesult=0
+       else
+        if entityprofile(entid).headlimb<>-1
+         tmpx#=limb position x(obj,entityprofile(entid).headlimb)
+         tmpy#=limb position y(obj,entityprofile(entid).headlimb)
+         tmpz#=limb position z(obj,entityprofile(entid).headlimb)
+        else
+         tmpx#=object position x(obj)
+         tmpy#=object position y(obj)+55.0
+         tmpz#=object position z(obj)
+        endif
+        tvisibility=0 : gosub _player_determinevisibility
+        if tvisibility=1
+         rem vertical angle of sight
+         tconda#=atanfull(dist#,tmpy#-mey#)-90
+         tcondb#=aiconditionseq(seq).valuea
+         if tcondb#=0 then tcondb#=22
+         if tconda#<tcondb#
+          inc gameperfentities2
+          rem new intermitent raycast
+          tokaystate=entityelement(e).raycastlaststate
+          if entityelement(e).raycastcount<=0
+           entityelement(e).raycastlaststate=static raycast(tmpx#,tmpy#,tmpz#,mex#,mey#,mez#)
+           entityelement(e).raycastcount=15
+          else
+           entityelement(e).raycastcount=entityelement(e).raycastcount-1
+          endif
+          if tokaystate=0
+           if tvisibilityifbreak>0
+            rem must shoot transparent obstacle to player sighting!
+            entityelement(e).possibletarget=1+tvisibilityifbreak
+           else
+            rem clean shot to player
+            entityelement(e).possibletarget=1
+           endif
+          else
+           airesult=0
+          endif
+         else
+          airesult=0
+         endif
+        else
+         airesult=0
+        endif
+       endif
+      endif
+     endif
+    endcase
+    case AICONDPLRCANNOTBESEEN:
+     if player(1).lives>0 and player(1).health>0
+      entityelement(e).mover.viewconeused=10
+      tdiffangle#=diffangle#-entityelement(e).ai.headangle
+      conda#=abs(tdiffangle#-entityelement(e).mover.da)
+      if conda#>180 then conda#=360-conda#
+      conda#=abs(conda#)
+      condb#=entityelement(e).eleprof.coneangle
+      if conda#<condb#
+       if obj=0
+        airesult=0
+       else
+        if entityprofile(entid).headlimb<>-1
+         tmpx#=limb position x(obj,entityprofile(entid).headlimb)
+         tmpy#=limb position y(obj,entityprofile(entid).headlimb)
+         tmpz#=limb position z(obj,entityprofile(entid).headlimb)
+        else
+         tmpx#=object position x(obj)
+         tmpy#=object position y(obj)+55.0
+         tmpz#=object position z(obj)
+        endif
+        tvisibility=0 : gosub _player_determinevisibility
+        if tvisibility=1
+         tconda#=atanfull(dist#,tmpy#-mey#)-90
+         tcondb#=aiconditionseq(seq).valuea
+         if tcondb#=0 then tcondb#=22
+         if tconda#<tcondb#
+          inc gameperfentities2
+          rem new intermitent raycast
+          tokaystate=entityelement(e).raycastlaststate
+          if entityelement(e).raycastcount<=0
+           entityelement(e).raycastlaststate=static raycast(tmpx#,tmpy#,tmpz#,mex#,mey#,mez#)
+           entityelement(e).raycastcount=15
+          else
+           entityelement(e).raycastcount=entityelement(e).raycastcount-1
+          endif
+          if tokaystate=0
+           airesult=0
+          endif
+         endif
+        endif
+       endif
+      endif
+     endif
+    endcase
+    case AICONDPLRHASKEY:
+     gosub _entity_playerhavekey
+     conda=aiconditionseq(seq).valuea
+     if tokay<>conda then airesult=0
+    endcase
+    case AICONDPLRUSINGACTION:
+     conda=aiconditionseq(seq).valuea
+     condb=player(1).usingaction
+     if conda<>condb then airesult=0
+    endcase
+    `
+    case AICONDSHOTDAMAGE:
+     conda=aiconditionseq(seq).valuea
+     condb=entityelement(e).shotdamage
+     if condb>0 and condb>conda
+      entityelement(e).possibletarget=1+entityelement(e).shotdamagesource
+     else
+      airesult=0
+     endif
+     entityelement(e).shotdamage=0
+     entityelement(e).shotdamagesource=0
+    endcase
+    case AICONDIFWEAPON:
+     conda=aiconditionseq(seq).valuea
+     if entityelement(e).fireweapon=0
+      tokay=0 : tgunid=entityelement(e).currentweapon
+      if tgunid>0
+       if entityelement(e).currentammo>0 or gun(tgunid).settings.reloadqty=0
+        tokay=1
+       endif
+      endif
+      if conda=0 and tokay=1 then airesult=0
+      if conda=1 and tokay=0 then airesult=0
+     else
+      airesult=0
+     endif
+    endcase
+    case AICONDCANTAKE:
+     tokay=1
+     if entityprofile(entid).ishealth>0
+      rem check if NEED it, single player says do not waste
+      if gmultiplayergame=0
+       if player(1).health>=playerstartstrength
+        tokay=0
+       endif
+      endif
+     endif
+     if tokay=0 then airesult=0
+    endcase
+    `
+    case AICONDACTIVATED:
+     conda=aiconditionseq(seq).valuea
+     condb=entityelement(e).activated
+     if conda<>condb then airesult=0
+    endcase
+    case AICONDPLRWITHINZONE:
+     condx1=(entityelement(e).x+(entityelement(e).eleprof.trigger.areax1*100))-50.0
+     condy1=(entityelement(e).y+(entityelement(e).eleprof.trigger.areay1*100))
+     condz1=(entityelement(e).z-(entityelement(e).eleprof.trigger.areaz1*100))+50.0
+     condx2=(entityelement(e).x+(entityelement(e).eleprof.trigger.areax2*100))+50.0
+     condy2=(entityelement(e).y+(entityelement(e).eleprof.trigger.areay2*100))+100.0
+     condz2=(entityelement(e).z-(entityelement(e).eleprof.trigger.areaz2*100))-50.0
+     tokay=0
+     if mex#<condx1 then tokay=1
+     if mey#<condy1 then tokay=1
+     if mez#>condz1 then tokay=1
+     if mex#>condx2 then tokay=1
+     if mey#>condy2 then tokay=1
+     if mez#<condz2 then tokay=1
+     conda=aiconditionseq(seq).valuea
+     if tokay<>conda
+      rem player is within zone
+      mi=entityelement(e).eleprof.isobjective : if mi>0 then playerobjective(mi)=1
+     else
+      airesult=0
+     endif
+    endcase
+    case AICONDENTITYWITHINZONE:
+     rem If I push a crate into the trigger zone, then detect for that CRATE
+     rem TODO - if find one, set it as the TARGET
+    endcase
+    case AICONDPLRINGUNSIGHT:
+     conda#=abs(diffangle#-entityelement(e).mover.da)
+     if conda#>180 then conda#=360-conda#
+     conda#=abs(conda#)
+     if conda#>=5 then airesult=0
+    endcase
+    case AICONDNEARACTIVATABLE:
+     tokay=0
+     for tae=1 to entityelementlist
+      if entityelement(tae).active=1
+       if entityelement(tae).activated=aiconditionseq(seq).valuea
+        cdistx#=entityelement(tae).x-entityelement(e).x
+        cdisty#=entityelement(tae).y-entityelement(e).y
+        cdistz#=entityelement(tae).z-entityelement(e).z
+        cdist#=sqrt(abs(cdistx#*cdistx#)+abs(cdisty#*cdisty#)+abs(cdistz#*cdistz#))
+        if cdist#<70.0
+         tokay=1 : entityelement(e).possibletarget=1+tae
+         tae=entityelementlist+1 : exit
+        endif
+       endif
+      endif
+     next tae
+     if tokay=0 then airesult=0
+    endcase
+    `
+    case AICONDNEWWEAPONCANBESEEN:
+     tentitytype=1 : gosub _entity_conescanforentity
+     tplrid=entityelement(e).fakeplayerid
+     if tfounde>0 and tplrid>0
+      tgunbestdamage=0
+      for pi=1 to player(tplrid).inventorymax
+       te=playerinventory(tplrid,pi).index
+       tentid=entityelement(te).bankindex
+       tgunid=entityprofile(tentid).isweapon
+       if tgunid>0
+        if gun(tgunid).settings.damage>tgunbestdamage then tgunbestdamage=gun(tgunid).settings.damage
+       endif
+      next pi
+      tokay=0
+      tent2id=entityelement(tfounde).bankindex
+      tgun2id=entityprofile(tent2id).isweapon
+      if tgun2id>0
+       if gun(tgun2id).settings.damage>tgunbestdamage then tokay=1
+      endif
+      if tokay=1 then entityelement(e).possibletarget=1+tfounde
+      if tokay=0 then airesult=0
+     else
+      airesult=0
+     endif
+    endcase
+    `
+    case AICONDNOISEHEARD:
+     if bcsoundstrength#>0
+      conda=aiconditionseq(seq).valuea
+      cdistx#=bcsoundx#-entityelement(e).x
+      cdisty#=bcsoundy#-entityelement(e).y
+      cdistz#=bcsoundz#-entityelement(e).z
+      cdist#=sqrt(abs(cdistx#*cdistx#)+abs(cdisty#*cdisty#)+abs(cdistz#*cdistz#))
+      if cdist#>50.0
+       rem not too close (as this would be itself making the noise)
+       if bcsoundstrength#*10>cdist#
+        rem heard something (-1 is sound coord target)
+        entityelement(e).possibletarget=-1
+       else
+        airesult=0
+       endif
+      else
+       airesult=0
+      endif
+     else
+      airesult=0
+     endif
+    endcase
+    `
+    case AICONDANYWITHINZONE:
+     condx1=(entityelement(e).x+(entityelement(e).eleprof.trigger.areax1*100))-50.0
+     condy1=(entityelement(e).y+(entityelement(e).eleprof.trigger.areay1*100))
+     condz1=(entityelement(e).z-(entityelement(e).eleprof.trigger.areaz1*100))+50.0
+     condx2=(entityelement(e).x+(entityelement(e).eleprof.trigger.areax2*100))+50.0
+     condy2=(entityelement(e).y+(entityelement(e).eleprof.trigger.areay2*100))+100.0
+     condz2=(entityelement(e).z-(entityelement(e).eleprof.trigger.areaz2*100))-50.0
+     conda=aiconditionseq(seq).valuea
+     condfound=0
+     for te=1 to entityelementlist
+      if te<>e and entityelement(te).active=1
+       tokay=0
+       if entityelement(te).x<condx1 then tokay=1
+       if entityelement(te).y<condy1 then tokay=1
+       if entityelement(te).z>condz1 then tokay=1
+       if entityelement(te).x>condx2 then tokay=1
+       if entityelement(te).y>condy2 then tokay=1
+       if entityelement(te).z<condz2 then tokay=1
+       if tokay=0
+        condfound=te : exit
+       endif
+      endif
+     next te
+     if conda=1
+      if condfound=0
+       airesult=0
+      endif
+     else
+      if condfound<>0
+       airesult=0
+      endif
+     endif
+    endcase
+    case AICONDANYKEYWITHINZONE:
+     condx1=(entityelement(e).x+(entityelement(e).eleprof.trigger.areax1*100))-50.0
+     condy1=(entityelement(e).y+(entityelement(e).eleprof.trigger.areay1*100))
+     condz1=(entityelement(e).z-(entityelement(e).eleprof.trigger.areaz1*100))+50.0
+     condx2=(entityelement(e).x+(entityelement(e).eleprof.trigger.areax2*100))+50.0
+     condy2=(entityelement(e).y+(entityelement(e).eleprof.trigger.areay2*100))+100.0
+     condz2=(entityelement(e).z-(entityelement(e).eleprof.trigger.areaz2*100))-50.0
+     conda=aiconditionseq(seq).valuea
+     condfound=0
+     for te=1 to entityelementlist
+      if te<>e and entityelement(te).active=1
+       tokay=0
+       if entityelement(te).x<condx1 then tokay=1
+       if entityelement(te).y<condy1 then tokay=1
+       if entityelement(te).z>condz1 then tokay=1
+       if entityelement(te).x>condx2 then tokay=1
+       if entityelement(te).y>condy2 then tokay=1
+       if entityelement(te).z<condz2 then tokay=1
+       if tokay=0
+        if lower$(entityelement(te).eleprof.name$)=lower$(entityelement(e).eleprof.usekey$)
+         condfound=te : exit
+        endif
+       endif
+      endif
+     next te
+     if conda=1
+      if condfound=0
+       airesult=0
+      endif
+     else
+      if condfound<>0
+       airesult=0
+      endif
+     endif
+    endcase
+    `
+    case AICONDFRAMEATEND:
+     if obj=0
+      airesult=0
+     else
+      if entityprofile(entid).animmax>0
+       conda#=object frame(obj)
+       condb=aiconditionseq(seq).valuea
+       tbaseframe=condb : gosub _entity_getactualframefinish : condb#=tactualframe
+       if conda#<condb# then airesult=0
+      endif
+     endif
+    endcase
+    case AICONDFRAMEATSTART:
+     if obj=0
+      airesult=0
+     else
+      if entityprofile(entid).animmax>0
+       conda#=object frame(obj)
+       condb=aiconditionseq(seq).valuea
+       tbaseframe=condb : gosub _entity_getactualframestart : condb#=tactualframe
+       if conda#>condb# then airesult=0
+      endif
+     endif
+    endcase
+    case AICONDFRAMEWITHIN:
+     if obj=0
+      airesult=0
+     else
+      if entityprofile(entid).animmax>0
+       conda#=object frame(obj)
+       conda=aiconditionseq(seq).valuea
+       condb#=aiconditionseq(seq).valueb/100.0
+       tbaseframe=conda : gosub _entity_getactualframefinish : condc#=tactualframe
+       tbaseframe=conda : gosub _entity_getactualframestart : condc#=condc#-tactualframe
+       tbaseframe=conda : gosub _entity_getactualframestart : condb#=tactualframe+(condc#*condb#)
+       if conda#>condb# then airesult=0
+      endif
+     endif
+    endcase
+    case AICONDFRAMEBEYOND:
+     if obj=0
+      airesult=0
+     else
+      if entityprofile(entid).animmax>0
+       conda#=object frame(obj)
+       conda=aiconditionseq(seq).valuea
+       condb#=aiconditionseq(seq).valueb/100.0
+       tbaseframe=conda : gosub _entity_getactualframefinish : condc#=tactualframe
+       tbaseframe=conda : gosub _entity_getactualframestart : condc#=condc#-tactualframe
+       tbaseframe=conda : gosub _entity_getactualframestart : condb#=tactualframe+(condc#*condb#)
+       if conda#<condb# then airesult=0
+      endif
+     endif
+    endcase
+    case AICONDANIMATIONOVER:
+     if obj=0
+      airesult=0
+     else
+      if entityprofile(entid).animmax>0
+       conda#=object frame(obj)
+       condb=aiconditionseq(seq).valuea
+       tbaseframe=condb : gosub _entity_getactualframefinish : condb#=tactualframe-5.0
+       if conda#<condb# then airesult=0
+      endif
+     endif
+    endcase
+    `
+    case AICONDREACHTARGET:
+     te=entityelement(e).actualtarget-1
+     if te>0
+      tdistx#=entityelement(te).x-entityelement(e).x
+      tdistz#=entityelement(te).z-entityelement(e).z
+     else
+      tdistx#=entityelement(e).actualtargetx-entityelement(e).x
+      tdistz#=entityelement(e).actualtargetz-entityelement(e).z
+     endif
+     conda#=sqrt(abs(tdistx#*tdistx#)+abs(tdistz#*tdistz#))
+     condb#=aiconditionseq(seq).valuea
+     if conda#>=5.0 then airesult=0
+    endcase
+    case AICONDLOSETARGET:
+     conda=entityelement(e).losttargetcount
+     condb=aiconditionseq(seq).valuea
+     if conda<condb then airesult=0
+    endcase
+    `
+    case AICONDHEADANGLEGREATER:
+     conda#=entityelement(e).ai.headangle
+     condb#=aiconditionseq(seq).valuea
+     if conda#<condb# then airesult=0
+    endcase
+    case AICONDHEADANGLELESS:
+     conda#=entityelement(e).ai.headangle
+     condb#=aiconditionseq(seq).valuea
+     if conda#>condb# then airesult=0
+    endcase
+    `
+    case AICONDRAYCAST:
+     if obj=0
+      airesult=0
+     else
+      tmpx#=object position x(obj)
+      tmpy#=object position y(obj)
+      tmpz#=object position z(obj)
+      tmpx1#=tmpx#
+      tmpz1#=tmpz#
+      tmpheight#=40
+      tnorm#=abs(entityelement(e).force.ix)+abs(entityelement(e).force.iz)
+      tvx#=entityelement(e).force.ix/tnorm#
+      tvz#=entityelement(e).force.iz/tnorm#
+      tvel#=aiconditionseq(seq).valueb
+      tmpx2#=tmpx#+(tvx#*tvel#)
+      tmpz2#=tmpz#+(tvz#*tvel#)
+      inc gameperfentities2
+      entityelement(e).raycastcount=0
+      if tmpy#>-50
+       if static raycast(tmpx1#,tmpy#+tmpheight#,tmpz1#,tmpx2#,tmpy#+tmpheight#,tmpz2#)=0 then airesult=0
+      endif
+     endif
+    endcase
+    case AICONDRAYCASTUP:
+     if obj=0
+      airesult=0
+     else
+      tmpx#=object position x(obj) : tmpy#=object position y(obj) : tmpz#=object position z(obj)
+      inc gameperfentities2
+      entityelement(e).raycastcount=0
+      if tmpy#>-50
+       if static raycast(tmpx#,tmpy#+aiconditionseq(seq).valuea,tmpz#,tmpx#,tmpy#+aiconditionseq(seq).valueb,tmpz#)=0 then airesult=0
+      endif
+     endif
+    endcase
+    case AICONDRAYCASTBACK:
+     if obj=0
+      airesult=0
+     else
+      tmpx#=object position x(obj) : tmpy#=object position y(obj) : tmpz#=object position z(obj)
+      tmpa#=object angle y(obj) : tmpheight#=50
+      conda#=aiconditionseq(seq).valuea*-1
+      condb#=aiconditionseq(seq).valueb*-1
+      tmpx1#=tmpx#+(sin(tmpa#)*conda#)
+      tmpz1#=tmpz#+(cos(tmpa#)*conda#)
+      tmpx2#=tmpx#+(sin(tmpa#)*condb#)
+      tmpz2#=tmpz#+(cos(tmpa#)*condb#)
+      inc gameperfentities2
+      entityelement(e).raycastcount=0
+      if static raycast(tmpx1#,tmpy#+tmpheight#,tmpz1#,tmpx2#,tmpy#+tmpheight#,tmpz2#)=0 then airesult=0
+     endif
+    endcase
+    case AICONDNORAYCASTUP:
+     if obj=0
+      airesult=0
+     else
+      tmpx#=object position x(obj) : tmpy#=object position y(obj) : tmpz#=object position z(obj)
+      inc gameperfentities2
+      entityelement(e).raycastcount=0
+      if static raycast(tmpx#,tmpy#+aiconditionseq(seq).valuea,tmpz#,tmpx#,tmpy#+aiconditionseq(seq).valueb,tmpz#)<>0 then airesult=0
+      if tmpy#<-50 then airesult=0
+     endif
+    endcase
+    case AICONDALPHAFADEEQUAL:
+     conda#=entityelement(e).ai.alphafade
+     condb#=aiconditionseq(seq).valuea
+     if conda#<>condb# then airesult=0
+    endcase
+    case AICONDWAYPOINTSTATE:
+     conda=entityelement(e).ai.waypoint.state
+     condb=aiconditionseq(seq).valuea
+     if conda<>condb then airesult=0
+    endcase
+    `
+    case AICONDIFMARKER:
+     conda=entitybreadcrumbs(e,0).x
+     condb=aiconditionseq(seq).valuea
+     if condb=0 and conda>0 then airesult=0
+     if condb=1 and conda=0 then airesult=0
+    endcase
+    case AICONDIFPLRTRAIL:
+     rem player trail!
+     conda=0
+     condb=aiconditionseq(seq).valuea
+     if condb=0 and conda>0 then airesult=0
+     if condb=1 and conda=0 then airesult=0
+    endcase
+    `
+    `
+    `
+    case AICONDHUDSELECTIONMADE:
+     conda=aiconditionseq(seq).valuea
+     if conda>0
+      if hudselectionmade<>conda then airesult=0 else hudselectionmade=0
+     else
+      if hudselectionmade=0 then airesult=0 else hudselectionmade=0
+     endif
+    endcase
+    case AICONDTIMERGREATER:
+     conda=timer()-hudtimer
+     condb=aiconditionseq(seq).valuea
+     if conda<condb then airesult=0
+    endcase
+    case AICONDESCAPEKEYPRESSED:
+     conda=aiconditionseq(seq).valuea
+     if escapekey()=1 and conda=0 then airesult=0
+     if escapekey()=0 and conda=1 then airesult=0
+    endcase
+    case AICONDSCANCODEKEYPRESSED:
+     conda=aiconditionseq(seq).valuea
+     condb=scancode()
+     if condb<>conda then airesult=0
+    endcase
+    case AICONDHUDEDITDONE:
+     for thudid=1 to hudmax
+      if hud(thudid).maintype=8 and hud(thudid).hide=0 and hud(thudid).typemode<20
+       airesult=0
+      endif
+     next thudid
+    endcase
+    case AICONDHUDHAVENAME:
+     conda=aiconditionseq(seq).valuea
+     if hudhaveplayername=0 and conda=1 then airesult=0
+     if hudhaveplayername=1 and conda=0 then airesult=0
+    endcase
+    `
+    `
+    `
+   endselect
+   `
+   rem nw addition, if airesult prematurely zero can leave NOW
+   if airesult=0 then seq=aicond(conindex).last
+   `
+  next seq
+  if gshowdebugtextingamestate=1
+   if debugviewtog=1
+    if aiconttimer<>0 then print " : ";
+   endif
+  endif
+  `
+  rem Process action if all true
+  if airesult=1
+   `
+   if gshowdebugtextingamestate=1
+    if debugviewtog=1
+     if aiconttimer=0 then aiconttimer=timer() : print " : ";
+     print strarr$(1);
+    endif
+   endif
+   `
+   rem Process all actions in sequence
+   actindex=aicond(conindex).action
+   for seq=aiaction(actindex).first to aiaction(actindex).last
+    if gshowdebugtextingamestate=1
+     if debugviewtog=1
+      print actword$(aiactionseq(seq).type)+"("+str$(aiactionseq(seq).value)+")"+", ";
+     endif
+    endif
+    select aiactionseq(seq).type
+     `
+     case AIACTSTATE:
+      entityelement(e).ai.state=aiactionseq(seq).value
+     endcase
+     case AIACTINCSTATE:
+      entityelement(e).ai.state=entityelement(e).ai.state+aiactionseq(seq).value
+     endcase
+     `
+     case AIACTDESTROY:
+      rem deactivate and hide entity (beenkilled used by spawner)
+      entityelement(e).beenkilled=1
+      entityelement(e).active=0
+      if obj>0
+       if entityelement(e).eleprof.physics<>0
+        gosub _ode_switchoffe
+       else
+        set object collision off obj
+       endif
+       hide object obj
+      endif
+      rem stop any looping sound
+      gosub _ai_stopentsounds
+      rem clear entity from col map
+      tx=entityelement(e).x/25
+      ty=entityelement(e).y/100
+      tz=entityelement(e).z/-25
+      if tx>=0 and ty>=0 and tz>=0
+       if tx<=viscolx and ty<=viscoly and tz<=viscolz
+        if viscolmap(tx,ty,tz)=e then viscolmap(tx,ty,tz)=0
+       endif
+      endif
+     endcase
+     case AIACTSUSPEND:
+      rem deactivate entity (like a corpse)
+      entityelement(e).active=0
+      entityelement(e).beenkilled=1
+      entityelement(e).logiccount=0 : entityelement(e).logiccountburst=5
+      rem stop any looping sound
+      if entityelement(e).firesoundloop>0 then stop sound entityelement(e).firesoundloop
+      entityelement(e).firesoundloop=0
+      rem clear entity from col map
+      tx=entityelement(e).x/25
+      ty=entityelement(e).y/100
+      tz=entityelement(e).z/-25
+      viscolmap(tx,ty,tz)=0
+     endcase
+     case AIACTFLOORLOGIC:
+      entityelement(e).nofloorlogic=1+entityelement(e).y
+      rem V109 BETA11 - 130508 - gravity off causes characters to float when this is used
+      rem should use NOGRAVITY action seperately for the former effect
+      `entityelement(e).nogravity=1
+      `if gmultiplayergame=0
+      ` if entityelement(e).eleprof.physics<>0
+      `  rem switch off gravity for this object
+      `  if obj>0 then ode set gravity obj,0
+      ` endif
+      `endif
+     endcase
+     case AIACTNOGRAVITY:
+      entityelement(e).nogravity=1
+      if gmultiplayergame=0
+       if entityelement(e).eleprof.physics<>0
+        rem switch off gravity for this object
+        if obj>0 then ode set gravity obj,0
+       endif
+      endif
+     endcase
+     `
+     case AIACTGLOBALVAR:
+      aivariablemode=0
+      aivariableindex=aiactionseq(seq).value
+      if aivariableindex<0 then aivariableindex=0
+      if aivariableindex>99 then aivariableindex=99
+     endcase
+     case AIACTLOCALVAR:
+      aivariablemode=1
+      aivariableindex=aiactionseq(seq).value
+      if aivariableindex<0 then aivariableindex=0
+      if aivariableindex>99 then aivariableindex=99
+     endcase
+     case AIACTSETVAR:
+      if aivariablemode=0
+       aiglobals(aivariableindex)=aiactionseq(seq).value
+      else
+       ailocals(e,aivariableindex)=aiactionseq(seq).value
+      endif
+     endcase
+     case AIACTINCVAR:
+      if aivariablemode=0
+       aiglobals(aivariableindex)=aiglobals(aivariableindex)+aiactionseq(seq).value
+      else
+       ailocals(e,aivariableindex)=ailocals(e,aivariableindex)+aiactionseq(seq).value
+      endif
+     endcase
+     case AIACTDECVAR:
+      if aivariablemode=0
+       aiglobals(aivariableindex)=aiglobals(aivariableindex)-aiactionseq(seq).value
+      else
+       ailocals(e,aivariableindex)=ailocals(e,aivariableindex)-aiactionseq(seq).value
+      endif
+     endcase
+     `
+     case AIACTRUNFPIDEFAULT:
+      rem leave and run new DEFAULT AI script
+      trundefaultscriptinternal=1
+      if aiactionseq(seq).value=0 then trundefaultscript=1+entityelement(e).ai.libinit
+      if aiactionseq(seq).value=1 then trundefaultscript=1+entityelement(e).ai.libmain
+      if aiactionseq(seq).value=2 then trundefaultscript=1+entityelement(e).ai.libdestroy
+      if aiactionseq(seq).value=3 then trundefaultscript=1+entityelement(e).ai.libshoot
+      conindex=ailist(aiindex).conditionlast
+      seq=aiaction(actindex).last
+      exit
+     endcase
+     case AIACTRUNFPI:
+      rem Switch FPI AI Scripts via SPECIFIED FILE
+      trundefaultscriptinternal=0
+      trundefaultscript=1+aiactionseq(seq).value
+      conindex=ailist(aiindex).conditionlast
+      seq=aiaction(actindex).last
+      exit
+     endcase
+     `
+     case AIACTMOVEUP:
+      if obj>0
+       tmpx#=object position x(obj)
+       tmpy#=object position y(obj)
+       tmpz#=object position z(obj)
+       temp#=(entityelement(e).eleprof.speed/100.0)*aiactionseq(seq).value
+       entityelement(e).y=tmpy#+temp#
+       gosub _entity_controlrecalcdist
+       position object obj,tmpx#,entityelement(e).y,tmpz#
+      endif
+     endcase
+     case AIACTMOVEFORE:
+      tmpx#=entityelement(e).x : tmpz#=entityelement(e).z
+      tmp#=(entityelement(e).eleprof.speed/100.0)*aiactionseq(seq).value
+      rem V110 BETA5 - 080608 - must have minimum move distance or movement fails (for slow entities)
+      if tmp#<2.0 then tmp#=2.0
+      entityelement(e).mover.dx=newxvalue(tmpx#,entityelement(e).mover.da,tmp#)
+      entityelement(e).mover.dz=newzvalue(tmpz#,entityelement(e).mover.da,tmp#)
+      entityelement(e).mover.dy=entityelement(e).y
+      entityelement(e).mover.moved=1
+      entityelement(e).mover.run=0
+     endcase
+     case AIACTRUNFORE:
+      tmpx#=entityelement(e).x : tmpz#=entityelement(e).z
+      tmp#=(entityelement(e).eleprof.speed/100.0)*aiactionseq(seq).value
+      rem V110 BETA5 - 080608 - must have minimum move distance or movement fails (for slow entities)
+      if tmp#<2.0 then tmp#=2.0
+      entityelement(e).mover.dx=newxvalue(tmpx#,entityelement(e).mover.da,tmp#)
+      entityelement(e).mover.dz=newzvalue(tmpz#,entityelement(e).mover.da,tmp#)
+      entityelement(e).mover.dy=entityelement(e).y
+      entityelement(e).mover.moved=1
+      entityelement(e).mover.run=1
+     endcase
+     case AIACTFREEZE:
+      entityelement(e).mover.dx=entityelement(e).x
+      entityelement(e).mover.dy=entityelement(e).y
+      entityelement(e).mover.dz=entityelement(e).z
+      entityelement(e).ai.headangle=0.0
+      entityelement(e).ai.headdestangle=0.0
+      entityelement(e).ai.waypoint.state=999
+      entityelement(e).mover.moved=0
+      entityelement(e).mover.run=0
+      entityelement(e).strafemode=0
+      entityelement(e).mover.ix=0
+      entityelement(e).mover.iz=0
+      entityelement(e).mover.strafe=0
+      entityelement(e).mover.stepcount=0
+      entityelement(e).plrtrailindex=0
+     endcase
+     `
+     case AIACTROTATEY:
+      tmp#=aiactionseq(seq).value
+      entityelement(e).mover.da=entityelement(e).mover.da+tmp#
+      if entityelement(e).mover.da<0 then entityelement(e).mover.da=entityelement(e).mover.da+360
+      if entityelement(e).mover.da>359 then entityelement(e).mover.da=entityelement(e).mover.da-360
+     endcase
+     case AIACTROTATETOPLR:
+      entityelement(e).ai.headangle=0.0
+      entityelement(e).ai.headdestangle=0.0
+      entityelement(e).mover.da=wrapvalue(diffangle#)
+     endcase
+     case AIACTROTATEIY:
+      tmp#=aiactionseq(seq).value
+      entityelement(e).ry=entityelement(e).ry+tmp#
+      entityelement(e).mover.da=entityelement(e).ry
+      if obj>0
+       yrotate object obj,entityelement(e).ry
+      endif
+     endcase
+     case AIACTNOROTATE:
+      entityelement(e).norotate=aiactionseq(seq).value
+     endcase
+     `
+     case AIACTRESETHEAD:
+      entityelement(e).ai.headdestangle=0.0
+     endcase
+     case AIACTROTATEHEAD:
+      tmp#=aiactionseq(seq).value
+      entityelement(e).ai.headdestangle=tmp#
+     endcase
+     case AIACTROTATEHEADRANDOM:
+      tmp#=(rnd(1)*2)-1
+      tmp#=rnd(aiactionseq(seq).value)*tmp#
+      entityelement(e).ai.headdestangle=tmp#
+     endcase
+     `
+     case AIACTFORCEBOUNCE:
+      if tmpframe=aiactionseq(seq).value=0
+       entityelement(e).force.ix=0
+       entityelement(e).force.iz=0
+      else
+       entityelement(e).force.ix=entityelement(e).force.ix*-0.5
+       entityelement(e).force.iz=entityelement(e).force.iz*-0.5
+      endif
+     endcase
+     `
+     case AIACTSPINRATE:
+      entityelement(e).spinrate=aiactionseq(seq).value
+      rem to have spin, must disable physics
+      if entityelement(e).eleprof.physics<>0
+       gosub _ode_switchoffe
+       entityelement(e).eleprof.physics=0
+      endif
+     endcase
+     case AIACTFLOATRATE:
+      entityelement(e).floatrate=aiactionseq(seq).value
+      rem to have float, must disable physics
+      if entityelement(e).eleprof.physics<>0
+       gosub _ode_switchoffe
+       entityelement(e).eleprof.physics=0
+      endif
+     endcase
+     `
+     case AIACTSETFRAME:
+      tmpframe=aiactionseq(seq).value
+      tbaseframe=tmpframe : gosub _entity_getactualframestart : tmpframe#=tactualframe
+      entityelement(e).animframe=tmpframe#
+      entityelement(e).destanimframe=tmpframe#
+      entityelement(e).animtime=0
+      entityelement(e).animdo=-1
+      if obj>0
+       stop object obj
+       set object interpolation obj,100
+       set object frame obj,tmpframe#
+      endif
+     endcase
+     case AIACTINCFRAME:
+      tmpframe=aiactionseq(seq).value
+      rem leefix - X9 V109 - 020308 - can leave script and come back and INCFRAME will scroll all anims
+      tbaseframe=tmpframe : gosub _entity_getactualframestart : tmpframe#=tactualframe
+      if entityelement(e).animframe<tmpframe#
+       rem ANIMATE or other caused frame to leave range of this animation, so resture it
+       entityelement(e).animframe=tmpframe#
+      endif
+      tbaseframe=tmpframe : gosub _entity_getactualframefinish : tmpframe#=tactualframe
+      entityelement(e).destanimframe=tmpframe#
+      entityelement(e).animtime=0
+     endcase
+     case AIACTDECFRAME:
+      tmpframe=aiactionseq(seq).value
+      rem leefix - X9 V109 - 020308 - can leave script and come back and INCFRAME will scroll all anims
+      tbaseframe=tmpframe : gosub _entity_getactualframefinish : tmpframe#=tactualframe
+      if entityelement(e).animframe>tmpframe#
+       rem ANIMATE or other caused frame to leave range of this animation, so resture it
+       entityelement(e).animframe=tmpframe#
+      endif
+      tbaseframe=tmpframe : gosub _entity_getactualframestart : tmpframe#=tactualframe
+      entityelement(e).destanimframe=tmpframe#
+      entityelement(e).animtime=0
+     endcase
+     case AIACTANIMATE:
+      tmpframe1=entityelement(e).animdo
+      tmpframe2=aiactionseq(seq).value
+      if tmpframe1<>tmpframe2
+       entityelement(e).animset=1+aiactionseq(seq).value
+       entityelement(e).destanimframe=0
+       entityelement(e).animframe=0
+       entityelement(e).animtime=0
+      endif
+     endcase
+     case AIACTADVFRAME:
+      tmpframe=aiactionseq(seq).value
+      tmpframe#=entityelement(e).destanimframe-entityelement(e).animframe
+      tmpframe#=(tmpframe#/100.0)*tmpframe
+      entityelement(e).animframe=entityelement(e).animframe+tmpframe#
+     endcase
+     `
+     case AIACTSOUND:
+      tmpx#=camera position x()
+      tmpy#=camera position y()
+      tmpz#=camera position z()
+      if aiactionseq(seq).value=-1
+       playinternal3dsound(entityelement(e).soundset,tmpx#,tmpy#,tmpz#)
+      else
+       if aiactionseq(seq).value=-2
+        playinternal3dsound(entityelement(e).soundset1,tmpx#,tmpy#,tmpz#)
+       else
+        playinternal3dsound(aiactionseq(seq).value,tmpx#,tmpy#,tmpz#)
+       endif
+      endif
+      broadcast3dsound(tmpx#,tmpy#,tmpz#,100.0)
+     endcase
+     case AIACT3DSOUND:
+      tmpx#=entityelement(e).x
+      tmpy#=entityelement(e).y
+      tmpz#=entityelement(e).z
+      if aiactionseq(seq).value=-1
+       playinternal3dsound(entityelement(e).soundset,tmpx#,tmpy#,tmpz#)
+      else
+       if aiactionseq(seq).value=-2
+        playinternal3dsound(entityelement(e).soundset1,tmpx#,tmpy#,tmpz#)
+       else
+        playinternal3dsound(aiactionseq(seq).value,tmpx#,tmpy#,tmpz#)
+       endif
+      endif
+      broadcast3dsound(tmpx#,tmpy#,tmpz#,100.0)
+     endcase
+     case AIACTLOOPSOUND:
+      tmpx#=entityelement(e).x
+      tmpy#=entityelement(e).y
+      tmpz#=entityelement(e).z
+      if aiactionseq(seq).value=-1
+       tsnd=entityelement(e).soundset
+      else
+       if aiactionseq(seq).value=-2
+        tsnd=entityelement(e).soundset1
+       else
+        tsnd=aiactionseq(seq).value
+       endif
+      endif
+      loopinternal3dsound(tsnd,tmpx#,tmpy#,tmpz#)
+      entityelement(e).soundlooping=tsnd
+     endcase
+     case AIACTSTOPSOUND:
+      if aiactionseq(seq).value=0
+       if entityelement(e).soundset>0 then stop sound entityelement(e).soundset
+      else
+       if aiactionseq(seq).value=1
+        if entityelement(e).soundset1>0 then stop sound entityelement(e).soundset1
+       endif
+      endif
+      if entityelement(e).soundlooping>0
+       if sound exist(entityelement(e).soundlooping)=1
+        stop sound entityelement(e).soundlooping
+       endif
+       entityelement(e).soundlooping=0
+      endif
+     endcase
+     `
+     case AIACTALTTEXTURE:
+      if obj>0
+       if aiactionseq(seq).value=0
+        texture object obj,0,entityelement(e).eleprof.texdid
+       else
+        texture object obj,0,entityelement(e).eleprof.texaltdid
+       endif
+       if entityelement(e).eleprof.usingeffect>0
+        if entityelement(e).eleprof.tex1id<>0 then texture object obj,1,entityelement(e).eleprof.tex1id
+        if entityelement(e).eleprof.tex2id<>0 then texture object obj,2,entityelement(e).eleprof.tex2id
+        if entityelement(e).eleprof.tex3id<>0 then texture object obj,3,entityelement(e).eleprof.tex3id
+        set object effect obj,entityelement(e).eleprof.usingeffect
+       endif
+      endif
+     endcase
+     `
+     case AIACTSETALPHAFADE:
+      entityelement(e).ai.alphafade=aiactionseq(seq).value
+      entityelement(e).ai.destalphafade=aiactionseq(seq).value
+      if obj>0
+       set alpha mapping on obj,entityelement(e).ai.alphafade
+      endif
+     endcase
+     case AIACTINCALPHAFADE:
+      entityelement(e).ai.destalphafade=aiactionseq(seq).value
+     endcase
+     case AIACTDECALPHAFADE:
+      entityelement(e).ai.destalphafade=aiactionseq(seq).value
+     endcase
+     `
+     case AIACTRUNDECAL:
+      tdecalmode=aiactionseq(seq).value
+      if tdecalmode=-1
+       entityelement(e).decalindex=0
+      else
+       entityelement(e).decalindex=1
+       entityelement(e).decalmode=tdecalmode
+       if entityelement(e).decalmode=6
+        if entityelement(e).currentweapon=0
+         entityelement(e).decalindex=0
+        endif
+       endif
+      endif
+     endcase
+     case AIACTSHAPEDECAL:
+      if obj>0
+       entityelement(e).decalsizex=object size x(obj)
+       entityelement(e).decalsizey=object size y(obj)
+      endif
+     endcase
+     `
+     case AIACTTRIGGERFORCE:
+      taddforcesphere=aiactionseq(seq).value
+     endcase
+     `
+     case AIACTPLRASS:
+      gosub _player_resettrail
+      meridinglift=1+e
+     endcase
+     case AIACTPLRNOASS:
+      meridinglift=0
+     endcase
+     `
+     case AIACTPLRMOVEUP:
+      memovingy#=(aiactionseq(seq).value/100.0)
+     endcase
+     case AIACTPLRMOVEDOWN:
+      memovingy#=(aiactionseq(seq).value/100.0)*-1
+     endcase
+     case AIACTPLRMOVEEAST:
+      memovingx#=(aiactionseq(seq).value/100.0)
+     endcase
+     case AIACTPLRMOVEWEST:
+      memovingx#=(aiactionseq(seq).value/100.0)*-1
+     endcase
+     case AIACTPLRMOVENORTH:
+      memovingz#=(aiactionseq(seq).value/100.0)
+     endcase
+     case AIACTPLRMOVESOUTH:
+      memovingz#=(aiactionseq(seq).value/100.0)*-1
+     endcase
+     case AIACTPLRMOVETO:
+      foundte=aiactionseq(seq).value
+      if foundte>0
+       tranmex#=entityelement(foundte).x
+       tranmey#=entityelement(foundte).y+55.0
+       tranmez#=entityelement(foundte).z
+       tranmeangley#=entityelement(foundte).ry+180
+       gosub _player_resettrail
+       meridingtransporter=1
+      endif
+     endcase
+     case AIACTPLRMOVEIFUSED:
+      tname$=entityelement(e).eleprof.ifused$
+      gosub _entity_findname
+      if foundte>0
+       tranmex#=entityelement(foundte).x
+       tranmey#=entityelement(foundte).y+55.0
+       tranmez#=entityelement(foundte).z
+       tranmeangley#=entityelement(foundte).ry+180
+       gosub _player_resettrail
+       meridingtransporter=1
+      endif
+     endcase
+     case AIACTPLRFREEZE:
+      tstate=aiactionseq(seq).value
+      if tstate>0
+       mefrozentype=1
+       mefrozen=timer()+tstate
+      else
+       mefrozentype=0
+       mefrozen=0
+      endif
+     endcase
+     case AIACTPLRDISABLE:
+      tstate=aiactionseq(seq).value
+      if tstate>0
+       mefrozentype=2
+       mefrozen=timer()+tstate
+      else
+       mefrozentype=0
+       mefrozen=0
+      endif
+     endcase
+     `
+     case AIACTACTIVATEIFUSED:
+      tname$=entityelement(e).eleprof.ifused$
+      tstate=aiactionseq(seq).value
+      gosub _entity_activatename
+     endcase
+     case AIACTACTIVATEIFUSEDNEAR:
+      tname$=entityelement(e).eleprof.ifusednear$
+      tstate=aiactionseq(seq).value
+      gosub _entity_activatename
+     endcase
+     case AIACTACTIVATETARGET:
+      te=entityelement(e).actualtarget-1
+      if te>0
+       entityelement(te).activated=aiactionseq(seq).value
+       entityelement(te).logiccount=0 : entityelement(te).logiccountburst=5
+       entityelement(te).dormant=0
+      endif
+     endcase
+     case AIACTACTIVATE:
+      entityelement(e).activated=aiactionseq(seq).value
+      entityelement(e).logiccount=0 : entityelement(e).logiccountburst=5
+      entityelement(e).dormant=0
+     endcase
+     case AIACTACTIVATEALLINZONE:
+      tactivated=aiactionseq(seq).value
+      condx1=(entityelement(e).x+(entityelement(e).eleprof.trigger.areax1*100))-50.0
+      condy1=(entityelement(e).y+(entityelement(e).eleprof.trigger.areay1*100))
+      condz1=(entityelement(e).z-(entityelement(e).eleprof.trigger.areaz1*100))+50.0
+      condx2=(entityelement(e).x+(entityelement(e).eleprof.trigger.areax2*100))+50.0
+      condy2=(entityelement(e).y+(entityelement(e).eleprof.trigger.areay2*100))+100.0
+      condz2=(entityelement(e).z-(entityelement(e).eleprof.trigger.areaz2*100))-50.0
+      condy1=condy1/100 : condy1=condy1*100
+      condy2=condy2/100 : condy2=condy2*100
+      gosub _entity_activateallinzone
+     endcase
+     `
+     case AIACTPLRADDHEALTH:
+      if aiactionseq(seq).value<0
+       tdamage=abs(aiactionseq(seq).value)
+       gosub _player_takedamage
+      else
+       player(1).health=player(1).health+aiactionseq(seq).value
+       if player(1).health>playerstartstrength then player(1).health=playerstartstrength
+      endif
+     endcase
+     case AIACTPLRSUBHEALTH:
+      if aiactionseq(seq).value<0
+       player(1).health=player(1).health+abs(aiactionseq(seq).value)
+       if player(1).health>playerstartstrength then player(1).health=playerstartstrength
+      else
+       tdamage=aiactionseq(seq).value
+       gosub _player_takedamage
+      endif
+     endcase
+     case AIACTPLRSETHEALTH:
+      player(1).health=aiactionseq(seq).value
+      if player(1).health>playerstartstrength then player(1).health=playerstartstrength
+     endcase
+     `
+     case AIACTADDHEALTH:
+      entityelement(e).health=entityelement(e).health+aiactionseq(seq).value
+     endcase
+     case AIACTSUBHEALTH:
+      tdamage=aiactionseq(seq).value
+      tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y : tdamagez#=entityelement(e).z
+      gosub _entity_deducthealth
+     endcase
+     case AIACTSETHEALTH:
+      entityelement(e).health=aiactionseq(seq).value
+     endcase
+     `
+     case AIACTSETTARGET:
+      if entityelement(e).possibletarget<>0
+       entityelement(e).actualtarget=entityelement(e).possibletarget
+       if entityelement(e).actualtarget>1
+        tte=entityelement(e).actualtarget-1
+        entityelement(e).actualtargetx=entityelement(tte).x
+        entityelement(e).actualtargety=entityelement(tte).y
+        entityelement(e).actualtargetz=entityelement(tte).z
+        entityelement(e).losttargetcount=0
+       else
+        if entityelement(e).actualtarget=-1
+         entityelement(e).actualtargetx=bcsoundx#
+         entityelement(e).actualtargety=bcsoundy#
+         entityelement(e).actualtargetz=bcsoundz#
+         entityelement(e).losttargetcount=0
+        else
+         `
+         rem target is player
+         tdx#=(mex#-entityelement(e).x)
+         tdy#=(mey#-entityelement(e).y)
+         tdz#=(mez#-entityelement(e).z)
+         tdd#=sqrt(abs(tdx#*tdx#)+abs(tdz#*tdz#)+abs(tdy#*tdy#))+0.001
+         tdxh#=(tdx#/tdd#)*10.0
+         tdzh#=(tdz#/tdd#)*10.0
+         ttactualtargetx=mex#-tdxh#
+         ttactualtargety=mey#-phyeyeheight# : rem too much -meheight#
+         ttactualtargetz=mez#-tdzh#
+         `
+         rem only if actual target position has CHANGED!
+         taquirelinetoplr=0
+         if int(entityelement(e).actualtargetx/100)<>int(ttactualtargetx/100) or int(entityelement(e).actualtargety/100)<>int(ttactualtargety/100) or int(entityelement(e).actualtargetz/100)<>int(ttactualtargetz/100)
+          rem new position of target, so check ground before use it
+          entityelement(e).actualtargetx=ttactualtargetx
+          entityelement(e).actualtargety=ttactualtargety
+          entityelement(e).actualtargetz=ttactualtargetz
+          rem can go straight to players position to start trail if plr level(ish)
+          traily#=entityelement(e).actualtargety
+          if entityelement(e).plrtrailindex<>0
+           rem entity already has trail, but might be 'follow the leader' nonesense
+           rem if there is good ground between player and entity, give opportunity to skip
+           tokay=1
+           tstbx#=entityelement(e).x
+           tstby#=entityelement(e).y
+           tstbz#=entityelement(e).z
+           tdxi#=tdx#/tdd# : tdyi#=tdy#/tdd# : tdzi#=tdz#/tdd#
+           for tst#=0.0 to tdd# step 90.0
+            tstx#=tstbx#+(tdxi#*tst#)
+            tsty#=tstby#+(tdyi#*tst#)
+            tstz#=tstbz#+(tdzi#*tst#)
+            inc gameperfentities3
+            entityelement(e).raycastcount=0
+            if static raycast(tstx#,tsty#,tstz#,tstx#,tsty#-50,tstz#)=0
+             tokay=0
+            endif
+           next tst#
+           if tokay=1 then taquirelinetoplr=2
+          endif
+          `
+         else
+          entityelement(e).losttargetcount=0
+         endif
+         if taquirelinetoplr=2
+          if abs(traily#-entityelement(e).y)<10.0
+           rem if on same level
+           taquirelinetoplr=1
+          endif
+          if traily#<entityelement(e).y
+           rem if player lower than entity
+           taquirelinetoplr=1
+          endif
+         endif
+         if taquirelinetoplr=1
+          trailx#=mex# : trailz#=mez#
+          trailaction=1 : gosub _player_leavetrail
+          entityelement(e).plrtrailindex=playertrailmax-1
+          if entityelement(e).plrtrailindex<1 then entityelement(e).plrtrailindex=100
+         endif
+         `
+        endif
+       endif
+       entityelement(e).possibletarget=0
+`       interferes with target lock, but character is stuck (like a barrier)
+`       entityelement(e).losttargetcount=0
+      endif
+     endcase
+     case AIACTROTATETOTARGET:
+      tdistx#=entityelement(e).actualtargetx-entityelement(e).x
+      tdistz#=entityelement(e).actualtargetz-entityelement(e).z
+      tdiffangle#=atanfull(tdistx#,tdistz#)
+      if tdiffangle#<0 then tdiffangle#=tdiffangle#+360
+      entityelement(e).mover.da=wrapvalue(tdiffangle#)
+     endcase
+     case AIACTLOOKATTARGET:
+      tdistx#=entityelement(e).actualtargetx-entityelement(e).x
+      tdistz#=entityelement(e).actualtargetz-entityelement(e).z
+      tdiffangle#=wrapvalue(atanfull(tdistx#,tdistz#))-wrapvalue(entityelement(e).mover.da)
+      if tdiffangle#>180 then tdiffangle#=tdiffangle#-360
+      if abs(tdiffangle#)>aiactionseq(seq).value then tdiffangle#=0
+      entityelement(e).ai.headdestangle=tdiffangle#
+     endcase
+     case AIACTMOVETOTARGET:
+      tokay=0
+      if entityelement(e).actualtarget<>1 then tokay=1
+      if entityelement(e).actualtarget=1 and player(1).health>0 then tokay=1
+      if tokay=1
+       tdistx#=entityelement(e).actualtargetx-entityelement(e).x
+       tdistz#=entityelement(e).actualtargetz-entityelement(e).z
+       tdiffangle#=atanfull(tdistx#,tdistz#)
+       tdist#=sqrt(abs(tdistx#*tdistx#)+abs(tdistz#*tdistz#))
+       if tdiffangle#<0 then tdiffangle#=tdiffangle#+360
+       entityelement(e).mover.da=wrapvalue(tdiffangle#)
+       tmpx#=entityelement(e).x : tmpz#=entityelement(e).z
+       entityelement(e).mover.dx=newxvalue(tmpx#,entityelement(e).mover.da,tdist#)
+       entityelement(e).mover.dz=newzvalue(tmpz#,entityelement(e).mover.da,tdist#)
+       entityelement(e).mover.dy=entityelement(e).actualtargety
+       entityelement(e).mover.moved=1
+       entityelement(e).mover.run=aiactionseq(seq).value
+       entityelement(e).mover.strafe=0
+      endif
+     endcase
+     case AIACTCOLLECTTARGET:
+      te=entityelement(e).actualtarget-1
+      if te>0
+       tobj=entityelement(te).obj
+       if tobj>0
+        if entityelement(te).x<>-99999
+         rem Not already collected
+         `detach object from static tobj : hide object tobj
+         hide object tobj
+         entityelement(te).x=-99999
+         entityelement(te).y=-99999
+         entityelement(te).z=-99999
+         tplrid=entityelement(e).fakeplayerid
+         if tplrid>0
+          pi=player(tplrid).inventorymax : inc pi
+          playerinventory(tplrid,pi).new=1
+          playerinventory(tplrid,pi).index=te
+          player(tplrid).inventorymax=pi
+          rem make NPC player responsible for weapon selection (change to entity control)
+          tentid=entityelement(te).bankindex : tgunid=entityprofile(tentid).isweapon
+          if tgunid>0
+           entityelement(e).currentweapon=tgunid
+          endif
+         endif
+         entityelement(e).actualtarget=0
+        endif
+       endif
+      endif
+     endcase
+     case AIACTCHOOSESTRAFE:
+      entityelement(e).strafemode=rnd(2)
+     endcase
+     case AIACTSTRAFE:
+`      if entityelement(e).strafemode=0 then entityelement(e).mover.strafe=0
+`      if entityelement(e).strafemode=1 then entityelement(e).mover.strafe=aiactionseq(seq).value
+`      if entityelement(e).strafemode=2 then entityelement(e).mover.strafe=aiactionseq(seq).value*-1
+      rem replaced with immediate strafe
+      tdiffangle#=aiactionseq(seq).value
+      entityelement(e).mover.da=entityelement(e).mover.da+tdiffangle#
+      if entityelement(e).mover.da<0 then entityelement(e).mover.da=entityelement(e).mover.da+360
+      if entityelement(e).mover.da>359 then entityelement(e).mover.da=entityelement(e).mover.da-360
+      tmpx#=entityelement(e).x : tmpz#=entityelement(e).z : tdist#=15.0
+      entityelement(e).mover.dx=newxvalue(tmpx#,entityelement(e).mover.da,tdist#)
+      entityelement(e).mover.dz=newzvalue(tmpz#,entityelement(e).mover.da,tdist#)
+      entityelement(e).mover.dy=entityelement(e).y
+      entityelement(e).mover.strafe=0
+      entityelement(e).mover.moved=1
+      entityelement(e).mover.run=0
+     endcase
+     case AIACTPIVOTRANDOM:
+      tmp#=aiactionseq(seq).value
+      tdiffangle#=rnd(tmp#*2)-tmp#
+      entityelement(e).mover.da=entityelement(e).mover.da+tdiffangle#
+      if entityelement(e).mover.da<0 then entityelement(e).mover.da=entityelement(e).mover.da+360
+      if entityelement(e).mover.da>359 then entityelement(e).mover.da=entityelement(e).mover.da-360
+      tmpx#=entityelement(e).x : tmpz#=entityelement(e).z : tdist#=5.0
+      entityelement(e).mover.dx=newxvalue(tmpx#,entityelement(e).mover.da,tdist#)
+      entityelement(e).mover.dz=newzvalue(tmpz#,entityelement(e).mover.da,tdist#)
+      entityelement(e).mover.dy=entityelement(e).y
+      entityelement(e).mover.strafe=0
+      entityelement(e).mover.moved=1
+      entityelement(e).mover.run=0
+     endcase
+     case AIACTLOOKATPLR:
+      tdistx#=mex#-entityelement(e).x
+      tdistz#=mez#-entityelement(e).z
+      tdiffangle#=wrapvalue(atanfull(tdistx#,tdistz#))-wrapvalue(entityelement(e).mover.da)
+      if tdiffangle#>180 then tdiffangle#=tdiffangle#-360
+      if abs(tdiffangle#)>aiactionseq(seq).value
+       if tdiffangle#>=0
+        tdiffangle#=aiactionseq(seq).value
+       else
+        tdiffangle#=aiactionseq(seq).value*-1
+       endif
+      endif
+      entityelement(e).ai.headdestangle=tdiffangle#
+     endcase
+     case AIACTSETTARGETNAME:
+      tstrindex=aiactionseq(seq).value
+      tname$=actstring$(tstrindex)
+      gosub _entity_findname
+      if foundte>0
+       entityelement(e).actualtarget=1+foundte
+       entityelement(e).possibletarget=0
+       if entityelement(e).actualtarget>1
+        tte=entityelement(e).actualtarget-1
+        entityelement(e).actualtargetx=entityelement(tte).x
+        entityelement(e).actualtargety=entityelement(tte).y
+        entityelement(e).actualtargetz=entityelement(tte).z
+        entityelement(e).losttargetcount=0
+       endif
+      endif
+     endcase
+     `
+     case AIACTWAYPOINTSTART:
+      rem find nearest waypoint
+      twdistbest#=99999.9 : twbest=0
+      for w=1 to waypointcoordmax
+       twdx#=abs(waypointcoord(w).x-entityelement(e).x)
+       twdy#=abs(waypointcoord(w).y-entityelement(e).y)
+       twdz#=abs(waypointcoord(w).z-entityelement(e).z)
+       twdist#=sqrt((twdx#*twdx#)+(twdy#*twdy#)+(twdz#*twdz#))
+       if twdist#<1000.0
+        inc gameperfentities3
+        entityelement(e).raycastcount=0
+        if static raycast(entityelement(e).x,entityelement(e).y+35,entityelement(e).z,waypointcoord(w).x,waypointcoord(w).y+35,waypointcoord(w).z)=0
+         if twdist#<twdistbest#
+          twdistbest#=twdist# : twbest=w
+         endif
+        endif
+       endif
+      next w
+      if twbest>0
+       entityelement(e).ai.waypoint.current=twbest
+       entityelement(e).ai.waypoint.tracker=waypointcoord(twbest).index
+       entityelement(e).ai.waypoint.direction=1
+       entityelement(e).ai.waypoint.state=1
+      else
+       rem if no start, place state in limbo away from WP activity
+       entityelement(e).ai.waypoint.state=99
+       rem special animation directive to enter idle mode
+       entityelement(e).animset=1+1
+       entityelement(e).destanimframe=0
+       entityelement(e).animframe=0
+       entityelement(e).animtime=0
+      endif
+      entityelement(e).losttargetcount=0
+     endcase
+     case AIACTWAYPOINTSTOP:
+      entityelement(e).mover.dx=entityelement(e).x
+      entityelement(e).mover.dy=entityelement(e).y
+      entityelement(e).mover.dz=entityelement(e).z
+      entityelement(e).ai.waypoint.state=99 : rem still waypoint activity
+      entityelement(e).mover.moved=1
+      entityelement(e).mover.run=0
+     endcase
+     case AIACTWAYPOINTREVERSE:
+      if entityelement(e).ai.waypoint.current>0
+       if entityelement(e).ai.waypoint.direction=1
+        entityelement(e).ai.waypoint.direction=2
+        w=entityelement(e).ai.waypoint.current
+        if w>waypoint(entityelement(e).ai.waypoint.tracker).start
+         entityelement(e).ai.waypoint.current=w-1
+        endif
+       else
+        entityelement(e).ai.waypoint.direction=1
+        w=entityelement(e).ai.waypoint.current
+        if w<waypoint(entityelement(e).ai.waypoint.tracker).finish
+         entityelement(e).ai.waypoint.current=w+1
+        endif
+       endif
+       entityelement(e).ai.waypoint.state=1
+      endif
+     endcase
+     case AIACTWAYPOINTNEXT:
+      if entityelement(e).ai.waypoint.current>0
+       if entityelement(e).ai.waypoint.direction=1
+        w=entityelement(e).ai.waypoint.current
+        if w<waypoint(entityelement(e).ai.waypoint.tracker).finish
+         entityelement(e).ai.waypoint.current=w+1
+        endif
+       else
+        w=entityelement(e).ai.waypoint.current
+        if w>waypoint(entityelement(e).ai.waypoint.tracker).start
+         entityelement(e).ai.waypoint.current=w-1
+        endif
+       endif
+       entityelement(e).ai.waypoint.state=1
+      endif
+     endcase
+     case AIACTWAYPOINTPREV:
+      if entityelement(e).ai.waypoint.current>0
+       if entityelement(e).ai.waypoint.direction=1
+        entityelement(e).ai.waypoint.current=entityelement(e).ai.waypoint.current-1
+       else
+        entityelement(e).ai.waypoint.current=entityelement(e).ai.waypoint.current+1
+       endif
+       entityelement(e).ai.waypoint.state=1
+      endif
+     endcase
+     case AIACTWAYPOINTRANDOM:
+      if entityelement(e).ai.waypoint.current>0
+       r=rnd(1)
+       if r=0
+        entityelement(e).ai.waypoint.current=linkto
+        entityelement(e).ai.waypoint.tracker=waypointcoord(linkto).index
+       else
+        if entityelement(e).ai.waypoint.direction=1
+         w=entityelement(e).ai.waypoint.current
+         if w<waypoint(entityelement(e).ai.waypoint.tracker).finish
+          entityelement(e).ai.waypoint.current=w+1
+         endif
+        else
+         w=entityelement(e).ai.waypoint.current
+         if w>waypoint(entityelement(e).ai.waypoint.tracker).start
+          entityelement(e).ai.waypoint.current=w-1
+         endif
+        endif
+       endif
+       entityelement(e).ai.waypoint.state=1
+      endif
+     endcase
+     `
+     case AIACTDROPMARKER:
+      tindex=entitybreadcrumbs(e,0).x
+      if tindex<50
+       rem find center of tile
+       tcx=(int(entityelement(e).x/100)*100)+50
+       tcy=(int(entityelement(e).y/100)*100)+10
+       tcz=(int(entityelement(e).z/100)*100)-50
+       tgeoblock=0
+       tmpx1#=tcx
+       tmpy1#=tcy+50
+       tmpz1#=tcz
+       tmpx2#=entitybreadcrumbs(e,tindex).x
+       tmpy2#=entitybreadcrumbs(e,tindex).y+50
+       tmpz2#=entitybreadcrumbs(e,tindex).z
+       inc gameperfentities3
+       entityelement(e).raycastcount=0
+       if static raycast(tmpx1#,tmpy1#,tmpz1#,tmpx2#,tmpy2#,tmpz2#)<>0
+        tcx=entityelement(e).x
+        tcy=entityelement(e).y
+        tcz=entityelement(e).z
+       endif
+       if entitybreadcrumbs(e,tindex).x=tcx and entitybreadcrumbs(e,tindex).y=tcy and entitybreadcrumbs(e,tindex).z=tcz
+        rem same as current crumb
+       else
+        rem new one
+        if tindex<50
+         inc tindex
+         entitybreadcrumbs(e,0).x=tindex
+         entitybreadcrumbs(e,tindex).x=tcx
+         entitybreadcrumbs(e,tindex).y=tcy
+         entitybreadcrumbs(e,tindex).z=tcz
+        endif
+       endif
+      endif
+     endcase
+     case AIACTNEXTMARKER:
+      tindex=entitybreadcrumbs(e,0).x
+      tmpx1#=entityelement(e).x
+      tmpy1#=entityelement(e).y+40
+      tmpz1#=entityelement(e).z
+      tmpx2#=entitybreadcrumbs(e,tindex).x
+      tmpy2#=entitybreadcrumbs(e,tindex).y+40
+      tmpz2#=entitybreadcrumbs(e,tindex).z
+      inc gameperfentities3
+      entityelement(e).raycastcount=0
+      if static raycast(tmpx1#,tmpy1#,tmpz1#,tmpx2#,tmpy2#,tmpz2#)<>0
+       rem entity lost or trapped, or clipping geometry
+       tmpx2#=(entitybreadcrumbs(e,tindex).x+rnd(150))-75
+       tmpz2#=(entitybreadcrumbs(e,tindex).z+rnd(150))-75
+       inc gameperfentities3
+       entityelement(e).raycastcount=0
+       if static raycast(tmpx1#,tmpy1#,tmpz1#,tmpx2#,tmpy2#,tmpz2#)=0
+        entitybreadcrumbs(e,tindex).x=tmpx2#
+        entitybreadcrumbs(e,tindex).z=tmpz2#
+       endif
+      endif
+      rem keep looking until clear path found
+      inc gameperfentities3
+      entityelement(e).raycastcount=0
+      if static raycast(tmpx1#,tmpy1#,tmpz1#,tmpx2#,tmpy2#,tmpz2#)=0
+       if tindex>0
+        tdistx#=entitybreadcrumbs(e,tindex).x-entityelement(e).x
+        tdistz#=entitybreadcrumbs(e,tindex).z-entityelement(e).z
+        if entityelement(e).mover.moved=0
+         tdiffangle#=atanfull(tdistx#,tdistz#)
+         tdist#=sqrt((tdistx#*tdistx#)+(tdistz#*tdistz#))
+         if tdiffangle#<0 then tdiffangle#=tdiffangle#+360
+         entityelement(e).mover.da=wrapvalue(tdiffangle#)
+         tmpx#=entityelement(e).x : tmpz#=entityelement(e).z
+         entityelement(e).mover.dx=newxvalue(tmpx#,entityelement(e).mover.da,tdist#)
+         entityelement(e).mover.dz=newzvalue(tmpz#,entityelement(e).mover.da,tdist#)
+         entityelement(e).mover.dy=entitybreadcrumbs(e,tindex).y
+         entityelement(e).mover.moved=1
+         entityelement(e).mover.run=0
+        endif
+        if abs(tdistx#+tdistz#)<2.0
+         dec tindex : entitybreadcrumbs(e,0).x=tindex
+        endif
+       endif
+      else
+       rem no, that path was blocked
+       entityelement(e).losttargetcount=entityelement(e).losttargetcount+1
+      endif
+     endcase
+     case AIACTRESETMARKERS:
+      entitybreadcrumbs(e,0).x=0
+      entityelement(e).mover.moved=0
+      entityelement(e).mover.run=0
+     endcase
+     case AIACTFOLLOWPLR:
+      rem LEGACY - DarkAI should improve this failed code significantly
+      if entityelement(e).plrtrailindex>0
+       if entityelement(e).plrtrailindex<>playertrailmax
+        ttrailindex=entityelement(e).plrtrailindex+1
+        if ttrailindex>100 then ttrailindex=1
+        if playertrial(ttrailindex).time>0
+         tdistx#=playertrial(ttrailindex).x-entityelement(e).x
+         tdistz#=playertrial(ttrailindex).z-entityelement(e).z
+         if sqrt(abs(tdistx#*tdistx#)+abs(tdistz#*tdistz#))<20.0
+          entityelement(e).plrtrailindex=entityelement(e).plrtrailindex+1
+          if entityelement(e).plrtrailindex>100
+           entityelement(e).plrtrailindex=1
+          endif
+         endif
+         if entityelement(e).mover.moved=0
+          tdiffangle#=atanfull(tdistx#,tdistz#)
+          if tdiffangle#<0 then tdiffangle#=tdiffangle#+360
+          entityelement(e).mover.da=wrapvalue(tdiffangle#)
+          tmpx#=entityelement(e).x : tmpz#=entityelement(e).z
+          entityelement(e).mover.dx=playertrial(ttrailindex).x
+          entityelement(e).mover.dy=playertrial(ttrailindex).y
+          entityelement(e).mover.dz=playertrial(ttrailindex).z
+          entityelement(e).mover.run=aiactionseq(seq).value
+          entityelement(e).mover.moved=1
+         endif
+        else
+         entityelement(e).plrtrailindex=0
+        endif
+       else
+        rem reached player, no more following just look at plr
+        tdistx#=mex#-entityelement(e).x
+        tdistz#=mez#-entityelement(e).z
+        tdiffangle#=atanfull(tdistx#,tdistz#)
+        if tdiffangle#<0 then tdiffangle#=tdiffangle#+360
+        entityelement(e).mover.da=wrapvalue(tdiffangle#)
+       endif
+      else
+       rem if no place in trail, find newest node that was at entities level
+       tcount=0 : ttrailindex=playertrailmax-1
+       `set cursor 0,0
+       while tcount<100
+        if playertrial(ttrailindex).time>0
+         `print "plry=";playertrial(ttrailindex).y;" enty=";entityelement(e).y;" diff=";abs(playertrial(ttrailindex).y-entityelement(e).y)
+         if abs(playertrial(ttrailindex).y-entityelement(e).y)<40.0 then exit
+        endif
+        dec ttrailindex : if ttrailindex<1 then ttrailindex=100
+        inc tcount
+       endwhile
+       if tcount<100
+        rem if point is good to go, go to it
+        if playertrial(ttrailindex).time>0
+`         dec ttrailindex : if ttrailindex<1 then ttrailindex=100 `why one less? already deducted above
+         entityelement(e).plrtrailindex=ttrailindex
+        else
+         entityelement(e).plrtrailindex=0
+        endif
+       else
+        rem could not find any trail
+        entityelement(e).losttargetcount=entityelement(e).losttargetcount+1
+       endif
+      endif
+      `
+      rem if debug, show which trail marker by flashing it
+      if gshowdebugtextingamestate=1
+       if entityelement(e).plrtrailindex>0
+        ttrailindex=entityelement(e).plrtrailindex+1
+        if ttrailindex>100 then ttrailindex=1
+        tdobj=gamdebugobjoffset+ttrailindex
+        if object exist(tdobj)=1 then set object emissive tdobj,rgb(rnd(255),rnd(255),rnd(255))
+       endif
+      endif
+      `
+     endcase
+     `
+     case AIACTPLRTAKE:
+       `
+       rem send trigger signal to sync players (multiplayer)
+       if gmultiplayergame=1
+        mptrigger=1 : mptriggervalue1=e
+        gosub _multi_mptrigger
+       endif
+       `
+       rem if child of spawn leader, reset spawn count
+       spawne=entityelement(e).spawn.leaderid
+       if spawne=0 then spawne=e
+       entityelement(spawne).spawn.leadercount=entityelement(spawne).spawn.delay
+       `
+       rem switch off obj
+       if obj>0
+        gosub _ode_switchoffe
+        hide object obj
+        set object collision off obj
+       endif
+       `
+       rem V110 BETA4 - 070608 - if always active, a collected item keeps script running (for possible PLAYERDROP)
+       if entityelement(e).eleprof.phyalways<>0
+        rem do not kill entity, keep it running
+       else
+        rem stop any looping sound
+        gosub _ai_stopentsounds
+        rem reset values
+        entityelement(e).beenkilled=1
+        entityelement(e).active=0
+       endif
+       `
+       rem clear entity from col map
+       tx=entityelement(e).x/25
+       ty=entityelement(e).y/100
+       tz=entityelement(e).z/-25
+       if tx>=0 and ty>=0 and tz>=0
+        if tx<=viscolx and ty<=viscoly and tz<=viscolz
+         if viscolmap(tx,ty,tz)=e then viscolmap(tx,ty,tz)=0
+        endif
+       endif
+       `
+       rem mission objective counter
+       gosub _entity_resolveobjective
+       `
+       rem only allow weapons
+       pi=player(1).inventorymax : inc pi
+       if pi<100
+        playerinventory(1,pi).new=1
+        playerinventory(1,pi).index=e
+        player(1).inventorymax=pi
+       endif
+       `
+     endcase
+     case AIACTPLRDROP:
+      entityelement(e).x=mex# : rem whoever had it
+      `entityelement(e).y=mey#-40
+      entityelement(e).y=mey#-15-phyeyeheight# : rem V111 BETA3 - dropped objects no longer float
+      entityelement(e).z=mez#
+      entityelement(e).active=1
+      gosub _entity_controlrecalcdist
+      if obj>0
+       position object obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
+       set object collision on obj
+       show object obj
+      endif
+      rem in case drop originated outside (not .drop=x)
+      for pi=1 to player(1).inventorymax
+       if playerinventory(1,pi).index=e then player(1).command.drop=pi : exit
+      next pi
+     endcase
+     `
+     case AIACTSHOOTPLR:
+      rem replace with shoot sequence
+      trundefaultscriptinternal=1
+      trundefaultscript=1+entityelement(e).ai.libshoot
+      conindex=ailist(aiindex).conditionlast
+      seq=aiaction(actindex).last
+      exit
+     endcase
+     `
+     case AIACTUSEWEAPON:
+      rem fire weapon (entity may have)
+      tgunid=entityelement(e).currentweapon
+      if tgunid>0
+       if entityelement(e).currentammo>0 or gun(tgunid).settings.reloadqty=0
+        if entityelement(e).currentammo>0
+         entityelement(e).currentammo=entityelement(e).currentammo-1
+        endif
+        entityelement(e).fireweapon=1
+        rem FPSCV105RC2 - strength of fire (throw grenade when plr close)
+        if aiactionseq(seq).value>0
+         entityelement(e).firestrength=aiactionseq(seq).value
+        else
+         entityelement(e).firestrength=100
+        endif
+       endif
+      else
+       rem does enemy make dry-fire sound
+      endif
+     endcase
+     case AIACTRELOADWEAPON:
+      tgunid=entityelement(e).currentweapon
+      if tgunid>0
+       tneedfromclip=gun(tgunid).settings.reloadqty-entityelement(e).currentammo
+       if tneedfromclip>0
+        entityelement(e).currentammo=gun(tgunid).settings.reloadqty
+        entityelement(e).currentclipammo=entityelement(e).currentclipammo-tneedfromclip
+       endif
+      endif
+     endcase
+     `
+     case AIACTCOLOFF:
+      if obj>0
+       `
+       rem send trigger signal to sync players (multiplayer)
+       if gmultiplayergame=1 then mptrigger=2 : mptriggervalue1=e : gosub _multi_mptrigger
+       `
+       entityelement(e).collisionactive=0
+       if entityelement(e).eleprof.physics<>0
+        gosub _ode_switchoffe
+       else
+        set object collision off obj
+       endif
+      endif
+     endcase
+     case AIACTCOLON:
+      if obj>0
+       `
+       rem send trigger signal to sync players (multiplayer)
+       if gmultiplayergame=1 then mptrigger=2 : mptriggervalue1=e : gosub _multi_mptrigger
+       `
+       rem entity collision solid
+       entityelement(e).collisionactive=1
+       rem activate object collision
+       if entityelement(e).eleprof.physics<>0
+        gosub _ode_setupewithphysics
+        gosub _ode_ensureeisnotpenetrated
+       else
+        set object collision on obj
+       endif
+       rem ensure plr is pushed out of entity influence
+       tdx#=mex#-entityelement(e).x
+       tdz#=mez#-entityelement(e).z
+       tdd#=sqrt(abs(tdx#*tdx#)+abs(tdz#*tdz#))
+       if tdd#<30.0
+        tda#=atanfull(tdx#,tdz#)
+        camforcex#=newxvalue(entityelement(e).x,tda#,30.0)-camerapositionx
+        camforcez#=newzvalue(entityelement(e).z,tda#,30.0)-camerapositionz
+       endif
+       rem ensure ALL entities are pushed out of entity influence (this is why second door zoomed away)
+       for te=1 to entityelementlist
+        if entityelement(te).active=1 and entityelement(te).eleprof.physics<=2
+         if entityelement(te).eleprof.isimmobile=0
+          tdx#=entityelement(te).x-entityelement(e).x
+          tdz#=entityelement(te).z-entityelement(e).z
+          tdd#=sqrt(abs(tdx#*tdx#)+abs(tdz#*tdz#))
+          if tdd#<30.0
+           rem TE-entity within solid entity
+           tda#=atanfull(tdx#,tdz#)
+           entityelement(te).mover.dx=newxvalue(entityelement(e).x,tda#,30.0)
+           entityelement(te).mover.dz=newzvalue(entityelement(e).z,tda#,30.0)
+           entityelement(te).mover.dy=entityelement(e).y
+           entityelement(te).mover.moved=1
+           entityelement(te).mover.run=0
+          endif
+         endif
+        endif
+       next te
+      endif
+     endcase
+     case AIACTSPAWNON:
+      entityelement(e).spawn.atstart=1
+     endcase
+     case AIACTSPAWNOFF:
+      entityelement(e).spawn.atstart=0
+     endcase
+     `
+     case AIACTHEADSHOT:
+      entityelement(e).ai.headshot=aiactionseq(seq).value
+     endcase
+     case AIACTHEADSHOTDAMAGE:
+      gheadshotdamage=aiactionseq(seq).value
+     endcase
+     `
+     case AIACTAMBIENCE:
+      guivisualsettings.ambience=aiactionseq(seq).value
+      forceambientlightsetting=10
+      gosub _lighting_postdefaults
+     endcase
+     case AIACTAMBIENCERED:
+      hudambiencered=aiactionseq(seq).value
+      color ambient light rgb(hudambiencered,hudambiencegreen,hudambienceblue)
+     endcase
+     case AIACTAMBIENCEGREEN:
+      hudambiencegreen=aiactionseq(seq).value
+      color ambient light rgb(hudambiencered,hudambiencegreen,hudambienceblue)
+     endcase
+     case AIACTAMBIENCEBLUE:
+      hudambienceblue=aiactionseq(seq).value
+      color ambient light rgb(hudambiencered,hudambiencegreen,hudambienceblue)
+     endcase
+     case AIACTFOG:
+      if aiactionseq(seq).value>0
+       fog on
+       rem FPSCV104 added global vars for fog
+       hudfogon=1
+       if aiactionseq(seq).value>1
+        hudfognear=aiactionseq(seq).value
+        if aiactionseq(seq).value>1000
+         hudfogfar=4000.0
+        else
+         hudfogfar=1000.0
+        endif
+       else
+        hudfognear=0
+        hudfogfar=1000.0
+       endif
+       fog distance hudfognear,hudfogfar
+       fog color hudfogred,hudfoggreen,hudfogblue
+      else
+       fog off
+       hudfogon=0
+      endif
+     endcase
+     case AIACTFOGRED:
+      hudfogred=aiactionseq(seq).value
+      fog color hudfogred,hudfoggreen,hudfogblue
+     endcase
+     case AIACTFOGGREEN:
+      hudfoggreen=aiactionseq(seq).value
+      fog color hudfogred,hudfoggreen,hudfogblue
+     endcase
+     case AIACTFOGBLUE:
+      hudfogblue=aiactionseq(seq).value
+      fog color hudfogred,hudfoggreen,hudfogblue
+     endcase
+     case AIACTSKY:
+      rem Already done during loading of AI-Asset
+     endcase
+     case AIACTSKYSCROLL:
+      rem Already done during loading of AI-Asset
+     endcase
+     `
+     `
+     `
+     case AIACTNEWJUMPHEIGHT:
+      playerdefaultjumpheight=aiactionseq(seq).value
+     endcase
+     `
+     `
+     `
+     case AIACTBACKDROP:
+      if aiactionseq(seq).value>0
+       set sprite 65534,0,0
+       sprite 65534,-10000,-10000,aiactionseq(seq).value
+       size sprite 65534,screen width(),screen height()
+       paste sprite 65534,0,0
+      endif
+     endcase
+     case AIACTMUSIC:
+      if musicoverridden=0
+       if lastmusicplayed>0
+        if sound exist(lastmusicplayed)=1 then stop sound lastmusicplayed
+        lastmusicplayed=0
+       endif
+       rem V109BETA4 - 240408 - support for sound set music playback
+       tmusictogoplay=0
+       if aiactionseq(seq).value=-1
+        tmusictogoplay=entityelement(e).soundset
+       else
+        if aiactionseq(seq).value=-2
+         tmusictogoplay=entityelement(e).soundset1
+        else
+         tmusictogoplay=aiactionseq(seq).value
+        endif
+       endif
+       if tmusictogoplay>0
+        hudmusicvolume=100
+        loop sound tmusictogoplay
+        set sound volume tmusictogoplay,80+(hudmusicvolume/5)
+        lastmusicplayed=tmusictogoplay
+       endif
+      endif
+     endcase
+     case AIACTMUSICOVERRIDE:
+      rem Copy of above (but it cannot be removed with a MUSIC command (global script)
+      if lastmusicplayed>0
+       if sound exist(lastmusicplayed)=1 then stop sound lastmusicplayed
+       lastmusicplayed=0
+      endif
+      rem V109BETA4 - 240408 - support for sound set music playback
+      tmusictogoplay=0
+      if aiactionseq(seq).value=-1
+       tmusictogoplay=entityelement(e).soundset
+      else
+       if aiactionseq(seq).value=-2
+        tmusictogoplay=entityelement(e).soundset1
+       else
+        tmusictogoplay=aiactionseq(seq).value
+       endif
+      endif
+      if tmusictogoplay>0
+       hudmusicvolume=100
+       loop sound tmusictogoplay
+       set sound volume tmusictogoplay,80+(hudmusicvolume/5)
+       lastmusicplayed=tmusictogoplay
+      endif
+      musicoverridden=tmusictogoplay
+     endcase
+     case AIACTMUSICVOLUME:
+      hudmusicvolume=aiactionseq(seq).value
+      if lastmusicplayed>0
+       if sound exist(lastmusicplayed)=1
+        set sound volume lastmusicplayed,80+(hudmusicvolume/5)
+       endif
+      endif
+     endcase
+     case AIACTSOUNDSCALE:
+      tmp#=aiactionseq(seq).value
+      tmp#=tmp#/100.0 : scale listener tmp#
+     endcase
+     `
+     case AIACTVIDEO:
+      videofilename$=""
+      if aiactionseq(seq).value=-1
+       videofilename$=entityelement(e).eleprof.soundset$
+      else
+       if aiactionseq(seq).value=-2
+        videofilename$=entityelement(e).eleprof.soundset1$
+       else
+        tstringindex=aiactionseq(seq).value
+        if tstringindex>0
+         videofilename$=actstring$(tstringindex)
+        endif
+       endif
+      endif
+      if videofilename$<>""
+       if file exist(videofilename$)=1
+        lastvideoplayed=1
+        load animation videofilename$,lastvideoplayed
+        play animation lastvideoplayed,0,0,screen width(),screen height()
+        while animation playing(lastvideoplayed)=1
+         if escapekey()=1 then exit
+         if spacekey()=1 then exit
+         if mouseclick()<>0 then exit
+         sync
+        endwhile
+        while escapekey()=1 or spacekey()=1 or mouseclick()<>0 : sync : endwhile
+        delete animation lastvideoplayed
+        lastvideoplayed=0
+        tensureentitytimestampsupdated=1
+       endif
+      endif
+     endcase
+     `
+     case AIACTLIGHTON:
+      entityelement(e).eleprof.light.islit=1
+      if gdynamiclightingstate=1
+       infinilight(entityelement(e).eleprof.light.index).islit=1
+      endif
+     endcase
+     case AIACTLIGHTOFF:
+      entityelement(e).eleprof.light.islit=0
+      if gdynamiclightingstate=1
+       infinilight(entityelement(e).eleprof.light.index).islit=0
+      endif
+     endcase
+     case AIACTLIGHTRED:
+      dw=entityelement(e).eleprof.light.color
+      entityelement(e).eleprof.light.color=rgb(aiactionseq(seq).value,rgbg(dw),rgbb(dw))
+      if gdynamiclightingstate=1
+       infinilight(entityelement(e).eleprof.light.index).colrgb.r=aiactionseq(seq).value
+      endif
+     endcase
+     case AIACTLIGHTGREEN:
+      dw=entityelement(e).eleprof.light.color
+      entityelement(e).eleprof.light.color=rgb(rgbr(dw),aiactionseq(seq).value,rgbb(dw))
+      if gdynamiclightingstate=1
+       infinilight(entityelement(e).eleprof.light.index).colrgb.g=aiactionseq(seq).value
+      endif
+     endcase
+     case AIACTLIGHTBLUE:
+      dw=entityelement(e).eleprof.light.color
+      entityelement(e).eleprof.light.color=rgb(rgbr(dw),rgbg(dw),aiactionseq(seq).value)
+      if gdynamiclightingstate=1
+       infinilight(entityelement(e).eleprof.light.index).colrgb.b=aiactionseq(seq).value
+      endif
+     endcase
+     case AIACTLIGHTRANGE:
+      entityelement(e).eleprof.light.range=aiactionseq(seq).value
+      if gdynamiclightingstate=1
+       infinilight(entityelement(e).eleprof.light.index).range=aiactionseq(seq).value
+      endif
+     endcase
+     case AIACTLIGHTINTENSITY:
+      intensity#=aiactionseq(seq).value
+      intensity#=intensity#/100.0
+      dw=entityelement(e).eleprof.light.color
+      if gdynamiclightingstate=1
+       infinilight(entityelement(e).eleprof.light.index).colrgb.r=rgbr(dw)*intensity#
+       infinilight(entityelement(e).eleprof.light.index).colrgb.g=rgbg(dw)*intensity#
+       infinilight(entityelement(e).eleprof.light.index).colrgb.b=rgbb(dw)*intensity#
+      endif
+     endcase
+     `
+     case AIACTHUDRESET:
+      workhudx=0 : workhudy=0 : workhudz=0
+      workhudsizex=0 : workhudsizey=0 : workhudsizez=0
+      workhudred=255 : workhudgreen=255 : workhudblue=255 : workhudimage=0
+      workhudfont$="" : workhudsize=0 : workhudtext$=""
+      workhudtype=0 : workhudmake$=""
+      workhudname$=""
+      workhudhide=0
+     endcase
+     case AIACTHUDX:
+      workhudx=(gdisplaywidth/100.0)*aiactionseq(seq).value
+     endcase
+     case AIACTHUDY:
+      workhudy=(gdisplayheight/100.0)*aiactionseq(seq).value
+     endcase
+     case AIACTHUDZ:
+      workhudz=aiactionseq(seq).value
+     endcase
+     case AIACTHUDSIZEX:
+      workhudsizex=aiactionseq(seq).value
+     endcase
+     case AIACTHUDSIZEY:
+      workhudsizey=aiactionseq(seq).value
+     endcase
+     case AIACTHUDSIZEZ:
+      workhudsizez=aiactionseq(seq).value
+     endcase
+     case AIACTHUDRED:
+      workhudred=aiactionseq(seq).value
+     endcase
+     case AIACTHUDGREEN:
+      workhudgreen=aiactionseq(seq).value
+     endcase
+     case AIACTHUDBLUE:
+      workhudblue=aiactionseq(seq).value
+     endcase
+     case AIACTHUDIMAGE:
+      workhudimage=aiactionseq(seq).value
+     endcase
+     case AIACTHUDIMAGEFINE:
+      workhudimage=aiactionseq(seq).value
+     endcase
+     case AIACTHUDFONT:
+      tindex=aiactionseq(seq).value
+      workhudfont$=actstring$(tindex)
+     endcase
+     case AIACTHUDSIZE:
+      workhudsize=aiactionseq(seq).value
+     endcase
+     case AIACTHUDTEXT:
+      tindex=aiactionseq(seq).value
+      workhudtext$=actstring$(tindex)
+     endcase
+     case AIACTHUDTYPE:
+      workhudtype=aiactionseq(seq).value
+     endcase
+     case AIACTHUDHIDE:
+      workhudhide=aiactionseq(seq).value
+     endcase
+     case AIACTHUDSHOW:
+      tindex=aiactionseq(seq).value
+      tworkhudshow$=actstring$(tindex)
+      for thudid=1 to hudmax
+       if lower$(hud(thudid).name$)=lower$(tworkhudshow$)
+        hud(thudid).hide=0
+        if hud(thudid).maintype=8
+         if hud(thudid).typemode>=20
+          hud(thudid).typemode=hud(thudid).typemode-20
+         endif
+         clear entry buffer
+         set text size 30
+        endif
+       endif
+      next thudid
+     endcase
+     case AIACTHUDUNSHOW:
+      tindex=aiactionseq(seq).value
+      tworkhudshow$=actstring$(tindex)
+      for thudid=1 to hudmax
+       if lower$(hud(thudid).name$)=lower$(tworkhudshow$)
+        hud(thudid).hide=1
+       endif
+      next thudid
+     endcase
+     case AIACTHUDNAME:
+      tindex=aiactionseq(seq).value
+      workhudname$=actstring$(tindex)
+     endcase
+     case AIACTHUDANIM:
+      workhudimage=aiactionseq(seq).value
+     endcase
+     case AIACTHUDFADEOUT:
+      tindex=aiactionseq(seq).value
+      tworkhudshow$=actstring$(tindex)
+      for thudid=1 to hudmax
+       if lower$(hud(thudid).name$)=lower$(tworkhudshow$)
+        hud(thudid).fadeout=150
+       endif
+      next thudid
+     endcase
+     case AIACTHUDMAKE:
+      tindex=aiactionseq(seq).value
+      workhudmake$=actstring$(tindex)
+      gosub _ai_hud_add
+     endcase
+     `
+     case AIACTNEWGAME:
+      rem Continue Only
+      continueokay=1
+     endcase
+     case AIACTLOADGAME:
+      rem Continue And Load
+      saveload.loadswitch=1
+      saveloadfile$=""
+      position mouse screen width()/2,(screen height()/4)*3.5
+      cleardelta=mousemovex() : cleardelta=mousemovey()
+      gosub _saveload_maindialogloop
+      if saveloadfile$<>""
+       rem Load level from scratch (using loadsavedlevel$)
+       loadsavedlevel$=saveloadfile$ : saveloadfile$=""
+       continueokay=1 : levelwon=3
+      endif
+      position mouse screen width()/2,(screen height()/4)*3.5
+      cleardelta=mousemovex() : cleardelta=mousemovey()
+      hudselectionmade=0
+     endcase
+     case AIACTSAVEGAME:
+      rem Continue And Save
+      saveload.loadswitch=0
+      saveloadfile$=""
+      position mouse screen width()/2,(screen height()/4)*3.5
+      cleardelta=mousemovex() : cleardelta=mousemovey()
+      gosub _saveload_maindialogloop
+      if saveloadfile$<>""
+       rem Save the current game position using 'saveloadfile$'
+       gosub _saveload_savegame
+       saveloadfile$=""
+      endif
+      while mouseclick()<>0 : endwhile
+      position mouse screen width()/2,(screen height()/4)*3.5
+      cleardelta=mousemovex() : cleardelta=mousemovey()
+      hudselectionmade=0
+     endcase
+     case AIACTQUICKLOADGAME:
+      rem Quick Load no prompt
+      if gtestgamemodefromeditor=0
+       saveloadfile$="gamesaves\slot"+str$(1)+".dat"
+       if file exist(saveloadfile$)=1
+        saveload.loadswitch=1
+        loadsavedlevel$=saveloadfile$
+        continueokay=1 : levelwon=3
+        hudselectionmade=0
+       endif
+       saveloadfile$=""
+      endif
+     endcase
+     case AIACTQUICKSAVEGAME:
+      rem Quick Save no prompt
+      if gtestgamemodefromeditor=0
+       gosub _saveload_savebox_earlygrab
+       gosub _saveload_savebox_initlist
+       saveload.loadswitch=0
+       saveload.slotselected=1
+       gosub _saveload_savebox_dosave
+       gosub _saveload_savegame
+       hudselectionmade=0
+       saveloadfile$=""
+      endif
+     endcase
+     case AIACTCONTINUEGAME:
+      rem Continue And Leave Level
+      continueokay=1 : levelwon=2
+     endcase
+     case AIACTQUITGAME:
+      rem Continue And Quit Out
+      continueokay=1 : loopapp=0 : levelwon=2
+     endcase
+     case AIACTPAUSEGAME:
+      rem User pressed ESCAPE, and is now in pause mode
+      gosub _saveload_savebox_earlygrab
+      position mouse screen width()/2,(screen height()/4)*3
+      hudselectionmade=0 : ttemp=mouseclick()
+      showgamemenu=1
+     endcase
+     case AIACTRESUMEGAME:
+      showgamemenu=0
+      while mouseclick()<>0 : endwhile
+      cleardelta=mousemovex() : cleardelta=mousemovey()
+      tensureentitytimestampsupdated=1
+     endcase
+     case AIACTHOSTGAME:
+      createorjoin=1
+      gmultiplayergame=1
+     endcase
+     case AIACTJOINGAME:
+      createorjoin=2
+      gmultiplayergame=1
+     endcase
+     case AIACTREPEATGAME:
+      rem flag a repeat of the game (without reloading then remove comments)
+      repeatsamelevel=1
+     endcase
+     case AIACTTIMERSTART:
+      hudtimer=timer()
+     endcase
+     `
+     `
+     `
+    endselect
+    `
+   next seq
+   `
+  else
+   if gshowdebugtextingamestate=1
+    if debugviewtog=1
+     if aiconttimer<>0
+      print strarr$(2);
+     endif
+    endif
+   endif
+  endif
+  `
+  if gshowdebugtextingamestate=1
+   if debugviewtog=1
+    if aiconttimer<>0
+     print "."
+    endif
+   endif
+  endif
+  `
+ rem next trigger
+ next conindex
+ `
+ if tensureentitytimestampsupdated=1
+  tensureentitytimestampsupdated=0
+  for ttse=1 to entityelementlist
+   if entityelement(ttse).active=1
+    entityelement(ttse).logictimestamp=timer()
+   endif
+  next ttse
+  timestamp=timer()
+ endif
+ `
+endif
+
+return
+
+_ai_load:
+
+rem FPSCV10X : Ensure AILIST is large enough
+if aiindex>=array count(ailist(0))
+ dim ailist(aiindex+32) as ailiblisttype
+endif
+
+rem If not loaded, load it
+if ailist(aiindex).loaded=0
+
+rem Load AI Script
+gosub _ai_loaddata
+
+rem Only if AI data exists
+desc$=ailist(aiindex).desc$
+if desc$<>""
+ `
+ rem Go through actions to look for required resources
+ for conindex=ailist(aiindex).conditionfirst to ailist(aiindex).conditionlast
+  actindex=aicond(conindex).action
+  for seq=aiaction(actindex).first to aiaction(actindex).last
+   select aiactionseq(seq).type
+    case AIACTRUNFPI:
+     tfile$=aiactionseq(seq).filename
+     if tfile$<>""
+      aifile$=tfile$ : gosub _ai_findlibindex
+      aiactionseq(seq).value=libindex
+     endif
+    endcase
+    case AIACTSOUND:
+     tfile$=aiactionseq(seq).filename
+     if tfile$<>""
+      if tfile$="$0"
+       aiactionseq(seq).value=-1
+      else
+       if tfile$="$1"
+        aiactionseq(seq).value=-2
+       else
+        if file exist(tfile$)=1
+         addfiletocollection(tfile$)
+         aiactionseq(seq).value=loadinternalsoundcore(tfile$,0)
+         if aiactionseq(seq).value=0
+          tfile$="languagebank\"+language$+"\"+tfile$
+          addfiletocollection(tfile$)
+          aiactionseq(seq).value=loadinternalsoundcore(tfile$,0)
+         endif
+        endif
+       endif
+      endif
+     endif
+    endcase
+    case AIACT3DSOUND:
+     tfile$=aiactionseq(seq).filename
+     if tfile$<>""
+      if tfile$="$0"
+       aiactionseq(seq).value=-1
+      else
+       if tfile$="$1"
+        aiactionseq(seq).value=-2
+       else
+        if file exist(tfile$)=1
+         addfiletocollection(tfile$)
+         aiactionseq(seq).value=loadinternalsoundcore(tfile$,1)
+         if aiactionseq(seq).value=0
+          tfile$="languagebank\"+language$+"\"+tfile$
+          addfiletocollection(tfile$)
+          aiactionseq(seq).value=loadinternalsoundcore(tfile$,1)
+         endif
+        endif
+       endif
+      endif
+     endif
+    endcase
+    case AIACTLOOPSOUND:
+     tfile$=aiactionseq(seq).filename
+     if tfile$<>""
+      if tfile$="$0"
+       aiactionseq(seq).value=-1
+      else
+       if tfile$="$1"
+        aiactionseq(seq).value=-2
+       else
+        if file exist(tfile$)=1
+         addfiletocollection(tfile$)
+         aiactionseq(seq).value=loadinternalsoundcore(tfile$,1)
+         if aiactionseq(seq).value=0
+          tfile$="languagebank\"+language$+"\"+tfile$
+          addfiletocollection(tfile$)
+          aiactionseq(seq).value=loadinternalsoundcore(tfile$,1)
+         endif
+        endif
+       endif
+      endif
+     endif
+    endcase
+    case AIACTMUSIC:
+     aiactionseq(seq).value=0
+     tfile$=aiactionseq(seq).filename
+     rem V109BETA4 - 250408 - added $0 and $1 choices
+     if tfile$<>""
+      if tfile$="$0"
+       aiactionseq(seq).value=-1
+      else
+       if tfile$="$1"
+        aiactionseq(seq).value=-2
+       else
+        if file exist(tfile$)=1
+         addfiletocollection(tfile$)
+         aiactionseq(seq).value=loadinternalsoundcore(tfile$,0)
+         if aiactionseq(seq).value=0
+          tfile$="languagebank\"+language$+"\"+tfile$
+          addfiletocollection(tfile$)
+          aiactionseq(seq).value=loadinternalsoundcore(tfile$,0)
+         endif
+        endif
+       endif
+      endif
+     endif
+    endcase
+    case AIACTMUSICOVERRIDE:
+     aiactionseq(seq).value=0
+     tfile$=aiactionseq(seq).filename
+     if tfile$<>""
+      if tfile$="$0"
+       aiactionseq(seq).value=-1
+      else
+       if tfile$="$1"
+        aiactionseq(seq).value=-2
+       else
+        if file exist(tfile$)=1
+         addfiletocollection(tfile$)
+         aiactionseq(seq).value=loadinternalsoundcore(tfile$,0)
+         if aiactionseq(seq).value=0
+          tfile$="languagebank\"+language$+"\"+tfile$
+          addfiletocollection(tfile$)
+          aiactionseq(seq).value=loadinternalsoundcore(tfile$,0)
+         endif
+        endif
+       endif
+      endif
+     endif
+    endcase
+    case AIACTVIDEO:
+     aiactionseq(seq).value=0
+     tfile$=aiactionseq(seq).filename
+     if tfile$="$0"
+      aiactionseq(seq).value=-1
+     else
+      if tfile$="$1"
+       aiactionseq(seq).value=-2
+      else
+       if file exist(tfile$)=1
+        inc actstringmax : dim actstring$(actstringmax)
+        actstring$(actstringmax)=tfile$
+        addfiletocollection(tfile$)
+        aiactionseq(seq).value=actstringmax
+       endif
+      endif
+     endif
+    endcase
+    `
+    case AIACTSKY:
+     sky$=aiactionseq(seq).filename
+     if sky$<>""
+      rem Load in sky
+      if guseskystate=1
+       tskyname$=right$(sky$,3)
+       if object exist(65123)=0
+        `
+        rem V109 BETA6 - replaced X file load with optional DBO convert/load
+        `if file exist(tsky$)=1
+        `debugviewtext(-1,strarr$(3))
+        `load object tsky$,65123
+        `addfiletocollection(tsky$)
+        tsky$=sky$+"\"+tskyname$+".x"
+        debugviewtext(-1,strarr$(3))
+        tfile$=tsky$
+        if lower$(right$(tfile$,2))=".x" then tdbofile$=left$(tfile$,len(tfile$)-2)+".dbo" else tdbofile$=""
+        if file exist(tfile$)=1 or file exist(tdbofile$)=1
+         if file exist(tdbofile$)=1
+          tfile$=tdbofile$
+          tdbofile$=""
+         endif
+         load object tfile$,65123
+         if len(tdbofile$)>1
+          save object tdbofile$,65123
+          if file exist(tdbofile$)=1
+           delete object 65123
+           load object tdbofile$,65123
+           tfile$=tdbofile$
+          endif
+         endif
+         addfiletocollection(tfile$)
+         `
+         for tfor=0 to 1
+          if tfor=0 then text$="dds"
+          if tfor=1 then text$="tga"
+          tsky$=sky$+"\"+tskyname$+"_U."+text$
+          if file exist(tsky$)=1
+           addfiletocollection(tsky$)
+           tsky$=sky$+"\"+tskyname$+"_D."+text$ : addfiletocollection(tsky$)
+           tsky$=sky$+"\"+tskyname$+"_L."+text$ : addfiletocollection(tsky$)
+           tsky$=sky$+"\"+tskyname$+"_R."+text$ : addfiletocollection(tsky$)
+           tsky$=sky$+"\"+tskyname$+"_B."+text$ : addfiletocollection(tsky$)
+           tsky$=sky$+"\"+tskyname$+"_F."+text$ : addfiletocollection(tsky$)
+           tfor=2
+          endif
+         next tfor
+         set object collision off 65123
+         sk#=(100*(realrange#-4000))/5.0
+         scale object 65123,sk#,sk#,sk#
+         set object texture 65123,2,0
+         set object light 65123,0
+         set object cull 65123,0
+         set object fog 65123,0
+        endif
+       endif
+      endif
+     endif
+    endcase
+    case AIACTSKYSCROLL:
+     skyscroll$=aiactionseq(seq).filename
+     if skyscroll$<>""
+      rem Load in sky scroll texture
+      if guseskystate=1
+       if file exist(skyscroll$)=1
+        addfiletocollection(skyscroll$)
+        if object exist(65124)=0
+         debugviewtext(-1,strarr$(4))
+         make object plain 65124,9000,9000
+         tskyscrollimg=loadinternalimagecompressquality(skyscroll$,5,1)
+         texture object 65124,0,tskyscrollimg
+         set object texture 65124,2,0
+         rem hack - change to new command when DGSDK done!
+`         set blend mapping on 65124,loadinternalimage("skybank\generic\skyportal.tga"),4,0
+`         set blend mapping on 65124,loadinternalimage("skybank\generic\skyportal.tga"),10
+         position object 65124,0,1000,0
+         set object transparency 65124,1
+         set object collision off 65124
+         xrotate object 65124,270
+         set object light 65124,0
+         set object cull 65124,0
+         set object fog 65124,0
+         `
+         rem now create a second UV data layer for static second texture (alphaportal)
+         q#=1.0
+         lock vertexdata for limb 65124,0
+         set vertexdata uv 0,1,0,0
+         set vertexdata uv 0,1,q#,0
+         set vertexdata uv 1,1,0,0
+         set vertexdata uv 2,1,q#,q#
+         set vertexdata uv 3,1,0,0
+         set vertexdata uv 4,1,0,q#
+         set vertexdata uv 5,1,q#,q#
+         unlock vertexdata
+         `
+        endif
+       endif
+      endif
+     endif
+    endcase
+    case AIACTBACKDROP:
+     tfile$=aiactionseq(seq).filename
+     if tfile$<>""
+      addfiletocollection(tfile$)
+      aiactionseq(seq).value=loadinternalimagequality(tfile$)
+      if aiactionseq(seq).value=0
+       tfile$="languagebank\"+language$+"\"+tfile$
+       addfiletocollection(tfile$)
+       aiactionseq(seq).value=loadinternalimagecompressquality(tfile$,5,1)
+      endif
+     endif
+    endcase
+    case AIACTHUDIMAGE:
+     tfile$=aiactionseq(seq).filename
+     if tfile$<>""
+      addfiletocollection(tfile$)
+      aiactionseq(seq).value=loadinternalimagecompressquality(tfile$,5,1)
+      if aiactionseq(seq).value=0
+       tfile$="languagebank\"+language$+"\"+tfile$
+       addfiletocollection(tfile$)
+       aiactionseq(seq).value=loadinternalimagecompressquality(tfile$,5,1)
+      endif
+     endif
+    endcase
+    case AIACTHUDIMAGEFINE:
+     tfile$=aiactionseq(seq).filename
+     if tfile$<>""
+      addfiletocollection(tfile$)
+      aiactionseq(seq).value=loadinternalimagecompressquality(tfile$,0,1)
+      if aiactionseq(seq).value=0
+       tfile$="languagebank\"+language$+"\"+tfile$
+       addfiletocollection(tfile$)
+       aiactionseq(seq).value=loadinternalimagecompressquality(tfile$,5,1)
+      endif
+     endif
+    endcase
+    case AIACTHUDTEXT:
+     inc actstringmax : dim actstring$(actstringmax)
+     actstring$(actstringmax)=aiactionseq(seq).filename
+     aiactionseq(seq).value=actstringmax
+    endcase
+    case AIACTHUDFONT:
+     inc actstringmax : dim actstring$(actstringmax)
+     actstring$(actstringmax)=aiactionseq(seq).filename
+     aiactionseq(seq).value=actstringmax
+    endcase
+    case AIACTHUDSHOW:
+     inc actstringmax : dim actstring$(actstringmax)
+     actstring$(actstringmax)=aiactionseq(seq).filename
+     aiactionseq(seq).value=actstringmax
+    endcase
+    case AIACTHUDUNSHOW:
+     inc actstringmax : dim actstring$(actstringmax)
+     actstring$(actstringmax)=aiactionseq(seq).filename
+     aiactionseq(seq).value=actstringmax
+    endcase
+    case AIACTHUDNAME:
+     inc actstringmax : dim actstring$(actstringmax)
+     actstring$(actstringmax)=aiactionseq(seq).filename
+     aiactionseq(seq).value=actstringmax
+    endcase
+    case AIACTHUDANIM:
+     tfile$=aiactionseq(seq).filename
+     if tfile$<>""
+      for tnum=0 to 10
+       ttfile$=tfile$+str$(tnum)+".tga"
+       addfiletocollection(ttfile$)
+       tnumimg=loadinternalimagecompressquality(ttfile$,5,1)
+       if tnum=0 then aiactionseq(seq).value=tnumimg
+      next tnum
+     endif
+    endcase
+    case AIACTHUDFADEOUT:
+     inc actstringmax : dim actstring$(actstringmax)
+     actstring$(actstringmax)=aiactionseq(seq).filename
+     aiactionseq(seq).value=actstringmax
+    endcase
+    case AIACTHUDMAKE:
+     inc actstringmax : dim actstring$(actstringmax)
+     actstring$(actstringmax)=aiactionseq(seq).filename
+     aiactionseq(seq).value=actstringmax
+    endcase
+    `
+    case AIACTSETTARGETNAME:
+     inc actstringmax : dim actstring$(actstringmax)
+     actstring$(actstringmax)=aiactionseq(seq).filename
+     aiactionseq(seq).value=actstringmax
+    endcase
+    `
+   endselect
+  next seq
+  `
+ next conindex
+ `
+rem no AI script exists endif
+endif
+
+rem AI has been delt with and loaded
+ailist(aiindex).loaded=1
+
+rem If not loaded, load above
+endif
+
+return
+
+_ai_createentityreferences:
+
+rem go through all AI, and link entitynames to entityelementsubscripts
+for aiindex=1 to aiindexmaster
+ desc$=ailist(aiindex).desc$
+ if desc$<>""
+  for conindex=ailist(aiindex).conditionfirst to ailist(aiindex).conditionlast
+   actindex=aicond(conindex).action
+   for seq=aiaction(actindex).first to aiaction(actindex).last
+    select aiactionseq(seq).type
+     case AIACTPLRMOVETO:
+      tname$=aiactionseq(seq).filename : gosub _entity_findname
+      aiactionseq(seq).value=foundte
+     endcase
+    endselect
+   next seq
+  next conindex
+ endif
+next aiindex
+
+return
+
+
+_ai_free:
+
+rem Only if AI data exists
+desc$=ailist(aiindex).desc$
+if desc$<>""
+ for conindex=ailist(aiindex).conditionfirst to ailist(aiindex).conditionlast
+  actindex=aicond(conindex).action
+  for seq=aiaction(actindex).first to aiaction(actindex).last
+   select aiactionseq(seq).type
+    case AIACTSOUND:
+     if aiactionseq(seq).value>0
+      stop sound aiactionseq(seq).value
+     endif
+    endcase
+    case AIACTMUSIC:
+     if aiactionseq(seq).value>0
+      stop sound aiactionseq(seq).value
+     endif
+    endcase
+    case AIACTMUSICOVERRIDE:
+     if aiactionseq(seq).value>0
+      stop sound aiactionseq(seq).value
+     endif
+    endcase
+   endselect
+  next seq
+ next conindex
+endif
+`
+rem V109BETA4 - 240408 - Free global which overrides MUSIC action with MUSICOVERRIDE
+musicoverridden=0
+
+rem Free AI resource flag
+ailist(aiindex).loaded=0
+
+return
+
+_ai_dividetriggerblock:
+
+rem go through and get item from stringblock$
+word$="" : value$=""
+for c=1 to len(stringblock$)
+ if mid$(stringblock$,c)="," or c=len(stringblock$)
+  rem get one item in block
+  if c=len(stringblock$)
+   chunk$=stringblock$
+  else
+   chunk$=left$(stringblock$,c-1)
+  endif
+  stringblock$=right$(stringblock$,len(stringblock$)-(len(chunk$)+1))
+  if len(chunk$)>0
+   rem find equate seperator (or all otherwise)
+   sep=0
+   for c2=1 to len(chunk$)
+    if mid$(chunk$,c2)="=" then sep=c2 : exit
+    if c2=len(chunk$) then sep=c2+1 : exit
+   next c2
+   if sep>0
+    `
+    rem find word and value
+    word$=lower$(removeedgespaces(left$(chunk$,sep-1)))
+    value$=removeedgespaces(right$(chunk$,len(chunk$)-(len(word$)+1)))
+    `
+    rem reset value vars
+    mid1=0 : mid2=0
+    value1$=""
+    value2$=""
+    value3$=""
+    `
+    rem take value 1 2 3 from value
+    for c=0 to len(value$)
+     if mid$(value$,c)=" " and mid1=0 then mid1=c : exit
+     if mid$(value$,c)=" " and mid1<>0 and mid2=0 then mid2=c : exit
+    next c
+    if mid1=0
+     value1$=value$
+    else
+     if mid2=0
+      value1$=left$(value$,mid1-1)
+      value2$=right$(value$,len(value$)-(len(value1$)+1))
+     else
+      value1$=left$(value$,mid1-1)
+      value2$=left$(right$(value$,mid1),(mid2-mid1)-1)
+      value3$=right$(value$,len(value$)-mid2)
+     endif
+    endif
+    `
+    rem calculate values from value strings
+    value1=val(value1$)
+    value2=val(value2$)
+    value3=val(value3$)
+    `
+   endif
+  endif
+  exit
+ endif
+next c
+
+return
+
+_ai_loaddata:
+
+rem Ensure AI Script still exists
+if file exist(aidir$+ai$)=1
+`
+rem About to add conditions
+conindexfirst=conindexcount
+`
+rem Load AI Script Data from file
+dim data$(150)
+load array aidir$+ai$,data$()
+addfiletocollection(aidir$+ai$)
+for l=0 to 149
+ line$=data$(l)
+ `
+ rem V109 BETA8 - desc issue correction (ensure desc not empty)
+ if lower$(left$(line$,4))="desc" and len(line$)<8 then line$="desc = FPI Script"
+ `
+ if len(line$)>0
+  if left$(line$,1)<>";"
+   `
+   rem Field or Triggerline
+   if left$(line$,1)<>":"
+    `
+    rem Standard Field Line
+    rem take fieldname and value
+    for c=0 to len(line$)
+     if mid$(line$,c)="=" then mid=c : exit
+    next c
+    field$=lower$(removeedgespaces(left$(line$,mid-1)))
+    value$=removeedgespaces(right$(line$,len(line$)-mid))
+    `
+    rem take value 1 and 2 from value
+    for c=0 to len(value$)
+     if mid$(value$,c)="," then mid=c : exit
+    next c
+    value1=val(removeedgespaces(left$(value$,mid-1)))
+    value2$=removeedgespaces(right$(value$,len(value$)-mid))
+    if len(value2$)>0 then value2=val(value2$) else value2=-1
+    `
+    rem AI header
+    if field$="desc" then ailist(aiindex).desc$=value$
+    `
+   else
+    `
+    rem AI Triggerline (slice line marked by leading colon:)
+    cutline$=right$(line$,len(line$)-1)
+    `
+    rem find : seperator
+    sep=0
+    for c=1 to len(cutline$)
+     if mid$(cutline$,c)=":" then sep=c : exit
+    next c
+    if sep>0
+     `
+     rem conditions collected
+     conditions$=left$(cutline$,sep-1)
+     cutline$=right$(cutline$,len(cutline$)-(len(conditions$)+1))
+     rem now rest is actions
+     if len(cutline$)>0
+      rem actions collected
+      actions$=cutline$
+     endif
+     `
+     rem Parse through conditions
+     aicondfirst=aicondseqcount
+     stringblock$=conditions$
+     while len(stringblock$)>0
+      gosub _ai_dividetriggerblock
+      for tindex=0 to AICONDLAST
+       if word$=conword$(tindex)
+        if aicondseqcount+10>array count(aiconditionseq()) then dim aiconditionseq(aicondseqcount+1000) as aiconditiontype
+        aiconditionseq(aicondseqcount).type=tindex
+        aiconditionseq(aicondseqcount).valuea=value1
+        aiconditionseq(aicondseqcount).valueb=value2
+        aiconditionseq(aicondseqcount).valuec=value3
+        inc aicondseqcount
+        exit
+       endif
+      next tindex
+     endwhile
+     if conindexcount+10>array count(aicond()) then dim aicond(conindexcount+100) as aiconditionitemtype
+     aicond(conindexcount).first=aicondfirst
+     aicond(conindexcount).last=aicondseqcount-1
+     aicond(conindexcount).action=actindexcount
+     inc conindexcount
+     `
+     rem Parse through actions
+     aiactfirst=aiactseqcount
+     stringblock$=actions$
+     while len(stringblock$)>0
+      gosub _ai_dividetriggerblock
+      for tindex=0 to AIACTLAST
+       if word$=actword$(tindex)
+        if aiactseqcount+10>array count(aiactionseq()) then dim aiactionseq(aiactseqcount+1000) as aiactiontype
+        aiactionseq(aiactseqcount).type=tindex
+        aiactionseq(aiactseqcount).value=value1
+        aiactionseq(aiactseqcount).filename=value$
+        inc aiactseqcount
+        exit
+       endif
+      next tindex
+     endwhile
+     if actindexcount+10>array count(aiaction()) then dim aiaction(actindexcount+100) as aiactionitemtype
+     aiaction(actindexcount).first=aiactfirst
+     aiaction(actindexcount).last=aiactseqcount-1
+     inc actindexcount
+     `
+    endif
+    `
+   endif
+  endif
+ endif
+next l
+undim data$()
+`
+rem Finalise condition data values
+conindexlast=conindexcount-1
+ailist(aiindex).conditionfirst=conindexfirst
+ailist(aiindex).conditionlast=conindexlast
+`
+rem File not exist endif
+endif
+
+return
+
+_ai_scanfornewscriptsonly:
+
+rem Reset count
+aiindexmaster=0
+
+rem Scan for scripts
+oldir$=get dir$()
+aidir$="scriptbank\"
+empty array filelist$()
+buildfilelist(aidir$,"")
+
+rem Ensure scriptbank is big enough
+dim scriptbank$(1+array count(filelist$()))
+
+rem If AI Script exist
+if array count(filelist$())>0
+ for chkfile=0 to array count(filelist$())
+  `
+  rem AI Script filename from folder
+  ai$=filelist$(chkfile)
+  `
+  rem Check if filename valid
+  if right$(ai$,4)=".fpi"
+  `
+  rem Check AI Script exists in bank
+  tokay=1
+  if aiindexmaster>0
+   for aiindex=1 to aiindexmaster
+    if scriptbank$(aiindex)=ai$ then tokay=0
+   next aiindex
+  endif
+  if tokay=1
+    `
+    rem Find free space in 'scriptbank'
+    freeaiindex=-1
+    if aiindexmaster>0
+     for aiindex=1 to aiindexmaster
+      if scriptbank$(aiindex)="" then freeaiindex=aiindex : exit
+     next aiindex
+    endif
+    `
+    rem New AI Script or Free One
+    if freeaiindex=-1
+     inc aiindexmaster
+     aiindex=aiindexmaster
+    else
+     aiindex=freeaiindex
+    endif
+    `
+    rem Store AI Script for later loading (below)
+    scriptbank$(aiindex)=ai$
+    `
+   endif
+   `
+  endif
+  `
+ next chkfile
+endif
+
+rem Restore directory
+set dir oldir$
+
+return
+
+_ai_loadallscripts:
+ currentlyintheAISCIPTloader=1
+ if aiindexmaster>0
+  aidir$="scriptbank\"
+  for aiindex=1 to aiindexmaster
+   ai$=scriptbank$(aiindex)
+   if lower$(left$(ai$,len(aidir$)))<>lower$(aidir$)
+    gosub _ai_load
+   endif
+  next aiindex
+ endif
+ currentlyintheAISCIPTloader=0
+return
+
+_ai_scanfornewscripts:
+
+rem Scan all to get names
+gosub _ai_scanfornewscriptsonly
+
+rem Now load all AI scripts fully
+gosub _ai_loadallscripts
+
+return
+
+_ai_findlibindex:
+ libindex=-1
+ if aiindexmaster>0
+  for taiindex=1 to aiindexmaster
+   if lower$(scriptbank$(taiindex))=lower$(aifile$) then libindex=taiindex : exit
+  next taiindex
+ endif
+return
+
+

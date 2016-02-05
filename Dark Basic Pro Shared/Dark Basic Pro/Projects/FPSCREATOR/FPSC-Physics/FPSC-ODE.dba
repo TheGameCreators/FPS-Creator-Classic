@@ -1,0 +1,2148 @@
+rem
+rem ODE specific code
+rem
+
+_ode_init:
+
+rem start ode
+ode start : rem set to regular world stepping
+ode set world gravity physicsgravx#,physicsgravy#,physicsgravz#
+ode set world step 0.05 : rem needed for accuracy
+softness#=2.5 : rem soft as the player (was 2.0)
+ode set world erp (0.2)*softness#
+ode set world cfm (10^-5)*softness#
+
+rem make physics universe
+if object exist(physicsuniverseobj)=1 then delete object physicsuniverseobj
+phyunimesh$="levelbank\testlevel\universephy.dbo"
+if file exist(phyunimesh$)=0
+ load object "levelbank\testlevel\universe.dbo",physicsuniverseobj
+ make mesh from object physicsuniverseobj,physicsuniverseobj
+ convert mesh to vertexdata physicsuniverseobj
+ delete object physicsuniverseobj
+ make object physicsuniverseobj,physicsuniverseobj,0
+ delete mesh physicsuniverseobj
+ rem FPSCV104RC9-accelerate loading
+ save object phyunimesh$,physicsuniverseobj
+else
+ load object phyunimesh$,physicsuniverseobj
+endif
+debugviewtext(321,"Created static geometry for physics universe")
+ode create static triangle mesh physicsuniverseobj
+delete object physicsuniverseobj
+if physicsproto=1
+ load static objects "levelbank\testlevel\universe.dbo",0
+endif
+debugviewtext(322,"Submitted geometry to physics engine")
+
+rem create entity assignments
+for e=1 to entityelementmax
+ `
+ rem Sentinel disables physics for common non-physics items (non-multiplayer)
+ entid=entityelement(e).bankindex
+ if physicson>0 and gmultiplayergame=0
+  rem and promotes others to specific types (1-normal,2-ignorestatic,3-becomestatic)
+  rem Weapons, Ammo, Non-Objects, Immobile
+  if entityprofile(entid).isweapon<>0 or entityprofile(entid).isammo<>0
+   entityelement(e).eleprof.physics=0
+  else
+   if entityprofile(entid).ischaracter=1
+    entityelement(e).eleprof.physics=2
+   endif
+   if entityelement(e).eleprof.isimmobile=1
+    entityelement(e).eleprof.physics=3
+   endif
+  endif
+  if entityelement(e).obj=0
+   entityelement(e).eleprof.physics=0
+  endif
+ else
+  rem usually no physics (most made static after loadentities see gamemain)
+  entityelement(e).eleprof.physics=0
+  rem multiplayer needs 'windows' as physics objects
+  if gmultiplayergame=1
+   if entityprofile(entid).isweapon=0 and entityprofile(entid).isammo=0 and entityprofile(entid).ischaracter=0
+    if entityelement(e).eleprof.isimmobile=1
+     entityelement(e).eleprof.physics=3
+    endif
+   endif
+  endif
+ endif
+ `
+ rem Safety trap, can cancel if entity not complet
+ if entityelement(e).eleprof.physics<>0
+  if entityelement(e).profileobj>0
+   if object exist(entityelement(e).profileobj)=0
+    entityelement(e).eleprof.physics=0
+   endif
+  else
+   entityelement(e).eleprof.physics=0
+  endif
+ endif
+ `
+ rem apply physics creation of object
+ if entityelement(e).eleprof.physics<>0
+  rem for physics bodies that have a center of mass, entity positions need altering to reflect correct position
+  tobj=entityelement(e).obj
+`  if entityelement(e).eleprof.physics<>3 (not 2'characters' either) - only regular physics objs
+  if entityelement(e).eleprof.physics=1
+   if tobj>0
+    if object exist(tobj)=1
+     tprofileobj=entityelement(e).profileobj
+     tadj#=object collision center y(tprofileobj)
+     rem V111 BETA7 - 010708 - scaling now applied to bounds calculation (which also creates collision center)
+     rem but the limb offset is ALSO scaled with the regular scaling of the object (SCALE<>100 in FPE), so we
+     rem need to negate this scale normally (change to OBJECT COLLIISION CENTER made to do this in FPSC code,
+     rem and the initial adjustment of objects must ensure entities do not start inside the floor
+     if entityprofile(entid).scale<>0
+      applyscalefactor#=(entityprofile(entid).scale/100.0)
+      tadj#=tadj#*applyscalefactor#
+     endif
+     entityelement(e).y=entityelement(e).y+tadj#
+     position object tobj,object position x(tobj),object position y(tobj)+tadj#,object position z(tobj)
+    endif
+   endif
+  endif
+  rem create the physics body (if not child spawn entities)
+  tspawnhide=0
+  if entityelement(e).spawn.leaderid>0
+   if entityelement(e).spawn.leader=0
+    tspawnhide=1
+   endif
+  endif
+  if tspawnhide=0
+   if entityelement(e).spawn.leader=1
+    rem spawn master does not need physics object
+    gosub _ode_ensurephysicsobjvalid
+   else
+    rem everything else has physics to create
+    gosub _ode_setupewithphysics
+   endif
+  else
+   rem still need to reserve all obj ids with E
+   gosub _ode_ensurephysicsobjvalid
+  endif
+ endif
+ `
+next e
+
+rem Report progress
+debugviewtext(323,"Applied physics settings to dynamic elements")
+
+rem eat any old ODE messages
+while ODE COLLISION MESSAGE EXISTS()
+ ODE COLLISION GET MESSAGE
+endwhile
+
+rem shadow light position for global shadow effect
+set point light 0,-2000,10000,2000
+set ambient light 75
+
+rem no need for dbpro standard collision 'automated' system
+SET GLOBAL COLLISION OFF
+
+return
+
+_ode_ensurephysicsobjvalid:
+ `
+ rem redim new size (takes tobj and e)
+ tmax=array count(phyobjele())
+ if tobj>tmax
+  tmax=tobj
+  dim phyobjvelocity#(tmax)
+  dim phylasttravelled#(tmax)
+  dim phylastfloorstop#(tmax)
+  dim phyobjsounding(tmax)
+  dim phyobjremove(tmax)
+  dim phyobjele(tmax)
+  dim shadowobj(tmax)
+ endif
+ rem setup inits
+ phyobjvelocity#(tobj)=0
+ phylasttravelled#(tobj)=0
+ phylastfloorstop#(tobj)=0
+ phyobjsounding(tobj)=0
+ phyobjremove(tobj)=0
+ phyobjele(tobj)=e
+ shadowobj(tobj)=0
+ `
+return
+
+_ode_loadmateriallist_init:
+`
+rem load material list
+tfile$="audiobank\materials\materialdefault.txt"
+addfiletocollection(tfile$)
+if file exist(tfile$)=1
+ `
+ rem Load Data from file
+ dim data$(999)
+ load array tfile$,data$()
+ for l=0 to 999
+  line$=data$(l)
+  if len(line$)>0
+   if lower$(left$(line$,4))=";end" then exit
+   if left$(line$,1)<>";"
+    `
+    rem take fieldname and values
+    for c=0 to len(line$)
+     if mid$(line$,c)="=" then mid=c : exit
+    next c
+    field$=lower$(removeedgespaces(left$(line$,mid-1)))
+    value$=removeedgespaces(right$(line$,len(line$)-mid))
+    for c=0 to len(value$)
+     if mid$(value$,c)="," then mid=c : exit
+    next c
+    value1=val(removeedgespaces(left$(value$,mid-1)))
+    value2$=removeedgespaces(right$(value$,len(value$)-mid))
+    if len(value2$)>0 then value2=val(value2$) else value2=-1
+    `
+    rem load max materials
+    tryfield$="materialmax" : if field$=tryfield$ then gmaterialmax=value1 : dim material(gmaterialmax) as materialsettingstype
+    `
+    rem load material data
+    for m=0 to gmaterialmax
+     tryfield$="matdesc"+str$(m) : if field$=tryfield$ then material(m).name$=value$
+     tryfield$="matwave"+str$(m) : if field$=tryfield$ then material(m).tred0$=value$
+     tryfield$="matwaves"+str$(m) : if field$=tryfield$ then material(m).scrape$=value$
+     tryfield$="matwavei"+str$(m) : if field$=tryfield$ then material(m).impact$=value$
+     tryfield$="matwaved"+str$(m) : if field$=tryfield$ then material(m).destroy$=value$
+     tryfield$="matfreq"+str$(m) : if field$=tryfield$ then material(m).freq=value1
+     tryfield$="matdecal"+str$(m) : if field$=tryfield$ then material(m).decal$=value$
+    next m
+    `
+   endif
+  endif
+ next l
+ undim data$()
+endif
+`
+rem Fill in material defaults if info lacking
+for m=0 to gmaterialmax
+ if file exist(material(m).scrape$)=0 then material(m).scrape$=material(m).tred0$
+ if file exist(material(m).impact$)=0 then material(m).impact$=material(m).tred0$
+ if file exist(material(m).destroy$)=0 then material(m).destroy$=material(m).tred0$
+ material(m).tred1$=left$(material(m).tred0$,len(material(m).tred0$)-4)+"A1.wav"
+ material(m).tred2$=left$(material(m).tred0$,len(material(m).tred0$)-4)+"A2.wav"
+ material(m).tred3$=left$(material(m).tred0$,len(material(m).tred0$)-4)+"A3.wav"
+ material(m).tred0$=left$(material(m).tred0$,len(material(m).tred0$)-4)+"A4.wav"
+ if material(m).freq=0 then material(m).freq=22000
+next m
+`
+return
+
+_ode_loadmateriallist_core:
+`
+rem Load material sounds into memory
+tbase=materialsoundoffset
+for m=0 to gmaterialmax
+ `
+ rem V109 BETA8 - 060508 - material used or all if test game
+ tloadthismaterialsound=0
+ if gtestgamemodefromeditor=1 then tloadthismaterialsound=1
+ if material(m).usedinlevel=1 then tloadthismaterialsound=1
+ `
+ if material(m).name$<>"" and tloadthismaterialsound=1
+  rem load tred sound (all five)
+  snd$=material(m).tred0$
+  if file exist(snd$)=1
+   load 3dsound snd$,tbase
+   addfiletocollection(snd$)
+   set sound speed tbase,material(m).freq
+   material(m).noise=tbase
+   inc tbase
+  else
+   material(m).noise=0
+  endif
+  rem load scrape
+  snd$=material(m).scrape$
+  if file exist(snd$)=1
+   load 3dsound snd$,tbase
+   addfiletocollection(snd$)
+   set sound speed tbase,material(m).freq
+   material(m).scrapeid=tbase
+   for tclones=1 to 4
+    tbaseclone=tbase+tclones
+    clone sound tbaseclone,tbase
+   next tclones
+   inc tbase,5
+  else
+   material(m).scrapeid=0
+  endif
+  rem load impact
+  snd$=material(m).impact$
+  if file exist(snd$)=1
+   load 3dsound snd$,tbase
+   addfiletocollection(snd$)
+   set sound speed tbase,material(m).freq
+   material(m).impactid=tbase
+   for tclones=1 to 4
+    tbaseclone=tbase+tclones
+    clone sound tbaseclone,tbase
+   next tclones
+   inc tbase,5
+  else
+   material(m).impactid=0
+  endif
+  rem load destroy
+  snd$=material(m).destroy$
+  if file exist(snd$)=1
+   load 3dsound snd$,tbase
+   addfiletocollection(snd$)
+   set sound speed tbase,material(m).freq
+   material(m).destroyid=tbase
+   for tclones=1 to 4
+    tbaseclone=tbase+tclones
+    clone sound tbaseclone,tbase
+   next tclones
+   inc tbase,5
+  else
+   material(m).destroyid=0
+  endif
+ endif
+next m
+materialsoundmax=(tbase-1)-materialsoundoffset
+`
+return
+
+_ode_loadmateriallist:
+`
+rem Material list and sound loading moved to core above (called only before level one)
+`
+rem Load decals for materials
+for m=0 to gmaterialmax
+ material(m).decalid=0
+ if material(m).name$<>""
+  decal$=material(m).decal$
+  gosub _decal_find
+  if decalid<0 then decalid=0
+  if decalid>0
+   material(m).decalid=decalid
+   decal(decalid).active=1
+  endif
+ endif
+next m
+`
+return
+
+_ode_triggermaterialsound:
+ `
+ rem when trigger, play a material sound
+ if tsoundtrigger>0
+  tvol#=100 : sbase=tsoundtrigger
+  for tchannels=0 to 4
+   ts=sbase+tchannels
+   if sound exist(ts)=1
+    if sound playing(ts)=0
+     playinternalBC3dsound(ts,tsx#,tsy#,tsz#,25.0)
+     set sound volume ts,80.0+(tvol#*0.2)
+     if tspd#>2000 then set sound speed ts,tspd#
+     exit
+    endif
+   endif
+  next tchannels
+ endif
+ `
+return
+
+_ode_setupewithphysics:
+ tobj=entityelement(e).obj
+ if tobj>0
+  if object exist(tobj)=1
+   tprofileobj=entityelement(e).profileobj
+   if tprofileobj>0
+    if object exist(tprofileobj)=1
+     `
+     rem prepare visual alighment for regular physics objects (not floaters or statics)
+     if entityelement(e).eleprof.physics=1
+      if entityprofile(entid).ischaracter=1
+       rem FPSCV104RC9 - do not adjust X and Z as model offsets are not good indicators of center
+       offset limb tprofileobj,0,0,object collision center y(tprofileobj)*-1,0
+       offset limb tobj,0,0,object collision center y(tprofileobj)*-1,0
+      else
+       offset limb tprofileobj,0,object collision center x(tprofileobj)*-1,object collision center y(tprofileobj)*-1,object collision center z(tprofileobj)*-1
+       offset limb tobj,0,object collision center x(tprofileobj)*-1,object collision center y(tprofileobj)*-1,object collision center z(tprofileobj)*-1
+      endif
+     endif
+     set object collision off tobj
+     `
+     rem ensure entitydriven and pseudo-static start with null rotation
+     if entityelement(e).eleprof.physics=2 or entityelement(e).eleprof.physics=3
+      rem record object angle before apply physics to object
+      entityelement(e).rx=object angle x(tobj)
+      entityelement(e).ry=object angle y(tobj)
+      entityelement(e).rz=object angle z(tobj)
+      rem must ensure default matrix in ODE is unrotated to begin with (RY controls angle)
+      yrotate object tobj,0
+     endif
+     `
+     rem physics object is static or dynamic
+     if entityelement(e).eleprof.physics=3
+      rem static (dynamic response identical to static behaviour)
+      ode create dynamic box tobj : ode set response tobj,2 : ode set gravity tobj,0
+     else
+      rem dynamic
+      if entityprofile(entid).collisionmode=3
+       ode create dynamic cylinder tobj
+      else
+       if entityprofile(entid).collisionmode=4
+        ode create dynamic sphere tobj
+       else
+        ode create dynamic box tobj
+       endif
+      endif
+      rem pre-test code to assign internally (now done in mapeditor)
+      `tfriction=(object size x(tobj)*75)+(object size y(tobj)*75)+(object size z(tobj)*75)
+      `tweight=(object size x(tobj)*25)+(object size y(tobj)*25)+(object size z(tobj)*25)
+      `entityelement(e).eleprof.phyfriction=tfriction
+      `entityelement(e).eleprof.phyweight=tweight
+      entityelement(e).floorposy=object position y(tobj)
+      ode set contact fdir1 tobj, entityelement(e).eleprof.phyfriction
+      ode set body mass tobj,entityelement(e).eleprof.phyweight
+      rem some objects ignore static geom and gravity
+      if entityelement(e).eleprof.physics=2 then ode set response tobj,1 : ode set gravity tobj,0
+      rem stabalize the object
+      ode set linear velocity tobj,0,0,0
+      ode set angular velocity tobj,0,0,0
+      `
+      rem recalc adjustment for objects that must find the floor perfectly
+      centx#=ODE GET BODY ADJUSTMENT X(tobj)
+      centy#=ODE GET BODY ADJUSTMENT Y(tobj)
+      centz#=ODE GET BODY ADJUSTMENT Z(tobj)
+      rem FPSCV101 - compensate for character model issues with a hack
+      if entityprofile(entid).ischaracter=1
+       rem FPSCV104RC9 - AIKO model has bug, correct here
+       `offset limb tobj,0,0,(object collision center y(tprofileobj)*-1)+centy#,0
+       rem V111 BETA7 - 010708 - scaling now applied to bounds calculation (which also creates collision center)
+       rem but the limb offset is ALSO scaled with the regular scaling of the object (SCALE<>100 in FPE), so we
+       rem need to negate this scale normally (change to OBJECT COLLIISION CENTER made to do this in FPSC code,
+       rem but characters behave differently and require the collision center to be scaled here, so we use this:
+       applyscalefactor#=(entityprofile(entid).scale/100.0)
+       offset limb tobj,0,0,((object collision center y(tprofileobj)*applyscalefactor#)*-1)+centy#,0
+      else
+       rem regular object full XYZ center needed
+       offset limb tobj,0,(object collision center x(tprofileobj)*-1)+centx#,(object collision center y(tprofileobj)*-1)+centy#,(object collision center z(tprofileobj)*-1)+centz#
+      endif
+     endif
+     `
+     rem ensure entitydriven and pseudo-static than uses RY for rotation
+     if entityelement(e).eleprof.physics=2 or entityelement(e).eleprof.physics=3
+      ode set body rotation tobj,0,entityelement(e).ry,0
+     endif
+     `
+    else
+     hide object tobj
+    endif
+   else
+    hide object tobj
+   endif
+  endif
+ endif
+ rem redim new size and init vars
+ gosub _ode_ensurephysicsobjvalid
+return
+
+_ode_pushusingtvelandangle:
+ `
+ tobj=entityelement(e).obj
+ if tobj>0
+  if object exist(tobj)=1
+   rem only for regular physics objects, not entitydriven characters, or statics (doors)
+   if entityelement(e).eleprof.physics=1
+    tvel#=tvel*2.0
+    if tvel<>0
+     tvelx#=newxvalue(0,entityelement(e).ry,tvel#)
+     tvelz#=newzvalue(0,entityelement(e).ry,tvel#)
+     tangle#=sin(tangle)*tvel#
+     tvelx#=tvelx#*cos(tangle)
+     tvelz#=tvelz#*cos(tangle)
+     ode set linear velocity tobj,tvelx#,tangle#,tvelz#
+    endif
+    if entityelement(e).eleprof.rotatethrow<>0
+     trotate#=entityelement(e).eleprof.rotatethrow/10.0
+     ode set angular velocity tobj,trotate#,0,trotate#
+    endif
+   endif
+  endif
+ endif
+ `
+return
+
+_ode_switchoffe:
+ `
+ ttobj=entityelement(e).obj
+ if ttobj>0
+  if object exist(ttobj)=1
+   if entityelement(e).eleprof.physics<>0
+    if shadowobj(ttobj)=1
+     set shadow shading off ttobj
+     shadowobj(ttobj)=0
+    endif
+    ode destroy object ttobj
+    rem restore rotation of object (ode influence deleted)
+    rotate object ttobj,entityelement(e).rx,entityelement(e).ry,entityelement(e).rz
+   endif
+  endif
+ endif
+ `
+return
+
+_ode_ensureeisnotpenetrated:
+ rem performed when physics object activates its presence (COLON)
+ todee=e : todeobj=entityelement(e).obj
+ for tte=1 to entityelementmax
+  ttobj=entityelement(tte).obj
+  if entityelement(tte).eleprof.physics<>0 and ttobj>0
+   ttdy#=object position y(ttobj)-object position y(todeobj)
+   if abs(ttdy#)<250
+    rem if Ys close enough, do complete distance test
+    ttdx#=object position x(ttobj)-object position x(todeobj)
+    ttdz#=object position z(ttobj)-object position z(todeobj)
+    ttdd#=sqrt(abs(ttdx#*ttdx#)+abs(ttdz#*ttdz#)+abs(ttdy#*ttdy#))
+    if ttdd#<object size(todeobj)+object size(ttobj)
+     rem give a nudge so it uses its own physics body to work out how to get out (brutal but efective)
+     ode set linear velocity ttobj,0,0.01,0
+    endif
+   endif
+  endif
+ next tte
+return
+
+_ode_playerborble:
+ `
+ rem can call this to force player to camerapositionx,y,z
+ rem borble that rattles around inside player ellipse
+ phycrouched#=10.0 : phystood#=40.0
+ phycrouchedellipsevolumesize#=0.25
+ phystoodellipsevolumesize#=1.0
+ ellipsevolumesize#=phystoodellipsevolumesize#
+ phyeyeheight#=phystood#
+ ctx#=camerapositionx
+ cty#=camerapositiony
+ ctz#=camerapositionz
+ `
+ rem prepare object and physics
+ if object exist(physicsplayerborble)=1
+  ode destroy object physicsplayerborble
+  delete object physicsplayerborble
+ endif
+ make object sphere physicsplayerborble,38
+ color object physicsplayerborble,rgb(255,255,0)
+ set object collision off physicsplayerborble
+ position object physicsplayerborble,camerapositionx,(camerapositiony-phyeyeheight#)+1,camerapositionz
+ if physicsdebug=1
+  set object wireframe physicsplayerborble,1
+  set object cull physicsplayerborble,0
+ else
+  hide object physicsplayerborble
+ endif
+ ode create dynamic sphere physicsplayerborble
+ ode set contact fdir1 physicsplayerborble,500
+ ode set body mass physicsplayerborble,physicsplayerweight#
+ ode set linear velocity physicsplayerborble,0,0,0
+ ode set angular velocity physicsplayerborble,0,0,0
+ `
+ rem ensure player has default gravity
+ ode set gravity physicsplayerborble,1
+ physuspendgravity=0
+ phytotalmotioncount=0
+ phytotalmotion#=0
+ `
+return
+
+_ode_cleanup:
+
+rem free universe
+if physicsproto=1
+ delete static objects
+endif
+
+rem free ode static collision
+ode destroy object physicsuniverseobj
+if object exist(physicsuniverseobj)=1
+ delete object physicsuniverseobj
+endif
+ode destroy object physicsplayerborble
+if object exist(physicsplayerborble)=1
+ delete object physicsplayerborble
+endif
+
+rem free assignments
+for e=1 to entityelementmax
+ tobj=entityelement(e).obj
+ if tobj>0
+  if entityelement(e).eleprof.physics<>0
+   if object exist(tobj)=1 then ode destroy object tobj
+  endif
+ endif
+next e
+
+rem end ode
+ode end
+
+rem free material sounds
+gosub _ode_deletematerialsounds
+
+return
+
+_ode_deletematerialsounds:
+ `
+ rem delete all material sounds
+ for s=materialsoundoffset to materialsoundoffset+materialsoundmax
+  if sound exist(s)=1 then delete sound s
+ next s
+ `
+return
+
+`
+` Player Controls
+`
+
+_ode_unmark:
+ `
+ rem remove player from viscol prior to movement (use vis from write state)
+ tx=viscx#/25 : ty=viscy#/100 : tz=viscz#/-25 : tty=ty
+ if gmultiplayergame=1
+  if ty>=0 and ty<=viscoly
+   if tx>=0 and tz>=0
+    if tx<=viscolx and tz<=viscolz
+     if viscolmap(tx,ty,tz)=-1 then viscolmap(tx,ty,tz)=0
+    endif
+   endif
+  endif
+ else
+  if tty>=0 and tty<=viscoly
+   for ttx=tx-1 to tx+1
+    for ttz=tz-1 to tz+1
+     if ttx>=0 and ttz>=0
+      if ttx<=viscolx and ttz<=viscolz
+       if viscolmap(ttx,tty,ttz)=-1 then viscolmap(ttx,tty,ttz)=0
+      endif
+     endif
+    next ttz
+   next ttx
+  endif
+ endif
+ `
+return
+
+_ode_mark:
+ `
+ rem place viscol data back after player movement
+ tx=camerapositionx/25 : ty=camerapositiony/100 : tz=camerapositionz/-25 : tty=ty
+ if gmultiplayergame=1
+  if ty>=0 and ty<=viscoly
+   if tx>=0 and tz>=0
+    if tx<=viscolx and tz<=viscolz
+     if viscolmap(tx,ty,tz)=0 then viscolmap(tx,ty,tz)=-1
+    endif
+   endif
+  endif
+ else
+  if tty>=0 and tty<=viscoly
+   for ttx=tx-1 to tx+1
+    for ttz=tz-1 to tz+1
+     if ttx>=0 and ttz>=0
+      if ttx<=viscolx and ttz<=viscolz
+       if viscolmap(ttx,tty,ttz)=0 then viscolmap(ttx,tty,ttz)=-1
+      endif
+     endif
+    next ttz
+   next ttx
+  endif
+ endif
+ viscx#=camerapositionx : viscy#=camerapositiony : viscz#=camerapositionz
+ `
+return
+
+_ode_playerrelocations:
+ `
+ rem handle lift mechanism for player
+ if meridinglift<>0
+  tobj=entityelement(meridinglift-1).obj
+  meridinglifty#=object position y(tobj)+60
+  tmex#=camerapositionx : tmey#=camerapositiony : tmez#=camerapositionz
+  tdstx#=object position x(tobj)-tmex#
+  tdstz#=object position z(tobj)-tmez#
+  tdstt#=sqrt(abs(tdstx#*tdstx#)+abs(tdstz#*tdstz#))
+  position camera camerapositionx,meridinglifty#,camerapositionz
+  camerapositionx=camera position x()
+  camerapositiony=camera position y()
+  camerapositionz=camera position z()
+  gosub _ode_playerborble
+  if tdstt#>90
+   meridinglift=0
+  endif
+  grav#=0 : gravlasty#=tmey#
+ endif
+ `
+ rem player frozen on spot for X number of seconds
+ if mefrozen>0
+  if timer()-mefrozen<0
+   cameraspeed=0
+   camvelx#=0 : camforcex#=0
+   camvely#=0 : camforcey#=0
+   camvelz#=0 : camforcez#=0
+   grav#=-10 : gravlasty#=grav#
+   movement=0
+  else
+   mefrozen=0
+  endif
+ endif
+ `
+ rem handle transporter mechanism for player
+ if meridingtransporter=1
+  rem player coord moved to new location, must deactivate camera collision for movement
+  position camera tranmex#,tranmey#,tranmez#
+  rotate camera 0,tranmeangley#,0
+  cx#=camera position x() : cy#=camera position y() : cz#=camera position z()
+  cox#=cx# : coy#=cy# : coz#=cz#
+  camerapositionx=camera position x()
+  camerapositiony=camera position y()
+  camerapositionz=camera position z()
+  gosub _ode_playerborble
+  meridingtransporter=0
+ endif
+ if memovingx#<>0.0
+  memovingx#=0.0
+ endif
+ if memovingy#<>0.0
+  memovingy#=0.0
+ endif
+ if memovingz#<>0.0
+  memovingz#=0.0
+ endif
+ `
+return
+
+_ode_playercamera:
+
+rem Camera in control of player one
+plrid=1
+
+rem Key configuration
+if gtestgamemodefromeditor=1
+ rem Preset TEST GAME Keys
+ plrkeyW=17
+ plrkeyA=30
+ plrkeyS=31
+ plrkeyD=32
+ plrkeyQ=16
+ plrkeyE=18
+ plrkeyC=46
+ plrkeyZ=44
+ plrkeyR=19
+ plrkeySPACE=57
+ plrkeyRETURN=28
+ plrkeySHIFT=42
+ plrkeyF12=88
+else
+ rem from BUILD GAME config keys
+ plrkeyW=listkey(1)
+ plrkeyS=listkey(2)
+ plrkeyA=listkey(3)
+ plrkeyD=listkey(4)
+ plrkeySPACE=listkey(5)
+ plrkeyC=listkey(6)
+ plrkeyRETURN=listkey(7)
+ plrkeyR=listkey(8)
+ plrkeyQ=listkey(9)
+ plrkeyE=listkey(10)
+ plrkeySHIFT=listkey(11)
+ plrkeyZ=44
+ plrkeyF12=88
+endif
+
+rem Read keys from config, and use in player control actions
+if keystate(plrkeyW)=1 then plrkeyW=1 else plrkeyW=0
+if keystate(plrkeyA)=1 then plrkeyA=1 else plrkeyA=0
+if keystate(plrkeyS)=1 then plrkeyS=1 else plrkeyS=0
+if keystate(plrkeyD)=1 then plrkeyD=1 else plrkeyD=0
+if keystate(plrkeyQ)=1 then plrkeyQ=1 else plrkeyQ=0
+if keystate(plrkeyE)=1 then plrkeyE=1 else plrkeyE=0
+if keystate(plrkeyC)=1 then plrkeyC=1 else plrkeyC=0
+if keystate(plrkeyZ)=1 then plrkeyZ=1 else plrkeyZ=0
+if keystate(plrkeyR)=1 then plrkeyR=1 else plrkeyR=0
+if keystate(plrkeySPACE)=1 then plrkeySPACE=1 else plrkeySPACE=0
+if keystate(plrkeyRETURN)=1 then plrkeyRETURN=1 else plrkeyRETURN=0
+if keystate(plrkeySHIFT)=1 then plrkeySHIFT=1 else plrkeySHIFT=0
+
+rem hard coded arrow keys
+if upkey()=1 then plrkeyW=1
+if leftkey()=1 then plrkeyA=1
+if downkey()=1 then plrkeyS=1
+if rightkey()=1 then plrkeyD=1
+
+rem U71 - XBOX360 Contoller
+if gxbox=1 : rem define in a config later
+ `
+ rem Hard Code XBOX360 controls to optional player controls
+ if joystick y()<-500 then plrkeyW=1
+ if joystick y()>500 then plrkeyS=1
+ if joystick x()<-500 then plrkeyA=1
+ if joystick x()>500 then plrkeyD=1
+ if joystick fire x(8)=1 then plrkeyC=1
+ if joystick fire x(9)=1 then plrkeyZ=1
+ if joystick fire c()=1 then plrkeyR=1
+ if joystick fire a()=1 then plrkeySPACE=1
+ if joystick fire d()=1  then plrkeyRETURN=1
+ if joystick z()>500 then plrkeySHIFT=1
+ `
+endif
+
+rem Camera old information
+ctox#=ctx# : ctoy#=cty# : ctoz#=ctz#
+
+rem camera eye height (eye drops to base of elipse when no health)
+if player(plrid).health<=0
+ if ellipsevolumesize#=1.0 and (plrkeyC)=0
+  phyeyeheight#=phyeyeheight#-1.0
+  if phyeyeheight#<10.0 then phyeyeheight#=10.0
+ else
+  phyeyeheight#=phycrouched#
+ endif
+endif
+
+rem get latest camera position
+camerapositionx=object position x(physicsplayerborble)
+camerapositiony=object position y(physicsplayerborble)+phyeyeheight#
+camerapositionz=object position z(physicsplayerborble)
+realcx#=camerapositionx : realcy#=camerapositiony : realcz#=camerapositionz
+
+rem Umark player pos in viscolmap
+gosub _ode_unmark
+
+rem Handle any sudden playe relocations (transportation)
+gosub _ode_playerrelocations
+
+rem flyforce bleeds into camforce X and Y and Z
+if camflyforcex#<0 then tsig=-1 else tsig=1
+tamount#=camflyforcex# : if abs(tamount#)>60 then tamount#=60*tsig
+camflyforcex#=(camflyforcex#-tamount#)*0.8
+camforcex#=camforcex#+tamount#
+`if camflyforcey#<0 then tsig=-1 else tsig=1
+`tamount#=camflyforcey# : if abs(tamount#)>60 then tamount#=60*tsig
+`camflyforcey#=(camflyforcey#-tamount#)*0.8
+`camforcey#=camforcey#+tamount#
+if camflyforcez#<0 then tsig=-1 else tsig=1
+tamount#=camflyforcez# : if abs(tamount#)>60 then tamount#=60*tsig
+camflyforcez#=(camflyforcez#-tamount#)*0.8
+camforcez#=camforcez#+tamount#
+
+rem All controls when player has health
+movement=0
+if player(plrid).health>0 and mefrozen=0
+ `
+ rem Peek controls (and adjustment)
+ if ((plrkeyQ)=1 or (plrkeyE)=1) and onladder=0
+  if peekfreeze=0
+   if (plrkeyQ)=1 and peeklean#>-10.0 then peeklean#=peeklean#-4.0 : movement=1
+   if (plrkeyE)=1 and peeklean#<10.0 then peeklean#=peeklean#+4.0 : movement=1
+  endif
+ else
+  peeklean#=curvevalue(0,peeklean#,4.0)
+  if abs(peeklean#)<1.0 then peeklean#=0.0 : peekfreeze=0
+ endif
+ `
+ rem Gun Zoom Control
+ if gunzoommode>0
+  if gunzoommode>=1 and gunzoommode<=8 then inc gunzoommode
+  if gunzoommode>=11 and gunzoommode<=19 then inc gunzoommode
+  if gunzoommode<10
+   plrzoomin#=gunzoommode : plrzoominchange=1
+  endif
+  if gunzoommode=10
+   rem in full zoom
+  endif
+  if gunzoommode>10
+   plrzoomin#=10-(gunzoommode-10) : plrzoominchange=1
+  endif
+ endif
+ `
+ rem Handle optical effect of zoom
+ if plrzoominchange=1
+  if plrzoomin#>1.0
+   set camera fov 75.0-(plrzoomin#*7)-gunzoommag#
+   if internalzoomhud>0 then hudid=internalzoomhud : hud(hudid).hide=0 : set sprite alpha hudid,(255.0/10.0)*plrzoomin#
+  else
+   set camera fov 75.0
+   if internalzoomhud>0 then hudid=internalzoomhud : hud(hudid).hide=1
+  endif
+ endif
+ plrzoominchange=0
+ `
+ rem crouch control
+ if (plrkeyC)=1
+  if crouchmode=0 and onladder=0 and jumpaction=0 then crouchmode=1
+ else
+  if crouchmode=1 then crouchmode=0
+  if crouchmode=2 then crouchmode=3
+ endif
+ `
+ rem Control camera movement
+ if crouchmode<>0
+  basespeed#=20
+ else
+  if (plrkeySHIFT)=1
+   basespeed#=55
+  else
+   basespeed#=35
+  endif
+ endif
+ if jumpaction=0
+  rem regular speed from manouver
+  speed#=basespeed#
+ else
+  rem fixed speed whilst jumping
+  speed#=jumpspeed#
+ endif
+ `
+ rem Movement (forward,backward,strafe)
+ camerareachatrun#=0.0
+ plrbasespeed#=basespeed#
+ if jumpaction=0 then moveroty#=camera angle y() else moveroty#=jumpangle#
+ if onladder=0
+  if (plrkeyW)=0 and (plrkeyA)=0 and (plrkeyD)=0 and (plrkeyS)=0
+   cameraspeed=0
+  endif
+  if peeklean#=0.0
+   if (plrkeyW)=1
+    if (plrkeyA)=1 then dec moveroty#,35
+    if (plrkeyD)=1 then inc moveroty#,35
+   else
+    if (plrkeyS)=1
+     if (plrkeyA)=0 and (plrkeyD)=0 then inc moveroty#,180
+     if (plrkeyA)=1 then dec moveroty#,145
+     if (plrkeyD)=1 then inc moveroty#,145
+    else
+     if (plrkeyA)=1 then dec moveroty#,90
+     if (plrkeyD)=1 then inc moveroty#,90
+    endif
+   endif
+   phyangle#=moveroty#
+   if (plrkeyW)=1 or (plrkeyS)=1 or (plrkeyA)=1 or (plrkeyD)=1
+    movement=1 : if crouchmode<>0 then movement=2
+    tcameraspeed#=speed#*playerspeedratio#*(0.5+(cameradampen#/2.0))
+` 100805 - removed as it creates jerkiness - perhaps research smoother way postV1
+`    rem time slicer to even out chasing speed (multiplayer)
+`    if gmultiplayergame=1
+`     timeslice#=(1.0/30.0)*(timer()-cameratimeslice)
+`     tcameraspeed#=tcameraspeed#*timeslice#
+`     cameratimeslice=timer()
+`    endif
+    if cameraspeed<tcameraspeed# then inc cameraspeed,5
+    if cameraspeed>tcameraspeed# then cameraspeed=tcameraspeed#
+   endif
+  endif
+  if camerareachatrun#<cameraspeed/3.0 then camerareachatrun#=cameraspeed/3.0
+  if camerareachatrun#<0 then camerareachatrun#=0
+ else
+`ladder?
+`  phyangle#=moveroty#
+`  if (plrkeyW)=1
+`   movement=1
+`   tcameraspeed#=speed#
+`   if cameraspeed<tcameraspeed#
+`    inc cameraspeed,5
+`    if cameraspeed>tcameraspeed# then cameraspeed=tcameraspeed#
+`   endif
+`  endif
+`  if (plrkeyS)=1
+`   movement=1 : onladder=0
+`   tcameraspeed#=speed#*-1
+`   if cameraspeed<tcameraspeed#
+`    inc cameraspeed,5
+`    if cameraspeed>tcameraspeed# then cameraspeed=tcameraspeed#
+`   endif
+`  endif
+ endif
+ `
+ rem Only suspend gravity if total movement small
+ tmotionx#=ode get body linear velocity x(physicsplayerborble)
+ tmotiony#=ode get body linear velocity y(physicsplayerborble)
+ tmotionz#=ode get body linear velocity z(physicsplayerborble)
+ tmotion#=abs(tmotionx#)+abs(tmotiony#)+abs(tmotionz#)
+ phytotalmotion#=phytotalmotion#+tmotion#
+ inc phytotalmotioncount
+ if phytotalmotioncount>20
+  phytotalmotion#=phytotalmotion#/phytotalmotioncount
+  if phytotalmotion#<10.0
+   physuspendgravity=1
+  else
+   physuspendgravity=0
+  endif
+  phytotalmotioncount=0
+  phytotalmotion#=0
+ endif
+ rem update gravity with current motion
+ grav#=tmotiony#
+ rem suspend so can stand on slopes/stairs
+ if movement<>0 or jumpaction=1 then physuspendgravity=0
+ if physuspendgravity=1 or onladder=1
+  ode set gravity physicsplayerborble,0
+  if physuspendgravity=1 then grav#=0
+ else
+  ode set gravity physicsplayerborble,1
+ endif
+ if physicsdebug=1 then print "GRAVITY VALUE=";grav#
+ `
+ rem pretend movement
+ camvelx#=newxvalue(0,phyangle#,cameraspeed)
+ camvely#=grav#
+ camvelz#=newzvalue(0,phyangle#,cameraspeed)
+ `
+ rem Jump Control
+ if onladder=0
+  if player(plrid).health>0
+   if (plrkeySPACE)=1 and jumpaction=0 and meridinglift=0 and crouchmode=0 and jumpactionnorepeat=0 and grav#>-1
+    jumpspeed#=speed# : jumpangle#=camera angle y() : leapedlanded=1
+    camvely#=0
+    camforcey#=playerdefaultjumpheight
+    camforcey#=camforcey#*(0.5+(cameradampen#/2.0))
+    jumpmotionx#=tmotionx#
+    jumpmotionz#=tmotionz#
+    if playersound(plrid,10)>0
+     broadcast3dsound(camerapositionx,camerapositiony,camerapositionz,5.0)
+     play sound playersound(plrid,10)
+    endif
+    jumpaction=1 : jumpactionnorepeat=5
+   endif
+  endif
+ endif
+ if jumpactionnorepeat>0
+  if jumpactionnorepeat>1 then dec jumpactionnorepeat
+  if jumpactionnorepeat=1 and grav#<0 then jumpactionnorepeat=0
+ endif
+ if jumpaction<>0
+  camvelx#=jumpmotionx# : camvelz#=jumpmotionz#
+ endif
+ `
+ rem and apply any force here
+ camvelx#=camvelx#+camforcex# : camforcex#=0
+ camvely#=camvely#+camforcey# : camforcey#=0
+ camvelz#=camvelz#+camforcez# : camforcez#=0
+ `
+else
+ `
+ rem player has no health
+ cameraspeed=0
+ camvelx#=0 : camforcex#=0
+ camvely#=0 : camforcey#=0
+ camvelz#=0 : camforcez#=0
+ movement=0
+ grav#=0
+ `
+endif
+
+rem Is player moving or not
+player(plrid).state.moving=movement
+
+rem Mark player position is viscolmap
+gosub _ode_mark
+
+return
+
+_ode_playeraftermove:
+
+rem Camera in control of player one (unmark as slide may change pos)
+plrid=1
+gosub _ode_unmark
+movement=player(plrid).state.moving
+
+rem Collisions
+colmaterialtype=-1
+tgravitydefeated=0
+
+rem Check for physicsobjects collisions (and perform physics collision sounds)
+gosub _ode_sounds
+
+rem control player interaction
+if gmultiplayergame=1 then gosub _multi_plrradial
+
+rem Special Get Out of Jail Free collision key
+if inkey$()<>"K" then tkickout=0
+if inkey$()="K" and tkickout=0
+ if playertrailmax>0
+  trailx#=playertrial(playertrailmax).x
+  traily#=playertrial(playertrailmax).y
+  trailz#=playertrial(playertrailmax).z
+  dec playertrailmax : if playertrailmax<1 then playertrailmax=100
+  if playertrial(playertrailmax).time=0
+   inc playertrailmax : if playertrailmax>100 then playertrailmax=1
+  else
+   camerapositionx=trailx#
+   camerapositiony=traily#+phyeyeheight#
+   camerapositionz=trailz#
+   position camera camerapositionx,camerapositiony,camerapositionz
+   cx#=camera position x() : cy#=camera position y() : cz#=camera position z()
+   cox#=cx# : coy#=cy# : coz#=cz#
+   gosub _ode_playerborble
+   meridingtransporter=0
+   meridinglift=0
+   mefrozen=0
+  endif
+ endif
+ tkickout=1
+endif
+
+rem Ellipse Collision with static scene
+if deactivatecollision=0 and skipcol=0
+ `
+ rem check ellipse against movement
+ ctx#=camerapositionx+(camvelx#/4.0)
+ cty#=camerapositiony
+ ctz#=camerapositionz+(camvelz#/4.0)
+ rem check if can rouch down from stood
+ if crouchmode=1
+  if static volume(ctox#,ctoy#-28,ctoz#,ctx#,(cty#-28)-15,ctz#,0.25)=1
+   if physicsdebug=1 then print "willgetstyckifcrouch"
+  else
+   ellipsevolumesize#=phycrouchedellipsevolumesize#
+   phyeyeheight#=phycrouched#
+   cty#=camerapositiony-12
+   ctoy#=ctoy#-12
+   crouchmode=2
+  endif
+ endif
+ rem check if can stand up from crouch
+ if crouchmode=3
+  if static volume(ctox#,(ctoy#-9)+5,ctoz#,ctx#,(cty#-9)+40+5,ctz#,0.25)=1
+   if physicsdebug=1 then print "willhitheadifgetup"
+  else
+   ellipsevolumesize#=phystoodellipsevolumesize#
+   phyeyeheight#=phystood#
+   cty#=camerapositiony+30+5
+   ctoy#=ctoy#+30+5
+   crouchmode=0
+  endif
+ endif
+ rem determine center of ellipse (crouch and stood) (need contact with floor=walksound)
+ if phyeyeheight#=phystood# then ellipsecentery#=35 else ellipsecentery#=23
+ `
+ rem ellipse test for final player mode (stood or crouch)
+ if static volume(ctox#,ctoy#-ellipsecentery#,ctoz#,ctx#,cty#-ellipsecentery#,ctz#,ellipsevolumesize#)=1
+  if physicsdebug=1 then print "volumecollision"
+  adjx#=get static collision x()
+  adjy#=get static collision y()
+  adjz#=get static collision z()
+  colmaterialtype=get static collision value()-1
+  sctx#=ctx#
+  scty#=cty#
+  sctz#=ctz#
+  ctx#=ctox#+adjx#
+  cty#=ctoy#+adjy#
+  ctz#=ctoz#+adjz#
+  tstaticfloor=get static collision floor()
+  if tstaticfloor=1 and grav#<0 then tgravitydefeated=1
+  if jumpaction<>0 and camvely#>5.0 and cty#-scty#<0.0 then camvely#=camvely#*-1 : jumpaction=0
+  if abs(ctx#-sctx#)+abs(ctz#-sctz#)>8
+   rem event when collision hits something solid (not floor)
+   camvelx#=ctx#-camerapositionx
+   camvely#=cty#-camerapositiony
+   camvelz#=ctz#-camerapositionz
+   jumpmotionx#=0 : jumpmotionz#=0 : jumpaction=0
+   if cameraspeed>5 then cameraspeed=5
+   if camvely#>0 then camvely#=0
+   rem wipe out flyforce too as hit something to stop hero
+   camflyforcex#=0 : camflyforcey#=0 : camflyforcez#=0
+  endif
+ endif
+ `
+ rem If gravity defeated by player
+ if tgravitydefeatedbyphy<>0
+  rem if object entity driven, player can be moved by it
+  if entityelement(tgravitydefeatedbyphye).eleprof.physics=2
+   if camerastoodonphyobj=0
+    lcamerastoodonphyobjmovingx#=object position x(tgravitydefeatedbyphy)
+    lcamerastoodonphyobjmovingz#=object position z(tgravitydefeatedbyphy)
+   endif
+   camerastoodonphyobj=tgravitydefeatedbyphy
+  else
+   camerastoodonphyobj=0
+  endif
+  rem record stood on phy obj
+  if jumpactionnorepeat>1
+   rem when in jump mode, and touching phyobj, do not interfere with a defeat flag
+  else
+   tgravitydefeated=1
+  endif
+ else
+  rem when not detect phy obj, keep record until
+  if tgravitydefeated=1
+   rem stood on static floor (must have walked off phy obj)
+   camerastoodonphyobj=0
+  endif
+ endif
+ if camerastoodonphyobj<>0
+  camerastoodonphyobjmovingx#=object position x(camerastoodonphyobj)-lcamerastoodonphyobjmovingx#
+  camerastoodonphyobjmovingz#=object position z(camerastoodonphyobj)-lcamerastoodonphyobjmovingz#
+  rem only influence of object beneath player borble
+  if object position y(camerastoodonphyobj)<object position y(physicsplayerborble)
+   camvelx#=camvelx#+(camerastoodonphyobjmovingx#*10)
+   camvelz#=camvelz#+(camerastoodonphyobjmovingz#*10)
+  endif
+  lcamerastoodonphyobjmovingx#=object position x(camerastoodonphyobj)
+  lcamerastoodonphyobjmovingz#=object position z(camerastoodonphyobj)
+ endif
+ if tgravitydefeated=1
+  if physicsdebug=1 then print "andgravitydefeated"
+  rem a few cycles grace at start of level (avoid urg sound when retstart)
+  if newlevelobjectivevoid=0
+   rem player lands after a jump
+   if (grav#<-60.0 and jumpaction=0) or (grav#<-40.0 and jumpaction<>0)
+    rem player urg sound
+    if playersound(plrid,11)>0
+     broadcast3dsound(camera position x(),camera position y(),camera position z(),10.0)
+     play sound playersound(plrid,11)
+    endif
+    rem deck plate sound too
+    leapedlanded=1
+   endif
+   rem determine if fall hurt player
+   if cty#<gravlasty#-playerhurtfall
+    rem avoid hurt when using stairs
+    tokayhurt=0
+    if (abs(camvelx#)+abs(camvelz#)/2.0)<15.0
+     tokayhurt=1
+    else
+     rem raycast behind plr (stairs would be there)
+     tpmb#=-100.0
+     tppx#=newxvalue(camerapositionx,camera angle y(),tpmb#)
+     tppz#=newzvalue(camerapositionz,camera angle y(),tpmb#)
+     tdst#=static raycast(camerapositionx,camerapositiony-phyeyeheight#,camerapositionz,tppx#,camerapositiony-phyeyeheight#,tppz#)
+     if tdst#=0 then tokayhurt=1
+    endif
+    if gmultiplayergame=0
+     rem cannot hurt by falling in arena game
+     if tokayhurt=1
+      rem level substantial different from last stood on ground
+      tdamage=1+((abs(cty#-gravlasty#)-playerhurtfall)/5.0)
+      gosub _player_takedamage
+     endif
+    endif
+   endif
+  endif
+  rem record last ground player stood on
+  gravlasty#=cty#
+  rem landing sound
+  jumpaction=0
+ else
+  if movement<>0 then onladder=0
+ endif
+ `
+ rem Jump ends when camera starts decending
+ if camvely#<0.0 then jumpaction=0
+ `
+ rem debug object
+ if physicsdebug=1
+  if object exist(98789)=0
+   make object sphere 98789,20
+   set object cull 98789,0
+   set object wireframe 98789,1
+   set object collision off 98789
+  else
+   position object 98789,ctx#,cty#-ellipsecentery#,ctz#
+   scale object 98789,100,300*ellipsevolumesize#,100
+  endif
+ endif
+ `
+endif
+
+rem ladder control
+if onladder=1
+` rem climb ladder mode
+` cx#=onladderx# : cz#=onladderz#
+` if movement<>0
+`  grav#=camera angle x()/10.0
+`  if grav#<-3.0 then grav#=-3.0
+`  if grav#>3.0 then grav#=3.0
+` else
+`  grav#=0.0
+` endif
+` rem ladder grasp will kill jump action
+` jumpaction=0
+endif
+
+rem new barrier code using physics force
+if ctx#<25.0 then camvelx#=10.0
+if ctz#>-25.0 then camvelz#=-10.0
+if ctx#>(maxx*100.0)-25 then camvelx#=-10.0
+if ctz#<(maxy*-100.0)+25 then camvelz#=10.0
+
+rem Camera rotation speeds
+if showgamemenu=0
+ rem V110 - new freeze mode (PLRDISABLE) which stops player moving with mouselook
+ rem Mouse Input
+ cammovex#=mousemovex() : cammovey#=mousemovey()
+ `
+ rem U71 - XBOX360 Contoller
+ if gxbox=1 : rem define in a config later
+  jtx#=(joystick twist x()-32767.0)/327.67
+  jty#=(joystick twist y()-32767.0)/327.67
+  if gxboxinvert=1 then jty#=jty#*-1.0
+  if abs(jtx#)>50.0 then cammovex#=jtx#/10.0
+  if abs(jty#)>50.0 then cammovey#=jty#/10.0
+ endif
+ `
+ if mefrozen>0 and mefrozentype=2 then cammovex#=0 : cammovey#=0
+else
+ cammovex#=0 : cammovey#=0
+endif
+t=abs(cammovex#)+abs(cammovey#)
+if t=1 then camrotspeed#=0.05
+if t=2 then camrotspeed#=0.1
+if t=3 then camrotspeed#=0.15
+if t=4 then camrotspeed#=0.2
+if t>=5 then camrotspeed#=0.25
+if plrzoomin#>0 then camrotspeed#=camrotspeed#/plrzoomin#
+
+rem Control camera view (even when no health)
+camangx#=camera angle x()+((cammovey#*camrotspeed#))
+camangy#=camera angle y()+((cammovex#*camrotspeed#))
+rem FPSXCV104RC5 - zoom mode wobble based on accuracy
+if plrzoomin#<>0.0
+ plrzoomaccuracyangle#=wrapvalue(plrzoomaccuracyangle#+((2+rnd(4)+(11-plrzoomin#))/10.0))
+ camangx#=camangx#+cos(plrzoomaccuracyangle#*2.0)*plrzoomaccuracy#*plrzoomin#*0.008*(sin(plrzoomaccuracyangle#)*1.2)
+ camangy#=camangy#+sin(plrzoomaccuracyangle#*4.0)*plrzoomaccuracy#*plrzoomin#*0.005
+endif
+camangxweight#=85*cameradampen#
+if wrapvalue(camangx#)>85 and wrapvalue(camangx#)<180 then camangx#=85.0
+if wrapvalue(camangx#)>180 and wrapvalue(camangx#)<360-camangxweight# then camangx#=camangxweight#*-1
+
+rem used to swoosh to an angle (picking up object off-center)
+if camturntofacemode>0
+ camangy#=curveangle(camturntoface#,camangy#,10.0)
+ dec camturntofacemode
+endif
+
+rem final camera rotation update
+rotate camera camangx#,camangy#,camera angle z()
+
+rem Mark player position in viscolmap
+gosub _ode_mark
+
+rem leave a trial for any enemies to follow
+trailaction=0 : trailx#=camerapositionx : traily#=camerapositiony-phyeyeheight# : trailz#=camerapositionz
+gosub _player_leavetrail
+
+rem apply a visual adjustment to camera
+if player(plrid).health>0 and peeklean#<>0.0
+ peekadjx#=newxvalue(0,camera angle y(0)+90,peeklean#)
+ peekadjz#=newzvalue(0,camera angle y(0)+90,peeklean#)
+ if static raycast(camerapositionx,camerapositiony,camerapositionz,camerapositionx+peekadjx#,camerapositiony,camerapositionz+peekadjz#)=0
+  camerapositionx=camerapositionx+peekadjx#
+  camerapositionz=camerapositionz+peekadjz#
+ else
+  peekfreeze=1
+ endif
+endif
+
+rem if sharp upward velocity (20+), and not jump
+if jumpaction=0
+ if camvely#>10
+  rem ensure it is dampened so small floor features not send player high (window/door sills,etc)
+  camvely#=10.0
+ endif
+endif
+
+rem if borble ever leaves camera vicinity (ODE bug) restore
+if physicsplayerborble>0
+ if physicsdebug=1
+  print "camera"
+  print "x=";camerapositionx
+  print "y=";camerapositiony
+  print "z=";camerapositionz
+  print
+ endif
+ if object exist(physicsplayerborble)=1
+  if physicsdebug=1
+   print "borble"
+   print "x=";object position x(physicsplayerborble)
+   print "y=";object position y(physicsplayerborble)
+   print "z=";object position z(physicsplayerborble)
+   print
+   print "volume"
+   print "x=";ctx#
+   print "y=";cty#
+   print "z=";ctz#
+   print
+  endif
+  tborbdistx#=abs(object position x(physicsplayerborble)-camerapositionx)
+  tborbdisty#=abs(object position y(physicsplayerborble)-camerapositiony)
+  tborbdistz#=abs(object position z(physicsplayerborble)-camerapositionz)
+  tborbdist1#=sqrt((tborbdistx#*tborbdistx#)+(tborbdisty#*tborbdisty#)+(tborbdistz#*tborbdistz#))
+  if physicsdebug=1
+   print "borble distance=";tborbdist1#
+  endif
+  tborbdistx#=abs(ctx#-camerapositionx)
+  tborbdisty#=abs(cty#-camerapositiony)
+  tborbdistz#=abs(ctz#-camerapositionz)
+  tborbdist2#=sqrt((tborbdistx#*tborbdistx#)+(tborbdisty#*tborbdisty#)+(tborbdistz#*tborbdistz#))
+  if physicsdebug=1
+   print "volume distance=";tborbdist2#
+  endif
+  if tborbdist1#>100 or tborbdist2#>100
+   if physicsdebug=1
+    print "Camera seperated from collision system"
+   endif
+  endif
+ endif
+endif
+
+rem apply new velocities for future movement
+if player(plrid).health>0 and mefrozen=0
+ rem cap these velocities to prevent borble fling away
+ if camvelx#<-60 then camvelx#=-60
+ if camvelx#>60 then camvelx#=60
+ rem V109 BETA3 - remove fall velocity cap to create realistic gravity fall
+ `if camvely#<-60 then camvely#=-60
+ `if camvely#>60 then camvely#=60
+ if camvelz#<-60 then camvelz#=-60
+ if camvelz#>60 then camvelz#=60
+ ode set linear velocity physicsplayerborble,camvelx#,camvely#,camvelz#
+ ode set angular velocity physicsplayerborble,0,0,0
+else
+ rem ensures player does not slide away after died
+ ode set linear velocity physicsplayerborble,0,0,0
+ ode set angular velocity physicsplayerborble,0,0,0
+endif
+
+rem calculate some simply shake movement
+camshakey#=0.0
+if abs(camshake#)<>0
+ camshakedir=1-camshakedir
+ if camshakedir=0
+  camshakey#=camshakey#+camshake#
+ else
+  camshakey#=camshakey#-camshake#
+ endif
+ if abs(camshake#)<1.0
+  camshake#=0.0
+ else
+  camshake#=camshake#*0.9
+ endif
+endif
+
+rem arena-eyes adjustment
+if gmultiplayergame=1
+ if crouchmode=0
+  arenaadjustd#=-5.0
+ else
+  arenaadjustd#=2.0
+ endif
+else
+ arenaadjustd#=0
+endif
+if movement<>0
+ camerawobble#=wrapvalue(camerawobble#+24.0)
+ if (plrkeySHIFT)=1
+  arenaadjust#=arenaadjustd#+(cos(camerawobble#)*0.50)
+ else
+  arenaadjust#=arenaadjustd#+(cos(camerawobble#)*0.25)
+ endif
+else
+ arenaadjust#=curvevalue(arenaadjustd#,arenaadjust#,5.0)
+ camerawobble#=0.0
+endif
+
+rem finally update camera with smoothing (cty# is absolute staticvolume camypos)
+finalcamy#=curvevalue(camerapositiony,camera position y(),2.0)
+if finalcamy#>cty#-8 then finalcamy#=cty#-8
+if playersystemdisabled=0
+ position camera curvevalue(camerapositionx,camera position x(),2.0),finalcamy#+arenaadjust#+(camshakey#/10.0),curvevalue(camerapositionz,camera position z(),2.0)
+endif
+
+rem update listener
+gosub _ode_listener
+
+return
+
+_ode_listener:
+ `
+ rem handle player with affecting listener properties (full CPU intense)
+ if 0
+  position listener camera position x(0)/10.0,camera position y(0)/10.0,camera position z(0)/10.0
+  rotate listener 0,camera angle y(0),0
+ else
+  rem quick approx. of listener position (CPU friendly)
+  roughx=camera position x(0)/10.0 : roughx=(roughx/5)*5
+  roughy=camera position y(0)/10.0 : roughy=(roughy/5)*5
+  roughz=camera position z(0)/10.0 : roughz=(roughz/5)*5
+  if roughx<>lastroughx or roughy<>lastroughy or roughz<>lastroughz
+   lastroughx=roughx : lastroughy=roughy : lastroughz=roughz
+   position listener roughx,roughy,roughz
+  endif
+  `rotate listener 0,camera angle y(0),0  `want my rotspeed back!
+  roughaa=camera angle y(0)/45.0
+  if roughaa<>lastroughaa
+   rotate listener 0,roughaa*45,0
+   lastroughaa=roughaa
+  endif
+ endif
+ `
+return
+
+_ode_playerpickup:
+
+rem Track which object closest
+tclosestpickable=0
+if tclosestpickable=0
+ bestdst#=99999.9 : bestay#=360 : beste=0
+ for e=1 to entityelementmax
+  if entityelement(e).eleprof.physics=1 and entityelement(e).active=1
+   tobj=entityelement(e).obj
+   if tobj>0
+    if object exist(tobj)=1
+     tdx#=object position x(tobj)-camerapositionx
+     tdy#=(object position y(tobj)+(object size(tobj)/2))-camerapositiony
+     tdz#=object position z(tobj)-camerapositionz
+     td#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+     tda#=wrapvalue(atanfull(tdx#,tdz#)-camera angle y())
+     tday#=wrapvalue(atanfull(tdy#,td#)+camera angle x())
+     if tda#>180 then tda#=360-tda#
+     if tday#>180 then tday#=360-tday#
+     if tda#<15 and tday#<70
+      if td#<camerareachmax#
+       if entityelement(e).eleprof.phyweight<cameracarryweight#
+        if tday#<bestay#
+         bestdst#=sqrt(abs(tdx#*tdx#)+abs(tdz#*tdz#))
+         minsize#=25.0+(object size(tobj)/2)
+         if bestdst#<minsize# then bestdst#=minsize#
+         bestay#=tday# : beste=e : bestang#=atanfull(tdx#,tdz#)
+        endif
+       endif
+      endif
+     endif
+    endif
+   endif
+  endif
+ next e
+ if beste>0
+  tclosestpickable=beste
+ endif
+endif
+
+rem PLR pickup/drop/throw
+if camerapickup=1
+ `
+ tpickupkeystate=0
+ if keystate(20)=1 or mouseclick()=2 then tpickupkeystate=1
+ `
+ rem U71 - XBOX360 Contoller
+ if gxbox=1 : rem define in a config later
+  if joystick fire b()=1 then tpickupkeystate=1
+ endif
+ `
+ if tpickupkeystate=1
+  if camerapickupkeyrelease=0
+   camerapickupkeyrelease=1
+   if camerapicked=0
+    if tclosestpickable>0
+     `
+     rem if object being stood on
+     bendarm#=0 : armretract#=0
+     if camerastoodonphyobj=entityelement(beste).obj
+      rem try to push object away - can eventually pick it up
+      thx#=newxvalue(0,camera angle y(),10.0)
+      thy#=ode get body linear velocity y(entityelement(beste).obj)
+      thz#=newzvalue(0,camera angle y(),10.0)
+      ode set linear velocity entityelement(beste).obj,thx#,thy#,thz#
+      rem this kicks the object forward to grab it again
+      camerapickupkeyrelease=0
+      rem realise player might fall - use gravity again
+      physuspendgravity=0 : camforcey#=5.0
+     else
+      rem if not, pick up the object
+      camerareach#=bestdst#
+      camturntofacemode=5 : camturntoface#=bestang#
+      camerapickedangle#=camturntoface#
+      camerapickede=beste : camerapicked=entityelement(camerapickede).obj
+      ode set body rotation camerapicked,-1,-1,-1 : rem special hack to reset GRAB rotation matrix feature
+      ode set body rotation camerapicked,0,0,0
+      if cameradampenactive=1
+       rem if player must slow down when carrying, dampen is the factor
+       cameradampen#=cameracarryweight#/entityelement(camerapickede).eleprof.phyweight
+       if cameradampen#<0.1 then cameradampen#=0.1
+       if cameradampen#>1.0 then cameradampen#=1.0
+      endif
+      rem put weapon away
+      if gunid<>0 then gunmode=31 : gunselectionafterhide=0
+      rem object reduces mess so not pushing other objects around (inc player)
+      ode set body mass camerapicked,entityelement(camerapickede).eleprof.phyweight/10.0
+      rem player takes on mass of object
+      ode set body mass physicsplayerborble,physicsplayerweight#+entityelement(camerapickede).eleprof.phyweight
+      rem ensure new shadow depth created for object that needs to cast 75.depth area
+      shadowobj(camerapicked)=2
+     endif
+     `
+    endif
+   else
+    camerapickeddrop=1
+   endif
+  endif
+ else
+  camerapickupkeyrelease=0
+ endif
+endif
+rem if anything hides it, drop it
+if camerapicked>0
+ if object visible(camerapicked)=0
+  camerapickedthrown=0
+  cameradampen#=1.0
+  cameraholding=0
+  camerapicked=0
+ endif
+endif
+if camerapicked>0
+ rem work out difference between actual and ideal position
+ tdx#=holdx#-object position x(camerapicked)
+ tdy#=(holdy#-object position y(camerapicked))-0.75
+ tdz#=holdz#-object position z(camerapicked)
+ tdd1#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+ rem and work out movement of item by mouse
+ tdx#=abs(holdx#-lastholdx#)
+ tdy#=abs(holdy#-lastholdy#)
+ tdz#=abs(holdz#-lastholdz#)
+ tdd2#=sqrt((tdx#*tdx#)+(tdy#*tdy#)+(tdz#*tdz#))
+ tmv#=curvevalue(tdd2#,tmv#,10.0)
+ if cameraholding=1
+  rem if confirmed as carrying
+  tdx1#=holdx#-camera position x()
+  tdy1#=holdy#-camera position y()
+  tdz1#=holdz#-camera position z()
+  tdx2#=object position x(camerapicked)-camera position x()
+  tdy2#=object position y(camerapicked)-camera position y()
+  tdz2#=object position z(camerapicked)-camera position z()
+  rem work out difference in angles
+  tbendarm1#=atanfull(tdx1#,tdz1#)
+  tbendarm#=(atanfull(tdx2#,tdz2#)-tbendarm1#)
+  if tdd1#>=2.0
+   rem bend arm if resistance between actual and ideal
+   if tmv#<1.0 then bendarm#=bendarm#+tbendarm#
+   rem retract arm if stress greater than retraction value
+   if tdd1#>armretract# then armretract#=tdd1#
+  endif
+  rem only once held, see if head inside item
+  tamountinside#=object size(camerapicked)-sqrt(abs(tdx2#*tdx2#)+abs(tdy2#*tdy2#)+abs(tdz2#*tdz2#))
+  if tamountinside#>0
+   if tamountinside#>5 then tamountinside#=5
+   if bendarm#<0.0
+    bendarm#=bendarm#-(tamountinside#*2)
+   else
+    bendarm#=bendarm#+(tamountinside#*2)
+   endif
+  endif
+ else
+  rem confirm carrying?
+  if tdd1#<8.0 then cameraholding=1
+ endif
+ rem retract arm if carry item into wall/obstacle
+ bendreduce#=50.0
+ if bendarm#<0 and cammovex#<0 then bendreduce#=50.0+(cammovex#*3)
+ if bendarm#>0 and cammovex#>0 then bendreduce#=50.0-(cammovex#*3)
+ if bendreduce#<1.0 then bendreduce#=1.0
+ bendarm#=curvevalue(0,bendarm#,bendreduce#)
+ armretract#=curvevalue(0,armretract#,50.0)
+ rem carry
+ holdangley#=camera angle y()+bendarm#
+ lastholdx#=holdx# : lastholdy#=holdy# : lastholdz#=holdz#
+ holdx#=newxvalue(camerapositionx,holdangley#,(camerareach#+camerareachatrun#)-armretract#)
+ holdy#=newxvalue(camerapositiony-(object size(camerapicked)/3.0),0-camera angle x(),(camerareach#+camerareachatrun#)-armretract#)-((entityelement(camerapickede).eleprof.phyweight/100.0)*(1.0-cameradampen#))
+ holdz#=newzvalue(camerapositionz,holdangley#,(camerareach#+camerareachatrun#)-armretract#)
+ tangle#=wrapvalue(camera angle y()-camerapickedangle#)
+ ode set body rotation camerapicked,0,tangle#,0
+ bendspeed#=4.0
+ tholdforcex#=(holdx#-object position x(camerapicked))*bendspeed#
+ tholdforcey#=(holdy#-object position y(camerapicked))*bendspeed#
+ tholdforcez#=(holdz#-object position z(camerapicked))*bendspeed#
+ rem if arm is bend to far, drop item with zero velocity
+ if abs(bendarm#)>50 then camerapickeddrop=1 : tholdforcex#=0 : tholdforcey#=0 : tholdforcez#=0
+ ode set linear velocity camerapicked,tholdforcex#,tholdforcey#,tholdforcez#
+ rem set shadow on carried object
+ entityelement(camerapickede).floorposy=camerapositiony-(object size(camerapicked)*3)
+ rem throw
+ if mouseclick()=1 then camerapickeddrop=1 : camerapickedthrown=1
+ `
+ rem U71 - XBOX360 Contoller
+ if gxbox=1 : rem define in a config later
+  if joystick z()>500 then camerapickeddrop=1 : camerapickedthrown=1
+ endif
+ `
+ rem drop
+ if camerapickeddrop=1
+  rem restore object and pickup states
+  camerapickeddrop=0
+  if camerapickedthrown=1
+   rem calc throw distance, elevation and final velocity
+   throwdistance#=(entityelement(camerapickede).eleprof.phyweight/1000.0)
+   tthrowheight#=((camerathrowelev#+sin(camera angle x())*-100)/throwdistance#)
+   throwdistance#=camerathrow#/throwdistance#
+   taddx#=camvelx# : taddy#=camvely# : taddz#=camvelz#
+   ode set linear velocity camerapicked, taddx#+sin(camera angle y())*throwdistance#,taddy#+tthrowheight#,taddz#+cos(camera angle y())*throwdistance#
+   if entityelement(camerapickede).eleprof.rotatethrow<>0
+    trotate#=entityelement(camerapickede).eleprof.rotatethrow
+    ode set angular velocity camerapicked, ((rnd(1)*2.0)-1.0)*trotate#, 0, ((rnd(1)*2.0)-1.0)*trotate#
+   endif
+   rem reset throw
+   camerapickedthrown=0
+  endif
+  rem restore object max
+  ode set body mass camerapicked,entityelement(camerapickede).eleprof.phyweight
+  rem player restores mass
+  ode set body mass physicsplayerborble,physicsplayerweight#
+  rem reset final values for camera pickup
+  cameradampen#=1.0
+  cameraholding=0
+  camerapicked=0
+ endif
+endif
+
+return
+
+_ode_sounds:
+ `
+ rem Collision with objects causes borble to change player position
+ tgravitydefeatedbyphy=0
+ while ODE COLLISION MESSAGE EXISTS()
+  `
+  rem collision event
+  ODE COLLISION GET MESSAGE
+  phya=ODE GET OBJECT A() : phyb=ODE GET OBJECT B()
+  `
+  rem player phyobject stood on another phy object
+  tdownward#=0.0 : ttouchedobj=0 : toverallveldiff#=0
+  if (phya=physicsplayerborble and phyb<>0) then tdownward#=ODE GET OBJECT A VELOCITY Y() : ttouchedobj=phyb : toverallveldiff#=abs(ODE GET OBJECT B VELOCITY X())+abs(ODE GET OBJECT B VELOCITY Y())+abs(ODE GET OBJECT B VELOCITY Z())
+  if (phyb=physicsplayerborble and phya<>0) then tdownward#=ODE GET OBJECT B VELOCITY Y() : ttouchedobj=phya : toverallveldiff#=abs(ODE GET OBJECT A VELOCITY X())+abs(ODE GET OBJECT A VELOCITY Y())+abs(ODE GET OBJECT A VELOCITY Z())
+  if ttouchedobj<>0 and ttouchedobj=camerapicked then lastttouchede=ttouchede
+  if ttouchedobj<>0 and ttouchedobj<>camerapicked
+   ttouchede=phyobjele(ttouchedobj)
+   if ttouchede>0
+    entid=entityelement(ttouchede).bankindex
+    colmaterialtype=entityprofile(entid).materialindex-1
+    if tdownward#<2.0
+     rem player landed on physics object, so register this and use gravity again
+     tgravitydefeatedbyphy=ttouchedobj
+     tgravitydefeatedbyphye=ttouchede
+     physuspendgravity=0
+    endif
+    ttspeedatwhichurt#=120.0
+    if toverallveldiff#>ttspeedatwhichurt#
+     if ttouchede<>lastttouchede
+      rem player damage if entity moving at force (uses phyforcedamage)
+      tdamage=((toverallveldiff#-ttspeedatwhichurt#)/10.0) : if tdamage<1 then tdamage=1
+      magnifydamage#=entityelement(ttouchede).eleprof.phyforcedamage/100.0
+      tdamage=tdamage*magnifydamage# : gosub _player_takedamage
+      lastttouchede=ttouchede
+     endif
+    else
+     rem object not hitting player any more
+     if lastttouchede=ttouchede
+      lastttouchede=0
+     endif
+    endif
+   endif
+  endif
+  `
+  rem sounds processd here too
+  bangobj=0
+  bangcontact=0
+  phyvelocity#=0
+  phytotalvelocity#=0
+  phyhorizontalscrape=0
+  if phya<>0
+   bangobj=phya : bangotherobj=phyb
+   phyvelocity#=abs(ODE GET OBJECT A VELOCITY X())+abs(ODE GET OBJECT A VELOCITY Y()/4)+abs(ODE GET OBJECT A VELOCITY Z())
+   phyvelocity#=phyvelocity#+abs(ODE GET OBJECT A ANGULAR VELOCITY X())+abs(ODE GET OBJECT A ANGULAR VELOCITY Y())+abs(ODE GET OBJECT A ANGULAR VELOCITY Z())
+   if bangobj<>physicsplayerborble
+    bangcontact=ODE GET OBJECT A CONTACT()
+    if bangcontact<>0
+     phyfloorstop#=ODE GET OBJECT A VELOCITY Y()
+     if phylastfloorstop#(bangobj)<1 and phyfloorstop#>-1
+      phyhorizontalscrape=1
+     endif
+     phylastfloorstop#(bangobj)=phyfloorstop#
+    endif
+   endif
+   phyvelocitya#=phyvelocity#
+   phytotalvelocity#=phytotalvelocity#+phyvelocity#
+  else
+   phyvelocitya#=0
+  endif
+  if phyb<>0
+   bangobj=phyb : bangotherobj=phya
+   phyvelocity#=abs(ODE GET OBJECT B VELOCITY X())+abs(ODE GET OBJECT B VELOCITY Y()/4)+abs(ODE GET OBJECT B VELOCITY Z())
+   phyvelocity#=phyvelocity#+abs(ODE GET OBJECT B ANGULAR VELOCITY X())+abs(ODE GET OBJECT B ANGULAR VELOCITY Y())+abs(ODE GET OBJECT B ANGULAR VELOCITY Z())
+   if bangobj<>physicsplayerborble
+    bangcontact=ODE GET OBJECT B CONTACT()
+    if bangcontact<>0
+     phyfloorstop#=ODE GET OBJECT B VELOCITY Y()
+     if phylastfloorstop#(bangobj)<1 and phyfloorstop#>-1
+      phyhorizontalscrape=1
+     endif
+     phylastfloorstop#(bangobj)=phyfloorstop#
+    endif
+   endif
+   phyvelocityb#=phyvelocity#
+   phytotalvelocity#=phytotalvelocity#+phyvelocity#
+  else
+   phyvelocityb#=0
+  endif
+  if bangobj<>0 and bangobj<>physicsplayerborble and bangobj<>camerapicked
+   phyimpact#=abs(phyvelocity#-phyobjvelocity#(bangobj))
+   phyimpactstop#=phyobjvelocity#(bangobj)-phyvelocity#
+   phyobjvelocity#(bangobj)=phyvelocity#
+   rem deal with damage of colliding objects
+   phymagnitude#=0
+   rem ensure player is not a damaging physics object (as stealth may require sliding along windows)
+   e1=0 : e1m#=0
+   if bangobj>0 and bangobj<>physicsplayerborble
+    e1=phyobjele(bangobj) : if e>0 then e1m#=entityelement(e1).health*5
+   endif
+   e2=0 : e2m#=0
+   if bangotherobj>0 and bangotherobj<>physicsplayerborble
+    e2=phyobjele(bangotherobj) : if e2>0 then e2m#=entityelement(e2).health*5
+   endif
+   rem or very weak objects that will break under duress (duress caused by size and speed of fragile object)
+   if e1m#>20 then e1m#=20
+   if e2m#>20 then e2m#=20
+   if bangcontact=1
+    if phyvelocitya#>e1m# and e1>0 and entityelement(e1).health<5 then phymagnitude#=11.0+(phyimpactstop#/4.0)
+    if phyvelocityb#>e2m# and e2>0 and entityelement(e2).health<5 then phymagnitude#=11.0+(phyimpactstop#/4.0)
+   endif
+   rem collision with raised velocity
+   if phytotalvelocity#>20.0
+    if phya<>0 and phyb<>0
+     if bangobj=physicsplayerborble or bangotherobj=physicsplayerborble
+      rem if window strength 1-4, player CAN smash it through by running into it
+      if e1>0 and entityelement(e1).health>=5 then e1=0
+      if e2>0 and entityelement(e2).health>=5 then e2=0
+     endif
+     rem only deal damage to immobile objects (as movable ones can get out the way before damage)
+`     if e1>0 and entityelement(e1).eleprof.isimmobile=1 then e2=0 : phymagnitude#=object size(bangotherobj)
+ `    if e2>0 and entityelement(e2).eleprof.isimmobile=1 then e1=0 : phymagnitude#=object size(bangobj)
+     rem FPSCV104RC7 - moving entities CAN cause damage if damage force high enough
+     if e1>0
+      magnifydamage#=entityelement(e1).eleprof.phyforcedamage/12.0
+      phymagnitude#=magnifydamage#
+     endif
+     if e2>0
+      magnifydamage#=entityelement(e2).eleprof.phyforcedamage/12.0
+      if magnifydamage#>phymagnitude#
+       phymagnitude#=magnifydamage#
+      endif
+     endif
+    endif
+   endif
+   `
+   rem bangobj e
+   e=phyobjele(bangobj)
+   if e>0
+    rem entity profile id
+    entid=entityelement(e).bankindex
+    rem only deal damage if neither object part of player-carry-collisio n
+    if camerapicked>0 and (bangobj=camerapicked or bangotherobj=camerapicked)
+     phymagnitude#=0.0
+    endif
+    rem only allow damage if other object is NOT a debris fragment
+    if bangotherobj>0 and bangotherobj<=array count(phyobjele())
+     if phyobjele(bangotherobj)=0 then phymagnitude#=0.0
+    endif
+    rem if magnitude high enough, cause damage
+    if phymagnitude#>10.0
+     rem damage both objects involved in impact
+     tdamage=(phymagnitude#-10.0) : tdamagesource=0 : timpacttype=1
+     if tdamage>2 and tdamagebybangcount=0
+      rem entity damage here
+      tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y : tdamagez#=entityelement(e).z
+      if e1>0 then e=e1 : entid=entityelement(e).bankindex : gosub _entity_deducthealth : tdamagebybangcount=20
+      if e2>0 then e=e2 : entid=entityelement(e).bankindex : gosub _entity_deducthealth : tdamagebybangcount=20
+     endif
+     rem bangobj e refresh
+     e=phyobjele(bangobj)
+     entid=entityelement(e).bankindex
+    endif
+    rem deal with sound
+    matindex=entityprofile(entid).materialindex-1
+    if matindex>=0 and matindex<=gmaterialmax
+     rem monitor travelling value
+     ttravelled#=0.0
+     if phyhorizontalscrape=1
+      rem as long as no sudden stopping, continue travel value for scrape
+      if bangobj=phya then ttravelled#=phyvelocitya#
+      if bangobj=phyb then ttravelled#=phyvelocityb#
+     endif
+     rem impact controls volume
+     tvol#=100 : rem (phyimpact#-1.0)*10.0 : if tvol#>100.0 then tvol#=100.0
+     tspd#=material(matindex).freq+rnd(material(matindex).freq/10.0)
+     sbase=0
+     rem only play impact if slowed/stopped and was
+     if phyimpactstop#>0 and phyimpact#>4.0
+      sbase=material(matindex).impactid
+     endif
+     if ttravelled#>10.0
+      if phylasttravelled#(bangobj)>10.0
+       rem continuation of travel, switch to scrape
+       sbase=material(matindex).scrapeid
+       tvol#=ttravelled#*2.0 : if tvol#>100.0 then tvol#=100.0
+      endif
+     endif
+     phylasttravelled#(bangobj)=ttravelled#
+     rem play sound of material impact
+     if sbase>0
+      for tchannels=0 to 4
+       s=sbase+tchannels
+       if sound exist(s)=1
+        if sound playing(s)=0 and phyobjsounding(bangobj)=0
+         playinternalBC3dsound(s,object position x(bangobj),object position y(bangobj),object position z(bangobj),25.0)
+         phyobjsounding(bangobj)=5
+         set sound volume s,80.0+(tvol#*0.2)
+         if tspd#>2000 then set sound speed s,tspd#
+         exit
+        endif
+       endif
+      next tchannels
+     endif
+    endif
+    if phyimpact#>2.0
+     rem adjust entity floor position (for shadow calc)
+     entityelement(e).floorposy=object position y(bangobj)-(object size y(bangobj)/2)
+     rem recalc adjustment for objects that must find the floor perfectly
+     if entityelement(e).eleprof.physics=1
+      centx#=ODE GET BODY ADJUSTMENT X(bangobj)
+      centy#=ODE GET BODY ADJUSTMENT Y(bangobj)
+      centz#=ODE GET BODY ADJUSTMENT Z(bangobj)
+      tprofileobj=entityelement(e).profileobj
+      offset limb bangobj,0,(object collision center x(tprofileobj)*-1)+centx#,(object collision center y(tprofileobj)*-1)+centy#,(object collision center z(tprofileobj)*-1)+centz#
+     endif
+    endif
+    if phyobjsounding(bangobj)>0 then phyobjsounding(bangobj)=phyobjsounding(bangobj)-1
+   else
+    rem physics object has no entity (can only be debris particle)
+    if phya>0 and phya<physicsuniverseobj
+     if object in screen(phya)=0
+      rem remove from simulation if not in screen
+      ode destroy object phya
+      hide object phya
+     endif
+    endif
+    if phyb>0 and phyb<physicsuniverseobj
+     if object in screen(phyb)=0
+      rem remove from simulation if not in screen
+      ode destroy object phyb
+      hide object phyb
+     endif
+    endif
+    `
+   endif
+   `
+  endif
+  `
+ endwhile
+ `
+ rem Reduce bang damage counter (so bang damage does not machine gun and drain all entity health)
+ if tdamagebybangcount>0
+  dec tdamagebybangcount
+ endif
+ `
+ rem also handle shadows
+ gosub _ode_shadowcontrol
+ `
+return
+
+_ode_shadowcontrol:
+ `
+ rem for out of universe error if no debug cursor reset
+ if physicsdebug=0 then set cursor 0,0
+ `
+ rem adjust shadows of all physics objects
+ for e=1 to entityelementmax
+  tobj=entityelement(e).obj
+  tflag=0
+  tentid=entityelement(e).bankindex
+  if entityelement(e).eleprof.physics=1 and tobj>0 then tflag=1
+`  if gdynamicshadowsstate=1 and entityelement(e).eleprof.castshadow=1
+  if tflag=1
+   `
+   rem activate object shadow (if camera can see its floor)
+   if entityprofile(tentid).ischaracter=1 then tflag=0
+   if tflag=1
+    if gdynamicshadowsstate>0
+     if shadowobj(tobj)=2
+      rem reset shadow for carrying
+      shadowobj(tobj)=0
+     endif
+     if shadowobj(tobj)=0
+      if camerapositiony>entityelement(e).floorposy
+       if object size z(tobj)<0.1
+        rem ultra thin objects (glass) cannot cast shadow yet
+       else
+        tobjshadowreach#=ode get body height(tobj)
+        if camerapicked=tobj
+         rem the 75 is for when carrying the object
+         tobjshadowreach#=tobjshadowreach#+75
+        else
+         rem the 4.5 is for the very top of objects to find and penetrate the floor (min thickness 5.0 units)
+         tobjshadowreach#=tobjshadowreach#+4.5
+        endif
+        set shadow shading off tobj
+        set shadow shading on tobj,-1,tobjshadowreach#,gdynamicshadowsstate-1
+        shadowobj(tobj)=1
+       endif
+      endif
+     endif
+     if shadowobj(tobj)=1
+      if camerapositiony<entityelement(e).floorposy
+       rem keep self-shadow by switching off, then on but with small non-intrusive range
+       set shadow shading off tobj
+       set shadow shading on tobj,-1,1.0,gdynamicshadowsstate-1
+       shadowobj(tobj)=0
+      endif
+     endif
+    endif
+   endif
+   `
+   rem if object needs destroying, do it here
+   if phyobjremove(tobj)<>0
+    rem used when want to disturb another phy obj (ie move up slightly, then remove on next pass)
+    if phyobjremove(tobj)=1
+     rem this will nudge anything sitting on obj
+     ode set linear velocity phyobjremove(tobj),0,10,0
+     phyobjremove(tobj)=2
+    else
+     if phyobjremove(tobj)=2
+      rem this will nudge anything sitting on obj further
+      ode set linear velocity phyobjremove(tobj),0,5,0
+      phyobjremove(tobj)=3
+     else
+      rem this finally removes the phy obj from the simulation
+      gosub _ode_switchoffe
+      phyobjremove(tobj)=0
+      rem and then hide the object if not already hidden
+      hide object tobj
+     endif
+    endif
+   endif
+   `
+   rem serious error, object has left the universe (through hole in geom!)
+   if showfpsinrealgame=2
+    if object position y(tobj)<-20
+     position object tobj,object position x(tobj),-25,object position z(tobj)
+     print "Object ";e;entityelement(e).eleprof.name$;" has left the universe at ";str$(int(object position x(tobj)));",";str$(int(object position z(tobj)))
+    endif
+   endif
+   `
+  endif
+ next e
+ `
+return
+
+_ode_applyforce:
+ `
+ rem takes todee,tdx#,tdy#,tdz#,todeforce#,todefalloff#,tpx#,tpy#,tpz#
+ tobj=entityelement(todee).obj
+ if tobj>0
+  td#=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+  tdx#=tdx#/td# : tdy#=tdy#/td# : tdz#=tdz#/td#
+  todeforce#=todeforce#*10.0 : rem equate to non-physics force
+  tbulletforce#=(todeforce#/500.0)*(500.0-td#)*todefalloff#
+  tbulletforce#=tbulletforce#+(todeforce#*(1.0-todefalloff#))
+  massconsideration#=entityelement(todee).eleprof.phyweight/200.0
+  if massconsideration#<1.0 then massconsideration#=1.0
+  tbulletforce#=tbulletforce#/massconsideration#
+  tdx#=tdx#*tbulletforce#
+  tdy#=tdy#*tbulletforce#
+  tdz#=tdz#*tbulletforce#
+  rem limit force to size of object units of velocity (max)
+  if object size(tobj)<21
+   tmax#=20.0+((object size(tobj)/21.0)*40.0)
+  else
+   tmax#=60.0
+  endif
+  ttt#=(abs(tdx#)+abs(tdy#)+abs(tdz#))/3.0
+  if ttt#>tmax# then ttt#=ttt#/tmax# else ttt#=1.0
+  tdx#=tdx#/ttt# : tdy#=tdy#/ttt# : tdz#=tdz#/ttt#
+  if twithpointforce=1
+   ode add force tobj,tdx#,tdy#,tdz#,tpx#,tpy#,tpz#
+  else
+   tda#=atanfull(tdx#,tdz#)
+   ode set linear velocity tobj,tdx#,tdy#,tdz#
+   tspinforce#=tbulletforce#/50.0
+   ode set angular velocity tobj,sin(tda#)*(10*tspinforce#),0,cos(tda#)*(10*tspinforce#)
+  endif
+ endif
+ `
+return
+
+_ode_applypointforce:
+ `
+ rem apply point force (tpx#,tpy#,tpz#)
+ twithpointforce=1
+ gosub _ode_applyforce
+ `
+return
+
+_ode_entitydrivenphysics:
+ `
+ rem use entity data to drive object via physics (character)
+ todeobj=entityelement(todee).obj
+ tmvx#=entityelement(todee).x-object position x(todeobj)
+ todeentid=entityelement(todee).bankindex
+ tmvszy#=(object size y(todeobj)/2)*(entityprofile(todeentid).scale/100.0)
+ rem X9 V109 BETA1 - 140308 - some models are centered differently and so need to be raised to meet the floor 'raisefactor'
+ `tmvy#=(entityelement(todee).y+tmvszy#+thover#)-object position y(todeobj)
+ tmvy#=(entityelement(todee).y+entityprofile(todeentid).raisefactor+tmvszy#+thover#)-object position y(todeobj)
+ tmvz#=entityelement(todee).z-object position z(todeobj)
+ tstress#=sqrt(abs(tmvx#)+abs(tmvy#)+abs(tmvz#))
+ ode set linear velocity todeobj,tmvx#*4,tmvy#*4,tmvz#*4
+ if entityelement(todee).norotate=0
+  ode set body rotation todeobj,0,entityelement(todee).ry,0
+ else
+  ode set body rotation todeobj,0,0,0
+ endif
+ `
+return
+
+_ode_entitydrivenstaticphysics:
+ `
+ rem as above but for the pseudo-static objects (door/window)
+ todeobj=entityelement(todee).obj
+ if entityelement(todee).norotate=0
+  ode set body rotation todeobj,0,entityelement(todee).ry,0
+ else
+  ode set body rotation todeobj,0,0,0
+ endif
+ `
+return
+
+_ode_update:
+ `
+ rem debug info on entities
+ if physicsdebug=1
+  for e=1 to entityelementmax
+   if entityelement(e).active=1
+    if entityelement(e).eleprof.physics<>0
+     tobj=entityelement(e).obj
+     if tobj>0
+      if object exist(tobj)=1
+       if object in screen(tobj)=1
+        center text object screen x(tobj),object screen y(tobj),"size="+str$(object size(tobj))
+        center text object screen x(tobj),object screen y(tobj)+16,"weight="+str$(entityelement(e).eleprof.phyweight)
+        if e=tclosestpickable
+         center text object screen x(tobj),object screen y(tobj)-16,"CLOSEST="+str$(camerareach#)
+        endif
+       endif
+      endif
+     endif
+    endif
+   endif
+  next e
+ endif
+ `
+ rem update physics
+ for phy=1 to 2 : ode update : next phy
+ `
+ rem for next run - debug readouts
+ if physicsdebug=1 then set cursor 0,0
+ `
+return
+

@@ -1,0 +1,27 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Follow Waypoints, Run Away If Shot
+
+;Triggers
+
+:waypointstate=0:animate=2,waypointstart
+:waypointstate=3:animate=2,waypointnext
+:waypointstate=4:animate=2,waypointrandom
+:waypointstate=5:animate=2,waypointreverse
+:nearactivatable=0:settarget,activatetarget=2
+:random=20:rotateheadrandom=65
+:shotdamage=1:settarget,state=2
+
+:state=2:rotatetotarget,rotatey=180,resethead,waypointstop,animate=5,state=3
+:state=3:runfore=10
+:state=3,random=5:rotateheadrandom=85
+:state=3,losetarget=10:state=10
+:state=3,plrcanbeseen:settarget,state=2
+
+:state=10:timerstart,state=11,rotatey=180,animate=31
+:state=11,timergreater=5000:state=0,animate=2,waypointstart
+:state=11,random=5:rotateheadrandom=35
+
+;End of Script

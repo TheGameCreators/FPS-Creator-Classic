@@ -1,0 +1,662 @@
+`
+` AI and HUD Shared Code
+`
+
+_ai_hud_view:
+ `
+ rem Fill HUD with data based on type
+ for hudid=1 to hudmax
+  `
+  rem STATUS or NUMERIC
+  if hud(hudid).maintype=4 or hud(hudid).maintype=6
+   if hud(hudid).typemode=1 then hud(hudid).text$=str$(player(1).lives)
+   if hud(hudid).typemode=2 then hud(hudid).text$=str$(player(1).health)
+   if hud(hudid).typemode=3
+    if weaponammoindex>0
+     if gun(gunid).settings.reloadqty>0
+      if gun(gunid).settings.weaponisammo=1
+       hud(hudid).text$=str$(weaponammo(weaponammoindex))
+      else
+       hud(hudid).text$=str$(weaponammo(weaponammoindex))+"\"+str$(weaponclipammo(weaponammoindex))
+      endif
+     else
+      hud(hudid).text$=""
+     endif
+    else
+     hud(hudid).text$=""
+    endif
+   endif
+   if hud(hudid).typemode=4
+    rem frags
+    if ggameobjectivetype<>1
+     fr$=str$(frags(iLocalEL))
+     if ggameobjectivetype=2 then fr$=fr$+"\"+str$(ggameobjectivevalue)
+    else
+     fr$=""
+    endif
+    hud(hudid).text$=fr$
+   endif
+   if hud(hudid).typemode=5
+    rem time
+    if ggameobjectivetype=3
+     fr$=str$((timer()-dwStartTime)/1024)+"\"+str$(ggameobjectivevalue)
+    else
+     fr$=""
+    endif
+    hud(hudid).text$=fr$
+   endif
+  endif
+  `
+  rem WEAPON IMAGE
+  if hud(hudid).maintype=4
+   if hud(hudid).typemode=3
+    if weaponammoindex>0
+     if weaponhud(weaponammoindex)>0
+      if hud(hudid).image<>weaponhud(weaponammoindex)
+       hud(hudid).image=weaponhud(weaponammoindex)
+       if hud(hudid).image>0 then sprite hudid,-10000,-10000,hud(hudid).image
+      endif
+     endif
+    else
+     hud(hudid).image=0
+    endif
+   endif
+  endif
+  `
+  rem WEAPON ZOOMSCOPE OVERRIDE
+  if hud(hudid).maintype=5
+   if hud(hudid).typemode=4
+    if gun(gunid).zoomscope<>0
+     hud(hudid).image=gun(gunid).zoomscope
+    else
+     hud(hudid).image=internalzoomhudimage
+    endif
+    if hud(hudid).image>0 then sprite hudid,-10000,-10000,hud(hudid).image
+   endif
+  endif
+  `
+  rem ANIM
+  if hud(hudid).maintype=7
+   if hud(hudid).typemode=1 then tnum#=(player(1).lives/100.0)*10.0
+   if hud(hudid).typemode=2 then tnum#=(player(1).health/100.0)*10.0
+   tnum=tnum#
+   if tnum<0 then tnum=0
+   if tnum>10 then tnum=10
+   hud(hudid).image=hud(hudid).baseanim+tnum
+   if hud(hudid).image>0 then sprite hudid,-10000,-10000,hud(hudid).image
+  endif
+  `
+  rem IPLIST BOX
+  if hud(hudid).maintype=9
+   if hud(hudid).hide=0
+    rem refresh list auto periodically
+    if refreshipaddresstimer<=0
+     gosub _ai_hud_refreshiplist
+     refreshipaddresstimer=200
+    else
+     dec refreshipaddresstimer
+    endif
+    rem display list
+    set text size 30
+    tipx=hud(hudid).posx
+    tipy=hud(hudid).posy+88
+    if hudiplistmax=-1
+     center text screen width()/2,(screen height()/2)-10,strarr$(631)
+    else
+     for ty=0 to hudiplistmax
+      text tipx+45,tipy+(ty*20),str$(1+ty)
+      text tipx+100,tipy+(ty*20),hudiplist$(ty,0)
+      center text tipx+400,tipy+(ty*20),hudiplist$(ty,1)
+     next ty
+    endif
+   endif
+  endif
+  `
+  rem FADEOUT control
+  if hud(hudid).fadeout>0
+   if hudfadeoutoneatatime=0 then hudfadeoutoneatatime=hudid
+   if hudid=hudfadeoutoneatatime
+    hud(hudid).fadeout=hud(hudid).fadeout-5
+    if hud(hudid).fadeout>0
+     if hud(hudid).fadeout>100
+      talpha#=255.0
+     else
+      talpha#=(255.0/100.0)*hud(hudid).fadeout
+     endif
+    else
+     rem hudfadeoutoneatatime allows one at a time
+     hudfadeoutoneatatime=0
+     hud(hudid).fadeout=0
+     hud(hudid).hide=1
+     talpha#=0.0
+    endif
+    if hud(hudid).image>0 then set sprite alpha hudid,talpha#
+   else
+    if hud(hudid).image>0 then set sprite alpha hudid,0
+   endif
+  endif
+  `
+ next hudid
+ `
+ rem Display using direct paste (fastest)
+ ink rgb(255,255,255),0
+ for hudid=1 to hudmax
+  if hud(hudid).hide=0
+   if hud(hudid).maintype=6
+    rem NUMERIC
+    for tt=1 to len(hud(hudid).text$)
+     ttnum=-1
+     if mid$(hud(hudid).text$,tt)="." then ttnum=10
+     if mid$(hud(hudid).text$,tt)="\" then ttnum=11
+     if ttnum=-1 then ttnum=asc(mid$(hud(hudid).text$,tt))-asc("0")
+     if ttnum<>-1
+      ttnumy=ttnum/4 : ttnum=ttnum-(ttnumy*4) : ttbitx#=(1.0/64.0)*16 : ttbity#=(1.0/64.0)*16
+      if hud(hudid).image>0
+       set sprite texture coord hudid,0,(ttbitx#*ttnum),(ttbity#*ttnumy)
+       set sprite texture coord hudid,1,(ttbitx#*ttnum)+ttbitx#,(ttbity#*ttnumy)
+       set sprite texture coord hudid,2,(ttbitx#*ttnum),(ttbity#*ttnumy)+ttbity#
+       set sprite texture coord hudid,3,(ttbitx#*ttnum)+ttbitx#,(ttbity#*ttnumy)+ttbity#
+       paste sprite hudid,hud(hudid).posx+((tt-1)*12),hud(hudid).posy
+      endif
+     endif
+    next tt
+   else
+    rem IMAGE+TEXT
+    if hud(hudid).image>0
+     tokay=1
+     if gmultiplayergame=1
+      if hud(hudid).maintype=1 and hud(hudid).typemode>0
+       if hud(hudid).typemode=1 and goneshotkills=0 then tokay=0
+       if hud(hudid).typemode=2 and ggameobjectivetype<>1 then tokay=0
+       if hud(hudid).typemode=5 and ggameobjectivetype<>3 then tokay=0
+      endif
+     endif
+     if tokay=1
+      if hud(hudid).fadeout>0
+       tfadeout=hud(hudid).fadeout : if tfadeout>100 then tfadeout=100
+       paste sprite hudid,hud(hudid).posx,hud(hudid).posy-(100-tfadeout)
+      else
+       paste sprite hudid,hud(hudid).posx,hud(hudid).posy
+      endif
+     endif
+    endif
+    if hud(hudid).text$<>"" and hud(hudid).image=0
+     tfont$=hud(hudid).font$ : if tfont$<>"" and tfont$<>tlastfont$ then set text font tfont$ : tlastfont$=tfont$
+     tfontsize=hud(hudid).fontsize : if tfontsize<>0 and tfontsize<>tlastfontsize then set text size tfontsize : tlastfontsize=tfontsize
+     center text hud(hudid).posx+(hud(hudid).sizex/2),(hud(hudid).posy+hud(hudid).sizey)+(hud(hudid).fadeout/5.0),hud(hudid).text$
+    endif
+   endif
+  else
+   if hud(hudid).image>0 then sprite hudid,-10000,-10000,hud(hudid).image
+  endif
+ next hudid
+ `
+ rem After Image Text pasting
+ for hudid=1 to hudmax
+  `
+  rem EDIT BOX
+  if hud(hudid).maintype=8
+   if hud(hudid).hide=0
+
+    if hud(hudid).typemode<10
+     hud(hudid).typemode=hud(hudid).typemode+10
+    else
+     if hud(hudid).typemode<20
+      `
+      rem show current entry
+      string$=entry$() : length=15
+      if len(string$)>length then string$=left$(string$,length)
+      set cursor hud(hudid).posx+18,hud(hudid).posy+14
+      print string$;
+      if rnd(1)=1 then print "_" else print ""
+      `
+      rem if IP selection not valid
+      if returnkey()=1
+       if hud(hudid).typemode=12
+        tnc=0
+        for tn=1 to len(string$)
+         if mid$(string$,tn)="." then inc tnc
+        next tn
+        if tnc=3
+         rem valid IP address - use this
+        else
+         rem numerical selection
+         tnv=val(string$)
+         if hudiplistmax>=0
+          if tnv>=1 and tnv<=1+hudiplistmax
+           rem valid entry using ID - obtain IPaddress from list
+           string$=hudiplist$(tnv-1,1)
+          else
+           rem not a valid entry
+           string$=""
+          endif
+         else
+          rem not a valid entry
+          string$=""
+         endif
+        endif
+       endif
+       hud(hudid).text$=string$
+       if len(string$)>0
+        hud(hudid).typemode=hud(hudid).typemode+10
+       else
+        hud(hudid).typemode=hud(hudid).typemode-10
+       endif
+      endif
+      `
+     endif
+    endif
+   endif
+  endif
+  `
+  rem IPADDRESS BOX
+  if hud(hudid).maintype=11
+   if hud(hudid).hide=0
+    set text size 24
+    ink rgb(8,8,8),0
+    center text hud(hudid).posx,hud(hudid).posy-8,serveripaddress$
+    if left$(serveripaddress$,8)<>"192.168."
+     if left$(localipaddress$,8)="192.168."
+      center text hud(hudid).posx,screen height()-22,"YOU CAN ALSO PLAY WITHIN YOUR NETWORK WITH IP ADDRESS "+localipaddress$
+     endif
+    endif
+    ink rgb(255,255,255),0
+   endif
+  endif
+  `
+  rem WINNERSNAME BOX
+  if hud(hudid).maintype=12
+   if hud(hudid).hide=0
+    set text size 24
+    rem list of players
+    tylinevalue=hud(hudid).posy
+    for el=1 to multiplayermax
+     if multiplayeridlink(el)<>1
+      center text hud(hudid).posx,tylinevalue,multiplayername$(el)+"    "+str$(frags(el))
+      inc tylinevalue,30
+     endif
+    next el
+   endif
+  endif
+  `
+ next hudid
+  `
+ rem Handle HUD control
+ for hudid=1 to hudmax
+  `
+  rem Special HUD Pointer
+  if hud(hudid).maintype=2
+   rem Can Display At Mouse Coordinate
+   hud(hudid).posx=mousex()-((hud(hudid).width/2)*gratiox#)
+   hud(hudid).posy=mousey()-((hud(hudid).height/2)*gratioy#)
+   aihudpointerimagestore=hud(hudid).image
+   rem Can Detect When Select HUD Item
+   for thudid=1 to hudmax
+    rem Only selectables
+    hud(thudid).highlighted=0
+    if hud(thudid).maintype=3
+     if hud(hudid).posx>hud(thudid).posx
+      if hud(hudid).posx<hud(thudid).posx+(hud(thudid).width*gratiox#)
+       if hud(hudid).posy>hud(thudid).posy
+        if hud(hudid).posy<hud(thudid).posy+(hud(thudid).height*gratioy#)
+         hud(thudid).highlighted=1
+        endif
+       endif
+      endif
+     endif
+    endif
+   next thudid
+   if mouseclick()=1
+    for thudid=1 to hudmax
+     if hud(thudid).highlighted=1
+      hudselectionmade=hud(thudid).typemode
+     endif
+    next thudid
+   endif
+  endif
+  `
+  rem Delayed display, then hide
+  if hud(hudid).hidedelay>0
+   hud(hudid).hidedelay=hud(hudid).hidedelay-1
+   if hud(hudid).hidedelay=0 then hud(hudid).hide=1
+  endif
+  `
+  rem Radar Blip (v1.1)
+  if hud(hudid).maintype=4 and hud(hudid).typemode=11
+   `
+   rem Mimic radar blip
+   for e=1 to entityelementlist
+    if entityelement(e).health>0
+     tentid=entityelement(e).bankindex
+     if entityprofile(tentid).ischaracter=1
+      fundx#=entityelement(e).x-camera position x()
+      fundy#=camera position z()-entityelement(e).z
+      funangle#=atanfull(fundy#,fundx#)
+      rrr#=funangle#-camera angle y()
+      if hud(hudid).image>0
+       paste sprite hudid,hud(hudid).posx-8+(cos(rrr#)*40),hud(hudid).posy-8+(sin(rrr#)*40)
+      endif
+     endif
+    endif
+   next e
+   `
+  endif
+  `
+ next hudid
+ `
+return
+
+_ai_hud_refreshiplist:
+ `
+ rem update list from file(for now)
+ gosub _ai_gamelist_refresh
+ `
+return
+
+_ai_gamelist_add:
+ `
+ rem server adds to gamelist, uses addip$ and addname$
+ action$="action=add&"
+ serverid$="server_id="+guniquegamecode$+"&"
+ ip$="ip="+addip$+"&" : ipfromadd$=ip$
+ title$="title="+addname$+"&"
+ data$="data=none"
+ HTTP CONNECT strarr$(619)
+ tryattempts=10
+ repeat
+  tryagain=0
+  idfromadd$=HTTP REQUEST DATA("POST", "gamehost/index.php",action$+serverid$+ip$+title$+data$)
+  if val(idfromadd$)=0 then tryagain=1
+  dec tryattempts
+ until tryagain=0 or tryattempts<=0
+ HTTP DISCONNECT
+ `
+return
+
+_ai_gamelist_delete:
+ `
+ rem server deletes from gamelist
+ HTTP CONNECT strarr$(619)
+ tryattempts=10
+ repeat
+  tryagain=0
+  action$="action=delete&"
+  serverid$="server_id="+guniquegamecode$+"&"
+  return$=HTTP REQUEST DATA("POST", "gamehost/index.php",action$+serverid$+ipfromadd$+"id="+idfromadd$)
+  if return$="1" then serverhasremoveditselffromonlinelist=1
+  if return$<>"1" then tryagain=1
+  dec tryattempts
+ until tryagain=0 or tryattempts<=0
+ HTTP DISCONNECT
+ `
+return
+
+_ai_gamelist_keepalive:
+ `
+ rem send this to keep game item listed in database
+ HTTP CONNECT strarr$(619)
+ action$="action=keepalive&"
+ serverid$="server_id="+guniquegamecode$+"&"
+ return$=HTTP REQUEST DATA("POST", "gamehost/index.php",action$+serverid$+ipfromadd$+"id="+idfromadd$)
+ HTTP DISCONNECT
+ `
+return
+
+_ai_gamelist_refresh:
+ `
+ rem client views gamelist choices, fill array
+ HTTP CONNECT strarr$(619)
+ tryattempts=10
+ repeat
+  tryagain=0
+  action$="action=list&"
+  serverid$="server_id="+guniquegamecode$
+  return$=HTTP REQUEST DATA("POST", "gamehost/index.php",action$+serverid$)
+  if return$<>""
+   c=1 : hudiplistmax=-1 : fromc=0
+   repeat
+    if asc(mid$(return$,c))=10
+     if fromc>0
+      thudiplist$=left$(return$,c-1)
+      thudiplist$=right$(thudiplist$,len(thudiplist$)-fromc)
+     else
+      thudiplist$=left$(return$,c-1)
+     endif
+     for c1=1 to len(thudiplist$)
+      if mid$(thudiplist$,c1)="," then exit
+     next c1
+     thudiplist1$=left$(thudiplist$,c1-1)
+     thudiplist$=right$(thudiplist$,len(thudiplist$)-(c1))
+     for c2=1 to len(thudiplist$)
+      if mid$(thudiplist$,c2)="," then exit
+     next c2
+     thudiplist2$=left$(thudiplist$,c2-1)
+     thudiplist$=right$(thudiplist$,len(thudiplist$)-(c2))
+     for c3=1 to len(thudiplist$)
+      if mid$(thudiplist$,c3)="," then exit
+     next c3
+     thudiplist3$=left$(thudiplist$,c3-1)
+     thudiplist$=right$(thudiplist$,len(thudiplist$)-(c3))
+     for c4=1 to len(thudiplist$)
+      if mid$(thudiplist$,c4)="," then exit
+     next c4
+     thudiplist4$=left$(thudiplist$,c4-1)
+     thudiplist$=right$(thudiplist$,len(thudiplist$)-(c4))
+`     if thudiplist1$=thisgamecode$
+      inc hudiplistmax
+      hudiplist$(hudiplistmax,0)=thudiplist4$
+      hudiplist$(hudiplistmax,1)=thudiplist3$
+ `    endif
+     fromc=c+1
+    else
+     rem skip char, finding end
+    endif
+    inc c
+   until c>len(return$)
+  else
+   tryagain=1
+   dec tryattempts
+  endif
+ until tryagain=0 or tryattempts<=0
+ HTTP DISCONNECT
+ `
+return
+
+_ai_gamelist_checkforfirewall:
+ `
+ rem FSCV105RC2 - server has a script to give is the real machine IP
+ `http://www.fpscreator.com/gamehost/whatismyip.php
+ serveripaddress$=""
+ `
+ rem added for 090307
+ rem check three times to connect to FPSC gamelist server
+ HTTP CONNECT strarr$(619)
+ tryattempts=3
+ repeat
+  action$=""
+  return$=HTTP REQUEST DATA("POST", "gamehost/whatismyip.php",action$)
+  errorcodestring$=return$
+  return$=lower$(return$)
+  checkfor$="error code"
+  if return$<>""
+   for n=0 to len(return$)-len(checkfor$)-1
+    if left$(right$(return$,(len(return$)-n)),len(checkfor$))=checkfor$
+     rem error code returned when attempted to access HTTP command
+     errorcode$=errorcodestring$
+    endif
+   next n
+   if errorcode$="" and len(return$)>0
+    rem FPSCV105RC2 - 100307 - puts the actual HOSTable IP address in serveripaddress$
+    serveripaddress$=return$
+    tryattempts=0
+   endif
+  endif
+  dec tryattempts
+ until tryattempts<=0 or len(errorcode$)=0
+ HTTP DISCONNECT
+ `
+ rem if fail, report and exit
+ if errorcode$<>""
+  s$="Failed to establish a connection with the gamelist server. "
+  s$=s$+"This could be caused by loss of internet connectivity, or the presence of a firewall."
+  exit prompt s$,errorcode$
+  end
+ endif
+ `
+return
+
+_ai_hud_add:
+
+rem HUD Types based on name
+workhudmake$=lower$(workhudmake$)
+
+rem Existing HUD
+if workhudname$>""
+ for thudi=1 to hudmax
+  if lower$(workhudname$)=lower$(hud(thudi).name$)
+   hudid=thudi : exit
+  endif
+ next thudi
+else
+ thudi=hudmax+1
+endif
+if thudi>hudmax
+ `
+ rem New HUD
+ inc hudmax : hudid=hudmax
+ dim hud(hudmax) as hudtype
+ `
+ rem HUD Type
+ hud(hudid).maintype=0
+ if workhudmake$="display"
+  hud(hudid).maintype=1
+  hud(hudid).typemode=workhudtype : rem 0always,X-objectivetype(mutliplayer)
+ endif
+ if workhudmake$="pointer" then hud(hudid).maintype=2
+ if workhudmake$="button"
+  hud(hudid).maintype=3
+  hud(hudid).typemode=workhudtype : rem 1new,2load,3save,4continue,5exit
+ endif
+ if workhudmake$="status"
+  hud(hudid).maintype=4
+  hud(hudid).typemode=workhudtype : rem 1lives,2health,3ammo,4frags,5time,11blip
+ endif
+ if workhudmake$="internal"
+  hud(hudid).maintype=5
+  hud(hudid).typemode=workhudtype : rem 1loader,2eyehud,3fader,4zoom
+  if workhudtype=1 then internalloaderhud=hudid
+  if workhudtype=2 then internaleyehud=hudid
+  if workhudtype=3 then internalfaderhud=hudid
+  if workhudtype=4 then internalzoomhud=hudid : internalzoomhudimage=workhudimage
+ endif
+ if workhudmake$="numeric"
+  hud(hudid).maintype=6
+  hud(hudid).typemode=workhudtype : rem 1lives,2health,3ammo,11blip
+ endif
+ if workhudmake$="anim"
+  hud(hudid).maintype=7
+  hud(hudid).typemode=workhudtype : rem 1lives,2health,3ammo,11blip
+  hud(hudid).baseanim=workhudimage
+ endif
+ if workhudmake$="edit"
+  hud(hudid).maintype=8
+  hud(hudid).typemode=workhudtype
+ endif
+ if workhudmake$="list"
+  hud(hudid).maintype=9
+  hud(hudid).typemode=workhudtype
+  refreshipaddresstimer=0
+ endif
+ if workhudmake$="ipaddress"
+  hud(hudid).maintype=11
+  hud(hudid).typemode=workhudtype
+ endif
+ if workhudmake$="winnersname"
+  hud(hudid).maintype=12
+  hud(hudid).typemode=workhudtype
+ endif
+ if workhudmake$="textprompt"
+  hud(hudid).maintype=21
+  hud(hudid).typemode=0
+ endif
+ `
+ rem HUD Data
+ hud(hudid).name$=workhudname$
+ hud(hudid).posx=workhudx
+ hud(hudid).posy=workhudy
+ hud(hudid).posz=workhudz
+ hud(hudid).sizex=workhudsizex
+ hud(hudid).sizey=workhudsizey
+ hud(hudid).sizez=workhudsizez
+ hud(hudid).red=workhudred
+ hud(hudid).green=workhudgreen
+ hud(hudid).blue=workhudblue
+ hud(hudid).image=workhudimage
+ hud(hudid).font$=workhudfont$
+ hud(hudid).fontsize=workhudsize
+ hud(hudid).text$=workhudtext$
+ hud(hudid).hide=workhudhide
+ hud(hudid).hidedelay=0
+ hud(hudid).highlighted=0
+ `
+ rem Calculate bounds of HUD (for selectability)
+ if workhudsizex>0
+  hud(hudid).width=workhudsizex
+ else
+  if hud(hudid).image>0
+   hud(hudid).width=image width(hud(hudid).image)
+  else
+   if hud(hudid).font$<>"" then set text font hud(hudid).font$
+   if hud(hudid).fontsize<>0 then set text size hud(hudid).fontsize
+   hud(hudid).width=text width(hud(hudid).text$)
+  endif
+ endif
+ if workhudsizey>0
+  hud(hudid).height=workhudsizey
+ else
+  if hud(hudid).image>0
+   hud(hudid).height=image height(hud(hudid).image)
+  else
+   if hud(hudid).font$<>"" then set text font hud(hudid).font$
+   if hud(hudid).fontsize<>0 then set text size hud(hudid).fontsize
+   hud(hudid).height=text height(hud(hudid).text$)
+  endif
+ endif
+ `
+ rem Offset position with size if image
+ if hud(hudid).image>0
+  hud(hudid).posx=hud(hudid).posx-((hud(hudid).width/2)*gratiox#)
+  hud(hudid).posy=hud(hudid).posy-((hud(hudid).height/2)*gratioy#)
+ endif
+ `
+ rem Update HUD sprites
+ gosub _ai_hud_update
+ `
+endif
+
+return
+
+_ai_hud_update:
+ `
+ rem HUD Sprites
+ set sprite 1,0,1
+ sprite 1,-10000,-10000,1
+ for hudid=1 to hudmax
+  if hud(hudid).image>0
+   sprite hudid,-10000,-10000,hud(hudid).image
+   if hud(hudid).sizex>0
+    size sprite hudid,hud(hudid).sizex*gratiox#,hud(hudid).sizey*gratioy#
+   else
+    size sprite hudid,hud(hudid).width*gratiox#,hud(hudid).height*gratioy#
+   endif
+   set sprite diffuse hudid,hud(hudid).red,hud(hudid).green,hud(hudid).blue
+   if hud(hudid).fadeout>0
+    rem else where
+   else
+    set sprite alpha hudid,255
+   endif
+  endif
+ next hudid
+ `
+return
+

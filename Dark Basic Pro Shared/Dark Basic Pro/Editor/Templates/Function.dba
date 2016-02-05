@@ -1,0 +1,3 @@
+Function Fname(): rem Rename the function and insert parameter list inside parentheses
+
+Endfunction : rem insert Expression after Endfunction if you wish to return a value

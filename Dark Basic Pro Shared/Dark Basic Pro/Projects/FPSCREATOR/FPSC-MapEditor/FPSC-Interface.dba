@@ -1,0 +1,2688 @@
+rem
+rem Interface Constants
+rem
+
+rem PROPERTIES
+#constant ENTITY_SETUP                           0
+#constant ENTITY_WINDOW_TITLE                    4
+#constant ENTITY_ADD_GROUP                       8
+#constant ENTITY_DELETE_GROUP                   12
+#constant ENTITY_SET_GROUP_INDEX                16
+#constant ENTITY_SET_CONTROL_INDEX              20
+#constant ENTITY_DELETE_CONTROL                 24
+#constant ENTITY_ADD_EDIT_BOX                   28
+#constant ENTITY_ADD_LIST_BOX                   32
+#constant ENTITY_ADD_COLOR_PICKER               36
+#constant ENTITY_ADD_FILE_PICKER                40
+#constant ENTITY_ADD_FONT_PICKER                44
+#constant ENTITY_SET_CONTROL_NAME               48
+#constant ENTITY_SET_CONTROL_CONTENTS           52
+#constant ENTITY_SET_CONTROL_DESCRIPTION        56
+#constant ENTITY_SET_CONTROL_STATE              60
+#constant ENTITY_GET_CONTROL_NAME               64
+#constant ENTITY_GET_CONTROL_CONTENTS           68
+#constant ENTITY_GET_CONTROL_DESCRIPTION        72
+#constant ENTITY_ADD_ITEM_TO_LIST_BOX           76
+#constant ENTITY_CLEAR_LIST_BOX                 80
+
+#constant ENTITY_CONTROL_MODIFIED               92
+#constant ENTITY_CONTROL_MODIFIED_GROUP         96
+#constant ENTITY_CONTROL_MODIFIED_INDEX         100
+#constant ENTITY_CONTROL_MODIFIED_RESET         104
+#constant STRING_A                              1000
+#constant STRING_B                              1256
+#constant STRING_C                              1512
+#constant STRING_D                              1768
+
+rem BUILDGAME
+#constant BUILD_GAME_SETUP                    0
+#constant BUILD_GAME_SET_TITLE                4
+#constant BUILD_GAME_BUTTON_OK                8
+#constant BUILD_GAME_BUTTON_CANCEL            12
+#constant BUILD_GAME_BUTTON_HELP              16
+#constant BUILD_GAME_BUTTON_CLOSE             20
+#constant BUILD_GAME_CLOSE                    24
+#constant BUILD_GAME_TIMER                    28
+#constant SET_EDIT_ITEM             40
+#constant SET_EDIT_TEXT             44
+#constant GET_EDIT_TEXT             48
+#constant BUTTON_CLICKED            52
+#constant BROWSE_DISPLAY            56
+#constant BROWSE_FILE_SELECTED      60
+#constant SET_LIST_ITEM               64
+#constant ADD_LIST_ITEM               68
+#constant GET_LIST_ITEM               72
+#constant SET_LIST_INDEX              76
+#constant DELETE_LIST_ITEM       116
+#constant GET_LIST_SELECTION         120
+#constant LIST_SELECTION                              124
+#constant LIST_INSERT_ITEM                            128
+#constant LIST_INSERT_POSITION                        132
+#constant LIST_CLICKED               140
+#constant LIST_CONTROL               144
+#constant LIST_CLEAR               152
+#constant LIST_SELECT_ITEM                      156
+#constant LIST_SELECT_ITEM_INDEX                160
+#constant SET_COMBO_ITEM                              80
+#constant ADD_COMBO_ITEM                              84
+#constant GET_COMBO_ITEM                              88
+#constant SET_COMBO_INDEX                             92
+#constant SET_RADIO_ITEM                              96
+#constant GET_RADIO_ITEM                              100
+#constant SET_RADIO_STATE                             148
+#constant SET_PROGRESS_ITEM                           108
+#constant SET_PROGRESS_POSITION                       112
+#constant BUILD_GAME_PROJECT_WEAPONS_DISPLAY          136
+
+rem
+rem BUILD GAME
+rem
+
+_interface_loadlevelFPMfrombuildgame:
+ tfile$=currentFPG$
+ if file exist(tfile$)=0 then tfile$="languagebank\"+language$+"\gamebank\"+currentFPG$
+ if file exist(tfile$)=1
+  dim data$(99)
+  load array tfile$,data$()
+  for l=0 to 99
+   line$=data$(l)
+   if len(line$)>0
+    if lower$(left$(line$,4))=";end" then exit
+    if left$(line$,1)<>";"
+     rem take fieldname and values
+     for c=0 to len(line$)
+      if mid$(line$,c)="=" then mid=c : exit
+     next c
+     field$=lower$(removeedgespaces(left$(line$,mid-1)))
+     value$=removeedgespaces(right$(line$,len(line$)-mid))
+     for c=0 to len(value$)
+      if mid$(value$,c)="," then mid=c : exit
+     next c
+     value1=val(removeedgespaces(left$(value$,mid-1)))
+     value2$=removeedgespaces(right$(value$,len(value$)-mid))
+     if len(value2$)>0 then value2=val(value2$) else value2=-1
+     rem Level One FPM
+     tryfield$="levelfpm1"
+     if field$=tryfield$ then levelfpi$=value$
+    endif
+   endif
+  next l
+  undim data$()
+ endif
+return
+
+_interface_loadbuildgame:
+
+rem load current FPG file and fill data (abs or relative to gamebank)
+tfile$=currentFPG$
+if file exist(tfile$)=0 then tfile$="languagebank\"+language$+"\gamebank\"+currentFPG$
+if file exist(tfile$)=1
+ `
+ rem current project FPG load data and set in dialog
+ set_edit_item( 1, currentFPG$ )
+ `
+ rem clear old lists (if any)
+ clear_list(2)
+ clear_list(4)
+ clear_list(5)
+ clear_list(6)
+ clear_list(7)
+ clear_list(8)
+ clear_list(9)
+ clear_list(10)
+ clear_list(11)
+ `
+ rem Load Data from file
+ dim data$(999)
+ load array tfile$,data$()
+ for l=0 to 999
+  line$=data$(l)
+  if len(line$)>0
+   if lower$(left$(line$,4))=";end" then exit
+   if left$(line$,1)<>";"
+    `
+    rem take fieldname and values
+    for c=0 to len(line$)
+     if mid$(line$,c)="=" then mid=c : exit
+    next c
+    field$=lower$(removeedgespaces(left$(line$,mid-1)))
+    value$=removeedgespaces(right$(line$,len(line$)-mid))
+    for c=0 to len(value$)
+     if mid$(value$,c)="," then mid=c : exit
+    next c
+    value1=val(removeedgespaces(left$(value$,mid-1)))
+    value2$=removeedgespaces(right$(value$,len(value$)-mid))
+    if len(value2$)>0 then value2=val(value2$) else value2=-1
+    `
+    rem Executable
+    tryfield$="path" : if field$=tryfield$ then set_edit_item(11,value$)
+    tryfield$="exe" : if field$=tryfield$ then set_edit_item(13,value$)
+    `
+    rem Keys
+    if field$="keymax" then keymax=value1
+    if keymax>0
+     for s=1 to keymax
+      tryfield$="key"+str$(s)
+      if field$=tryfield$ then listkey(s)=value1
+      tryfield$="keyname"+str$(s)
+      if field$=tryfield$
+       add_list_item( 2, value$ )
+      endif
+     next s
+    endif
+    `
+    rem Weapons
+    if field$="slotmax" then gunslotmax=value1
+    if gunslotmax>0
+     for s=1 to gunslotmax
+      tryfield$="slot"+str$(s)
+      if field$=tryfield$
+       add_list_item(4,value$)
+      endif
+     next s
+    endif
+    `
+    rem Screens
+    tryfield$="title" : if field$=tryfield$ then add_list_item(5,value$)
+    tryfield$="global" : if field$=tryfield$ then add_list_item(6,value$)
+    tryfield$="gameover" : if field$=tryfield$ then add_list_item(7,value$)
+    tryfield$="gamewon" : if field$=tryfield$ then add_list_item(8,value$)
+    `
+    rem Levels
+    if field$="levelmax" then levelmax=value1
+    if levelmax>0
+     for v=1 to levelmax
+      tryfield$="levelfpm"+str$(v)
+      if field$=tryfield$ then levelfpm$=value$
+      tryfield$="levelfpi"+str$(v)
+      if field$=tryfield$
+       levelfpi$=value$
+       add_list_item(9,str$(v))
+       add_list_item(10,levelfpm$)
+       add_list_item(11,levelfpi$)
+      endif
+     next l
+    endif
+    `
+    rem change global states to match build game
+    tryfield$="hsrmode" : if field$=tryfield$ then ghsrmode=value1
+    tryfield$="lightmapping" : if field$=tryfield$ then glightmappingstate=value1
+    tryfield$="lightmapshadows" : if field$=tryfield$ then glightshadowsstate=value1
+    tryfield$="lightmapold" : if field$=tryfield$ then glightmappingold=value1
+    tryfield$="dynamiclighting" : if field$=tryfield$ then gdynamiclightingstate=value1
+    tryfield$="dynamicshadows" : if field$=tryfield$ then gdynamicshadowsstate=value1
+    tryfield$="useeffects" : if field$=tryfield$ then guseeffectstate=value1
+    tryfield$="useeffectsonguns" : if field$=tryfield$ then guseeffectongunsstate=value1
+    tryfield$="useeffectsonscene" : if field$=tryfield$ then guseeffectonscenestate=value1
+    tryfield$="useeffectsonentities" : if field$=tryfield$ then guseeffectonentitiesstate=value1
+    tryfield$="dividetexturesize" : if field$=tryfield$ then gdividetexturesize=value1
+    tryfield$="usefloor" : if field$=tryfield$ then gusefloorstate=value1
+    `V109 BETA8 - 060508 - leave these for main SETUP.INI to control (otherwise hidden in FPG)
+    `tryfield$="bloodonfloor" : if field$=tryfield$ then gbloodonfloor=value1
+    `tryfield$="imageblockmode" : if field$=tryfield$ then gimageblockmode=value1
+    `
+    rem arena settings
+    tryfield$="gameobjectivetype" : if field$=tryfield$ then ggameobjectivetype=value1
+    tryfield$="gameobjectivevalue" : if field$=tryfield$ then ggameobjectivevalue=value1
+    tryfield$="oneshotkills" : if field$=tryfield$ then goneshotkills=value1
+    tryfield$="maxplayers" : if field$=tryfield$ then numberofplayers=value1
+    tryfield$="spawnrandom" : if field$=tryfield$ then gspawnrandom=value1
+    `
+   endif
+  endif
+ next l
+ undim data$()
+ `
+ rem Set flags to show build-game-settings
+ if glightmappingstate=0 then set_radio_state(1,1) : set_radio_state(2,0) : set_radio_state(3,0)
+ if glightmappingstate=1 and glightshadowsstate=0 then set_radio_state(1,0) : set_radio_state(2,1) : set_radio_state(3,0)
+ if glightmappingstate=1 and glightshadowsstate=1 then set_radio_state(1,0) : set_radio_state(2,0) : set_radio_state(3,1)
+ if gdividetexturesize=0 then set_radio_state(4,0) : set_radio_state(5,0) : set_radio_state(6,1)
+ if gdividetexturesize=2 then set_radio_state(4,0) : set_radio_state(5,1) : set_radio_state(6,0)
+ if gdividetexturesize=4 then set_radio_state(4,1) : set_radio_state(5,0) : set_radio_state(6,0)
+ if guseeffectstate=0 then set_radio_state(10,1) : set_radio_state(11,0)
+ if guseeffectstate=1 then set_radio_state(10,0) : set_radio_state(11,1)
+ a=ghsrmode : set_radio_state(13,a)
+ a=gdynamicshadowsstate : set_radio_state(14,a)
+ a=gdynamiclightingstate : set_radio_state(15,a)
+ a=gusefloorstate : set_radio_state(16,a)
+ `
+ rem Arena Settings
+ if ggameobjectivetype=0 then gmultiplayergame=0 else gmultiplayergame=1
+ if gmultiplayergame=1
+  if ggameobjectivetype=0 then ggameobjectivetype=1
+  if ggameobjectivetype=1 then set_radio_state(21,1) : set_radio_state(22,0) : set_radio_state(23,0)
+  if ggameobjectivetype=2 then set_radio_state(21,0) : set_radio_state(22,1) : set_radio_state(23,0)
+  if ggameobjectivetype=3 then set_radio_state(21,0) : set_radio_state(22,0) : set_radio_state(23,1)
+  if ggameobjectivetype=2 then set_edit_item( 18, str$(ggameobjectivevalue) ) : set_edit_item( 19, "" )
+  if ggameobjectivetype=3 then set_edit_item( 18, "" ) : set_edit_item( 19, str$(ggameobjectivevalue) )
+  if goneshotkills=1 then set_radio_state(24,1) else set_radio_state(24,0)
+  set_edit_item( 20, str$(numberofplayers) )
+  if gspawnrandom=0 then set_radio_state(25,1) : set_radio_state(26,0)
+  if gspawnrandom=1 then set_radio_state(25,0) : set_radio_state(26,1)
+ else
+  rem disable arena tab contents
+  set_radio_state(21,0) : set_radio_state(22,0) : set_radio_state(23,0)
+ endif
+ gosub _arenamode_update
+ `
+ rem Ensure exe path is current and always filled
+ value$=removeedgespaces(get_edit_item(11))
+ if value$="" then set_edit_item(11,exedir$)
+ `
+endif
+
+return
+
+_interface_openbuildgame:
+
+   ` open the file map
+   open file map 1, "FPSBUILDGAME"
+
+   rem default info
+   set_edit_item( 3, strarr$(172) )
+   set_edit_item( 9, strarr$(173) )
+   set_edit_item( 10, strarr$(174) )
+   set_edit_item( 12, "" )
+
+   rem Movements
+   add_list_item( 1, strarr$(175) )
+   add_list_item( 1, strarr$(176) )
+   add_list_item( 1, strarr$(177) )
+   add_list_item( 1, strarr$(178) )
+   add_list_item( 1, strarr$(179) )
+   add_list_item( 1, strarr$(180) )
+   add_list_item( 1, strarr$(181) )
+   add_list_item( 1, "Reload" )
+   add_list_item( 1, strarr$(182) )
+   add_list_item( 1, strarr$(183) )
+   add_list_item( 1, strarr$(184) )
+
+   rem Weapon Slots
+   add_list_item( 3, strarr$(185) )
+   add_list_item( 3, strarr$(186) )
+   add_list_item( 3, strarr$(187) )
+   add_list_item( 3, strarr$(188) )
+   add_list_item( 3, strarr$(189) )
+   add_list_item( 3, strarr$(190) )
+   add_list_item( 3, strarr$(191) )
+   add_list_item( 3, strarr$(192) )
+   add_list_item( 3, strarr$(193) )
+   `
+   rem pull project settings from FPG if different
+   gosub _interface_prebuildgame
+   gosub _interface_loadbuildgame
+
+   ` close the file map
+   close file map 1
+
+return
+
+_interface_closebuildgame:
+ `
+ rem Restore the test-game-settings
+ gosub _interface_postbuildgame
+ `
+ rem Close the dialog
+ open file map 1, "FPSBUILDGAME"
+ set file map dword 1, BUILD_GAME_CLOSE, 1
+ wait for file map event 1
+ close file map 1
+ `
+return
+
+_interface_prebuildgame:
+ `
+ rem record test-game-settings before enter BUILD GAME
+ gdynamiclightingstateBG=gdynamiclightingstate
+ gdynamicshadowsstateBG=gdynamicshadowsstate
+ guseeffectstateBG=guseeffectstate
+ guseeffectongunsstateBG=guseeffectongunsstate
+ guseeffectonscenesstateBG=guseeffectonscenesstate
+ guseeffectonentitiesstateBG=guseeffectonentitiesstate
+ gdividetexturesizeBG=gdividetexturesize
+ ghsrmodeBG=ghsrmode
+ glightmappingstateBG=glightmappingstate
+ glightshadowsstateBG=glightshadowsstate
+ gusefloorstateBG=gusefloorstate
+ `
+ rem arena mode settings
+ ggameobjectivetypeBG=ggameobjectivetype
+ ggameobjectivevalueBG=ggameobjectivevalue
+ goneshotkillsBG=goneshotkills
+ numberofplayersBG=numberofplayers
+ gspawnrandomBG=gspawnrandom
+ `
+return
+
+_interface_postbuildgame:
+ `
+ rem restore test-game-settings as leave buildgame
+ gdynamiclightingstate=gdynamiclightingstateBG
+ gdynamicshadowsstate=gdynamicshadowsstateBG
+ guseeffectstate=guseeffectstateBG
+ guseeffectongunsstate=guseeffectongunsstateBG
+ guseeffectonscenesstate=guseeffectonscenesstateBG
+ guseeffectonentitiesstate=guseeffectonentitiesstateBG
+ gdividetexturesize=gdividetexturesizeBG
+ ghsrmode=ghsrmodeBG
+ glightmappingstate=glightmappingstateBG
+ glightshadowsstate=glightshadowsstateBG
+ gusefloorstate=gusefloorstateBG
+ `
+ rem arena mode settings
+ ggameobjectivetype=ggameobjectivetypeBG
+ ggameobjectivevalue=ggameobjectivevalueBG
+ goneshotkills=goneshotkillsBG
+ numberofplayers=numberofplayersBG
+ gspawnrandom=gspawnrandomBG
+ `
+return
+
+_interface_createnewbuildgame:
+ `
+ rem ensure FPG name has FPG extension
+ if lower$(right$(currentFPG$,4))<>".fpg"
+  currentFPG$=currentFPG$+".fpg"
+ endif
+ `
+ rem correct path
+ setupfile$="languagebank\"+language$+"\gamebank\"+currentFPG$
+ `
+ rem if save file unique, create support files as this is NEW PROJECT
+ tokay=1
+ if file exist(setupfile$)=1
+  open file map 2,"FPSEXCHANGE"
+  set file map string$ 2, 1000, strarr$(194)
+  set file map string$ 2, 1256, strarr$(195)
+  set file map dword 2, 900, 1
+  wait for file map event 2
+  while get file map dword(2, 900)=1
+   wait for file map event 2
+  endwhile
+  tokay=get file map dword(2, 904)
+  close file map 2
+ endif
+ `
+ rem continue or skip
+ if tokay=1
+  `
+  rem determine name only of new project
+  result$=setupfile$
+  result$=right$(result$,len(result$)-len("languagebank\"+language$+"\gamebank\"))
+  resultpath$=rootdir$+"languagebank\"+language$+"\gamebank\"
+  `
+  rem ensure name has no FPG ext
+  if lower$(right$(result$,4))=".fpg"
+   result$=left$(result$,len(result$)-4)
+  endif
+  `
+  rem store old
+  olddir$=get dir$()
+  set dir resultpath$
+  `
+  rem create folder for FPI screens
+  if path exist(result$)=0
+   make directory result$
+   set dir result$
+  else
+   set dir result$
+  endif
+  `
+  for t=1 to 5
+   if gmultiplayergame=0
+    rem Single Player : create five FPI screens in correctly named folder
+    if t=1 then tfile$="titlepage.fpi"
+   else
+    rem Arena Mode : create five FPI screens in correctly named folder
+    if t=1 then tfile$="arenapage.fpi"
+   endif
+   if t=2 then tfile$="loadingpage.fpi"
+   if t=3 then tfile$="setuplevel.fpi"
+   if t=4 then tfile$="gamewon.fpi"
+   if t=5 then tfile$="gameover.fpi"
+   if file exist(tfile$)=1 then delete file tfile$
+   if gmultiplayergame=0
+    copy file rootdir$+"languagebank\"+language$+"\gamebank\templateoriginal\"+tfile$,tfile$
+   else
+    copy file rootdir$+"languagebank\"+language$+"\gamebank\templatearena\"+tfile$,tfile$
+   endif
+  next t
+  `
+  rem Leave folder just created
+  set dir olddir$
+  `
+  rem New project is (can add FPG if not there)
+  currentFPG$=result$+".fpg"
+  setupfile$="languagebank\"+language$+"\gamebank\"+currentFPG$
+  `
+  rem Copy template FPG to new name
+  tfile$=rootdir$+setupfile$
+  if file exist(tfile$)=1 then delete file tfile$
+  if gmultiplayergame=0
+   copy file rootdir$+"languagebank\"+language$+"\gamebank\templateoriginal\mygame.fpg",tfile$
+  else
+   copy file rootdir$+"languagebank\"+language$+"\gamebank\templatearena\myarena.fpg",tfile$
+  endif
+  `
+  rem Manipulate fields to reflect new project name
+  gosub _interface_loadbuildgame
+  set_edit_item(11,exedir$)
+  set_edit_item(13,result$+".exe")
+  if gmultiplayergame=0
+   clear_list(5) : add_list_item(5,"languagebank\"+language$+"\gamebank\"+result$+"\titlepage.fpi")
+  else
+   clear_list(5) : add_list_item(5,"languagebank\"+language$+"\gamebank\"+result$+"\arenapage.fpi")
+  endif
+  clear_list(6) : add_list_item(6,"languagebank\"+language$+"\gamebank\"+result$+"\setuplevel.fpi")
+  clear_list(7) : add_list_item(7,"languagebank\"+language$+"\gamebank\"+result$+"\gameover.fpi")
+  clear_list(8) : add_list_item(8,"languagebank\"+language$+"\gamebank\"+result$+"\gamewon.fpi")
+  tmapnameonly$=right$(projectfilename$,len(projectfilename$)-len(rootdir$))
+  if gmultiplayergame=0
+   if lower$(left$(tmapnameonly$,8))<>"mapbank\" then tmapnameonly$="mapbank\testgame.fpm"
+  else
+   if lower$(left$(tmapnameonly$,8))<>"mapbank\" then tmapnameonly$="mapbank\testarena.fpm"
+  endif
+  delete_list_item(10,0) : insert_list_item(10,0,tmapnameonly$)
+  delete_list_item(11,0) : insert_list_item(11,0,"languagebank\"+language$+"\gamebank\"+result$+"\loadingpage.fpi")
+  gosub _interface_savebuildgame
+  `
+ endif
+ `
+return
+
+_interface_savebuildgame:
+ `
+ rem make sure states are reflective of the current dialog controls
+ if get_radio_state(1)=1 then glightmappingstate=0 : glightshadowsstate=0
+ if get_radio_state(2)=1 then glightmappingstate=1 : glightshadowsstate=0
+ if get_radio_state(3)=1 then glightmappingstate=1 : glightshadowsstate=1
+ if get_radio_state(4)=1 then gdividetexturesize=4
+ if get_radio_state(5)=1 then gdividetexturesize=2
+ if get_radio_state(6)=1 then gdividetexturesize=0
+ if get_radio_state(10)=1 then guseeffectstate=0
+ if get_radio_state(11)=1 then guseeffectstate=1
+ if guseeffectstate=1
+  guseeffectongunsstate=1
+  guseeffectonscenesstate=1
+  guseeffectonentitiesstate=1
+ else
+  guseeffectongunsstate=0
+  guseeffectonscenesstate=0
+  guseeffectonentitiesstate=0
+ endif
+ a=get_radio_state(13) : ghsrmode=a
+ a=get_radio_state(14) : gdynamicshadowsstate=a
+ a=get_radio_state(15) : gdynamiclightingstate=a
+ a=get_radio_state(16) : gusefloorstate=a
+ `
+ rem arena settings
+ if get_radio_state(21)=1 then ggameobjectivetype=1
+ if get_radio_state(22)=1 then ggameobjectivetype=2
+ if get_radio_state(23)=1 then ggameobjectivetype=3
+ if ggameobjectivetype=2
+  ggameobjectivevalue = val ( get_edit_item(18) )
+ endif
+ if ggameobjectivetype=3
+  ggameobjectivevalue = val ( get_edit_item(19) )
+ endif
+ if get_radio_state(24)=1 then goneshotkills=1 else goneshotkills=0
+ numberofplayers = val ( get_edit_item(20) )
+ if get_radio_state(25)=1 then gspawnrandom=0
+ if get_radio_state(26)=1 then gspawnrandom=1
+ `
+ rem save new states to .FPG
+ dim setuparr$(999) : i=0
+ setuparr$(i)="; FPG Game Profile" : inc i
+ setuparr$(i)="" : inc i
+ setuparr$(i)="; Game Profile" : inc i
+ setuparr$(i)="" : inc i
+ setuparr$(i)="path           = "+get_edit_item(11) : inc i
+ setuparr$(i)="exe            = "+get_edit_item(13) : inc i
+ setuparr$(i)="" : inc i
+ setuparr$(i)="; Keyboard Config" : inc i
+ setuparr$(i)="" : inc i
+ setuparr$(i)="keymax=11" : inc i
+ for k=1 to 11
+  keyval$=get_list_item( 2, k-1 )
+  keyname$=keyval$
+  for c=1 to len(keyval$)
+   if mid$(keyval$,c)=" " then keyval$=left$(keyval$,c-1) : exit
+  next c
+  keyname$=right$(keyname$,len(keyname$)-(len(keyval$)+1))
+  if listkey(k)=-1 then listkey(k)=val(keyval$)
+  setuparr$(i)="key"+str$(k)+"           = "+str$(listkey(k)) : inc i
+  setuparr$(i)="keyname"+str$(k)+"       = "+keyname$ : inc i
+ next k
+ setuparr$(i)="" : inc i
+ setuparr$(i)="; Gunslots" : inc i
+ setuparr$(i)="" : inc i
+ setuparr$(i)="slotmax=9" : inc i
+ setuparr$(i)="slot1          = "+get_list_item( 4, 0 ) : inc i
+ setuparr$(i)="slot2          = "+get_list_item( 4, 1 ) : inc i
+ setuparr$(i)="slot3          = "+get_list_item( 4, 2 ) : inc i
+ setuparr$(i)="slot4          = "+get_list_item( 4, 3 ) : inc i
+ setuparr$(i)="slot5          = "+get_list_item( 4, 4 ) : inc i
+ setuparr$(i)="slot6          = "+get_list_item( 4, 5 ) : inc i
+ setuparr$(i)="slot7          = "+get_list_item( 4, 6 ) : inc i
+ setuparr$(i)="slot8          = "+get_list_item( 4, 7 ) : inc i
+ setuparr$(i)="slot9          = "+get_list_item( 4, 8 ) : inc i
+ setuparr$(i)="" : inc i
+ setuparr$(i)="; Screen FPIs" : inc i
+ setuparr$(i)="" : inc i
+ setuparr$(i)="title          = "+get_list_item( 5, 0 ) : inc i
+ setuparr$(i)="global         = "+get_list_item( 6, 0 ) : inc i
+ setuparr$(i)="gameover       = "+get_list_item( 7, 0 ) : inc i
+ setuparr$(i)="gamewon        = "+get_list_item( 8, 0 ) : inc i
+ setuparr$(i)="" : inc i
+ setuparr$(i)="; Levels" : inc i
+ setuparr$(i)="" : inc i
+ levelmax=1
+ while get_list_item( 10, levelmax-1 )<>"" and levelmax<99
+  inc levelmax
+ endwhile
+ dec levelmax
+ setuparr$(i)="levelmax="+str$(levelmax) : inc i
+ for l=1 to levelmax
+  setuparr$(i)="levelfpm"+str$(l)+"      = "+get_list_item( 10, l-1 ) : inc i
+  setuparr$(i)="levelfpi"+str$(l)+"      = "+get_list_item( 11, l-1 ) : inc i
+ next l
+ setuparr$(i)="" : inc i
+ setuparr$(i)="; Build Specific Flags" : inc i
+ setuparr$(i)="" : inc i
+ setuparr$(i)="dynamiclighting="+str$(gdynamiclightingstate) : inc i
+ setuparr$(i)="dynamicshadows="+str$(gdynamicshadowsstate) : inc i
+ setuparr$(i)="useeffects="+str$( guseeffectstate ) : inc i
+ setuparr$(i)="useeffectsonguns="+str$( guseeffectongunsstate ) : inc i
+ setuparr$(i)="useeffectsonscene="+str$( guseeffectonscenesstate ) : inc i
+ setuparr$(i)="useeffectsonentities="+str$( guseeffectonentitiesstate ) : inc i
+ setuparr$(i)="dividetexturesize="+str$( gdividetexturesize ) : inc i
+ setuparr$(i)="hsrmode="+str$( ghsrmode ) : inc i
+ setuparr$(i)="lightmapping="+str$(glightmappingstate) : inc i
+ setuparr$(i)="lightmapshadows="+str$(glightshadowsstate) : inc i
+ setuparr$(i)="lightmapold="+str$(glightmappingold) : inc i
+ setuparr$(i)="usefloor="+str$(gusefloorstate) : inc i
+ setuparr$(i)="bloodonfloor="+str$(gbloodonfloor) : inc i
+ `V109 BETA8 - 060508 - leave these for main SETUP.INI to control (otherwise hidden in FPG)
+ `setuparr$(i)="imageblockmode="+str$(gimageblockmode) : inc i
+ setuparr$(i)="" : inc i
+ setuparr$(i)="multiplayergame="+str$(gmultiplayergame) : inc i
+ setuparr$(i)="gameobjectivetype="+str$(ggameobjectivetype) : inc i
+ setuparr$(i)="gameobjectivevalue="+str$(ggameobjectivevalue) : inc i
+ setuparr$(i)="oneshotkills="+str$(goneshotkills) : inc i
+ setuparr$(i)="maxplayers="+str$(numberofplayers) : inc i
+ setuparr$(i)="spawnrandom="+str$(gspawnrandom) : inc i
+ setuparr$(i)="uniquegamecode="+guniquegamecode$ : inc i
+ setuparr$(i)="" : inc i
+ `
+ rem determine name of save file
+ if mid$(currentFPG$,2)<>":"
+  setupfile$="languagebank\"+language$+"\gamebank\"+currentFPG$
+ else
+  setupfile$=currentFPG$
+ endif
+ `
+ rem save out profile file
+ save array setupfile$,setuparr$()
+ undim setuparr$()
+ `
+return
+
+_interface_calcnewlevelmax:
+ levelmax=1
+ while get_list_item( 10, levelmax-1 )<>"" and levelmax<99
+  inc levelmax
+ endwhile
+ dec levelmax
+return
+
+_interface_handlebuildgame:
+ `
+ leavedialog=0
+ while leavedialog=0
+   `
+   rem open filemap
+   open file map 1, "FPSBUILDGAME"
+   wait for file map event 1
+   `
+   rem main build game buttons
+   ok     = get file map dword ( 1, BUILD_GAME_BUTTON_OK )
+   help   = get file map dword ( 1, BUILD_GAME_BUTTON_HELP )
+   cancel = get file map dword ( 1, BUILD_GAME_BUTTON_CANCEL )
+   close  = get file map dword ( 1, BUILD_GAME_BUTTON_CLOSE )
+   `
+   rem Main Project File browse
+   if ( get file map dword ( 1, BUTTON_CLICKED ) = 1 )
+    set file map dword 1, BUTTON_CLICKED, 0
+    wait for file map event 1
+    tdir$=rootdir$+"languagebank\"+language$+"\gamebank\"
+    browse( strarr$(196), tdir$, strarr$(197) )
+    result$  = get file map string$ ( 1, 1000 )
+    if result$<>""
+     if mid$(result$,2)=":" then result$=right$(result$,len(result$)-len(tdir$))
+     currentFPG$=result$ : gosub _interface_loadbuildgame
+    endif
+   endif
+   `
+   rem If user clicks NEW, create new project
+   if get file map dword( 1, 180 ) = 1
+    result$=get file map string$ ( 1, STRING_A )
+    set file map dword 1, 180, 0
+    wait for file map event 1
+    if result$<>""
+     currentFPG$=result$
+     gosub _interface_createnewbuildgame
+    endif
+   endif
+   `
+   rem If detect click on Key Control, reset value as it has been updated
+   if get file map dword ( 1, LIST_CLICKED )=10 and get file map dword ( 1, LIST_CONTROL ) = 10
+    set file map dword 1, LIST_CLICKED, 0
+    set file map dword 1, LIST_CONTROL, 0
+    wait for file map event 1
+    tsel=1+get_list_item_selection( 2 )
+    listkey(tsel)=-1
+   endif
+   `
+   rem Click FPI screens (change to another)
+   for tscr=1 to 5
+    if tscr=1 then tokay=0
+    if tscr=2 then tokay=1
+    if tscr=3 then tokay=2
+    if tscr=4 then tokay=3
+    if tscr=5 then tokay=11
+    if get file map dword ( 1, LIST_CLICKED )=1 and get file map dword ( 1, LIST_CONTROL ) = tokay
+     set file map dword 1, LIST_CLICKED, 0
+     wait for file map event 1
+     tsel=get_list_item_selection( 11 )
+     tdir$=rootdir$+"languagebank\"+language$+"\gamebank\"
+     browse( strarr$(198), tdir$, strarr$(199) )
+     result$  = get file map string$ ( 1, 1000 )
+     if result$<>""
+      if mid$(result$,2)=":" then result$=right$(result$,len(result$)-len(tdir$))
+      result$="languagebank\"+language$+"\gamebank\"+result$
+      if tscr=1 then clear_list(5) : add_list_item(5,result$)
+      if tscr=2 then clear_list(6) : add_list_item(6,result$)
+      if tscr=3 then clear_list(7) : add_list_item(7,result$)
+      if tscr=4 then clear_list(8) : add_list_item(8,result$)
+      if tscr=5
+       delete_list_item(11,tsel)
+       insert_list_item(11,tsel,result$)
+      endif
+     endif
+    endif
+   next tscr
+   `
+   rem Click EDIT existing FPI screens
+   for tscr=1 to 5
+    if tscr=1 then tokay=2 : fpitype=1
+    if tscr=2 then tokay=3 : fpitype=3
+    if tscr=3 then tokay=4 : fpitype=4
+    if tscr=4 then tokay=5 : fpitype=5
+    if tscr=5 then tokay=8 : fpitype=2
+    if get file map dword ( 1, BUTTON_CLICKED ) = tokay
+     set file map dword 1, BUTTON_CLICKED, 0
+     wait for file map event 1
+     if tscr=5
+      tsel=get_list_item_selection( 11 )
+      fpiname$=get_list_item( 11, tsel )
+     else
+      fpiname$=get_list_item( 3+tokay, 0 )
+     endif
+     if fpiname$<>""
+      gosub _interface_openfpi
+      gosub _interface_handlefpi
+     endif
+    endif
+   next tscr
+   `
+   rem Click to select FPM file
+   if get file map dword ( 1, LIST_CLICKED )=1 and get file map dword ( 1, LIST_CONTROL ) = 10
+    set file map dword 1, LIST_CLICKED, 0
+    wait for file map event 1
+    tsel=get_list_item_selection( 10 )
+    tdir$=rootdir$+"mapbank\"
+    browse( strarr$(200), tdir$, strarr$(201) )
+    result$  = get file map string$ ( 1, 1000 )
+    if result$<>""
+     if mid$(result$,2)=":"
+      if lower$(left$(result$,len(tdir$)))=lower$(tdir$)
+       result$=right$(result$,len(result$)-len(tdir$))
+      else
+       result$=""
+      endif
+     endif
+     if result$<>""
+      result$="mapbank\"+result$
+      if tsel>=0
+       delete_list_item(10,tsel)
+       insert_list_item(10,tsel,result$)
+      endif
+     endif
+    endif
+   endif
+   `
+   rem Click Executable folder browser button
+   if ( get file map dword ( 1, BUTTON_CLICKED ) = 9 )
+    set file map dword 1, BUTTON_CLICKED, 0
+    wait for file map event 1
+    result$ = browse_for_folder ( exedir$ )
+    if result$<>""
+     exedir$=result$ : set_edit_item(11,exedir$)
+    endif
+   endif
+   `
+   rem BUILD EXECUTABLE Click
+   if get file map dword ( 1, BUTTON_CLICKED ) = 10
+    `
+    rem Debug this critical session
+    timestampactivity(0,"BUILDGAME: Build button clicked")
+    `
+    rem check MP arena plr count
+    if gmultiplayergame=1
+     tokay=0
+     ttfpmname$=get_list_item( 10, 0 )
+     ttcurrent$=right$(currentprojectfilename$,len(currentprojectfilename$)-len(rootdir$))
+     if lower$(ttcurrent$)=lower$(ttfpmname$)
+      gosub _input_checkarenaminspec
+      if tokay=0
+       set_edit_item(12,strarr$(560))
+      endif
+     else
+      tokay=1
+     endif
+    else
+     tokay=1
+    endif
+    `
+    rem Debug this critical session
+    timestampactivity(0,"BUILDGAME: Checked MP arena player count, flag for TOKAY was "+str$(tokay))
+    `
+    rem proceed with buildgame
+    if tokay=1
+     `
+     rem Debug this critical session
+     timestampactivity(0,"BUILDGAME: Before save test map")
+     `
+     rem Save map data
+     gosub _gridedit_save_test_map
+     `
+     rem Save contents of testmap to TEMP (buildexe might overwrite testmap files)
+     projectfilename$="editors\gridedit\temp.fpm"
+     gosub _mapfile_saveproject_fpm
+     `
+     rem Debug this critical session
+     timestampactivity(0,"BUILDGAME: Before progress bar")
+     `
+     rem Initial progress text
+     set file map dword 1, BUTTON_CLICKED, 0
+     wait for file map event 1
+     set_edit_item( 12, strarr$(202) )
+     `
+     rem Save build game data as quitting after built exe
+     gosub _interface_savebuildgame
+     `
+     rem Save build-game-settings in SETUP.INI (for game engine build)
+     savesetupfile$="buildsetup.ini"
+     gosub _interface_savesetupfile
+     savesetupfile$="setup.ini"
+     `
+     rem Make build update for exe
+     texepath$=get_edit_item(11)
+     texename$=get_edit_item(13)
+     dim buildarr$(3)
+     buildarr$(0)="[BUILD]"
+     buildarr$(1)="path="+texepath$
+     buildarr$(2)="name="+texename$
+     buildarr$(3)=""
+     save array rootdir$+"..\build.ini",buildarr$()
+     undim buildarr$()
+     `
+     rem Debug this critical session
+     timestampactivity(0,"BUILDGAME: Before fpsc-game launch")
+     `
+     rem Cause Game To Build
+     open file map 2, "FPSEXCHANGE"
+     set file map string$ 2, STRING_A, "fpsc-game.exe"
+     set file map string$ 2, STRING_B, "-b"
+     set file map dword 2, 916, 1
+     set file map dword 2, 920, 1
+     wait for file map event 2
+     close file map 2
+     `
+    endif
+    `
+    rem Debug this critical session
+    timestampactivity(0,"BUILDGAME: End of click build button")
+    `
+   endif
+   `
+   rem Weapon Choices
+   if get file map dword ( 1, BUILD_GAME_PROJECT_WEAPONS_DISPLAY ) = 1
+    ` add in our weapon types to the pop up dialog
+    fillgloballistwithweapons()
+    for w=0 to 17
+     add_combo_box( 1, list$(w) )
+    next w
+    while get file map dword ( 1, BUILD_GAME_PROJECT_WEAPONS_DISPLAY ) = 1
+     wait for file map event 1
+    endwhile
+   endif
+   `
+   rem ADD Level Button
+   taddorinsertalistitem=0
+   if get file map dword ( 1, BUTTON_CLICKED ) = 17
+    taddorinsertalistitem=-1
+   endif
+   rem Insert Level Button
+   if get file map dword ( 1, BUTTON_CLICKED ) = 6
+    taddorinsertalistitem=get_list_item_selection( 9 )
+   endif
+   `
+   rem Add/Insert Level Code
+   if taddorinsertalistitem<>0
+      index = taddorinsertalistitem
+      tnum$=str$(levelmax+1)
+      if index=-1
+       insert_list_item( 9, index, tnum$ )
+      else
+       insert_list_item( 9, index, strarr$(203) )
+      endif
+      insert_list_item( 10, index, "mapbank\default.fpm" )
+      result$="languagebank\"+language$+"\gamebank\"+currentFPG$
+      if lower$(right$(result$,4))=".fpg"
+       result$=left$(result$,len(result$)-4)
+      endif
+      tfile$=result$+"\loadingpage"+tnum$+".fpi"
+      if file exist(tfile$)=0
+       copy file "languagebank\"+language$+"\gamebank\templateoriginal\loadingpage.fpi",tfile$
+      endif
+      insert_list_item( 11, index, tfile$ )
+      rem renumber level numbers for neatness
+      clear_list(9)
+      for tlvl=1 to levelmax+1
+       add_list_item( 9, str$(tlvl) )
+      next tlvl
+      if index>=0
+       rem set highlight to inserted
+       select_list_item(9,index)
+       select_list_item(10,index)
+       select_list_item(11,index)
+      endif
+      set file map dword 1, BUTTON_CLICKED, 0
+      wait for file map event 1
+      gosub _interface_calcnewlevelmax
+   endif
+
+   ` delete a level
+   if get file map dword ( 1, BUTTON_CLICKED ) = 7
+      index = get_list_item_selection( 9 )
+      delete_list_item( 9, index )
+      delete_list_item( 10, index )
+      delete_list_item( 11, index )
+      set file map dword 1, BUTTON_CLICKED, 0
+      wait for file map event 1
+      gosub _interface_calcnewlevelmax
+   endif
+
+   ` END OF DIALOG
+   if ok=1
+    gosub _interface_savebuildgame
+    leavedialog=1
+   endif
+   if cancel=1 or close=1
+    leavedialog=1
+   endif
+   if help=1
+    rem launch website from here
+   endif
+
+   ` close filemap
+   close file map 1
+
+   ` update
+   sync
+   `
+ endwhile
+ `
+return
+
+
+rem
+rem PREFERENCES
+rem
+
+_interface_openprefs:
+ `
+ rem wait for prefs to start
+ open file map 1, "FPSPREFERENCES"
+ wait for file map event 1
+ while get file map dword( 1, 0 )=0
+  wait for file map event 1
+ endwhile
+ close file map 1
+ `
+ rem read current settings and populate dialog
+ open file map 1, "FPSPREFERENCES"
+ a=gdynamiclightingstate : set_radio_state(1,a)
+ a=gdynamicshadowsstate : set_radio_state(2,a)
+ if glightmappingstate=0 then set_radio_state(3,1) : set_radio_state(4,0) : set_radio_state(5,0)
+ if glightmappingstate=1 and glightshadowsstate=0 then set_radio_state(3,0) : set_radio_state(4,1) : set_radio_state(5,0)
+ if glightmappingstate=1 and glightshadowsstate=1 then set_radio_state(3,0) : set_radio_state(4,0) : set_radio_state(5,1)
+ if guseeffectstate=0 then set_radio_state(6,1) : set_radio_state(7,0)
+ if guseeffectstate=1 then set_radio_state(6,0) : set_radio_state(7,1)
+ if gdividetexturesize=0 then set_radio_state(9,0) : set_radio_state(10,0) : set_radio_state(11,1)
+ if gdividetexturesize=2 then set_radio_state(9,0) : set_radio_state(10,1) : set_radio_state(11,0)
+ if gdividetexturesize=4 then set_radio_state(9,1) : set_radio_state(10,0) : set_radio_state(11,0)
+ a=ghsrmode : set_radio_state(12,a)
+ a=gshowentitygameinfostate : set_radio_state(13,a)
+ a=gshowdebugtextingamestate : set_radio_state(14,a)
+ a=gusefloorstate : set_radio_state(15,a)
+ if gmultiplayergame=0 then set_radio_state(16,1) : set_radio_state(17,0)
+ if gmultiplayergame=1 then set_radio_state(16,0) : set_radio_state(17,1)
+ close file map 1
+
+return
+
+_interface_closeprefs:
+ open file map 1, "FPSPREFERENCES"
+ set file map dword 1, 12, 1
+ wait for file map event 1
+ close file map 1
+return
+
+_interface_savesetupfile:
+
+rem save new states to SETUP.INI
+dim setuparr$(999)
+setupfile$=savesetupfile$ : i=0
+setuparr$(i)="[GAMERUN]" : inc i
+setuparr$(i)="realgameview=0" : inc i
+setuparr$(i)="dynamiclighting="+str$(gdynamiclightingstate) : inc i
+setuparr$(i)="dynamicshadows="+str$(gdynamicshadowsstate) : inc i
+setuparr$(i)="useeffects="+str$( guseeffectstate ) : inc i
+setuparr$(i)="useeffectsonguns="+str$( guseeffectongunsstate ) : inc i
+setuparr$(i)="useeffectsonscene="+str$( guseeffectonscenesstate ) : inc i
+setuparr$(i)="useeffectsonentities="+str$( guseeffectonentitiesstate ) : inc i
+setuparr$(i)="dividetexturesize="+str$( gdividetexturesize ) : inc i
+setuparr$(i)="optimizemode=1" : inc i
+setuparr$(i)="hsrmode="+str$( ghsrmode ) : inc i
+`
+setuparr$(i)="" : inc i
+setuparr$(i)="[GAMEMULTIPLAYER]" : inc i
+setuparr$(i)="multiplayergame="+str$(gmultiplayergame) : inc i
+setuparr$(i)="gameobjectivetype="+str$(ggameobjectivetype) : inc i
+setuparr$(i)="gameobjectivevalue="+str$(ggameobjectivevalue) : inc i
+setuparr$(i)="oneshotkills="+str$(goneshotkills) : inc i
+setuparr$(i)="maxplayers="+str$(numberofplayers) : inc i
+setuparr$(i)="spawnrandom="+str$(gspawnrandom) : inc i
+setuparr$(i)="uniquegamecode="+guniquegamecode$ : inc i
+`
+setuparr$(i)="" : inc i
+setuparr$(i)="[GAMEMAKE]" : inc i
+setuparr$(i)="lightmapping="+str$(glightmappingstate) : inc i
+setuparr$(i)="lightmapold="+str$(glightmappingold) : inc i
+setuparr$(i)="lightmapshadows="+str$(glightshadowsstate) : inc i
+setuparr$(i)="lightmapambientr="+str$(glightambientr) : inc i
+setuparr$(i)="lightmapambientg="+str$(glightambientg) : inc i
+setuparr$(i)="lightmapambientb="+str$(glightambientb) : inc i
+setuparr$(i)="lightmapsunx="+str$(glightsunx) : inc i
+setuparr$(i)="lightmapsuny="+str$(glightsuny) : inc i
+setuparr$(i)="lightmapsunz="+str$(glightsunz) : inc i
+setuparr$(i)="lightmapsunr="+str$(glightsunr) : inc i
+setuparr$(i)="lightmapsung="+str$(glightsung) : inc i
+setuparr$(i)="lightmapsunb="+str$(glightsunb) : inc i
+setuparr$(i)="lightmapzerorange="+str$(glightzerorange) : inc i
+setuparr$(i)="lightmapatten="+str$(glightatten) : inc i
+setuparr$(i)="lightmapmaxsize="+str$(glightmaxsize) : inc i
+setuparr$(i)="lightmapboost="+str$(glightboost) : inc i
+setuparr$(i)="lightmaptexsize="+str$(glighttexsize) : inc i
+setuparr$(i)="lightmapquality="+str$(glightquality) : inc i
+setuparr$(i)="lightmapblurmode="+str$(glightblurmode) : inc i
+setuparr$(i)="lightmapthreadmax="+str$(glightthreadmax) : inc i
+setuparr$(i)="bloodonfloor="+str$(gbloodonfloor) : inc i
+setuparr$(i)="imageblockmode="+str$(gimageblockmode) : inc i
+`
+setuparr$(i)="" : inc i
+setuparr$(i)="[GAMEDEBUG]" : inc i
+setuparr$(i)="exitpromptreport="+str$(gexitpromptreportmodestate) : inc i
+setuparr$(i)="debugreport=0" : inc i
+setuparr$(i)="showentitygameinfo="+str$( gshowentitygameinfostate ) : inc i
+setuparr$(i)="showdebugtextingame="+str$( gshowdebugtextingamestate ) : inc i
+setuparr$(i)="debugreportstepthrough=0" : inc i
+setuparr$(i)="usesky=1" : inc i
+setuparr$(i)="usefloor="+str$( gusefloorstate ) : inc i
+setuparr$(i)="useenvsounds=1" : inc i
+setuparr$(i)="useweapons=1" : inc i
+setuparr$(i)="includeonlyvideo=0" : inc i
+setuparr$(i)="includeonlyname=gamecore" : inc i
+setuparr$(i)="width=1024" : inc i
+setuparr$(i)="height=768" : inc i
+setuparr$(i)="depth=32" : inc i
+setuparr$(i)="useuniquelynamedentities=0" : inc i
+setuparr$(i)="exportassets="+str$(gexportassets) : inc i
+setuparr$(i)="loadreport="+str$(gloadreportstate) : inc i
+
+rem default game profile for test game
+setuparr$(i)="" : inc i
+setuparr$(i)="[GAMEPROFILE]" : inc i
+
+rem test game defaults or real-build-game-data
+if savesetupfile$="setup.ini"
+ `
+ rem test game defaults
+ setuparr$(i)="key1           = 17" : inc i
+ setuparr$(i)="key2           = 31" : inc i
+ setuparr$(i)="key3           = 30" : inc i
+ setuparr$(i)="key4           = 32" : inc i
+ setuparr$(i)="key5           = 57" : inc i
+ setuparr$(i)="key6           = 46" : inc i
+ setuparr$(i)="key7           = 28" : inc i
+ setuparr$(i)="key8           = 19" : inc i
+ setuparr$(i)="key9           = 16" : inc i
+ setuparr$(i)="key10          = 18" : inc i
+ setuparr$(i)="key11          = 42" : inc i
+ setuparr$(i)="global         = languagebank\"+language$+"\gamebank\mygame\setuplevel.fpi" : inc i
+ setuparr$(i)="levelmax       = 1"
+ setuparr$(i)="levelfpm1      = " : inc i
+ setuparr$(i)="levelfpi1      = languagebank\"+language$+"\gamebank\mygame\loadingpage.fpi" : inc i
+ `
+else
+ `
+ rem build game short-list data for game exe
+ for k=1 to 11
+  setuparr$(i)="key"+str$(k)+"           = "+str$(listkey(k)) : inc i
+ next k
+ setuparr$(i)="slot1          = "+get_list_item( 4, 0 ) : inc i
+ setuparr$(i)="slot2          = "+get_list_item( 4, 1 ) : inc i
+ setuparr$(i)="slot3          = "+get_list_item( 4, 2 ) : inc i
+ setuparr$(i)="slot4          = "+get_list_item( 4, 3 ) : inc i
+ setuparr$(i)="slot5          = "+get_list_item( 4, 4 ) : inc i
+ setuparr$(i)="slot6          = "+get_list_item( 4, 5 ) : inc i
+ setuparr$(i)="slot7          = "+get_list_item( 4, 6 ) : inc i
+ setuparr$(i)="slot8          = "+get_list_item( 4, 7 ) : inc i
+ setuparr$(i)="slot9          = "+get_list_item( 4, 8 ) : inc i
+ setuparr$(i)="title          = "+get_list_item( 5, 0 ) : inc i
+ setuparr$(i)="global         = "+get_list_item( 6, 0 ) : inc i
+ setuparr$(i)="gameover       = "+get_list_item( 7, 0 ) : inc i
+ setuparr$(i)="gamewon        = "+get_list_item( 8, 0 ) : inc i
+ levelmax=1
+ while get_list_item( 10, levelmax-1 )<>"" and levelmax<99
+  inc levelmax
+ endwhile
+ dec levelmax
+ setuparr$(i)="levelmax="+str$(levelmax) : inc i
+ for l=1 to levelmax
+  setuparr$(i)="levelfpm"+str$(l)+"      = "+get_list_item( 10, l-1 ) : inc i
+  setuparr$(i)="levelfpi"+str$(l)+"      = "+get_list_item( 11, l-1 ) : inc i
+ next l
+ `
+endif
+
+rem Save the setup file to name and root location (1-or absfilename from var$)
+save array "..\"+setupfile$,setuparr$()
+undim setuparr$()
+
+return
+
+_interface_saveprefs:
+
+rem place settings from dialog back into states
+a=get_radio_state(1) : gdynamiclightingstate=a
+a=get_radio_state(2) : gdynamicshadowsstate=a
+if get_radio_state(3)=1 then glightmappingstate=0 : glightshadowsstate=0
+if get_radio_state(4)=1 then glightmappingstate=1 : glightshadowsstate=0
+if get_radio_state(5)=1 then glightmappingstate=1 : glightshadowsstate=1
+if get_radio_state(6)=1 then guseeffectstate=0
+if get_radio_state(7)=1 then guseeffectstate=1
+if guseeffectstate=1
+ guseeffectongunsstate=1
+ guseeffectonscenesstate=1
+ guseeffectonentitiesstate=1
+else
+ guseeffectongunsstate=0
+ guseeffectonscenesstate=0
+ guseeffectonentitiesstate=0
+endif
+if get_radio_state(9)=1 then gdividetexturesize=4
+if get_radio_state(10)=1 then gdividetexturesize=2
+if get_radio_state(11)=1 then gdividetexturesize=0
+a=get_radio_state(12) : ghsrmode=a
+a=get_radio_state(13) : gshowentitygameinfostate=a
+a=get_radio_state(14) : gshowdebugtextingamestate=a
+a=get_radio_state(15) : gusefloorstate=a
+if get_radio_state(16)=1 then gmultiplayergame=0
+if get_radio_state(17)=1 then gmultiplayergame=1
+savesetupfile$="setup.ini" : gosub _interface_savesetupfile
+
+rem update to interface due to any gmultiplayergame change
+gosub _arenamode_update
+
+return
+
+_interface_handleprefs:
+ leavedialog=0
+ while leavedialog=0
+  open file map 1, "FPSPREFERENCES"
+  wait for file map event 1
+  if get file map dword ( 1, 4 ) = 1
+   gosub _interface_saveprefs
+   leavedialog=1
+  endif
+  if get file map dword ( 1, 8 ) = 1
+   leavedialog=1
+  endif
+  if get file map dword ( 1, 0 ) = 0
+   leavedialog=1
+  endif
+  close file map 1
+  sync
+ endwhile
+return
+
+
+rem
+rem PROPERTIES
+rem
+
+_interface_openpropertywindow:
+ `
+ rem Open proprty window
+ open file map 1, "FPSEXCHANGE"
+ set file map dword 1, 978, 1
+ set file map dword 1, 458, 0
+ wait for file map event 1
+ editorinterfaceactive=e
+ close file map 1
+ `
+ rem open the entity file map
+ open file map 2, "FPSENTITY"
+ wait for file map event 2
+ `
+ rem wait until the entity window is read
+ if get file map dword( 2, ENTITY_SETUP ) = 1
+  `
+  rem Setup usage flags
+  tflaglives=0 : tflaglight=0 : tflagobjective=0 : tflagtdecal=0 : tflagspawn=0 : tflagifused=0
+  tflagvis=0 : tflagchar=0 : tflagweap=0 : tflagammo=0 : tflagai=1 : tflagsound=0 : tflagsoundset=0 : tflagnosecond=0
+  tflagmobile=0 : tflaghurtfall=0 : tflaghasweapon=0 : tflagammoclip=0 : tflagstats=0 : tflagquantity=0
+  tflagvideo=0
+  rem If its static and arena mode, only do optional visuals, ignore rest
+  tstatic=0
+  if gmultiplayergame=1
+   if entityprofile(gridentity).isflak=1
+    tstatic=1
+   else
+    if entityprofile(gridentity).isammo<>0 or entityprofile(gridentity).isweapon<>0 or entityprofile(gridentity).ischaracter<>0 or entityprofile(gridentity).ishealth<>0
+     tstatic=0
+    else
+     tstatic=1
+    endif
+   endif
+  endif
+  if gmultiplayergame=1 and tstatic=1
+   rem only allow arena mode static entity optional visuals
+   tflagvis=1 : tflagai=0
+  else
+   if entityprofile(gridentity).ismarker=0
+    tflagvis=1 : tflagmobile=1 : tflagobjective=1 : tflagsound=1 : tflagstats=1 : tflagspawn=1
+    if entityprofile(gridentity).ischaracter>0 then tflaglives=1 : tflagchar=1 : tflaghurtfall=1 : tflaghasweapon=1 : tflagsoundset=1 : tflagsound=0
+    if len(entityprofile(gridentity).isweapon$)>2 then tflagweap=1 : tflagammoclip=1 : tflagsound=0
+    if entityprofile(gridentity).isammo>0 then tflagammo=1 : tflagobjective=0 : tflagsound=0
+   else
+    if entityprofile(gridentity).ismarker=1
+     tflagai=0
+     if entityprofile(gridentity).lives>0
+      tflagstats=1 : tflaglives=1 : tflagsoundset=1 : tflaghurtfall=1 : tflaghasweapon=1 : tflagquantity=1
+     else
+      tflagsound=1 : tflagnosecond=1
+     endif
+    endif
+    if entityprofile(gridentity).ismarker=2 then tflaglight=1
+    if entityprofile(gridentity).ismarker=3 then tflagobjective=1 : tflagnosecond=1 : tflagifused=1
+    if entityprofile(gridentity).ismarker=4 then tflagtdecal=1
+    if entityprofile(gridentity).ismarker=3
+     if entityprofile(gridentity).markerindex=1
+      rem video
+      tflagvideo=1
+     else
+      rem sound
+      tflagsound=1
+     endif
+    endif
+   endif
+  endif
+  `
+  rem set array and counters to track scope of contents of each group
+  dim propfield(16)
+  for t=0 to 16 : propfield(t)=0 : next t
+  `
+  rem set the window title
+  setpropertybase(ENTITY_WINDOW_TITLE,strarr$(411))
+  `
+  rem Name
+  group=0 : setpropertybase(ENTITY_ADD_GROUP,strarr$(412)) : controlindex=0
+  setpropertystring(group,grideleprof.name$,strarr$(413),strarr$(204)) : inc controlindex
+  if entityprofile(gridentity).ismarker=0 or entityprofile(gridentity).ismarker=2
+   if gmultiplayergame=0
+    setpropertylist(group,controlindex,str$(gridentitystaticmode),strarr$(414),strarr$(205),0) : inc controlindex
+   endif
+  endif
+  `
+  rem Basic AI
+  if gmultiplayergame=0
+   if tflagai=1
+    propfield(group)=controlindex
+    inc group : setpropertybase(ENTITY_ADD_GROUP,strarr$(415)) : controlindex=0
+    setpropertyfile(group,grideleprof.aiinit$,strarr$(561),strarr$(206),"scriptbank\") : inc controlindex
+    setpropertyfile(group,grideleprof.aimain$,strarr$(417),strarr$(207),"scriptbank\") : inc controlindex
+    setpropertyfile(group,grideleprof.aidestroy$,strarr$(418),strarr$(208),"scriptbank\") : inc controlindex
+   endif
+  endif
+  `
+  rem Has Weapon
+  if gmultiplayergame=0
+   if tflaghasweapon=1
+    setpropertylist(group,controlindex,grideleprof.hasweapon$,strarr$(419),strarr$(209),1) : inc controlindex
+   endif
+  endif
+  `
+  rem Is Weapon
+  if tflagweap=1
+   setpropertystring(group,str$(grideleprof.damage),strarr$(420),strarr$(210)) : inc controlindex
+   setpropertystring(group,str$(grideleprof.accuracy),strarr$(421),strarr$(211)) : inc controlindex
+   if grideleprof.weaponisammo=0
+    setpropertystring(group,str$(grideleprof.reloadqty),strarr$(422),strarr$(212)) : inc controlindex
+    setpropertystring(group,str$(grideleprof.fireiterations),strarr$(423),strarr$(213)) : inc controlindex
+   else
+    if gmultiplayergame=0
+     setpropertystring(group,str$(grideleprof.lifespan),strarr$(424),strarr$(214)) : inc controlindex
+     setpropertystring(group,str$(grideleprof.throwspeed),strarr$(425),strarr$(215)) : inc controlindex
+     setpropertystring(group,str$(grideleprof.throwangle),strarr$(426),strarr$(216)) : inc controlindex
+     setpropertystring(group,str$(grideleprof.bounceqty),strarr$(427),strarr$(217)) : inc controlindex
+     setpropertylist(group,controlindex,str$(grideleprof.explodeonhit),strarr$(428),strarr$(218),0) : inc controlindex
+    endif
+   endif
+  endif
+  `
+  rem Is Character
+  if tflagchar=1
+   if gmultiplayergame=0
+    setpropertylist(group,controlindex,str$(grideleprof.cantakeweapon),strarr$(429),strarr$(219),0) : inc controlindex
+    setpropertystring(group,str$(grideleprof.quantity),strarr$(430),strarr$(220)) : inc controlindex
+    setpropertystring(group,str$(grideleprof.rateoffire),strarr$(431),strarr$(221)) : inc controlindex
+   endif
+  endif
+  if tflagquantity=1 then setpropertystring(group,str$(grideleprof.quantity),strarr$(432),strarr$(222)) : inc controlindex
+  `
+  rem AI Extra
+  if tflagvis=1 and tflagai=1
+   if gmultiplayergame=0
+    if tflagchar=1
+     setpropertyfile(group,grideleprof.aishoot$,strarr$(433),strarr$(223),"scriptbank\") : inc controlindex
+     setpropertystring(group,str$(grideleprof.coneangle),strarr$(434),strarr$(224)) : inc controlindex
+    else
+     if tflagweap=0 and tflagammo=0
+      propfield(group)=controlindex
+      inc group : setpropertybase(ENTITY_ADD_GROUP,strarr$(435)) : controlindex=0
+      setpropertystring(group,grideleprof.usekey$,strarr$(436),strarr$(225)) : inc controlindex
+      setpropertystring(group,grideleprof.ifused$,strarr$(437),strarr$(226)) : inc controlindex
+     endif
+    endif
+   endif
+  endif
+  if tflagifused=1
+   if gmultiplayergame=0
+    setpropertystring(group,grideleprof.ifused$,strarr$(438),strarr$(227)) : inc controlindex
+   endif
+  endif
+  `
+  rem Spawn Settings
+  if tflagspawn=1
+   if gmultiplayergame=0 or (gmultiplayergame=1 and tflagchar=0)
+    propfield(group)=controlindex
+    inc group : setpropertybase(ENTITY_ADD_GROUP,strarr$(439)) : controlindex=0
+    setpropertylist(group,controlindex,str$(grideleprof.spawnatstart),strarr$(562),strarr$(563),0) : inc controlindex
+    setpropertystring(group,str$(grideleprof.spawnmax),strarr$(440),strarr$(231)) : inc controlindex
+    setpropertystring(group,str$(grideleprof.spawnupto),strarr$(441),strarr$(232)) : inc controlindex
+    setpropertylist(group,controlindex,str$(grideleprof.spawnafterdelay),strarr$(442),strarr$(233),0) : inc controlindex
+    setpropertylist(group,controlindex,str$(grideleprof.spawnwhendead),strarr$(443),strarr$(234),0) : inc controlindex
+    setpropertystring(group,str$(grideleprof.spawndelay),strarr$(444),strarr$(235)) : inc controlindex
+    setpropertystring(group,str$(grideleprof.spawndelayrandom),strarr$(564),strarr$(565)) : inc controlindex
+    setpropertystring(group,str$(grideleprof.spawnqty),strarr$(445),strarr$(236)) : inc controlindex
+    setpropertystring(group,str$(grideleprof.spawnqtyrandom),strarr$(566),strarr$(567)) : inc controlindex
+    setpropertystring(group,str$(grideleprof.spawnvel),strarr$(568),strarr$(569)) : inc controlindex
+    setpropertystring(group,str$(grideleprof.spawnvelrandom),strarr$(570),strarr$(571)) : inc controlindex
+    setpropertystring(group,str$(grideleprof.spawnangle),strarr$(572),strarr$(573)) : inc controlindex
+    setpropertystring(group,str$(grideleprof.spawnanglerandom),strarr$(574),strarr$(575)) : inc controlindex
+    setpropertystring(group,str$(grideleprof.spawnlife),strarr$(576),strarr$(577)) : inc controlindex
+   endif
+  endif
+  `
+  rem Visual
+  if tflagvis=1
+   propfield(group)=controlindex
+   inc group : setpropertybase(ENTITY_ADD_GROUP,strarr$(446)) : controlindex=0
+   setpropertyfile(group,grideleprof.texd$,strarr$(447),strarr$(237),"") : inc controlindex
+   setpropertyfile(group,grideleprof.texaltd$,strarr$(448),strarr$(238),"") : inc controlindex
+   setpropertyfile(group,grideleprof.effect$,strarr$(578),strarr$(579),"effectbank\") : inc controlindex
+   setpropertystring(group,str$(grideleprof.transparency),strarr$(449),strarr$(240)) : inc controlindex
+   setpropertystring(group,str$(grideleprof.reducetexture),strarr$(450),strarr$(241)) : inc controlindex
+  endif
+  `
+  rem Statistics
+  if gmultiplayergame=0 or (gmultiplayergame=1 and tstatic=0)
+   if (tflagvis=1 or tflagobjective=1 or tflaglives=1 or tflagstats=1) and tflagweap=0 and tflagammo=0
+    propfield(group)=controlindex
+    inc group : setpropertybase(ENTITY_ADD_GROUP,strarr$(451)) : controlindex=0
+    if gmultiplayergame=0
+     if tflaglives=1 then setpropertystring(group,str$(grideleprof.lives),strarr$(452),strarr$(242)) : inc controlindex
+    endif
+    if tflagvis=1 or tflagstats=1
+     if tflaglives=1
+      setpropertystring(group,str$(grideleprof.strength),strarr$(453),strarr$(243)) : inc controlindex
+     else
+      setpropertystring(group,str$(grideleprof.strength),strarr$(454),strarr$(244)) : inc controlindex
+     endif
+     if gmultiplayergame=0
+      setpropertystring(group,str$(grideleprof.speed),strarr$(455),strarr$(245)) : inc controlindex
+     endif
+    endif
+    if tflaghurtfall=1 then setpropertystring(group,str$(grideleprof.hurtfall),strarr$(456),strarr$(246)) : inc controlindex
+    if gmultiplayergame=0
+     if tflagmobile=1 then setpropertylist(group,controlindex,str$(grideleprof.isimmobile),strarr$(457),strarr$(247),0) : inc controlindex
+    endif
+    if gmultiplayergame=0 or (gmultiplayergame=1 and entityprofile(gridentity).ismarker=3)
+     if tflagobjective=1 then setpropertystring(group,str$(grideleprof.isobjective),strarr$(458),strarr$(248)) : inc controlindex
+    endif
+   endif
+  endif
+  `
+  rem Physics Data (non-multiplayer)
+  if gmultiplayergame=0
+   if entityprofile(gridentity).ismarker=0
+    propfield(group)=controlindex
+    inc group : setpropertybase(ENTITY_ADD_GROUP,strarr$(596)) : controlindex=0
+    if grideleprof.physics<>1 then grideleprof.physics=0
+    setpropertylist(group,controlindex,str$(grideleprof.physics),strarr$(580),strarr$(581),0) : inc controlindex
+    setpropertylist(group,controlindex,str$(grideleprof.phyalways),strarr$(582),strarr$(583),0) : inc controlindex
+    setpropertystring(group,str$(grideleprof.phyweight),strarr$(584),strarr$(585)) : inc controlindex
+    setpropertystring(group,str$(grideleprof.phyfriction),strarr$(586),strarr$(587)) : inc controlindex
+    setpropertystring(group,str$(grideleprof.phyforcedamage),strarr$(588),strarr$(589)) : inc controlindex
+    setpropertystring(group,str$(grideleprof.rotatethrow),strarr$(590),strarr$(591)) : inc controlindex
+    setpropertylist(group,controlindex,str$(grideleprof.explodable),strarr$(592),strarr$(593),0) : inc controlindex
+    setpropertystring(group,str$(grideleprof.explodedamage),strarr$(594),strarr$(595)) : inc controlindex
+   endif
+  endif
+  `
+  rem Ammo data
+  if tflagammo=1 or tflagammoclip=1
+   propfield(group)=controlindex
+   inc group : setpropertybase(ENTITY_ADD_GROUP,strarr$(459)) : controlindex=0
+   setpropertystring(group,str$(grideleprof.quantity),strarr$(460),strarr$(249)) : inc controlindex
+  endif
+  `
+  rem Light data
+  if tflaglight=1
+   propfield(group)=controlindex
+   inc group : setpropertybase(ENTITY_ADD_GROUP,strarr$(461)) : controlindex=0
+   setpropertystring(group,str$(grideleprof.light.range),strarr$(462),strarr$(250)) : inc controlindex
+   setpropertycolor(group,grideleprof.light.color,strarr$(463),strarr$(251)) : inc controlindex
+  endif
+  `
+  rem Decal data
+  if tflagtdecal=1
+   propfield(group)=controlindex
+   inc group : setpropertybase(ENTITY_ADD_GROUP,strarr$(464)) : controlindex=0
+   setpropertyfile(group,grideleprof.basedecal$,strarr$(465),strarr$(252),"gamecore\decals\") : inc controlindex
+  endif
+  `
+  rem Sound or Video data
+  if tflagsound=1 or tflagsoundset=1
+   propfield(group)=controlindex
+   inc group : setpropertybase(ENTITY_ADD_GROUP,strarr$(466)) : controlindex=0
+   if tflagsound=1 then setpropertyfile(group,grideleprof.soundset$,strarr$(467),strarr$(253),"audiobank\") : inc controlindex
+   if tflagsound=1 and tflagnosecond=0 then setpropertyfile(group,grideleprof.soundset1$,strarr$(468),strarr$(254),"audiobank\") : inc controlindex
+   if tflagsoundset=1 then setpropertyfile(group,grideleprof.soundset$,strarr$(469),strarr$(255),"audiobank\voices\") : inc controlindex
+  endif
+  if tflagvideo=1
+   propfield(group)=controlindex
+   inc group : setpropertybase(ENTITY_ADD_GROUP,strarr$(597)) : controlindex=0
+   setpropertyfile(group,grideleprof.soundset$,strarr$(598),strarr$(599),"audiobank\") : inc controlindex
+   setpropertyfile(group,grideleprof.soundset1$,strarr$(600),strarr$(601),"videobank\") : inc controlindex
+  endif
+  `
+  rem End of data
+  propfield(group)=controlindex
+  propfieldgroupmax=group
+  `
+ endif
+ `
+ wait for file map event 2
+ close file map 2
+ `
+return
+
+_interface_copydatatoentity:
+ `
+ rem go through all active fields
+ for iGroup=0 to propfieldgroupmax
+  for iControl=0 to propfield(iGroup)-1
+   `
+   rem Get data
+   tfield$ = getpropertyfield(iGroup,iControl)
+   tdata$ = getpropertydata(iGroup,iControl)
+   `
+   rem If tdata$ was absolute file, truncate to remove first part
+   if mid$(tdata$,2)=":"
+    chopthis$=rootdir$
+    if lower$(tfield$)=lower$(strarr$(413)) then chopthis$=chopthis$+"scriptbank\"
+    if lower$(tfield$)=lower$(strarr$(416)) then chopthis$=chopthis$+"scriptbank\"
+    if lower$(tfield$)=lower$(strarr$(561)) then chopthis$=chopthis$+"scriptbank\"
+    if lower$(tfield$)=lower$(strarr$(417)) then chopthis$=chopthis$+"scriptbank\"
+    if lower$(tfield$)=lower$(strarr$(418)) then chopthis$=chopthis$+"scriptbank\"
+    if lower$(tfield$)=lower$(strarr$(433)) then chopthis$=chopthis$+"scriptbank\"
+    if lower$(tfield$)=lower$(strarr$(464)) then chopthis$=chopthis$+"gamecore\decals\"
+    if lower$(tfield$)=lower$(strarr$(469)) then chopthis$=chopthis$+"audiobank\voices\"
+    tdata$=right$(tdata$,len(tdata$)-len(chopthis$))
+    if lower$(tfield$)=lower$(strarr$(464)) or lower$(tfield$)=lower$(strarr$(469))
+     rem get path (folder name) only
+     tdata$=getpath(tdata$) : tdata$=left$(tdata$,len(tdata$)-1)
+    endif
+   endif
+   `
+   rem All YES and NO strings are auto converted if value expected
+   tokay=1
+   if lower$(tfield$)=lower$(strarr$(413)) then tokay=0
+   if lower$(tfield$)=lower$(strarr$(436)) then tokay=0
+   if lower$(tfield$)=lower$(strarr$(437)) then tokay=0
+   if lower$(tfield$)=lower$(strarr$(464)) then tokay=0
+   if lower$(tfield$)=lower$(strarr$(469)) then tokay=0
+   if lower$(tfield$)=lower$(strarr$(469)) then tokay=0
+   if tokay=1
+    if lower$(tdata$)=lower$(strarr$(470)) then tdata$="1"
+    if lower$(tdata$)=lower$(strarr$(471)) then tdata$="0"
+   endif
+   `
+   rem get field data
+   if lower$(tfield$)=lower$(strarr$(413)) then grideleprof.name$=tdata$
+   if lower$(tfield$)=lower$(strarr$(414)) then gridentitystaticmode=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(561)) then grideleprof.aiinit$=tdata$
+   if lower$(tfield$)=lower$(strarr$(417)) then grideleprof.aimain$=tdata$
+   if lower$(tfield$)=lower$(strarr$(418)) then grideleprof.aidestroy$=tdata$
+   if lower$(tfield$)=lower$(strarr$(433)) then grideleprof.aishoot$=tdata$
+   if lower$(tfield$)=lower$(strarr$(434)) then grideleprof.coneangle=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(419)) then grideleprof.hasweapon$=tdata$
+   if lower$(tfield$)=lower$(strarr$(436)) then grideleprof.usekey$=tdata$
+   if lower$(tfield$)=lower$(strarr$(437)) then grideleprof.ifused$=tdata$
+   if lower$(tfield$)=lower$(strarr$(562)) then grideleprof.spawnatstart=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(440)) then grideleprof.spawnmax=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(441)) then grideleprof.spawnupto=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(442)) then grideleprof.spawnafterdelay=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(443)) then grideleprof.spawnwhendead=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(444)) then grideleprof.spawndelay=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(445)) then grideleprof.spawnqty=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(564)) then grideleprof.spawndelayrandom=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(566)) then grideleprof.spawnqtyrandom=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(568)) then grideleprof.spawnvel=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(570)) then grideleprof.spawnvelrandom=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(572)) then grideleprof.spawnangle=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(574)) then grideleprof.spawnanglerandom=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(576)) then grideleprof.spawnlife=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(447)) then grideleprof.texd$=tdata$
+   if lower$(tfield$)=lower$(strarr$(448)) then grideleprof.texaltd$=tdata$
+   if lower$(tfield$)=lower$(strarr$(578)) then grideleprof.effect$=tdata$
+   if lower$(tfield$)=lower$(strarr$(449)) then grideleprof.transparency=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(450)) then grideleprof.reducetexture=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(454)) then grideleprof.strength=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(453)) then grideleprof.strength=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(457)) then grideleprof.isimmobile=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(429)) then grideleprof.cantakeweapon=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(430)) then grideleprof.quantity=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(431)) then grideleprof.rateoffire=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(420)) then grideleprof.damage=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(421)) then grideleprof.accuracy=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(422)) then grideleprof.reloadqty=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(423)) then grideleprof.fireiterations=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(424)) then grideleprof.lifespan=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(425)) then grideleprof.throwspeed=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(426)) then grideleprof.throwangle=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(427)) then grideleprof.bounceqty=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(428)) then grideleprof.explodeonhit=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(455)) then grideleprof.speed=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(432)) then grideleprof.quantity=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(460)) then grideleprof.quantity=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(452)) : ta=val(tdata$) : if ta>0 : grideleprof.lives=ta : endif : endif
+   if lower$(tfield$)=lower$(strarr$(456)) then grideleprof.hurtfall=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(458)) then grideleprof.isobjective=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(464)) then grideleprof.basedecal$=tdata$
+   if lower$(tfield$)=lower$(strarr$(467)) then grideleprof.soundset$=tdata$
+   if lower$(tfield$)=lower$(strarr$(468)) then grideleprof.soundset1$=tdata$
+   if lower$(tfield$)=lower$(strarr$(469)) then grideleprof.soundset$=tdata$
+   if lower$(tfield$)=lower$(strarr$(598)) then grideleprof.soundset$=tdata$
+   if lower$(tfield$)=lower$(strarr$(600)) then grideleprof.soundset1$=tdata$
+   if lower$(tfield$)=lower$(strarr$(462)) then grideleprof.light.range=val(tdata$)
+   `
+   if lower$(tfield$)=lower$(strarr$(580)) then grideleprof.physics=val(tdata$)
+   if grideleprof.physics<>1 then grideleprof.physics=2
+   if lower$(tfield$)=lower$(strarr$(582)) then grideleprof.phyalways=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(584)) then grideleprof.phyweight=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(586)) then grideleprof.phyfriction=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(588)) then grideleprof.phyforcedamage=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(590)) then grideleprof.rotatethrow=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(592)) then grideleprof.explodable=val(tdata$)
+   if lower$(tfield$)=lower$(strarr$(594)) then grideleprof.explodedamage=val(tdata$)
+   `
+   if lower$(tfield$)=lower$(strarr$(463))
+    tr$=tdata$
+    for t=1 to len(tr$)
+     if mid$(tr$,t)=" " then tr$=left$(tr$,t) : exit
+    next t
+    tdata$=right$(tdata$,(len(tdata$)-len(tr$)))
+    tg$=tdata$
+    for t=1 to len(tg$)
+     if mid$(tg$,t)=" " then tg$=left$(tg$,t) : exit
+    next t
+    tb$=right$(tdata$,(len(tdata$)-len(tg$)))
+    grideleprof.light.color=rgb(val(tr$),val(tg$),val(tb$))
+   endif
+   `
+  next iControl
+ next iGroup
+ `
+return
+
+_interface_closepropertywindow:
+ `
+ rem Close proprty window
+ if editorinterfaceactive>0
+  `
+  rem Close dialog
+  open file map 1, "FPSEXCHANGE"
+  set file map dword 1, 978, 2
+  set file map dword 1, 462, 0
+  wait for file map event 1
+  editorinterfaceactive=0
+  close file map 1
+  `
+ endif
+ `
+return
+
+_interface_handlepropertywindow:
+
+rem If interface active
+if editorinterfaceactive>0
+ `
+ rem Open for management
+ open file map 2, "FPSENTITY"
+ wait for file map event 2
+ `
+ rem if APPLY clicked, copy data to entity
+ if get file map dword( 2, 112 )=1
+  gosub _interface_copydatatoentity
+  set file map dword 2, 112, 0
+  wait for file map event 2
+  editorinterfaceleave=1
+ endif
+ `
+ rem see if the user clicked on the close button
+ if get file map dword( 2, 108 ) = 1
+   set file map dword 2, 108, 0
+   wait for file map event 2
+   editorinterfaceleave=1
+ endif
+ `
+ rem see if the user clicked on the CANCEL button
+ if get file map dword( 2, 116 ) = 1
+   set file map dword 2, 116, 0
+   wait for file map event 2
+   editorinterfaceleave=1
+ endif
+ `
+ close file map 2
+ `
+endif
+
+return
+
+rem
+rem FPI Wizard Window
+rem
+
+_interface_openfpi:
+ `
+ rem open the screen FPI file for FPI editing
+ open file map 4, "FPSEXCHANGE"
+ set file map dword 4, 990, 1
+ wait for file map event 4
+ close file map 4
+ `
+ rem open FPIDialog filemap
+ do
+  open file map 2, "FPSFPIWIZARD"
+  wait for file map event 2
+  if get file map dword( 2, 0 ) = 1 then exit
+  close file map 2
+ loop
+ `
+ rem Enter FPI Wizard Title
+ if fpitype=1 then fpititle$=strarr$(256)
+ if fpitype=2 then fpititle$=strarr$(257)
+ if fpitype=3 then fpititle$=strarr$(258)
+ if fpitype=4 then fpititle$=strarr$(259)
+ if fpitype=5 then fpititle$=strarr$(260)
+ fpititle$=fpititle$+" ["+fpiname$+"]"
+ set file map string$ 2, 1000, fpititle$
+ set file map dword 2, 216, 1
+ wait for file map event 2
+ while get file map dword( 2, 216 ) = 1
+  wait for file map event 2
+ endwhile
+ `
+ rem Get data from FPID file (existing wizard data)
+ undim fsarr()
+ dim fsarr(65) as string
+ if file exist(fpiname$+"d")=1
+  load array fpiname$+"d",fsarr()
+ else
+  rem default values for FPI files
+  if fpitype=1
+   fsarr(1)="gamecore\backdrops\Basic\background.jpg"
+   fsarr(2)="audiobank\music\generic\title.wav"
+   fsarr(3)="gamecore\huds\pointer.tga"
+   fsarr(22)="languagebank\"+language$+"\gamecore\backdrops\basic\gamemenu.tga" : fsarr(23)="50" : fsarr(24)="10"
+   fsarr(31)="languagebank\"+language$+"\gamecore\backdrops\basic\newgame.tga"
+   fsarr(32)="50"
+   fsarr(33)="45"
+   rem V103
+   fsarr(34)="languagebank\"+language$+"\gamecore\backdrops\basic\loadgame.tga"
+   fsarr(35)="50"
+   fsarr(36)="55"
+   fsarr(37)="languagebank\"+language$+"\gamecore\backdrops\basic\exitgame.tga"
+   fsarr(38)="50"
+   fsarr(39)="65"
+  endif
+  if fpitype=2
+   fsarr(1)="gamecore\backdrops\Basic\background.jpg"
+   fsarr(2)="audiobank\music\generic\incident.wav"
+   fsarr(22)="languagebank\"+language$+"\gamecore\backdrops\basic\loading.tga" : fsarr(23)="50" : fsarr(24)="50"
+   fsarr(25)="gamecore\huds\loadingbarbox.tga"
+   fsarr(26)="50"
+   fsarr(27)="95"
+   fsarr(28)="gamecore\huds\loadingbar.tga"
+   fsarr(29)="50"
+   fsarr(30)="95"
+  endif
+  if fpitype=3
+`   fsarr(1)="gamecore\backdrops\Basic\background.jpg"
+   fsarr(2)="audiobank\music\generic\main.wav"
+   fsarr(3)="gamecore\huds\pointer.tga"
+   fsarr(4)="skybank\natural\ngt"
+   fsarr(5)="0"
+   fsarr(6)="0"
+   fsarr(7)="0"
+   fsarr(8)="0"
+   fsarr(9)="25"
+   fsarr(10)="255"
+   fsarr(11)="255"
+   fsarr(12)="255"
+   fsarr(13)="gamecore\huds\fader.tga"
+   fsarr(14)="gamecore\huds\eyehud.tga"
+   fsarr(15)="gamecore\huds\zoom.tga"
+   fsarr(16)="languagebank\"+language$+"\gamecore\huds\lives.tga"
+   fsarr(17)="gamecore\huds\numeric1.tga"
+   fsarr(18)="languagebank\"+language$+"\gamecore\huds\health.tga"
+   fsarr(19)="gamecore\huds\numeric1.tga"
+   fsarr(20)="gamecore\huds\ammo.tga"
+   fsarr(21)="gamecore\huds\numeric1.tga"
+   fsarr(22)="languagebank\"+language$+"\gamecore\backdrops\basic\gamemenu.tga" : fsarr(23)="50" : fsarr(24)="10"
+   rem V103
+   fsarr(40)="languagebank\"+language$+"\gamecore\backdrops\basic\loadgame.tga"
+   fsarr(41)="50"
+   fsarr(42)="40"
+   fsarr(43)="languagebank\"+language$+"\gamecore\backdrops\basic\savegame.tga"
+   fsarr(44)="50"
+   fsarr(45)="50"
+   fsarr(25)="languagebank\"+language$+"\gamecore\backdrops\basic\saving.tga"
+   fsarr(26)="50"
+   fsarr(27)="50"
+   fsarr(46)="languagebank\"+language$+"\gamecore\backdrops\basic\exitgame.tga"
+   fsarr(47)="50"
+   fsarr(48)="60"
+   fsarr(49)="languagebank\"+language$+"\gamecore\backdrops\basic\returntogame.tga"
+   fsarr(50)="50"
+   fsarr(51)="70"
+   fsarr(53)="5"
+   fsarr(54)="5"
+   fsarr(55)="4"
+   fsarr(56)="8"
+   fsarr(57)="15"
+   fsarr(58)="5"
+   fsarr(59)="14"
+   fsarr(60)="8"
+   fsarr(61)="85"
+   fsarr(62)="8"
+   fsarr(63)="88"
+   fsarr(64)="12"
+  endif
+  if fpitype=4
+   fsarr(1)="gamecore\backdrops\Basic\background.jpg"
+   fsarr(2)="audiobank\music\generic\incident.wav"
+   fsarr(22)="languagebank\"+language$+"\gamecore\backdrops\basic\gameover.tga" : fsarr(23)="50" : fsarr(24)="50"
+   fsarr(52)="6000"
+  endif
+  if fpitype=5
+   fsarr(1)="gamecore\backdrops\Basic\background.jpg"
+   fsarr(2)="audiobank\music\generic\victory.wav"
+   fsarr(22)="languagebank\"+language$+"\gamecore\backdrops\basic\gamecomplete.tga" : fsarr(23)="50" : fsarr(24)="50"
+   fsarr(52)="6000"
+  endif
+ endif
+ `
+ rem Details
+ fpisetup=0 : fpipointer=0 : fpiheaderimage=0
+ fpigamebuttons=0 : fpigamemenubuttons=0 : fpiloading=0 : fpitimeout=0
+ if fpitype=1 then fpipointer=1 : fpiheaderimage=1 : fpigamebuttons=1
+ if fpitype=2 then fpiheaderimage=1 : fpiloading=1
+ if fpitype=3 then fpipointer=1 : fpiheaderimage=1 : fpigamemenubuttons=1 : fpisetup=1
+ if fpitype=4 then fpitimeout=1 : fpiheaderimage=1
+ if fpitype=5 then fpitimeout=1 : fpiheaderimage=1
+ `
+ rem array to hold wheether fields valid
+ dim fpifield(9)
+ for t=0 to 9 : fpifield(t)=0 : next t
+ tgroupsworking=1
+ `
+ rem Fill with correct fields
+ add_group(strarr$(476)) : fgg=0 : fii=0
+ if fpitype<>3
+  add_file_picker( fgg, strarr$(477), fsarr(1), strarr$(261), rootdir$+"gamecore\backdrops\" ) : inc fii
+ endif
+ add_file_picker( fgg, strarr$(478), fsarr(2), strarr$(262), rootdir$+"audiobank\" ) : inc fii
+ if fpipointer=1
+  add_file_picker( fgg, strarr$(479), fsarr(3), strarr$(263), rootdir$+"gamecore\backdrops\" ) : inc fii
+ endif
+ if fpisetup=1
+  if tgroupsworking=1 then fpifield(fgg)=fii : add_group(strarr$(480)) : inc fgg : fii=0
+  add_file_picker_ex( fgg, strarr$(481), fsarr(4), strarr$(264), rootdir$+"skybank\", strarr$(624), strarr$(625) ) : inc fii
+  add_edit_box( fgg, strarr$(482), fsarr(5), strarr$(265) ) : inc fii
+  add_edit_box( fgg, strarr$(483), fsarr(6), strarr$(266) ) : inc fii
+  add_edit_box( fgg, strarr$(484), fsarr(7), strarr$(267) ) : inc fii
+  add_edit_box( fgg, strarr$(485), fsarr(8), strarr$(268) ) : inc fii
+  add_edit_box( fgg, strarr$(486), fsarr(9), strarr$(269) ) : inc fii
+  add_edit_box( fgg, strarr$(487), fsarr(10), strarr$(270) ) : inc fii
+  add_edit_box( fgg, strarr$(488), fsarr(11), strarr$(271) ) : inc fii
+  add_edit_box( fgg, strarr$(489), fsarr(12), strarr$(272) ) : inc fii
+  if tgroupsworking=1 then fpifield(fgg)=fii : add_group(strarr$(490)) : inc fgg : fii=0
+  add_file_picker( fgg, strarr$(491), fsarr(13), strarr$(273), rootdir$+"gamecore\huds\" ) : inc fii
+  add_file_picker( fgg, strarr$(492), fsarr(14), strarr$(274), rootdir$+"gamecore\huds\" ) : inc fii
+  add_file_picker( fgg, strarr$(493), fsarr(15), strarr$(275), rootdir$+"gamecore\huds\" ) : inc fii
+  if tgroupsworking=1 then fpifield(fgg)=fii : add_group(strarr$(494)) : inc fgg : fii=0
+  add_file_picker( fgg, strarr$(495), fsarr(16), strarr$(496), rootdir$+"languagebank\"+language$+"\gamecore\huds\" ) : inc fii
+  add_edit_box( fgg, strarr$(497), fsarr(53), strarr$(276) ) : inc fii
+  add_edit_box( fgg, strarr$(498), fsarr(54), strarr$(277) ) : inc fii
+  add_file_picker( fgg, strarr$(499), fsarr(17), strarr$(500), rootdir$+"gamecore\huds\" ) : inc fii
+  add_edit_box( fgg, strarr$(501), fsarr(55), strarr$(278) ) : inc fii
+  add_edit_box( fgg, strarr$(502), fsarr(56), strarr$(279) ) : inc fii
+  add_file_picker( fgg, strarr$(503), fsarr(18), strarr$(504), rootdir$+"languagebank\"+language$+"\gamecore\huds\" ) : inc fii
+  add_edit_box( fgg, strarr$(505), fsarr(57), strarr$(280) ) : inc fii
+  add_edit_box( fgg, strarr$(506), fsarr(58), strarr$(281) ) : inc fii
+  add_file_picker( fgg, strarr$(507), fsarr(19), strarr$(508), rootdir$+"gamecore\huds\" ) : inc fii
+  add_edit_box( fgg, strarr$(509), fsarr(59), strarr$(282) ) : inc fii
+  add_edit_box( fgg, strarr$(510), fsarr(60), strarr$(283) ) : inc fii
+  add_file_picker( fgg, strarr$(511), fsarr(20), strarr$(512), rootdir$+"gamecore\huds\" ) : inc fii
+  add_edit_box( fgg, strarr$(513), fsarr(61), strarr$(284) ) : inc fii
+  add_edit_box( fgg, strarr$(514), fsarr(62), strarr$(285) ) : inc fii
+  add_file_picker( fgg, strarr$(515), fsarr(21), strarr$(516), rootdir$+"gamecore\huds\" ) : inc fii
+  add_edit_box( fgg, strarr$(517), fsarr(63), strarr$(286) ) : inc fii
+  add_edit_box( fgg, strarr$(518), fsarr(64), strarr$(287) ) : inc fii
+ endif
+ if fpiheaderimage=1
+  if tgroupsworking=1 then fpifield(fgg)=fii : add_group(strarr$(519)) : inc fgg : fii=0
+  add_file_picker( fgg, strarr$(520), fsarr(22), strarr$(521), rootdir$+"languagebank\"+language$+"\gamecore\backdrops\" ) : inc fii
+  add_edit_box( fgg, strarr$(522), fsarr(23), strarr$(288) ) : inc fii
+  add_edit_box( fgg, strarr$(523), fsarr(24), strarr$(289) ) : inc fii
+ endif
+ if fpiloading=1
+  add_file_picker( fgg, strarr$(524), fsarr(25), strarr$(525), rootdir$+"gamecore\huds\" ) : inc fii
+  add_edit_box( fgg, strarr$(526), fsarr(26), strarr$(290) ) : inc fii
+  add_edit_box( fgg, strarr$(527), fsarr(27), strarr$(291) ) : inc fii
+  add_file_picker( fgg, strarr$(528), fsarr(28), strarr$(529), rootdir$+"gamecore\huds\" ) : inc fii
+  add_edit_box( fgg, strarr$(530), fsarr(29), strarr$(292) ) : inc fii
+  add_edit_box( fgg, strarr$(531), fsarr(30), strarr$(293) ) : inc fii
+ endif
+ if fpigamebuttons=1
+  add_file_picker( fgg, strarr$(532), fsarr(31), strarr$(294), rootdir$+"languagebank\"+language$+"\gamecore\backdrops\" ) : inc fii
+  add_edit_box( fgg, strarr$(533), fsarr(32), strarr$(295) ) : inc fii
+  add_edit_box( fgg, strarr$(534), fsarr(33), strarr$(296) ) : inc fii
+  rem V103
+  add_file_picker( fgg, strarr$(535), fsarr(34), strarr$(297), rootdir$+"languagebank\"+language$+"\gamecore\backdrops\" ) : inc fii
+  add_edit_box( fgg, strarr$(536), fsarr(35), strarr$(298) ) : inc fii
+  add_edit_box( fgg, strarr$(537), fsarr(36), strarr$(299) ) : inc fii
+  add_file_picker( fgg, strarr$(538), fsarr(37), strarr$(300), rootdir$+"languagebank\"+language$+"\gamecore\backdrops\" ) : inc fii
+  add_edit_box( fgg, strarr$(539), fsarr(38), strarr$(301) ) : inc fii
+  add_edit_box( fgg, strarr$(540), fsarr(39), strarr$(302) ) : inc fii
+ endif
+ if fpigamemenubuttons=1
+  rem V103
+  add_file_picker( fgg, strarr$(541), fsarr(40), strarr$(303), rootdir$+"languagebank\"+language$+"\gamecore\backdrops\" ) : inc fii
+  add_edit_box( fgg, strarr$(542), fsarr(41), strarr$(304) ) : inc fii
+  add_edit_box( fgg, strarr$(543), fsarr(42), strarr$(305) ) : inc fii
+  add_file_picker( fgg, strarr$(544), fsarr(43), strarr$(306), rootdir$+"languagebank\"+language$+"\gamecore\backdrops\" ) : inc fii
+  add_edit_box( fgg, strarr$(545), fsarr(44), strarr$(307) ) : inc fii
+  add_edit_box( fgg, strarr$(546), fsarr(45), strarr$(308) ) : inc fii
+  add_file_picker( fgg, strarr$(653), fsarr(25), strarr$(657), rootdir$+"languagebank\"+language$+"\gamecore\backdrops\" ) : inc fii
+  add_edit_box( fgg, strarr$(654), fsarr(26), strarr$(307) ) : inc fii
+  add_edit_box( fgg, strarr$(655), fsarr(27), strarr$(308) ) : inc fii
+  add_file_picker( fgg, strarr$(547), fsarr(46), strarr$(309), rootdir$+"languagebank\"+language$+"\gamecore\backdrops\" ) : inc fii
+  add_edit_box( fgg, strarr$(548), fsarr(47), strarr$(310) ) : inc fii
+  add_edit_box( fgg, strarr$(549), fsarr(48), strarr$(311) ) : inc fii
+  add_file_picker( fgg, strarr$(550), fsarr(49), strarr$(312), rootdir$+"languagebank\"+language$+"\gamecore\backdrops\" ) : inc fii
+  add_edit_box( fgg, strarr$(551), fsarr(50), strarr$(313) ) : inc fii
+  add_edit_box( fgg, strarr$(552), fsarr(51), strarr$(314) ) : inc fii
+ endif
+ if fpitimeout=1
+  add_edit_box( fgg, strarr$(553), fsarr(52), strarr$(315) ) : inc fii
+ endif
+ fpifield(fgg)=fii
+ `
+ rem Close filemap
+ close file map 2
+ `
+return
+
+_interface_savefpi:
+ `
+ rem get name and data from all fields
+ undim fsarr()
+ dim fsarr(65) as string
+ for iGroup=0 to fgg
+  for iControl=0 to fpifield(iGroup)-1
+   `
+   rem get name and data from field
+   set file map dword 2, ENTITY_SET_GROUP_INDEX, iGroup
+   set file map dword 2, ENTITY_SET_CONTROL_INDEX, iControl
+   set file map dword 2, ENTITY_GET_CONTROL_NAME, 1
+   wait for file map event 2
+   while get file map dword( 2, ENTITY_GET_CONTROL_NAME ) = 1
+    wait for file map event 2
+   endwhile
+   name$ = get file map string$( 2, STRING_A )
+   set file map dword 2, ENTITY_SET_GROUP_INDEX, iGroup
+   set file map dword 2, ENTITY_SET_CONTROL_INDEX, iControl
+   set file map dword 2, ENTITY_GET_CONTROL_CONTENTS, 1
+   wait for file map event 2
+   while get file map dword( 2, ENTITY_GET_CONTROL_CONTENTS ) = 1
+    wait for file map event 2
+   endwhile
+   data$ = get file map string$( 2, STRING_B )
+   `
+   rem match up data with correct string
+   fs$=strarr$(477) : if name$=fs$ then fsarr(1)=data$
+   fs$=strarr$(478) : if name$=fs$ then fsarr(2)=data$
+   fs$=strarr$(479) : if name$=fs$ then fsarr(3)=data$
+   fs$=strarr$(481) : if name$=fs$ then fsarr(4)=data$
+   fs$=strarr$(482) : if name$=fs$ then fsarr(5)=data$
+   fs$=strarr$(483) : if name$=fs$ then fsarr(6)=data$
+   fs$=strarr$(484) : if name$=fs$ then fsarr(7)=data$
+   fs$=strarr$(485) : if name$=fs$ then fsarr(8)=data$
+   fs$=strarr$(486) : if name$=fs$ then fsarr(9)=data$
+   fs$=strarr$(487) : if name$=fs$ then fsarr(10)=data$
+   fs$=strarr$(488) : if name$=fs$ then fsarr(11)=data$
+   fs$=strarr$(489) : if name$=fs$ then fsarr(12)=data$
+   fs$=strarr$(491) : if name$=fs$ then fsarr(13)=data$
+   fs$=strarr$(492) : if name$=fs$ then fsarr(14)=data$
+   fs$=strarr$(493) : if name$=fs$ then fsarr(15)=data$
+   fs$=strarr$(495) : if name$=fs$ then fsarr(16)=data$
+   fs$=strarr$(499) : if name$=fs$ then fsarr(17)=data$
+   fs$=strarr$(503) : if name$=fs$ then fsarr(18)=data$
+   fs$=strarr$(507) : if name$=fs$ then fsarr(19)=data$
+   fs$=strarr$(511) : if name$=fs$ then fsarr(20)=data$
+   fs$=strarr$(515) : if name$=fs$ then fsarr(21)=data$
+   fs$=strarr$(520) : if name$=fs$ then fsarr(22)=data$
+   fs$=strarr$(522) : if name$=fs$ then fsarr(23)=data$
+   fs$=strarr$(523) : if name$=fs$ then fsarr(24)=data$
+   fs$=strarr$(524) : if name$=fs$ then fsarr(25)=data$
+   fs$=strarr$(526) : if name$=fs$ then fsarr(26)=data$
+   fs$=strarr$(527) : if name$=fs$ then fsarr(27)=data$
+   fs$=strarr$(528) : if name$=fs$ then fsarr(28)=data$
+   fs$=strarr$(530) : if name$=fs$ then fsarr(29)=data$
+   fs$=strarr$(531) : if name$=fs$ then fsarr(30)=data$
+   fs$=strarr$(532) : if name$=fs$ then fsarr(31)=data$
+   fs$=strarr$(533) : if name$=fs$ then fsarr(32)=data$
+   fs$=strarr$(534) : if name$=fs$ then fsarr(33)=data$
+   fs$=strarr$(535) : if name$=fs$ then fsarr(34)=data$
+   fs$=strarr$(536) : if name$=fs$ then fsarr(35)=data$
+   fs$=strarr$(537) : if name$=fs$ then fsarr(36)=data$
+   fs$=strarr$(538) : if name$=fs$ then fsarr(37)=data$
+   fs$=strarr$(539) : if name$=fs$ then fsarr(38)=data$
+   fs$=strarr$(540) : if name$=fs$ then fsarr(39)=data$
+   fs$=strarr$(541) : if name$=fs$ then fsarr(40)=data$
+   fs$=strarr$(542) : if name$=fs$ then fsarr(41)=data$
+   fs$=strarr$(543) : if name$=fs$ then fsarr(42)=data$
+   fs$=strarr$(544) : if name$=fs$ then fsarr(43)=data$
+   fs$=strarr$(545) : if name$=fs$ then fsarr(44)=data$
+   fs$=strarr$(546) : if name$=fs$ then fsarr(45)=data$
+   fs$=strarr$(547) : if name$=fs$ then fsarr(46)=data$
+   fs$=strarr$(548) : if name$=fs$ then fsarr(47)=data$
+   fs$=strarr$(549) : if name$=fs$ then fsarr(48)=data$
+   fs$=strarr$(550) : if name$=fs$ then fsarr(49)=data$
+   fs$=strarr$(551) : if name$=fs$ then fsarr(50)=data$
+   fs$=strarr$(552) : if name$=fs$ then fsarr(51)=data$
+   fs$=strarr$(553) : if name$=fs$ then fsarr(52)=data$
+   fs$=strarr$(497) : if name$=fs$ then fsarr(53)=data$
+   fs$=strarr$(498) : if name$=fs$ then fsarr(54)=data$
+   fs$=strarr$(501) : if name$=fs$ then fsarr(55)=data$
+   fs$=strarr$(502) : if name$=fs$ then fsarr(56)=data$
+   fs$=strarr$(505) : if name$=fs$ then fsarr(57)=data$
+   fs$=strarr$(506) : if name$=fs$ then fsarr(58)=data$
+   fs$=strarr$(509) : if name$=fs$ then fsarr(59)=data$
+   fs$=strarr$(510) : if name$=fs$ then fsarr(60)=data$
+   fs$=strarr$(513) : if name$=fs$ then fsarr(61)=data$
+   fs$=strarr$(514) : if name$=fs$ then fsarr(62)=data$
+   fs$=strarr$(517) : if name$=fs$ then fsarr(63)=data$
+   fs$=strarr$(518) : if name$=fs$ then fsarr(64)=data$
+   `
+  next iControl
+ next iGroup
+ `
+ rem Create new FPI file
+ undim fpifile$()
+ dim fpifile$(99) : i=0
+ if fpitype=1
+  fpititle$=strarr$(316)
+  fpifile$(i)=";AIScript from Wizard" : inc i
+  fpifile$(i)=";Header" : inc i
+  fpifile$(i)="desc          = "+fpititle$ : inc i
+  fpifile$(i)=";Script" : inc i
+  fpifile$(i)=":state=0:music="+fsarr(2) : inc i
+  fpifile$(i)=":state=0:hudreset,hudx="+fsarr(23)+",hudy="+fsarr(24)+",hudimage="+fsarr(22)+",hudmake=display" : inc i
+  fpifile$(i)=":state=0:hudreset,hudx="+fsarr(32)+",hudy="+fsarr(33)+",hudimage="+fsarr(31)+",hudtype=1,hudmake=button" : inc i
+  rem V103
+  fpifile$(i)=":state=0:hudreset,hudx="+fsarr(35)+",hudy="+fsarr(36)+",hudimage="+fsarr(34)+",hudtype=2,hudmake=button" : inc i
+  fpifile$(i)=":state=0:hudreset,hudx="+fsarr(38)+",hudy="+fsarr(39)+",hudimage="+fsarr(37)+",hudtype=5,hudmake=button" : inc i
+  fpifile$(i)=":state=0:hudreset,hudx=50,hudy=50,hudimage="+fsarr(03)+",hudmake=pointer" : inc i
+  fpifile$(i)=":state=0:state=2" : inc i
+  fpifile$(i)=":state=2:backdrop="+fsarr(1) : inc i
+  fpifile$(i)=":state=2,hudselectionmade=1:destroy" : inc i
+  fpifile$(i)=":state=2,hudselectionmade=5:quitgame,destroy" : inc i
+  rem V103
+  fpifile$(i)=":state=2,hudselectionmade=2:loadgame" : inc i
+ endif
+ if fpitype=2
+  fpititle$=strarr$(317)
+  fpifile$(i)=";AIScript from Wizard" : inc i
+  fpifile$(i)=";Header" : inc i
+  fpifile$(i)="desc          = "+fpititle$ : inc i
+  fpifile$(i)=";Script" : inc i
+  fpifile$(i)=":state=0:music="+fsarr(2) : inc i
+  fpifile$(i)=":state=0:backdrop="+fsarr(1) : inc i
+  fpifile$(i)=":state=0:hudreset,hudx="+fsarr(23)+",hudy="+fsarr(24)+",hudimage="+fsarr(22)+",hudmake=display" : inc i
+  fpifile$(i)=":state=0:hudreset,hudx="+fsarr(26)+",hudy="+fsarr(27)+",hudimage="+fsarr(25)+",hudmake=display" : inc i
+  fpifile$(i)=":state=0:hudreset,hudx="+fsarr(29)+",hudy="+fsarr(30)+",hudimage="+fsarr(28)+",hudhide=1,hudtype=1,hudmake=internal" : inc i
+  fpifile$(i)=":state=0:state=1" : inc i
+ endif
+ if fpitype=3
+  fpititle$=strarr$(318)
+  fpifile$(i)=";AIScript from Wizard" : inc i
+  fpifile$(i)=";Header" : inc i
+  fpifile$(i)="desc          = "+fpititle$ : inc i
+  fpifile$(i)="; Setup Level Stats" : inc i
+  fpifile$(i)=":state=0:sky="+fsarr(4) : inc i
+  fpifile$(i)=":state=0:music="+fsarr(2)+",musicvolume=50,soundscale=25" : inc i
+  fpifile$(i)=":state=0:fog="+fsarr(5)+",fogred="+fsarr(6)+",foggreen="+fsarr(7)+",fogblue="+fsarr(8) : inc i
+  fpifile$(i)=":state=0:ambience="+fsarr(9)+",ambiencered="+fsarr(10)+",ambiencegreen="+fsarr(11)+",ambienceblue="+fsarr(12) : inc i
+  fpifile$(i)="" : inc i
+  fpifile$(i)=":state=0:hudreset,hudx=50,hudy=50,hudsizex=1024,hudsizey=768,hudimage="+fsarr(13)+",hudhide=1,hudtype=3,hudmake=internal" : inc i
+  fpifile$(i)=":state=0:hudreset,hudx=50,hudy=50,hudred=128,hudgreen=0,hudblue=0,hudsizex=1024,hudsizey=768,hudimage="+fsarr(14)+",hudhide=1,hudtype=2,hudmake=internal" : inc i
+  fpifile$(i)=":state=0:hudreset,hudx=50,hudy=50,hudred=128,hudgreen=128,hudblue=128,hudsizex=1024,hudsizey=768,hudimage="+fsarr(15)+",hudhide=1,hudtype=4,hudmake=internal" : inc i
+  fpifile$(i)=":state=0:hudreset,hudx="+fsarr(53)+",hudy="+fsarr(54)+",hudimage="+fsarr(16)+",hudmake=display" : inc i
+  fpifile$(i)=":state=0:hudreset,hudx="+fsarr(55)+",hudy="+fsarr(56)+",hudsizex=16,hudsizey=16,hudimage="+fsarr(17)+",hudtype=1,hudmake=numeric" : inc i
+  fpifile$(i)=":state=0:hudreset,hudx="+fsarr(57)+",hudy="+fsarr(58)+",hudimage="+fsarr(18)+",hudmake=display" : inc i
+  fpifile$(i)=":state=0:hudreset,hudx="+fsarr(59)+",hudy="+fsarr(60)+",hudsizex=16,hudsizey=16,hudimage="+fsarr(19)+",hudtype=2,hudmake=numeric" : inc i
+  fpifile$(i)=":state=0:hudreset,hudx="+fsarr(61)+",hudy="+fsarr(62)+",hudimage="+fsarr(20)+",hudtype=3,hudmake=status" : inc i
+  fpifile$(i)=":state=0:hudreset,hudx="+fsarr(63)+",hudy="+fsarr(64)+",hudsizex=16,hudsizey=16,hudimage="+fsarr(21)+",hudtype=3,hudmake=numeric" : inc i
+  fpifile$(i)="; Setup Game Menu" : inc i
+  fpifile$(i)=":state=0:hudreset,hudx="+fsarr(23)+",hudy="+fsarr(24)+",hudimage="+fsarr(22)+",hudname=gamemenutitle,hudhide=1,hudmake=display" : inc i
+  rem V103
+  fpifile$(i)=":state=0:hudreset,hudx="+fsarr(41)+",hudy="+fsarr(42)+",hudimage="+fsarr(40)+",hudtype=2,hudname=loadgame,hudhide=1,hudmake=button" : inc i
+  fpifile$(i)=":state=0:hudreset,hudx="+fsarr(44)+",hudy="+fsarr(45)+",hudimage="+fsarr(43)+",hudtype=3,hudname=savegame,hudhide=1,hudmake=button" : inc i
+  fpifile$(i)=":state=0:hudreset,hudx="+fsarr(26)+",hudy="+fsarr(27)+",hudimage="+fsarr(25)+",hudname=savingprompt,hudhide=1,hudmake=display" : inc i
+  fpifile$(i)=":state=0:hudreset,hudx="+fsarr(47)+",hudy="+fsarr(48)+",hudimage="+fsarr(46)+",hudtype=5,hudname=quitgame,hudhide=1,hudmake=button" : inc i
+  fpifile$(i)=":state=0:hudreset,hudx="+fsarr(50)+",hudy="+fsarr(51)+",hudimage="+fsarr(49)+",hudtype=4,hudname=returngame,hudhide=1,hudmake=button" : inc i
+  fpifile$(i)=":state=0:hudreset,hudx=50,hudy=50,hudimage="+fsarr(3)+",hudname=pointer,hudhide=1,hudmake=pointer" : inc i
+  fpifile$(i)=":state=0:state=1" : inc i
+  fpifile$(i)="" : inc i
+  fpifile$(i)="; Main Game" : inc i
+  fpifile$(i)=":state=1,escapekeypressed=1:pausegame,state=2" : inc i
+  rem V103
+  fpifile$(i)=":state=1,scancodekeypressed=197:pausegame,state=11" : inc i
+  fpifile$(i)=":state=1,scancodekeypressed=64:hudshow=savingprompt,quicksavegame,pausegame,state=21" : inc i
+  fpifile$(i)=":state=1,scancodekeypressed=67:quickloadgame,state=31" : inc i
+  fpifile$(i)=":state=11,scancodekeypressed=0:state=12" : inc i
+  fpifile$(i)=":state=12,scancodekeypressed=197:resumegame,state=13" : inc i
+  fpifile$(i)=":state=13,scancodekeypressed=0:state=1" : inc i
+  fpifile$(i)=":state=21,scancodekeypressed=0:hudunshow=savingprompt,resumegame,state=1" : inc i
+  fpifile$(i)=":state=31,scancodekeypressed=0:state=1" : inc i
+  fpifile$(i)="" : inc i
+  fpifile$(i)="; Game Menu" : inc i
+  fpifile$(i)=":state=2,escapekeypressed=0:state=3" : inc i
+  rem V103
+  fpifile$(i)=":state=3:hudshow=gamemenutitle,hudshow=loadgame,hudshow=savegame,hudshow=quitgame,hudshow=returngame,hudshow=pointer,state=4" : inc i
+  fpifile$(i)=":state=4,hudselectionmade=2:loadgame" : inc i
+  fpifile$(i)=":state=4,hudselectionmade=3:savegame,state=6" : inc i
+  fpifile$(i)=":state=4,hudselectionmade=5:continuegame,destroy" : inc i
+  fpifile$(i)=":state=4,hudselectionmade=4:state=6" : inc i
+  fpifile$(i)=":state=4,escapekeypressed=1:state=5" : inc i
+  fpifile$(i)=":state=5,escapekeypressed=0:state=6" : inc i
+  fpifile$(i)=":state=6:hudunshow=gamemenutitle,hudunshow=loadgame,hudunshow=savegame,hudunshow=quitgame,hudunshow=returngame,hudunshow=pointer,resumegame,state=1" : inc i
+ endif
+ if fpitype=4 or fpitype=5
+  if fpitype=4 then fpititle$=strarr$(319)
+  if fpitype=5 then fpititle$=strarr$(320)
+  fpifile$(i)=";AIScript from Wizard" : inc i
+  fpifile$(i)=";Header" : inc i
+  fpifile$(i)="desc          = "+fpititle$ : inc i
+  fpifile$(i)=";Script" : inc i
+  fpifile$(i)=":state=0:music="+fsarr(2) : inc i
+  fpifile$(i)=":state=0:backdrop="+fsarr(1) : inc i
+  fpifile$(i)=":state=0:hudreset,hudx="+fsarr(23)+",hudy="+fsarr(24)+",hudimage="+fsarr(22)+",hudmake=display" : inc i
+  fpifile$(i)=":state=0:timerstart,state=1" : inc i
+  fpifile$(i)=":state=1,timergreater="+fsarr(52)+":destroy" : inc i
+ endif
+ `
+ rem save the string array as an FPI file
+ if file exist(fpiname$+"d")=1 then delete file fpiname$+"d"
+ if file exist(fpiname$)=1 then delete file fpiname$
+ save array fpiname$+"d",fsarr()
+ save array fpiname$,fpifile$()
+ `
+return
+
+_interface_handlefpi:
+ `
+ rem loop while editing FPI
+ leavefpi=0
+ while leavefpi=0
+  `
+  rem open filemap
+  open file map 2, "FPSFPIWIZARD"
+  wait for file map event 2
+  `
+  rem If change recorded, and absolute path, correct to relative path
+  for iGroup=0 to fgg
+   for iControl=0 to fpifield(iGroup)-1
+    set file map dword 2, ENTITY_SET_GROUP_INDEX, iGroup
+    set file map dword 2, ENTITY_SET_CONTROL_INDEX, iControl
+    set file map dword 2, ENTITY_GET_CONTROL_CONTENTS, 1
+    wait for file map event 2
+    while get file map dword( 2, ENTITY_GET_CONTROL_CONTENTS ) = 1
+     wait for file map event 2
+    endwhile
+    data$ = get file map string$( 2, STRING_B )
+    if mid$(data$,2)=":"
+     newdata$=right$(data$,len(data$)-len(rootdir$))
+     if lower$(right$(newdata$,2))=".x"
+      rem sky model, only need path
+      tskyname$=getpath(newdata$)
+      newdata$=left$(tskyname$,len(tskyname$)-1)
+     endif
+     set file map dword 2, ENTITY_SET_GROUP_INDEX, iGroup
+     set file map dword 2, ENTITY_SET_CONTROL_INDEX, iControl
+     set file map string$ 2, STRING_A, newdata$
+     set file map dword 2, ENTITY_SET_CONTROL_CONTENTS, 1
+     wait for file map event 2
+     while get file map dword( 2, ENTITY_SET_CONTROL_CONTENTS ) = 1
+      wait for file map event 2
+     endwhile
+    endif
+   next iControl
+  next iGroup
+  `
+  rem If select OK, save
+  if get file map dword ( 2, 204 ) = 1
+   gosub _interface_savefpi
+   set file map dword 2, 212, 1
+   wait for file map event 2
+   leavefpi=1
+  endif
+  `
+  rem Detect for CANCEL and CLOSE, to leave
+  if get file map dword ( 2, 208 )=1
+   set file map dword 2, 212, 1
+   wait for file map event 2
+   leavefpi=1
+  endif
+  `
+  rem If select PREVIEW, run FPI preview application window
+  if get file map dword ( 2, 220 ) = 1
+   rem save settings in TEMP FPI
+   storefpiname$=fpiname$
+   fpiname$="languagebank\"+language$+"\gamebank\templateoriginal\previewpage.fpi"
+   gosub _interface_savefpi
+   rem run preview with
+   set dir ".."
+   execute file "FPSC-Screens.exe",str$(fpitype)+","+fpiname$,"",1
+   set dir "Files"
+   rem restore preview button
+   set file map dword 2, 220, 0
+   wait for file map event 2
+   rem restore pfpiname
+   fpiname$=storefpiname$
+  endif
+  `
+  rem Close filemap
+  close file map 2
+  `
+ endwhile
+ `
+return
+
+
+rem
+rem Interface Properties Functions
+rem
+
+function setpropertybase(code, s$)
+ if s$="" then s$=""
+ set file map string$ 2, STRING_A, s$
+ set file map string$ 2, STRING_B, ""
+ set file map string$ 2, STRING_C, ""
+ set file map dword 2, code, 1
+ wait for file map event 2
+ while get file map dword( 2, code ) = 1
+  wait for file map event 2
+ endwhile
+endfunction
+
+function setpropertystring(group,data$,field$,desc$)
+ if data$="" then data$=""
+ set file map string$ 2, STRING_A, field$
+ set file map string$ 2, STRING_B, data$
+ set file map string$ 2, STRING_C, desc$
+ set file map dword 2, ENTITY_SET_GROUP_INDEX, group
+ set file map dword 2, ENTITY_ADD_EDIT_BOX, 1
+ wait for file map event 2
+ while get file map dword( 2, ENTITY_ADD_EDIT_BOX ) = 1
+  wait for file map event 2
+ endwhile
+endfunction
+
+function setpropertycolor(group,dataval as DWORD,field$,desc$)
+ data$=str$(rgbr(dataval))+" "+str$(rgbg(dataval))+" "+str$(rgbb(dataval))
+ set file map dword 2, ENTITY_SET_GROUP_INDEX, group
+ set file map string$ 2, STRING_A, field$
+ set file map string$ 2, STRING_B, data$
+ set file map string$ 2, STRING_C, desc$
+ set file map dword 2, ENTITY_ADD_COLOR_PICKER, 1
+ wait for file map event 2
+ while get file map dword( 2, ENTITY_ADD_COLOR_PICKER ) = 1
+  wait for file map event 2
+ endwhile
+endfunction
+
+function setpropertyfile(group,data$,field$,desc$,within$)
+ if data$="" then data$=""
+ set file map dword 2, ENTITY_SET_GROUP_INDEX, group
+ set file map string$ 2, STRING_A, field$
+ set file map string$ 2, STRING_B, data$
+ set file map string$ 2, STRING_C, desc$
+ set file map string$ 2, 2024, rootdir$+within$
+ set file map string$ 2, 2280, strarr$(321)
+ set file map string$ 2, 2536, strarr$(322)
+ set file map dword 2, ENTITY_ADD_FILE_PICKER, 1
+ wait for file map event 2
+ while get file map dword( 2, ENTITY_ADD_FILE_PICKER ) = 1
+  wait for file map event 2
+ endwhile
+endfunction
+
+function fillgloballistwithweapons()
+ dim list$(1+gunmax)
+ list$(0) = ""
+ for gunid=1 to gunmax
+  list$(gunid) = gun(gunid).name$
+ next gunid
+ retvalue=gunmax
+endfunction retvalue
+
+function setpropertylist(group,controlindex,data$,field$,desc$,listtype)
+ if data$="" then data$=""
+ if listtype=0
+  if data$="0" then data$=strarr$(471)
+  if data$="1" then data$=strarr$(470)
+ endif
+ set file map string$ 2, STRING_A, field$
+ set file map string$ 2, STRING_B, data$
+ set file map string$ 2, STRING_C, desc$
+ set file map dword 2, ENTITY_SET_GROUP_INDEX, group
+ set file map dword 2, ENTITY_SET_CONTROL_INDEX, controlindex
+ set file map dword 2, ENTITY_ADD_LIST_BOX, 1
+ wait for file map event 2
+ while get file map dword( 2, ENTITY_ADD_LIST_BOX ) = 1
+  wait for file map event 2
+ endwhile
+ listmax=0
+ if listtype=0
+  list$(0)=strarr$(471)
+  list$(1)=strarr$(470)
+  listmax=1
+ endif
+ if listtype=1
+  listmax=fillgloballistwithweapons()
+ endif
+ for i = 0 to listmax
+  set file map dword 2, ENTITY_SET_GROUP_INDEX, group
+  set file map dword 2, ENTITY_SET_CONTROL_INDEX, controlindex
+  set file map string$ 2, STRING_A, list$( i )
+  set file map dword 2, ENTITY_ADD_ITEM_TO_LIST_BOX, 1
+  wait for file map event 2
+  while get file map dword( 2, ENTITY_ADD_ITEM_TO_LIST_BOX ) = 1
+   wait for file map event 2
+  endwhile
+ next i
+endfunction
+
+rem
+rem Interface Properties Expressions
+rem
+
+function getpropertyfield(group,iControl)
+ set file map dword 2, ENTITY_GET_CONTROL_NAME, 1
+ set file map dword 2, ENTITY_SET_GROUP_INDEX, group
+ set file map dword 2, ENTITY_SET_CONTROL_INDEX, iControl
+ wait for file map event 2
+ while get file map dword( 2, ENTITY_GET_CONTROL_NAME ) = 1
+  wait for file map event 2
+ endwhile
+ field$ = get file map string$( 2, STRING_A )
+endfunction field$
+
+function getpropertydata(group,iControl)
+ set file map dword 2, ENTITY_GET_CONTROL_CONTENTS, 1
+ set file map dword 2, ENTITY_SET_GROUP_INDEX, group
+ set file map dword 2, ENTITY_SET_CONTROL_INDEX, iControl
+ wait for file map event 2
+ while get file map dword( 2, ENTITY_GET_CONTROL_CONTENTS ) = 1
+  wait for file map event 2
+ endwhile
+ data$ = get file map string$( 2, STRING_B )
+endfunction data$
+
+rem
+rem COMMON INTERFACE FUNCTIONS
+rem
+
+function set_progress_position( item, position )
+   set file map dword 1, SET_PROGRESS_ITEM, item
+   set file map dword 1, SET_PROGRESS_POSITION, position
+   wait for file map event 1
+   while get file map dword ( 1, SET_PROGRESS_ITEM ) = 1
+    wait for file map event 1
+   endwhile
+endfunction
+
+function get_list_box( item, index )
+   set file map dword 1, SET_LIST_ITEM, item
+   set file map dword 1, SET_LIST_INDEX, index
+   set file map dword 1, GET_LIST_ITEM, 1
+   wait for file map event 1
+   while get file map dword ( 1, GET_LIST_ITEM ) = 1
+    wait for file map event 1
+   endwhile
+   contents$ = get file map string$ ( 1, STRING_A )
+endfunction contents$
+
+function set_radio_state( item, state )
+   if state=0 then state=2
+   set file map dword 1, SET_RADIO_ITEM, item
+   set file map dword 1, SET_RADIO_STATE, state
+   wait for file map event 1
+   while get file map dword ( 1, SET_RADIO_STATE ) > 0
+    wait for file map event 1
+   endwhile
+endfunction
+
+function get_radio_state( item )
+   set file map dword 1, SET_RADIO_ITEM, item
+   wait for file map event 1
+   while get file map dword ( 1, SET_RADIO_ITEM ) > 0
+    wait for file map event 1
+   endwhile
+   state = get file map dword ( 1, GET_RADIO_ITEM )
+endfunction state
+
+function set_edit_item( item, text$ )
+   set file map dword 1, SET_EDIT_ITEM, item
+   set file map string$ 1, STRING_A, text$
+   set file map dword 1, SET_EDIT_TEXT, 1
+   wait for file map event 1
+   while get file map dword ( 1, SET_EDIT_TEXT ) = 1
+    wait for file map event 1
+   endwhile
+endfunction
+
+function get_edit_item( item )
+   set file map dword 1, SET_EDIT_ITEM, item
+   set file map dword 1, GET_EDIT_TEXT, 1
+   wait for file map event 1
+   while get file map dword ( 1, GET_EDIT_TEXT ) = 1
+    wait for file map event 1
+   endwhile
+   text$ = get file map string$ ( 1, STRING_A )
+endfunction text$
+
+function browse( title$, directory$, filter$ )
+   set file map string$ 1, STRING_A, title$
+   set file map string$ 1, STRING_B, directory$
+   set file map string$ 1, STRING_C, filter$
+   set file map dword 1, BROWSE_DISPLAY, 1
+   wait for file map event 1
+   while get file map dword ( 1, BROWSE_FILE_SELECTED ) = 0
+    wait for file map event 1
+   endwhile
+   set file map dword 1, BROWSE_FILE_SELECTED, 0
+   set file map dword 1, BUTTON_CLICKED, 0
+endfunction
+
+function browse_for_folder( directory$ )
+   set file map string$ 1, STRING_A, directory$
+   set file map dword 1, 200, 1
+   wait for file map event 1
+   while get file map dword ( 1, 204 ) = 0
+    wait for file map event 1
+   endwhile
+   set file map dword 1, 204, 0
+   wait for file map event 1
+   text$ = get file map string$ ( 1, STRING_A )
+   set file map dword 1, BUTTON_CLICKED, 0
+   wait for file map event 1
+endfunction text$
+
+function add_list_item( item, text$ )
+   set file map dword 1, SET_LIST_ITEM, item
+   set file map string$ 1, STRING_A, text$
+   set file map dword 1, ADD_LIST_ITEM, 1
+   wait for file map event 1
+   while get file map dword ( 1, ADD_LIST_ITEM ) = 1
+    wait for file map event 1
+   endwhile
+endfunction
+
+function get_list_item( item, index )
+   set file map dword 1, SET_LIST_ITEM, item
+   set file map dword 1, SET_LIST_INDEX, index
+   set file map dword 1, GET_LIST_ITEM, 1
+   wait for file map event 1
+   while get file map dword ( 1, GET_LIST_ITEM ) = 1
+    wait for file map event 1
+   endwhile
+   text$ = get file map string$ ( 1, STRING_A )
+endfunction text$
+
+function delete_list_item( item, index )
+   set file map dword 1, SET_LIST_ITEM, item
+   set file map dword 1, SET_LIST_INDEX, index
+   set file map dword 1, DELETE_LIST_ITEM, 1
+   wait for file map event 1
+   while get file map dword ( 1, DELETE_LIST_ITEM ) = 1
+    wait for file map event 1
+   endwhile
+endfunction
+
+function clear_list( item )
+   set file map dword 1, SET_LIST_ITEM, item
+   set file map dword 1, LIST_CLEAR, 1
+   wait for file map event 1
+   while get file map dword ( 1, LIST_CLEAR ) = 1
+    wait for file map event 1
+   endwhile
+endfunction
+
+function select_list_item( item, selectionindex )
+   set file map dword 1, SET_LIST_ITEM, item
+   set file map dword 1, LIST_SELECT_ITEM_INDEX, selectionindex
+   set file map dword 1, LIST_SELECT_ITEM, 1
+   wait for file map event 1
+   while get file map dword ( 1, LIST_SELECT_ITEM ) = 1
+    wait for file map event 1
+   endwhile
+endfunction
+
+function get_list_item_selection( item )
+   selection = -1
+   set file map dword 1, SET_LIST_ITEM, item
+   set file map dword 1, GET_LIST_SELECTION, 1
+   wait for file map event 1
+   while get file map dword ( 1, GET_LIST_SELECTION ) = 1
+    wait for file map event 1
+   endwhile
+   selection = get file map dword( 1, LIST_SELECTION )
+endfunction selection
+
+function insert_list_item( item, position, text$ )
+   set file map dword 1, SET_LIST_ITEM, item
+   set file map dword 1, LIST_INSERT_POSITION, position
+   set file map string$ 1, STRING_A, text$
+   set file map dword 1, LIST_INSERT_ITEM, 1
+   wait for file map event 1
+   while get file map dword ( 1, LIST_INSERT_ITEM ) = 1
+    wait for file map event 1
+   endwhile
+endfunction
+
+function add_combo_box( item, text$ )
+   set file map dword 1, SET_COMBO_ITEM, item
+   set file map string$ 1, STRING_A, text$
+   set file map dword 1, ADD_COMBO_ITEM, 1
+   wait for file map event 1
+   while get file map dword ( 1, ADD_COMBO_ITEM ) = 1
+    wait for file map event 1
+   endwhile
+endfunction
+
+`
+` Property Functions
+`
+
+function add_group( name$ )
+   set file map string$ 2, STRING_A, name$
+   set file map dword 2, ENTITY_ADD_GROUP, 1
+   wait for file map event 2
+   while get file map dword( 2, ENTITY_ADD_GROUP ) = 1
+    wait for file map event 2
+   endwhile
+endfunction
+
+function add_edit_box( group, name$, contents$, description$ )
+   set file map dword 2, ENTITY_SET_GROUP_INDEX, group
+   set file map string$ 2, STRING_A, name$
+   set file map string$ 2, STRING_B, contents$
+   set file map string$ 2, STRING_C, description$
+   set file map dword 2, ENTITY_ADD_EDIT_BOX, 1
+   wait for file map event 2
+   while get file map dword( 2, ENTITY_ADD_EDIT_BOX ) = 1
+    wait for file map event 2
+   endwhile
+endfunction
+
+function add_color_picker( group, name$, contents$, description$ )
+   set file map dword 2, ENTITY_SET_GROUP_INDEX, group
+   set file map string$ 2, STRING_A, name$
+   set file map string$ 2, STRING_B, contents$
+   set file map string$ 2, STRING_C, description$
+   set file map dword 2, ENTITY_ADD_COLOR_PICKER, 1
+   wait for file map event 2
+   while get file map dword( 2, ENTITY_ADD_COLOR_PICKER ) = 1
+    wait for file map event 2
+   endwhile
+endfunction
+
+function add_file_picker_ex( group, name$, contents$, description$, dir$, filter$, title$ )
+   set file map dword 2, ENTITY_SET_GROUP_INDEX, group
+   set file map string$ 2, STRING_A, name$
+   set file map string$ 2, STRING_B, contents$
+   set file map string$ 2, STRING_C, description$
+   set file map string$ 2, 2024, dir$
+   if filter$<>""
+    set file map string$ 2, 2280, filter$
+   else
+    set file map string$ 2, 2280, strarr$(323)
+   endif
+   if title$<>""
+    set file map string$ 2, 2536, title$
+   else
+    set file map string$ 2, 2536, strarr$(324)
+   endif
+   set file map dword 2, ENTITY_ADD_FILE_PICKER, 1
+   wait for file map event 2
+   while get file map dword( 2, ENTITY_ADD_FILE_PICKER ) = 1
+    wait for file map event 2
+   endwhile
+endfunction
+
+function add_file_picker( group, name$, contents$, description$, dir$ )
+ add_file_picker_ex( group, name$, contents$, description$, dir$, "", "" )
+endfunction
+
+function add_font_picker( group, name$, contents$, description$ )
+   set file map dword 2, ENTITY_SET_GROUP_INDEX, group
+   set file map string$ 2, STRING_A, name$
+   set file map string$ 2, STRING_B, contents$
+   set file map string$ 2, STRING_C, description$
+   set file map dword 2, ENTITY_ADD_FONT_PICKER, 1
+   wait for file map event 2
+   while get file map dword( 2, ENTITY_ADD_FONT_PICKER ) = 1
+    wait for file map event 2
+   endwhile
+endfunction
+
+function add_list_box( group, name$, contents$, description$ )
+   set file map dword 2, ENTITY_SET_GROUP_INDEX, group
+   set file map string$ 2, STRING_A, name$
+   set file map string$ 2, STRING_B, contents$
+   set file map string$ 2, STRING_C, description$
+   set file map dword 2, ENTITY_ADD_LIST_BOX, 1
+   wait for file map event 2
+   while get file map dword( 2, ENTITY_ADD_LIST_BOX ) = 1
+    wait for file map event 2
+   endwhile
+endfunction
+
+function add_item_to_list_box( group, control, item$ )
+   set file map dword 2, ENTITY_SET_GROUP_INDEX, group
+   set file map dword 2, ENTITY_SET_CONTROL_INDEX, control
+   set file map string$ 2, STRING_A, item$
+   set file map dword 2, ENTITY_ADD_ITEM_TO_LIST_BOX, 1
+   wait for file map event 2
+   while get file map dword( 2, ENTITY_ADD_ITEM_TO_LIST_BOX ) = 1
+    wait for file map event 2
+   endwhile
+endfunction
+
+function get_control_name( group, control )
+   set file map dword 2, ENTITY_SET_GROUP_INDEX, group
+   set file map dword 2, ENTITY_SET_CONTROL_INDEX, control
+   set file map dword 2, ENTITY_GET_CONTROL_NAME, 1
+   wait for file map event 2
+   while get file map dword( 2, ENTITY_GET_CONTROL_NAME ) = 1
+    wait for file map event 2
+   endwhile
+   name$ =  get file map string$( 2, STRING_A )
+endfunction name$
+
+function get_control_contents( group, control )
+   set file map dword 2, ENTITY_SET_GROUP_INDEX, group
+   set file map dword 2, ENTITY_SET_CONTROL_INDEX, control
+   set file map dword 2, ENTITY_GET_CONTROL_CONTENTS, 1
+   wait for file map event 2
+   while get file map dword( 2, ENTITY_GET_CONTROL_CONTENTS ) = 1
+    wait for file map event 2
+   endwhile
+   contents$ = get file map string$( 2, STRING_B )
+endfunction contents$
+
+function get_control_description( group, control )
+   set file map dword 2, ENTITY_SET_GROUP_INDEX, group
+   set file map dword 2, ENTITY_SET_CONTROL_INDEX, control
+   set file map dword 2, ENTITY_GET_CONTROL_DESCRIPTION, 1
+   wait for file map event 2
+   while get file map dword( 2, ENTITY_GET_CONTROL_DESCRIPTION ) = 1
+    wait for file map event 2
+   endwhile
+   description$ = get file map string$( 2, STRING_C )
+endfunction description$
+
+`
+`
+`
+
+function popup_text( statusbar$ )
+ open file map 1,"FPSEXCHANGE"
+ set file map dword 1, 750, 1
+ wait for file map event 1
+ close file map 1
+ while 1
+  open file map 2, "FPSPOPUP"
+  wait for file map event 2
+  if get file map dword( 2, 0 ) = 1
+   set file map string$ 2, 1000, statusbar$
+   set file map dword 2, 4, 1
+   wait for file map event 2
+   while get file map dword( 2, 4 ) = 1
+    wait for file map event 2
+   endwhile
+   close file map 2
+   exit
+  endif
+  close file map 2
+  sync
+ endwhile
+endfunction
+
+function popup_text_change( statusbar$ )
+ open file map 2, "FPSPOPUP"
+ wait for file map event 2
+ if get file map dword( 2, 0 ) = 1
+  set file map string$ 2, 1000, statusbar$
+  set file map dword 2, 4, 1
+  wait for file map event 2
+  while get file map dword( 2, 4 ) = 1
+   wait for file map event 2
+  endwhile
+  close file map 2
+ endif
+endfunction
+
+function popup_text_close()
+ open file map 2, "FPSPOPUP"
+ set file map dword 2, 8, 1
+ wait for file map event 2
+ close file map 2
+endfunction
+
+function timestampactivity(i,desc$)
+ if gproducelogfiles=1
+  if i=0
+   inc timestampactivityindex
+   if timestampactivityindex>999
+    timestampactivityindex=999
+   endif
+   i=timestampactivityindex
+  else
+   timestampactivityindex=i
+  endif
+  if i>timestampactivitymax
+   timestampactivitymax=i
+  endif
+  timestampactivity$(i)=str$(timer())+" : "+desc$
+  file$="..\FPSC-MapEditor.log" : if file exist(file$)=1 then delete file file$
+  open to write 1,file$
+   for t=1 to timestampactivitymax
+    write string 1,timestampactivity$(t)
+   next t
+  close file 1
+ endif
+endfunction
+

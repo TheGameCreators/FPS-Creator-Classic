@@ -1,0 +1,36 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Look and Shoot Close To Player
+
+;Triggers
+
+:state=0,plrcanbeseen:state=1,settarget
+:state=0:runfpidefault=1
+
+:state=1:rotatetoplr
+:state=1,plrcanbeseen:settarget
+:state=1,ifweapon=1,plrdistfurther=100,plrelevwithin=10:movetotarget=1,animate=5
+:state=1,plrdistwithin=101:rotatetoplr
+:state=1,ifweapon=1,plrdistwithin=101,plrcanbeseen=46,rateoffire:animate=1,rotatetoplr,freeze,useweapon,rundecal=6
+:state=1,ifweapon=0:animate=1,freeze,state=2,setframe=6
+:state=1,plrdistwithin=200,random=50:state=5
+:state=1,plrdistwithin=50:state=10
+:state=1,losetarget=100:state=5
+
+:state=2:incframe=6
+:state=2,frameatend=6:state=1,reloadweapon,sound=audiobank\guns\reload.wav
+
+:state=5,random=1:state=6,setframe=4
+:state=5:state=7,setframe=3
+:state=6:incframe=4,strafe=90,rotatetoplr
+:state=6,frameatend=4:state=1,animate=1
+:state=7:incframe=3,strafe=-90,rotatetoplr
+:state=7,frameatend=3:state=1,animate=1
+
+:state=10:state=11,setframe=5
+:state=11:incframe=5,strafe=180,rotatetoplr
+:state=11,frameatend=5:state=1,animate=1
+
+;End of Script

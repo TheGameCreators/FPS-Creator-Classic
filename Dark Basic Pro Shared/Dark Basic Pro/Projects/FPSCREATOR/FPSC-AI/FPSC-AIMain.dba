@@ -1,0 +1,103 @@
+rem
+rem Artificial Intelegence Main
+rem
+
+rem Set large text screen area
+if check display mode(1024,768,32)=1
+ set display mode 1024,768,32
+ set text font strarr$(5)
+endif
+
+rem Load All AI Scripts
+gosub _ai_setkeywords
+gosub _ai_scanfornewscripts
+
+rem Display The AI Info
+do
+ gosub _aimain_display
+ print strarr$(6)
+ wait key
+loop
+
+`
+` AI Main Subroutines
+`
+
+_aimain_display:
+
+rem AI Script Libaray Display Entry
+set cursor 0,0 : cls
+print strarr$(7);aiindexmaster
+if aiindexmaster>0
+ for t=1 to aiindexmaster
+  print t;" - ";scriptbank$(t)
+ next t
+endif
+
+rem Select script
+print : print strarr$(8)
+input strarr$(9);val$
+aiindex=val(val$)
+cls
+
+rem Library List
+print "HEADER"
+print strarr$(10);aiindex
+print strarr$(11);ailist(aiindex).file$
+print strarr$(12);ailist(aiindex).desc$
+print strarr$(13);ailist(aiindex).conditionfirst
+print strarr$(14);ailist(aiindex).conditionlast
+print
+
+rem Condition Sequence Steps
+print "SCRIPT"
+for conindex=ailist(aiindex).conditionfirst to ailist(aiindex).conditionlast
+ `
+ actindex=aicond(conindex).action
+ print " IF ";
+ for seq=aicond(conindex).first to aicond(conindex).last
+  valuetext$=""
+  wordtext$=conword$(aiconditionseq(seq).type)
+  select aiconditionseq(seq).type
+   case AICONDNEVER : print wordtext$; : endcase
+   case AICONDALWAYS : print wordtext$; : endcase
+   case AICONDSTATE : print wordtext$;"="; : valuetext$=str$(aiconditionseq(seq).valuea) : endcase
+   case AICONDASSOCIATED : print wordtext$;" "; : endcase
+   case AICONDPLRDISTWITHIN : print wordtext$;"<"; : valuetext$=str$(aiconditionseq(seq).valuea) : endcase
+   case AICONDPLRDISTFURTHER : print wordtext$;">"; : valuetext$=str$(aiconditionseq(seq).valuea) : endcase
+   case AICONDFRAMEGREATER : print wordtext$;">"; : valuetext$=str$(aiconditionseq(seq).valuea) : endcase
+   case AICONDFRAMELESS : print wordtext$;"<"; : valuetext$=str$(aiconditionseq(seq).valuea) : endcase
+   case AICONDRAYCASTUP : print wordtext$;"("; : valuetext$=str$(aiconditionseq(seq).valuea)+","+str$(aiconditionseq(seq).valueb)+")" : endcase
+   case AICONDWAYPOINTSTATE : print wordtext$;"="; : valuetext$=str$(aiconditionseq(seq).valuea) : endcase
+   case default : print strarr$(15); : endcase
+  endselect
+  if valuetext$<>"" then valuetext$=valuetext$+" "
+  print valuetext$;
+  if seq<aicond(conindex).last
+   print "AND ";
+  else
+   print "THEN"
+  endif
+ next seq
+ `
+ for seq=aiaction(actindex).first to aiaction(actindex).last
+  print "  ";
+  valuetext$=""
+  wordtext$=actword$(aiactionseq(seq).type)
+  select aiactionseq(seq).type
+   case AIACTSTATE : print wordtext$;"="; : valuetext$=str$(aiactionseq(seq).value) : endcase
+   case AIACTMOVEUP : print wordtext$;" "; : valuetext$=str$(aiactionseq(seq).value) : endcase
+   case AIACTINCFRAME : print wordtext$;" "; : valuetext$=str$(aiactionseq(seq).value) : endcase
+   case AIACTSOUND : print wordtext$;"="; : valuetext$=aiactionseq(seq).filename : endcase
+   case default : print wordtext$; : endcase
+  endselect
+  if valuetext$<>"" then valuetext$=valuetext$+" "
+  print valuetext$
+ next seq
+ print " ENDIF"
+ `
+next conindex
+print
+
+return
+

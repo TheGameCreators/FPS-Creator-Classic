@@ -1,0 +1,108 @@
+
+
+;header
+
+desc          = thug (unarmed)
+
+;ai
+aiinit	      = appear1.fpi
+aimain	      = people\coward10.fpi
+aidestroy     = destroy\fadecorpse.fpi
+aishoot       = 
+soundset      = male
+
+;spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;orientation
+model         = thug.X
+offx          = 0
+offy          = 0
+offz          = 0
+rotx          = 0
+roty          = 0
+rotz          = 0
+scale         = 80
+fixnewy       = 180
+
+;cone of sight
+coneheight    = 53
+coneangle     = 50
+
+;visualinfo
+textured      = thug_1_d2.tga
+effect        = effectbank\bumpbone\bumpbone.fx
+castshadow    = 0
+
+;decals
+decalmax      = 2
+decal0        = red
+decal1        = blood
+
+;identity details
+strength      = 100
+ischaracter   = 1
+hasweapon     = 
+isobjective   = 0
+cantakeweapon = 1
+
+;bodypartslimbinfo (1=head/2=body/3+4=armslr/5+6=legslr)
+limbmax       = 0
+
+;animationinfo
+animmax       = 100
+anim0         = 190,209
+anim1         = 210,234
+anim2         = 235,259
+anim3         = 260,279
+anim4         = 280,299
+anim5         = 300,318
+anim6         = 319,355
+anim7         = 160,189
+anim8         = 330,355
+anim11        = 0,19
+anim12        = 20,39
+anim13        = 493,522
+anim14        = 40,59
+anim15        = 60,79
+anim16        = 523,552
+anim17        = 120,139
+anim18        = 140,159
+anim20        = 80,99
+anim21        = 100,119
+anim31        = 356,380
+anim32        = 381,405
+anim33        = 381,405
+anim34        = 381,405
+anim35        = 381,405
+anim36        = 406,442
+anim40        = 443,462
+anim41        = 463,492
+anim50        = 553,572
+anim51        = 573,597
+anim52        = 598,622
+anim53        = 623,642
+anim54        = 643,662
+anim55        = 663,681
+anim56        = 682,731
+anim57        = 160,189
+anim61        = 0,19
+anim62        = 20,39
+anim63        = 882,911
+anim64        = 40,59
+anim65        = 60,79
+anim66        = 912,941
+anim67        = 120,139
+anim68        = 140,159
+anim70        = 80,99
+anim71        = 100,119
+anim81        = 732,756
+anim82        = 757,781
+anim83        = 757,781
+anim84        = 757,781
+anim85        = 757,781
+anim86        = 782,831
+anim90        = 832,851
+anim91        = 852,881

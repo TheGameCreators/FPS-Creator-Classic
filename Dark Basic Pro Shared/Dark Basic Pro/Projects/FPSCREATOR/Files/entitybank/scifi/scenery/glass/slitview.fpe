@@ -1,0 +1,40 @@
+;Entity Spec
+
+;Header
+
+desc          = Slit Glass
+
+;AI
+aimain	      = default.fpi
+aidestroy     = destroy\window.fpi
+
+;Spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;Orientation
+model         = meshbank\scifi\scenery\windows\win_a\win_a.x
+offx          = 0
+offy          = 0
+offz          = 0
+rotx          = 0
+roty          = 0
+rotz          = 0
+materialindex = 5
+
+;Visualinfo
+textured      = texturebank\scifi\scenery\windows\win_a\glass_a_D2.tga
+effect        = effectbank\cubeent\cubeent.fx
+transparency  = 2
+
+;identity details
+strength      = 10
+isimmobile    = 1
+
+;Decals
+decalmax      = 1
+decal0        = glass_shatter
+
+;Animationinfo
+animmax       = 0

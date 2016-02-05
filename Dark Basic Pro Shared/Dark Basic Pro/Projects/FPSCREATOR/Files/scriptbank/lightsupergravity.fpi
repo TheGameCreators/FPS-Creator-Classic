@@ -1,0 +1,37 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Light than creates super gravity field in proximity
+
+;Triggers
+
+;When player within range of heavy gravity field, max jump height
+:plrdistwithin=150:newjumpheight=100
+:plrdistfurther=150:newjumpheight=50
+
+;Fade light in and out using LIGHTINTENSITY action
+:state=0:localvar=0,incvar=1,lighton
+:varequal=0:lightintensity=0
+:varequal=1:lightintensity=10
+:varequal=2:lightintensity=20
+:varequal=3:lightintensity=30
+:varequal=4:lightintensity=40
+:varequal=5:lightintensity=50
+:varequal=6:lightintensity=60
+:varequal=7:lightintensity=70
+:varequal=8:lightintensity=80
+:varequal=9:lightintensity=90
+:varequal=10:lightintensity=100
+:varequal=11:lightintensity=90
+:varequal=12:lightintensity=80
+:varequal=13:lightintensity=70
+:varequal=14:lightintensity=60
+:varequal=15:lightintensity=50
+:varequal=16:lightintensity=40
+:varequal=17:lightintensity=30
+:varequal=18:lightintensity=20
+:varequal=19:lightintensity=10
+:varequal=20:lightintensity=0,setvar=0
+
+;End of Script

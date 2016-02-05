@@ -1,0 +1,42 @@
+
+
+;header
+desc          = Deadbolt Door (key)
+
+;ai
+aiinit	      = appear1.fpi
+aimain	      = doorkey.fpi
+aidestroy     = disappear1.fpi
+
+;AIKey (plrhaskey=1)
+usekey        = %key
+
+;spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;orientation
+model         = meshbank\ww2\scenery\doors\door_e\door_e.x
+offx          = 0
+offy          = 50
+offz          = 0
+rotx          = 0
+roty          = 180
+rotz          = 0
+materialindex = 3
+soundset      = audiobank\ww2\scenery\doors\lock.wav
+soundset1     = audiobank\ww2\scenery\doors\close.wav
+
+;visualinfo
+textured      = texturebank\ww2\scenery\doors\door_e\door_e_d2.tga
+effect        = 
+
+;identity details
+strength      = 0
+isimmobile    = 1
+
+;animationinfo
+animmax       = 1
+anim0         = 0,30
+

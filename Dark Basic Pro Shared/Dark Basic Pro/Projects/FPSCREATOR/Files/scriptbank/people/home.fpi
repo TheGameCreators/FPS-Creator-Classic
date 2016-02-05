@@ -1,0 +1,18 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Homing In behaviour
+
+;Triggers
+
+:state=0:rotatetoplr
+:state=1:rotatetoplr
+:plrcanbeseen,plrdistfurther=70:settarget,state=1
+:noiseheard=5:rotateheadrandom=85
+:random=10:rotateheadrandom=45
+:state=1:movetotarget,animate=2
+:state=1,plrdistwithin=61:freeze,animate=1,state=0
+:plrdistwithin=50,rateoffire:plraddhealth=-5
+
+;End of Script

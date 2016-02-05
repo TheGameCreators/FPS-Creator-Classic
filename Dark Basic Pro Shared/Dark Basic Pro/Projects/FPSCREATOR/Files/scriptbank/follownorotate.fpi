@@ -1,0 +1,15 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Follow Waypoints with no rotation (platform)
+
+;Triggers
+
+:state=0:state=1,norotate=1
+:waypointstate=0:animate=2,waypointstart
+:waypointstate=3:animate=2,waypointnext
+:waypointstate=4:animate=2,waypointrandom
+:waypointstate=5:animate=2,waypointreverse
+
+;End of Script

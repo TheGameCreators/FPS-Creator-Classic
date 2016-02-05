@@ -1,0 +1,33 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Hunt And Pace Waypoints (Delayed Sighting)
+
+;Triggers
+
+:losetarget=10:waypointstart
+:waypointstate=0:animate=2,waypointstart
+:waypointstate=3:animate=2,waypointnext
+:waypointstate=4:animate=2,waypointrandom
+:waypointstate=5:animate=2,waypointreverse
+:nearactivatable=0:settarget,activatetarget=2
+
+:state=0:state=1,timerstart
+
+:state=1:state=11
+:state=11,timergreater=100:timerstart,state=12
+:state=11:state=1
+:state=12,plrcanbeseen:settarget,state=2
+:state=12:state=1
+
+:state=1,random=20:rotateheadrandom=65
+:state=1,shotdamage=10:settarget,waypointstop,animate=1,rotatetotarget,resethead,state=4
+:state=1,noiseheard=5:settarget,waypointstop,animate=1,rotatetotarget,resethead,state=4
+
+:state=2:waypointstop,rotatetoplr,state=3,shootplr
+:state=3:animate=1,waypointstart,state=1
+
+:state=4,random=20:animate=2,waypointnext,state=1
+
+;End of Script

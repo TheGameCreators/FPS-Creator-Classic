@@ -1,0 +1,2663 @@
+rem
+rem MULTIPLAYER
+rem
+
+`
+` Init
+`
+_multi_earlyinit:
+ `
+ rem Validate playername here
+ for c=1 to len(playername$)
+  if c>1 and asc(mid$(playername$,c))=10 or asc(mid$(playername$,c))=13
+   playername$=left$(playername$,c-1)
+   exit
+  endif
+ next c
+ `
+ rem Used to get Network Detect and Firewall permission as soon as possible
+ if createorjoin=1
+  rem create a tcp server
+  MULTIPLAYER CREATE TCP SERVER servername$
+  if glocalserveroverride$=""
+   rem FPSCV105RC2 - use already validated server IP address
+   `ipaddress$=MULTIPLAYER GET IP ADDRESS() ` sometimes returned local or router IP (no good)
+   `for c=1 to len(ipaddress$)
+   ` if mid$(ipaddress$,c)=":" then ipaddress$=left$(ipaddress$,c-1) : exit
+   `next c
+   ipaddress$=serveripaddress$
+  else
+   ipaddress$=glocalserveroverride$
+  endif
+  rem add to gamelist
+  addip$=ipaddress$
+  addname$=playername$
+  gosub _ai_gamelist_add
+ else
+  rem join a tcp server
+  MULTIPLAYER CONNECT TO TCP SERVER playername$, ipaddress$
+ endif
+ `
+ rem Create Deadreckoning vectors
+ for t=10+0 to 10+(16*5) : r=make vector3(t) : next t
+ `
+ rem Memblock allocations for vary-byte tranfser
+ mb_move=101 : make memblock mb_move, 48
+ mb_write=102 : make memblock mb_write, 48
+ `
+return
+
+_multi_assetloader:
+ `
+ rem Load talk sound ping
+ talkpingsound=loadinternalsoundcore("audiobank\misc\talkping.wav",0)
+ lastplayedtalkindex=talkindex
+ `
+return
+
+_multi_start:
+ `
+ rem optional visuals
+ if createorjoin=1
+  if left$(ipaddress$,8)="192.168."
+   set window title strarr$(632)+" ["+ipaddress$+"] "+strarr$(633)
+  else
+   set window title strarr$(632)+" ["+ipaddress$+"] "+strarr$(634)
+  endif
+ else
+  set window title playername$+" ["+ipaddress$+"]"
+ endif
+ `
+ rem Scan all start positions of characters (these will be the respawn points)
+ gosub _multi_initrespawnarray
+ `
+ rem parts that are re-called if game session is repeated
+ gosub _multi_restart
+ `
+return
+
+_multi_restartprepare:
+ `
+ rem hide all characters initially in MP game
+ for e=1 to entityelementmax
+  entid=entityelement(e).bankindex
+  if entityprofile(entid).ischaracter=1
+   entityelement(e).active=0
+   entityelement(e).dormant=1
+   entityelement(e).eleprof.cantakeweapon=0
+   obj=entityelement(e).profileobj
+   if obj>0
+    if object exist(obj)=1
+     hide object obj
+    endif
+   endif
+   obj=entityelement(e).obj
+   if obj>0
+    if object exist(obj)=1
+     hide object obj
+    endif
+   endif
+   tobj2=entityelement(e).attachmentobj
+   if tobj2>0
+    if object exist(tobj2)=1
+     hide object tobj2
+    endif
+   endif
+  endif
+ next e
+ `
+return
+
+_multi_restart:
+ `
+ rem called after start and any restarting of game session
+ rem Init var
+ lagmon#=200
+ dwLocalPlayerID=0
+ iLocalEL=0
+ PlayerCanStart=0
+ PlayerCanStartStage=0
+ Servergameisfull=0
+ gtalkytoaster=0
+ gterminationcountdown=0
+ `
+ rem Wipe out talk array
+ talkindex=0 : for ti=0 to 10 : talkscript$(ti)="" : talkscriptcount(ti)=0 : next ti
+ `
+ rem Clear multiplayer link list
+ for el=1 to 16 : multiplayeridlink(el)=1 : next el
+ for el=1 to 16 : multiplayerplrindex(el)=0 : next el
+ for el=1 to 16 : characterchosen(el)=0 : characterchoiceentityindex(el)=0 : next el
+ `
+ rem Clear out all STATE data (as old game if any might mess new game)
+ for el=1 to 16
+  stategetready(el)=0
+  statex(el)=0
+  statey(el)=0
+  statez(el)=0
+  statea(el)=0
+  stateanim(el)=0
+  stateanimdir(el)=0
+  statecolmaterialtype(el)=0
+  stateanimwait(el)=0
+  statewhodidit(el)=0
+  stateplayagain(el)=0
+  stateviewy(el)=0
+  statesviewdy(el)=0
+  stateweapon(el)=0
+  stateannounce(el)=0
+  statesx(el)=0
+  statesy(el)=0
+  statesz(el)=0
+  statesa(el)=0
+  statesvel(el)=0
+  statetx(el)=0
+  statety(el)=0
+  statetz(el)=0
+  statedx(el)=0
+  statedy(el)=0
+  statedz(el)=0
+  statemove(el)=0
+  statelag(el)=0
+  statemsgap(el)=0
+  statemytimer(el)=0
+  statecodeupdate(el,0)=0
+  statecodeupdate(el,1)=0
+  statecodeupdate(el,2)=0
+  statecodeupdate(el,3)=0
+  statecodeupdate(el,4)=0
+  stateraycastpace(el)=0
+ next el
+ `
+ rem Reset frag and laststore counts
+ for el=1 to multiplayermax
+  frags(el)=0 : for ti=0 to 4 : statecodeupdate(el,ti)=-1 : next ti
+ next el
+ `
+ rem begin the multiplayer game INIT
+ if createorjoin=1
+  rem setup server player
+  multiplayeridlinkmax=1 : iLocalEL=1
+  multiplayeridlink(iLocalEL)=0
+  multiplayername$(iLocalEL)=playername$
+  multiplayerplrindex(iLocalEL)=1
+  gosub _multi_identifycharactersinentities
+  gosub _multi_andwho
+  characterchosen(iLocalEL)=characterchoice
+  characterchoiceentityindex(iLocalEL)=characterlistentity(characterchoice)
+  rem player position and angle from player() data
+  gosub _multi_setlocalstart
+  rem set new server players health on server
+  plrindex=multiplayerplrindex(iLocalEL) : te=characterchoiceentityindex(iLocalEL)
+  player(plrindex).health=entityelement(te).eleprof.strength
+  rem if test game, give a fake health in case no character to use
+  if gtestgamemodefromeditor=1 then player(plrindex).health=100
+  rem hoster can be part of game now
+  PlayerCanStart=1 : dwStartTime=timer()
+ else
+  rem join a tcp server
+  setupvoicechat=0
+ endif
+ `
+ rem init burst time (lagmon# bursts)
+ dwBurstTime=timer()
+ `
+ rem set as initialised
+ multiplayerinitialised=1
+ `
+return
+
+_multi_initrespawnarray:
+ `
+ rem init
+ respawnmax=0
+ for e=1 to entityelementmax
+  entid=entityelement(e).bankindex
+  if entityprofile(entid).ischaracter=1
+   rem record psosition
+   inc respawnmax
+   respawn(respawnmax).e=e
+   respawn(respawnmax).x=entityelement(e).x
+   respawn(respawnmax).y=entityelement(e).y
+   respawn(respawnmax).z=entityelement(e).z
+   respawn(respawnmax).ry=entityelement(e).ry
+  endif
+ next e
+ `
+return
+
+_multi_playertorespawnpos:
+ `
+ rem if no respawn data, use an available place to start from
+ if respawnmax=0
+  rem Find player start location
+  playerstartx#=0 : gosub _player_setstartposonly
+ else
+  rem uses TE, return to origin, or random
+  ttries=9
+  rsiadd=0
+  while ttries>0
+   rsi=0
+   if gspawnrandom=0 or randomposnotworkatlocalstart=1
+    for rsi=1 to respawnmax
+     if respawn(rsi).e=te then exit
+    next rsi
+   else
+    rsi=trandomvalue
+   endif
+   if rsi>0
+    rem start pos
+    rsi=rsi+rsiadd : rsi=1+((rsi-1) mod respawnmax)
+    if rsi<1 then rsi=1
+    if rsi>respawnmax then rsi=respawnmax
+    playerstartx#=respawn(rsi).x
+    playerstarty#=respawn(rsi).y
+    playerstartz#=respawn(rsi).z
+    playerstartry#=respawn(rsi).ry
+    rem ensure it is not filled, exclude self from check
+    tokay=1
+    for ttel=1 to multiplayermax
+     if ttel<>iLocalEL
+      if multiplayeridlink(ttel)<>1
+       tte=characterchoiceentityindex(ttel)
+       ttdx#=abs(entityelement(tte).x-playerstartx#)
+       ttdy#=abs(entityelement(tte).y-playerstarty#)
+       ttdz#=abs(entityelement(tte).z-playerstartz#)
+       ttdd#=sqrt((ttdx#*ttdx#)+(ttdy#*ttdy#)+(ttdz#*ttdz#))
+       if ttdd#<100 then tokay=0 : exit
+      endif
+     endif
+    next ttel
+    if tokay=1
+     ttries=0
+    else
+     inc rsiadd
+    endif
+   endif
+   dec ttries
+  endwhile
+ endif
+ `
+return
+
+_multi_setlocalstart:
+ `
+ rem have characterchoiceentityindex(iLocalEL)
+ te=characterchoiceentityindex(iLocalEL)
+ if te>0
+  rem assign weapon to player
+  tentid=entityelement(te).bankindex
+  weaponindex=entityprofile(tentid).hasweapon
+  tqty=10 : pi=0
+  gosub _player_obtainaweapon
+  autoloadgun=weaponindex
+ endif
+ `
+ rem Copy again to make sure the weapon is given back after repos (die and spawn)
+ tcopyorrestart=0 : gosub _gun_resetgunsettings
+ `
+ rem Place player at start position (randomize and lifecode using TE ensures identical LOCALSTARTs)
+ randomize te
+ trandomvalue=1+rnd(respawnmax-1)
+ tlifecode=te
+ randomposnotworkatlocalstart=1
+ el=iLocalEL : gosub _multi_resetplrpos
+ randomposnotworkatlocalstart=0
+ camerapositionx=statex(iLocalEL)
+ camerapositiony=statey(iLocalEL)+phyeyeheight#+21.0
+ camerapositionz=statez(iLocalEL)
+ position camera camerapositionx,camerapositiony,camerapositionz
+ `
+return
+
+_multi_free:
+ `
+ rem Free Deadreckoning vectors
+ for t=10+0 to 10+(16*5) : r=delete vector3(t) : next t
+ `
+ rem Delet memblocks
+ if mb_move>0
+  if memblock exist(mb_move)=1
+   delete memblock mb_move
+  endif
+  mb_move=0
+ endif
+ if mb_write>0
+  if memblock exist(mb_write)=1
+   delete memblock mb_write
+  endif
+  mb_write=0
+ endif
+ `
+ rem terminate connection session
+ MULTIPLAYER DISCONNECT
+ multiplayerinitialised=0
+ `
+ rem delete from gamelist
+ if createorjoin=1
+  gosub _ai_gamelist_delete
+ endif
+ createorjoin=0
+ `
+ rem Restore normal text
+ set text to normal
+ `
+return
+
+_multiplayer_repeatresetgame:
+ `
+ rem remove weapon from characters of previous game
+ for el=1 to multiplayermax
+  if multiplayeridlink(el)<>1
+   rem Remove old weapon from model
+   e=characterchoiceentityindex(el)
+   entityelement(e).eleprof.hasweapon$=""
+   gosub _entity_switchattachment
+   rem Hide characters initially
+   tobj=entityelement(e).obj
+   if tobj>0
+    if object exist(tobj)=1
+     hide object tobj
+    endif
+   endif
+  endif
+ next el
+ `
+ rem clear viscolmap
+ gosub _entity_fillviscolmap
+ `
+ rem Game has been repeated, so reset some small elements to reproduce exact restart (quicker than reload)
+ gosub _player_resetobjectives
+ gosub _player_startpos
+ `
+ rem Reset weapons
+ tcopyorrestart=1 : gosub _gun_resetgunsettings
+ `
+ rem Reset entities
+ tcopyorrestart=1 : gosub _entity_resetentitiestorestartstates
+ `
+ rem Restart multiplayer game session (causes all players to reselect characters)
+ gosub _multi_restart
+ `
+ rem restore text to in-game style and size
+ set text size 16 : set text to normal
+ `
+return
+
+
+`
+` Control
+`
+
+_multi_control:
+ `
+ if gterminationcountdown=0
+  `
+  rem unmark
+  gosub _multi_unmark
+  `
+  rem Feed local data into states
+  if multiplayerprototest=0
+   if iLocalEL>0
+    plrindex=multiplayerplrindex(iLocalEL)
+    if weaponammoindex>0
+     stateweapon(iLocalEL)=gunid
+    else
+     stateweapon(iLocalEL)=0
+    endif
+    if stateanimwait(iLocalEL)>0
+     rem and wait for click to respawn
+     player(plrindex).health=0
+     if mouseclick()<>0 or (spacekey()=1 and gtalkytoaster=0)
+      stateplayagain(iLocalEL)=1
+      if createorjoin=2
+       rem if client, send this click to server
+       MULTIPLAYER SEND FROM PLAYER multiplayeridlink(iLocalEL)
+       write memblock byte 102, 0, 212
+       write memblock byte 102, 2, stateplayagain(iLocalEL)
+       write memblock dword 102, 4, multiplayeridlink(iLocalEL)
+       MULTIPLAYER SEND MESSAGE memblock 102,0x0080,8
+       inc guarenteedbytes,8 : inc unreliablebytes,0
+      endif
+     endif
+    else
+     if stategetready(iLocalEL)>0
+      rem regular activity frozen until player touches ground
+      stategetready(iLocalEL)=stategetready(iLocalEL)-1
+     else
+      statex(iLocalEL)=camerapositionx
+      statey(iLocalEL)=(camerapositiony-phyeyeheight#)-20.0
+      statez(iLocalEL)=camerapositionz
+      statedx(iLocalEL)=statex(iLocalEL)
+      statedy(iLocalEL)=statey(iLocalEL)
+      statedz(iLocalEL)=statez(iLocalEL)
+      stateviewy(iLocalEL)=wrapvalue(camera angle y())
+     endif
+     rem 1-spanw,2-idle,3-walk,4-strafeL,5-strafeR,6-run,32-crouchidle,33-crouchmove,12-'a' death,92-freeformidle,7-reload
+     te=characterchoiceentityindex(iLocalEL)
+     stateanimdir(iLocalEL)=0
+     if player(plrindex).health>0
+      if jumpaction<>0
+       stateanim(iLocalEL)=92
+      else
+       statecolmaterialtype(iLocalEL)=colmaterialtype
+       if crouchmode<>0
+        if movement=1
+         stateanim(iLocalEL)=33
+         if (plrkeyS)=1 then stateanimdir(iLocalEL)=1
+        else
+         stateanim(iLocalEL)=32
+        endif
+       else
+        if movement=1
+         if (plrkeyA)=1
+          stateanim(iLocalEL)=4
+         else
+          if (plrkeyD)=1
+           stateanim(iLocalEL)=5
+          else
+           if (plrkeySHIFT)=1
+            stateanim(iLocalEL)=6
+           else
+            stateanim(iLocalEL)=3
+           endif
+           if (plrkeyS)=1 then stateanimdir(iLocalEL)=1
+          endif
+         endif
+        else
+         if gunmode>=121 and gunmode<131
+          stateanim(iLocalEL)=7
+         else
+          stateanim(iLocalEL)=2
+         endif
+        endif
+       endif
+      endif
+     endif
+    endif
+   endif
+  endif
+  `
+  rem Can detect NEW PLAYER here
+  dwid as DWORD
+  for i = 0 to MULTIPLAYER GET PLAYER COUNT()
+   if i>0
+    dwid=MULTIPLAYER GET PLAYER ID( i-1 )
+   else
+    dwid=0
+   endif
+   gotel=0 : freeel=0
+   for el=1 to 16
+    if multiplayeridlink(el)=1 and freeel=0 then freeel=el
+    if multiplayeridlink(el)=dwid
+     gotel=el : exit
+    endif
+   next el
+   if gotel=0
+    if freeel>0
+     rem New Player for multiplayer-server-player list
+     multiplayeridlink(freeel)=dwid
+     multiplayeri(freeel)=i-1
+     multiplayerisnew(freeel)=3
+     tname$=MULTIPLAYER GET PLAYER NAME( i-1 )
+     for c=1 to len(tname$)
+      if asc(mid$(tname$,c))=10 or asc(mid$(tname$,c))=13
+       tname$=left$(tname$,c-1)
+       exit
+      endif
+     next c
+     multiplayername$(freeel)=tname$
+     if freeel>multiplayeridlinkmax then multiplayeridlinkmax=freeel
+     rem add player() and update multiplayerplrindex
+     el=freeel : gosub _multi_addplayer
+     rem joining prompt, only if later in game
+     if PlayerCanStart=1
+      stateannounce(el)=500
+     endif
+     rem reset frag for new plr
+     frags(el)=0
+    else
+     rem a 17th DP-plr tried to get into my 16 plr max session
+    endif
+   else
+    rem continually refresh internal index reference
+    if i>0
+     rem when a client leave and reenters, the playerlist() list is changed!
+     multiplayeri(gotel)=i-1
+    endif
+   endif
+  next i
+  rem clean up players no longer in game
+  for el=1 to multiplayeridlinkmax
+   if multiplayeridlink(el)<>1
+    if el>1 and getindexfromid(multiplayeridlink(el))=0
+     rem this player EL left the game or was kicked out
+     multiplayeridlink(el)=1
+     multiplayeri(el)=-1
+     rem leaving prompt
+     stateannounce(el)=-500
+     rem remove visual player from game
+     te=characterchoiceentityindex(el)
+     rem ensure cannot shoot entity after plr gone from game
+     entityelement(te).collisionactive=0
+     tobj=entityelement(te).obj
+     if tobj>0 then hide object tobj
+     tobj2=entityelement(te).attachmentobj
+     if tobj2>0 then hide object tobj2
+     tobj3=entityelement(te).attachmentblobobj
+     if tobj3>0 then hide object tobj3
+     rem remove players identity from character list and allow the slot to be reused
+     if characterchosen(el)>0
+      characterchosen(el)=0 : Servergameisfull=0
+      characterchoiceentityindex(el)=0
+     endif
+    endif
+   endif
+  next el
+  `
+  rem server or client
+  gosub _common
+  if createorjoin=1
+   gosub _server
+  else
+   gosub _client
+  endif
+  gosub _playersend
+  `
+  rem Handle dead reckoning
+  for el=1 to multiplayeridlinkmax
+   if el<>iLocalEL
+    if multiplayeridlink(el)<>1
+     if statelag(el)>0 then gosub _packet_move_dedrec
+     gosub _packet_rotate_dedrec
+    endif
+   endif
+  next el
+  `
+  rem this is where we assign server-controlled EL data to actual entity drones
+  if multiplayerprototest=0 and showgamemenu=0
+   if showfpsinrealgame=1 or showfpsinrealgame=2 then set cursor 0,100
+   for el=1 to multiplayeridlinkmax
+    if showfpsinrealgame=2 then print el;" - ISNEW:";multiplayerisnew(el);" - ";
+    if multiplayerisnew(el)=0 or el=iLocalEL
+     te=characterchoiceentityindex(el)
+     tentid=entityelement(te).bankindex
+     if showfpsinrealgame=2 then print "ID:";multiplayeridlink(el);
+     if multiplayeridlink(el)<>1 and te>0
+      plrindex=multiplayerplrindex(el)
+      tobj=entityelement(te).obj
+      if showfpsinrealgame=1 then print multiplayername$(el);" ";str$(frags(el));" (";statelag(el);")"
+      if showfpsinrealgame=2 then print " - H:";player(plrindex).health;" - TE:";te;" ";tobj;" ";multiplayername$(el);
+      if tobj>0
+       entityelement(te).x=statex(el)
+       entityelement(te).y=statey(el)
+       entityelement(te).z=statez(el)
+       entityelement(te).mover.da=stateviewy(el)
+       if stateanim(el)<>1+entityelement(te).animdo
+        entityelement(te).animonce=0
+        entityelement(te).animset=stateanim(el)
+        entityelement(te).animdir=stateanimdir(el)
+        if stateanimwait(el)>0 then entityelement(te).animonce=1
+       endif
+       if el=iLocalEL
+        hide object tobj
+        set object collision off tobj
+        entityelement(te).active=0
+        entityelement(te).dormant=1
+        entityelement(te).collisionactive=0
+        te=characterchoiceentityindex(el)
+        tobj2=entityelement(te).attachmentobj
+        if tobj2>0 then hide object tobj2
+       else
+        show object tobj
+        entityelement(te).active=1
+        entityelement(te).dormant=0
+        if player(plrindex).health>0
+         entityelement(te).collisionactive=1
+        else
+         entityelement(te).collisionactive=0
+        endif
+        rem if this plr entity is dead, make sure the corpse finds the floor
+        if player(plrindex).health=0
+         rem pause dead character
+         stte=e : stentid=entid
+         e=te : entid=entityelement(e).bankindex
+         tbaseframe=entityelement(e).animdo : gosub _entity_getactualframefinish : tffinish=tactualframe
+         e=stte : entid=stentid
+         if object frame(tobj)>=tffinish-2.0 and object frame(tobj)<=tffinish
+          stop object tobj
+         endif
+         rem set dead guy final resting pose
+         tppy#=entityelement(te).y
+         tppa#=entityelement(te).ry
+         if entityelement(te).animdo=14
+          tpmb#=55.0
+         else
+          tpmb#=-55.0
+         endif
+         tppx#=newxvalue(entityelement(te).x,tppa#,tpmb#)
+         tppz#=newzvalue(entityelement(te).z,tppa#,tpmb#)
+         tdst#=static raycast(tppx#,tppy#+70.0,tppz#,tppx#,tppy#-505.0,tppz#)
+         tlowestmove=0
+         if abs(tdst#-70.0)>5.0
+          if tdst#<70
+           rem head through slope - push away
+           tlowestmove=1
+          else
+           rem head hovering in thin air - push fore
+           tlowestmove=2
+          endif
+         endif
+         if tlowestmove<>0
+          if tlowestmove=1
+           entityelement(te).x=newxvalue(entityelement(te).x,tppa#,(tpmb#/15.0)*-1)
+           entityelement(te).z=newzvalue(entityelement(te).z,tppa#,(tpmb#/15.0)*-1)
+          else
+           entityelement(te).x=newxvalue(entityelement(te).x,tppa#,(tpmb#/15.0))
+           entityelement(te).z=newzvalue(entityelement(te).z,tppa#,(tpmb#/15.0))
+          endif
+          tppx#=entityelement(te).x : tppz#=entityelement(te).z
+          tdst#=static raycast(tppx#,tppy#+5.0,tppz#,tppx#,tppy#-505.0,tppz#)
+          tthisy#=tppy#-(tdst#-5.0)
+          if tthisy#<entityelement(te).y
+           entityelement(te).y=entityelement(te).y-6
+           if entityelement(te).y<tthisy#
+            entityelement(te).y=tthisy#
+           endif
+          endif
+          statex(el)=entityelement(te).x
+          statey(el)=entityelement(te).y
+          statez(el)=entityelement(te).z
+         endif
+        endif
+        if showfpsinrealgame=2
+         if object in screen(tobj)=1
+          center text object screen x(tobj),object screen y(tobj)-40,multiplayername$(el)+"["+str$(stateanim(el))+"] "+characterlist$(characterchosen(el))+"("+str$(characterchoiceentityindex(el))+")"
+          if createorjoin=1
+           center text object screen x(tobj),object screen y(tobj)-10,"HEALTH="+str$(player(plrindex).health)+"FRAGS="+str$(frags(el))
+          endif
+         endif
+        else
+         if object in screen(tobj)=1 and object visible(tobj)=1
+          if stateraycastpace(el)=0
+           tokay=1 : gosub _multi_caniseeplr
+           if tokay=1 then stateraycastpace(el)=1
+          endif
+          if stateraycastpace(el)>=1
+           stateraycastpace(el)=stateraycastpace(el)+1
+           if stateraycastpace(el)>10
+            tokay=1 : gosub _multi_caniseeplr
+            if tokay=1
+             stateraycastpace(el)=1
+            else
+             stateraycastpace(el)=0
+            endif
+           endif
+          endif
+          if stateraycastpace(el)>0
+           center text object screen x(tobj),object screen y(tobj),multiplayername$(el)
+          endif
+         else
+          stateraycastpace(el)=0
+         endif
+        endif
+        remstart was here but moved to entity visual code
+        rem blob shadow control (all other non local plrs)
+        if entityelement(te).attachmentblobobj>0
+         if object exist(entityelement(te).attachmentblobobj)=1
+          tplrindex=multiplayerplrindex(el)
+          if player(tplrindex).health>0
+           dst#=static raycast(entityelement(te).x,entityelement(te).y+5,entityelement(te).z,entityelement(te).x,entityelement(te).y-50,entityelement(te).z)
+          else
+           dst#=0.0
+          endif
+          if dst#>0
+           dst#=dst#-5.0
+           position object entityelement(te).attachmentblobobj,entityelement(te).x,(entityelement(te).y-dst#)+0.5,entityelement(te).z
+           show object entityelement(te).attachmentblobobj
+           tsc#=(100.0-dst#) : scale object entityelement(te).attachmentblobobj,tsc#,tsc#,tsc#
+          else
+           hide object entityelement(te).attachmentblobobj
+          endif
+         endif
+        endif
+        remend
+       endif
+      endif
+     endif
+    endif
+    if showfpsinrealgame=2 then print
+   next el
+   if showfpsinrealgame=2
+    el=iLocalEL : center text screen width()/2,screen height()-40,multiplayername$(el)+"["+str$(stateanim(el))+"] "+str$(characterchosen(el))+":"+characterlist$(characterchosen(el))+"("+str$(characterchoiceentityindex(el))+")"+" FRAGS="+str$(frags(el))
+   endif
+   `
+  endif
+  `
+  rem mark positions in viscolmap
+  gosub _multi_mark
+  `
+ endif
+ `
+ rem announcements
+ anngap=25
+ if showgamemenu=0
+  tylinevalue=screen height()-(anngap*2)
+  if gterminationcountdown>0
+   set cursor 0,tylinevalue
+   print strarr$(635);
+   dec gterminationcountdown
+   if gterminationcountdown<2
+    tserverendsreason=1
+    gosub _multi_serverendedgame
+    mpgameinprogress=0
+    continueokay=1
+   endif
+  else
+   if PlayerCanStart=0
+    set cursor 0,tylinevalue
+    print strarr$(636);
+`    if gmultiplayergame=1 and multiplayerinitialised=1 and multiplayersystemdisabled=0 then print "OK..";
+`    print "(";str$(PlayerCanStartStage);","+str$(MULTIPLAYER GET PLAYER COUNT())+","+str$(dwLocalPlayerID)+","+str$(gterminationcountdown)+")";
+   else
+    for el=1 to multiplayeridlinkmax
+     if multiplayeridlink(el)=1
+      if stateannounce(el)<0
+       set cursor 0,tylinevalue
+       stateannounce(el)=stateannounce(el)+1
+       print multiplayername$(el)+" "+strarr$(637)+" (";stateannounce(el);")";
+       dec tylinevalue,anngap
+      endif
+     else
+      if stateannounce(el)=0
+       rem X killed Y (Y represents this)
+       if stateanimwait(el)>=10
+        set cursor 0,tylinevalue
+        sourceel=statewhodidit(el)
+        print multiplayername$(sourceel)+" "+strarr$(638)+" "+multiplayername$(el);
+        dec tylinevalue,anngap
+       endif
+      else
+       if el<>iLocalEL
+        rem slowly joining game
+        if stateannounce(el)>0
+         set cursor 0,tylinevalue
+         stateannounce(el)=stateannounce(el)-1
+         print multiplayername$(el)+" "+strarr$(639);
+         dec tylinevalue,anngap
+        endif
+       else
+        stateannounce(el)=0
+       endif
+      endif
+     endif
+    next el
+    rem Click to restart
+    if stateanimwait(iLocalEL)>0
+     set cursor 0,tylinevalue
+     print strarr$(640);str$(stateanimwait(iLocalEL));
+     dec tylinevalue,anngap
+    endif
+    rem Talk scripts (going backwards)
+    if talkindex>0
+     for ti=talkindex-1 to 0 step -1
+      if talkscriptcount(ti)>0
+       talkscriptcount(ti)=talkscriptcount(ti)-1
+       set cursor 0,tylinevalue
+       print multiplayername$(talkscriptwho(ti))+talkscript$(ti);
+       dec tylinevalue,anngap
+      endif
+     next ti
+    endif
+    for ti=10 to talkindex step -1
+     if talkscriptcount(ti)>0
+      talkscriptcount(ti)=talkscriptcount(ti)-1
+      set cursor 0,tylinevalue
+      print multiplayername$(talkscriptwho(ti))+talkscript$(ti);
+      dec tylinevalue,anngap
+     endif
+    next ti
+    rem Monitor for ping
+    if talkpingsound>0
+     if talkindex<>lastplayedtalkindex
+      lastplayedtalkindex=talkindex
+      if sound exist(talkpingsound)=1
+       play sound talkpingsound
+      endif
+     endif
+    endif
+   endif
+  endif
+ endif
+ `
+ rem capture and kill local player if they fall out of universe MP style
+ if camerapositiony<-200
+  tdamage=65535 : e=characterchoiceentityindex(iLocalEL)
+  if entityelement(e).health>0
+   gosub _multi_dealentityedamage
+  endif
+ endif
+ `
+return
+
+_multi_caniseeplr:
+ `
+ rem can i see the plr to write their name on screen (tokay=0=no)
+ if static raycast(camerapositionx,camerapositiony,camerapositionz,entityelement(te).x,entityelement(te).y+5.0,entityelement(te).z)=0
+  tokay=1
+  for tte=1 to entityelementlist
+   if entityelement(tte).active=1
+    if entityelement(tte).eleprof.isimmobile=1
+     if entityelement(tte).collisionactive=1
+      ttentid=entityelement(tte).bankindex
+      if entityprofile(ttentid).isweapon=0 and entityprofile(ttentid).isammo=0 and entityprofile(ttentid).ischaracter=0
+       ttobj=entityelement(tte).obj
+       if ttobj>0
+        tdst#=intersect object(ttobj,camerapositionx,camerapositiony,camerapositionz,entityelement(te).x,entityelement(te).y+5.0,entityelement(te).z)
+        if tdst#<>0 then tokay=0 : exit
+       else
+        rem some entities are zero OBJ value
+       endif
+      endif
+     endif
+    endif
+   endif
+  next tte
+ else
+  tokay=0
+ endif
+ `
+return
+
+_multi_unmark:
+ `
+ rem remove old marker from viscolmap
+ for el=1 to multiplayeridlinkmax
+  if multiplayeridlink(el)<>1
+   tx=statetx(el) : ty=statety(el) : tz=statetz(el)
+   if viscolmap(tx,ty,tz)=-1 then viscolmap(tx,ty,tz)=0
+  endif
+ next el
+ `
+return
+
+_multi_mark:
+ `
+ rem write new marker to viscolmap
+ for el=1 to multiplayeridlinkmax
+  if multiplayeridlink(el)<>1
+   tx=statedx(el)/25 : ty=statedy(el)/100 : tz=statedz(el)/-25
+   if ty>=0 and ty<=viscoly
+    if tx>=0 and tz>=0
+     if tx<=viscolx and tz<=viscolz
+      if viscolmap(tx,ty,tz)=0
+       statetx(el)=tx : statety(el)=ty : statetz(el)=tz
+       viscolmap(tx,ty,tz)=-1
+      endif
+     endif
+    endif
+   endif
+  endif
+ next el
+ `
+return
+
+`
+` MP Subroutines
+`
+
+_common:
+ `
+ rem update MSgap counts
+ for el=1 to multiplayeridlinkmax
+  if multiplayeridlink(el)<>1
+   `
+   rem keep tabs on players lag
+   statemsgap(el)=timer()-statemytimer(el)
+   `
+   rem when looping sound too old, stop it
+   e=characterchoiceentityindex(el)
+   if entityelement(e).firesoundloopremote<>0
+    if timer()-entityelement(e).firesoundlooptime>500
+     stop sound entityelement(e).firesoundloopremote
+     entityelement(e).firesoundloopremote=0
+    endif
+   endif
+   `
+   rem auto-footfalls when players in motion
+   if (stateanim(el)>=3 and stateanim(el)<=6) or (stateanim(el)>=33 and stateanim(el)<=36)
+    movement=1
+    if stateanim(el)=6 then basespeed#=70 else basespeed#=50
+    if stateanim(el)>=33 and stateanim(el)<=36 then basespeed#=15 : movement=2
+    colmaterialtype=statecolmaterialtype(el) : leapedlanded=0 : plrid=entityelement(e).fakeplayerid
+    if plrid>1 then gosub _player_playfootfall
+   endif
+   `
+   rem reduce invincibility counter
+   if entityelement(e).invincibleactive>0
+    entityelement(e).invincibleactive=entityelement(e).invincibleactive-1
+   endif
+   `
+  endif
+ next el
+ `
+ rem CAPTURE for debug purposes CONTROLS
+ if showfpsinrealgame=2
+  set cursor 0,0
+  print "startlogging=";startlogging;" (";loginfoindex;")"
+  if inkey$()="#" and startlogging=0 then startlogging=1
+  if inkey$()="'" and startlogging=2 then startlogging=3
+  if startlogging=1
+   dim loginfo$(1001)
+   loginfoindex=0
+   startofrecording=timer()
+   startlogging=2
+  endif
+  rem startlogging=2 inside message loop reporting activity
+  if startlogging=3
+   if file exist("multiplayerlogfile.txt")=1 then delete file "multiplayerlogfile.txt"
+   save array "multiplayerlogfile.txt",loginfo$(0)
+   undim loginfo$(0)
+   startlogging=0
+  endif
+ endif
+ `
+ rem CAPTURE FORMATTING
+ if startlogging=2
+  if MULTIPLAYER MESSAGE EXISTS ( )
+   loginfo$(loginfoindex)="["+str$((timer()-startofrecording)/1000)+"s]"
+   inc loginfoindex : if loginfoindex>=1000 then startlogging=3
+  endif
+ endif
+ `
+ rem Reset so server will always send to ALL clients
+ MULTIPLAYER SEND MESSAGE TO 0
+ `
+ rem get messages (clientplayers(createorjoin=0) also accepts server messages)
+ while MULTIPLAYER MESSAGE EXISTS ( )
+  `
+  rem One message at a time
+  MULTIPLAYER GET MESSAGE
+  dwPlayerID = MULTIPLAYER GET MESSAGE PLAYER FROM( )
+  `
+  rem Message memblock slice up
+  dwMessageCode=0
+  if MULTIPLAYER GET MESSAGE TYPE( ) = 3
+   MULTIPLAYER GET MESSAGE MEMBLOCK mb_move
+   dwCode = memblock byte( mb_move, 0 )
+   dwMessageCode=3
+  endif
+  `
+  rem CAPTURE for debug purposes
+  treportonmessage=0
+  if startlogging=2
+   if treportonmessage=0
+    el=getelfromid(dwPlayerID) : tt$=" from "+multiplayername$(el)
+    loginfo$(loginfoindex)=str$(dwMessageCode)+" "+right$(str$(1000+dwCode),3)+" "+tt$
+    inc loginfoindex
+    if loginfoindex>=1000
+     startlogging=3
+    endif
+   endif
+  endif
+  `
+  rem Handle both server and client comms here
+  if (createorjoin=1 and dwPlayerID<>0) or createorjoin=2
+   `
+   rem message from server to client only
+   if createorjoin=2
+    if MULTIPLAYER GET MESSAGE TYPE( ) = 2
+     tname$=MULTIPLAYER GET MESSAGE STRING()
+     if left$(tname$,2)<>">>"
+      el=getelfromid(0)
+      for c=1 to len(tname$)
+       if asc(mid$(tname$,c))=10 or asc(mid$(tname$,c))=13
+        tname$=left$(tname$,c-1)
+        exit
+       endif
+      next c
+      multiplayername$(el)=tname$
+     endif
+    endif
+   endif
+   `
+   rem string can also be a talkytoaster message
+   if MULTIPLAYER GET MESSAGE TYPE( ) = 2
+    ttalk$=MULTIPLAYER GET MESSAGE STRING()
+    if left$(ttalk$,2)=">>"
+     for c=1 to len(ttalk$)
+      if asc(mid$(ttalk$,c))=10 or asc(mid$(ttalk$,c))=13
+       ttalk$=left$(ttalk$,c-1)
+       exit
+      endif
+     next c
+     rem copy rest of talk to string
+     talkscript$(talkindex)=ttalk$
+     talkscriptcount(talkindex)=200
+     el=getelfromid(dwPlayerID) : talkscriptwho(talkindex)=el
+     inc talkindex : if talkindex>10 then talkindex=0
+     if createorjoin=1
+      rem if server receives talkmessage, must send out to all clients
+      el=getelfromid(dwPlayerID)
+      MULTIPLAYER SEND FROM PLAYER dwPlayerID
+      MULTIPLAYER SEND MESSAGE STRING ttalk$,0x0080
+     endif
+    endif
+   endif
+   `
+   rem message changes states on server
+   if dwMessageCode=3 and (dwCode=0 or dwCode=4 or dwCode=5 or dwCode=9)
+    el=getelfromid(dwPlayerID)
+    if el>0
+     if createorjoin=2 and dwPlayerID=dwLocalPlayerID
+      rem a quick and easy report on received packet times
+      locallagtime=timer()-timestampforlagtest
+      timestampforlagtest=timer()
+     else
+      `
+      rem MESSAGE FROM OTHER CLIENTS/SERVER
+      ttransmitpos=0 : ttransmitanim=0 : ttransmitshot=0
+      `
+      rem Take new data and update state data
+      if dwCode=0
+       rem movement
+       a = memblock byte( mb_move, 1 )*2
+       x = memblock word( mb_move, 2 )
+       y = memblock word( mb_move, 4 )
+       z = memblock word( mb_move, 6 )*-1
+       rem movement
+       if multiplayeridlink(el)<>1
+        statelag(el)=statemsgap(el)
+        statemytimer(el)=timer()
+        px#=x : py#=y : pa#=a : pz#=z
+        rem If this plr is newly joined, reset to this new position coming in
+        if multiplayerisnew(el)=3 then multiplayerisnew(el)=2
+        gosub _packet_move
+        ttransmitpos=1
+       endif
+      endif
+      if dwCode=4
+       rem anim and viewy and colmaterialtype
+       viewy = memblock byte( mb_move, 1 )*2
+       anim = memblock byte( mb_move, 2 )
+       tcolmattype = memblock byte( mb_move, 3 )
+       animdir = memblock byte( mb_move, 4 )
+       statecolmaterialtype(el)=tcolmattype-1
+       stateanim(el)=anim : pviewy#=viewy
+       stateanimdir(el)=animdir
+       gosub _packet_viewyanim
+       ttransmitanim=1
+      endif
+      if dwCode=5
+       rem player shot gun event
+       ttransmitshot=1
+       rem discharge sound (single fire, or automatic loop sound)
+       e=characterchoiceentityindex(el)
+       tgunid=entityelement(e).currentweapon
+       tsndid=gunsoundcompanion(tgunid,1,rnd(2)).soundid
+       if tsndid>0
+        if gun(tgunid).action.automatic.s>0
+         if entityelement(e).firesoundloopremote>0
+          if entityelement(e).firesoundloopremote<>tsndid
+           stop sound entityelement(e).firesoundloopremote
+           entityelement(e).firesoundloopremote=0
+          endif
+         endif
+         if entityelement(e).firesoundloopremote=0
+          play sound tsndid,gun(tgunid).sound.fireloopend
+          loop sound tsndid,0,gun(tgunid).sound.fireloopend
+          entityelement(e).firesoundloopremote=tsndid
+         endif
+         entityelement(e).firesoundlooptime=timer()
+        else
+         play sound tsndid
+        endif
+        posinternal3dsound(tsndid,entityelement(e).x,entityelement(e).y,entityelement(e).z)
+        broadcast3dsound(entityelement(e).x,entityelement(e).y,entityelement(e).z,25.0)
+       endif
+       rem visual decal
+       tdecalmode=6
+       entityelement(e).decalindex=1
+       entityelement(e).decalmode=tdecalmode
+       if entityelement(e).currentweapon>0
+        rem override decal if gun specifies non-fire-flare
+        tgunid=entityelement(e).currentweapon
+        if gun(tgunid).decalid>0
+         entityelement(e).decalindex=gun(tgunid).decalid*-1
+        endif
+       else
+        entityelement(e).decalindex=0
+       endif
+      endif
+      if dwCode=9
+       rem movement
+       if multiplayeridlink(el)<>1
+        a = memblock byte( mb_move, 1 )*2
+        x = memblock word( mb_move, 2 )
+        y = memblock word( mb_move, 4 )
+        z = memblock word( mb_move, 6 )*-1
+        statelag(el)=statemsgap(el)
+        statemytimer(el)=timer()
+        px#=x : py#=y : pa#=a : pz#=z
+        rem If this plr is newly joined, reset to this new position coming in
+        if multiplayerisnew(el)=3 then multiplayerisnew(el)=2
+        gosub _packet_move
+        ttransmitpos=1
+        rem and anim
+        viewy = memblock byte( mb_move, 8 )*2
+        anim = memblock byte( mb_move, 9 )
+        tcolmattype = memblock byte( mb_move, 10 )
+        animdir = memblock byte( mb_move, 11 )
+        statecolmaterialtype(el)=tcolmattype-1
+        stateanim(el)=anim : pviewy#=viewy
+        stateanimdir(el)=animdir
+        gosub _packet_viewyanim
+        ttransmitanim=1
+       endif
+      endif
+      `
+      rem If server intercepts this, send new client data out to other clients
+      if createorjoin=1
+       if ttransmitpos=1 or ttransmitanim=1 or ttransmitshot=1
+        MULTIPLAYER SEND FROM PLAYER dwPlayerID
+        MULTIPLAYER SEND MESSAGE TO (2+multiplayeri(el))*-1
+        gosub _multi_transmitplayerdata
+        MULTIPLAYER SEND MESSAGE TO 0
+        rem ensure this non-prioritystuff gets sent at least one in five
+        if guarenteedloadonmove>4 then guarenteedloadonmove=0
+       endif
+      endif
+      `
+     endif
+    endif
+   endif
+   `
+  endif
+  `
+  rem
+  rem MEMBLOCK COMMUNICATIONS
+  rem
+  if dwMessageCode=3
+   `
+   rem
+   rem SERVER Only Actions
+   rem
+   if createorjoin=1
+    `
+    rem INIT - server inits everything to requesting client
+    if dwCode=1
+     rem server will reject init immediately if game is FULL
+     MULTIPLAYER SEND FROM PLAYER dwPlayerID
+     if Servergameisfull=0
+      rem name of server player (priority)
+      MULTIPLAYER SEND MESSAGE STRING multiplayername$(1),0x0080
+      rem show client list of available characters
+      gosub _multi_showlistofavailchars
+     else
+      rem server game is full
+      rem no more slots, max players reached (copied from below)
+      write memblock byte 102, 0, 103
+      write memblock dword 102, 4, 1
+      MULTIPLAYER SEND MESSAGE memblock 102,0x0080,8
+      inc guarenteedbytes,8 : inc unreliablebytes,0
+     endif
+    endif
+    rem REQUEST CHARACTER - server sends permission to client to use requested character
+    if dwCode=3
+     rem server says yes you can use that character
+     tokay=1 : tfreeslot=0
+     tcl = memblock dword( mb_move, 4 )
+     for tcc=0 to numberofplayers-1
+      if characterchosen(1+tcc)=tcl
+       tokay=0
+      endif
+      if characterchosen(1+tcc)=0 then tfreeslot=1
+     next tcc
+     MULTIPLAYER SEND FROM PLAYER dwPlayerID
+     if tfreeslot=1
+      if tokay=1
+       rem record clients choice on the server
+       el=getelfromid(dwPlayerID) : characterchosen(el)=tcl
+       gosub _multi_identifycharactersinentities
+       characterchoiceentityindex(el)=characterlistentity(tcl)
+       rem set new joiner players health on server
+       te=characterchoiceentityindex(el)
+       plrindex=multiplayerplrindex(el) : player(plrindex).health=entityelement(te).eleprof.strength
+       rem if test game, give a fake health in case no character to use
+       if gtestgamemodefromeditor=1 then player(plrindex).health=100
+       rem go ahead and start clients game
+       write memblock byte 102, 0, 102
+       write memblock dword 102, 4, tcl
+       MULTIPLAYER SEND MESSAGE memblock 102,0x0080,8
+       inc guarenteedbytes,8 : inc unreliablebytes,0
+       rem transmit health values of all players too
+       for tel=1 to multiplayeridlinkmax
+        if multiplayeridlink(tel)<>1
+         plrindex=multiplayerplrindex(tel) : tvalue=player(plrindex).health
+         MULTIPLAYER SEND FROM PLAYER multiplayeridlink(tel)
+         write memblock byte 102, 0, 201
+         write memblock dword 102, 4, multiplayeridlink(tel)
+         write memblock dword 102, 8, tvalue
+         rem priority communication
+         MULTIPLAYER SEND MESSAGE memblock 102,0x0080,12
+         inc guarenteedbytes,12 : inc unreliablebytes,0
+        endif
+       next tel
+       rem transmit positions and other player details as they are right now
+       for el=1 to multiplayeridlinkmax
+        if multiplayeridlink(el)<>1
+         rem transmit position and anim (playercode specifies the WHO)
+         for tfourtimes=1 to 4
+          guarenteedloadonmove=5 : rem ensure inital positions guarenteed
+          ttransmitpos=1 : ttransmitanim=0
+          MULTIPLAYER SEND FROM PLAYER multiplayeridlink(el)
+          gosub _multi_transmitplayerdata
+         next tfourtimes
+         guarenteedloadonmove=5 : rem ensure inital positions guarenteed
+         ttransmitpos=0 : ttransmitanim=1
+         MULTIPLAYER SEND FROM PLAYER multiplayeridlink(el)
+         gosub _multi_transmitplayerdata
+         te=characterchoiceentityindex(el)
+         rem update all clients with this change (sneak lifecode in as well) (send from server)
+         MULTIPLAYER SEND FROM PLAYER dwLocalPlayerID
+         write memblock byte 102, 0, 211
+         write memblock byte 102, 1, entityelement(te).lifecode
+         write memblock dword 102, 4, multiplayeridlink(el)
+         write memblock dword 102, 8, stateweapon(el)
+         MULTIPLAYER SEND MESSAGE memblock 102,0x0080,12
+         inc guarenteedbytes,12 : inc unreliablebytes,0
+        endif
+       next el
+       rem restore EL just in case
+       el=getelfromid(dwPlayerID)
+       rem update Servergameisfull flag
+       tfreeslot=0
+       for tcc=0 to numberofplayers-1
+        if characterchosen(1+tcc)=0 then tfreeslot=1
+       next tcc
+       if tfreeslot=0 then Servergameisfull=1
+      else
+       rem client cannot have this character, ask client to choose another
+       gosub _multi_showlistofavailchars
+      endif
+     else
+      rem no more slots, max players reached
+      write memblock byte 102, 0, 103
+      write memblock dword 102, 4, 1
+      MULTIPLAYER SEND MESSAGE memblock 102,0x0080,8
+      inc guarenteedbytes,8 : inc unreliablebytes,0
+     endif
+    endif
+    rem REQUEST A HIT
+    if dwCode=21
+     rem shot and damage
+     tlifecode = memblock byte( mb_move, 1 )
+     te = memblock word( mb_move, 2 )
+     tdamage = memblock word( mb_move, 4 )
+     sourcee = memblock word( mb_move, 6 )
+     rem only deal remote damage if lifecode of current entity and shot-id is same
+     if entityelement(te).lifecode=tlifecode
+      gosub _multi_dealdamagedirect
+     else
+      el=getelfromid(dwPlayerID)
+      tlifecodenotmatch=el
+      tlifecodenotmatcha=entityelement(te).lifecode : tlifecodenotmatchb=tlifecode
+     endif
+    endif
+    rem FINISHEDGAME - server is informed of client winning by local mission AI
+    if dwCode=105
+     rem broadcast to clients
+     winnerel=getelfromid(memblock dword(mb_move, 4))
+     tbroadcastresult=winnerel
+     gosub _multi_informallplayersofcomplete
+     rem declare winner/loser
+     gosub _multi_declarewinorlose
+    endif
+    rem HEALTHUPDATE (also handled below for all)
+    if dwCode=201
+     rem newcode - server can never be told the players health is subzero
+     tplayerhealth=memblock dword(mb_move, 8)
+     if tplayerhealth<=0
+      rem Server was informed by Client that its health was subzero
+      el=getelfromid(memblock dword(mb_move, 4))
+      tclientinformedhealthsubzero=el
+     else
+      rem get for benefit of server
+      gosub _get_playerhealth
+     endif
+
+` other clients do NOT need to know their fellows health values
+`     rem from server so do not need to broadcast back out
+`     if dwPlayerID<>dwLocalPlayerID
+`      rem update all clients with this players new health
+`      MULTIPLAYER SEND FROM PLAYER multiplayeridlink(iLocalEL)
+`      rem Update client player health
+`      write memblock byte 102, 0, 201
+`      write memblock dword 102, 4, multiplayeridlink(el)
+`      write memblock dword 102, 8, player(plrindex).health
+`      MULTIPLAYER SEND MESSAGE TO (2+multiplayeri(el))*-1
+`      MULTIPLAYER SEND MESSAGE memblock 102,0x0080,12
+`      MULTIPLAYER SEND MESSAGE TO 0
+`      inc guarenteedbytes,12 : inc unreliablebytes,0
+`     endif
+
+    endif
+    rem WEAPONCHANGED - client changed weapon
+    if dwCode=211
+     rem get plr affected and store in state (on server)
+     tlifecode=memblock byte(mb_move, 1)
+     el=getelfromid(memblock dword(mb_move, 4))
+     stateweapon(el)=memblock dword(mb_move, 8)
+     te=characterchoiceentityindex(el)
+     entityelement(te).lifecode=tlifecode
+     rem update all clients with this change
+     MULTIPLAYER SEND FROM PLAYER multiplayeridlink(iLocalEL)
+     write memblock byte 102, 0, 211
+     write memblock byte 102, 1, entityelement(te).lifecode
+     write memblock dword 102, 4, multiplayeridlink(el)
+     write memblock dword 102, 8, stateweapon(el)
+     MULTIPLAYER SEND MESSAGE TO (2+multiplayeri(el))*-1
+     MULTIPLAYER SEND MESSAGE memblock 102,0x0080,12
+     MULTIPLAYER SEND MESSAGE TO 0
+     inc guarenteedbytes,12 : inc unreliablebytes,0
+     rem handle weapon change in game
+     gosub _multi_changeweapon
+    endif
+    if dwCode=212
+     rem get plr affected and store in state (on server)
+     el=getelfromid(memblock dword(mb_move, 4))
+     stateplayagain(el)=memblock byte(mb_move, 2)
+    endif
+    rem REQUEST TRIGGER SEND - client used an mptrigger
+    if dwCode=251
+     rem get trigger and perform on server first
+     mptrigger=memblock byte(mb_move,1)
+     mptriggervalue1=memblock word(mb_move, 2)
+     rem server performs directly (for server player)
+     gosub _multi_performtrigger
+     rem server sends all triggers to clients (using dwPlayerID to show who did triggering)
+     gosub _multi_serversendtriggers
+    endif
+    `
+   endif
+   `
+   rem
+   rem CLIENT
+   rem
+   if createorjoin=2
+    `
+    rem Messages JUST for this one client (or all clients)
+    if dwPlayerID=dwLocalPlayerID
+     rem POPULATE - client updates entities with server-controlled-entities
+     if dwCode=2
+      PlayerCanStartStage=3
+      x = memblock dword( mb_move,  4 )
+      y = memblock dword( mb_move,  8 )
+      z = memblock dword( mb_move, 12 )
+      e = memblock dword( mb_move, 16 )
+      entityelement(e).servercontrolled=1
+      entityelement(e).x=x
+      entityelement(e).y=y
+      entityelement(e).z=z
+     endif
+     rem ASKIFCANUSECHARACTER - client chooses character
+     if dwCode=101
+      rem Choose which character you want to be
+      numberofplayers=memblock byte( mb_move, 4 )
+      if numberofplayers>0
+       tdwplr as DWORD
+       for tcc=0 to numberofplayers-1
+        tdwplr=memblock dword( mb_move, 5+(tcc*5) )
+        tcl=memblock byte( mb_move, 9+(tcc*5) )
+        el=getelfromid(tdwplr) : characterchosen(el)=tcl
+        gosub _multi_identifycharactersinentities
+        characterchoiceentityindex(el)=characterlistentity(tcl)
+       next tcc
+       rem select from character selection screen
+       gosub _multi_andwho
+       rem client asks server if can use this character
+       MULTIPLAYER SEND FROM PLAYER dwPlayerID
+       write memblock byte 102, 0, 3
+       write memblock dword 102, 4, characterchoice
+       MULTIPLAYER SEND MESSAGE memblock 102,0x0080,8
+       inc guarenteedbytes,8 : inc unreliablebytes,0
+      else
+       rem odd error server has a game of zero players
+       exit prompt "MPError","Zero Players" : end
+      endif
+     endif
+     rem READY - client is told if it can use the selected character
+     if dwCode=102
+      rem JOIN PLAYER STARTS - create space in player array
+      characterchosen(iLocalEL)=characterchoice
+      te=characterlistentity(characterchoice)
+      characterchoiceentityindex(iLocalEL)=te
+      multiplayerplrindex(iLocalEL)=1
+      multiplayername$(iLocalEL)=playername$
+      rem start position of this local dude
+      gosub _multi_setlocalstart
+      rem start joiners game
+      PlayerCanStartStage=4
+      PlayerCanStart=1
+     endif
+     rem CANNOT PLAY - client is told they cannot play for some reason
+     if dwCode=103
+      tcannotplayreason=memblock byte( mb_move, 4 )
+      gosub _multi_cannotplay
+      mpgameinprogress=0
+      continueokay=1
+     endif
+     rem FINISHEDGAME - client is told a winner has been found (and pass in final frag count too)
+     if dwCode=104
+      el=getelfromid(dwPlayerID)
+      frags(el)=memblock word(mb_move, 2)
+      winnerel=getelfromid(memblock dword(mb_move, 4))
+      gosub _multi_declarewinorlose
+     endif
+    else
+     rem Messages for all clients (not original client sender though)
+     rem CHARACTER CONFIRM - intercept character confirmation, so other clients know what identity the player uses
+     if dwCode=102
+      el=getelfromid(dwPlayerID)
+      tcharacterchoice=memblock byte( mb_move, 4 )
+      characterchosen(el)=tcharacterchoice
+      characterchoiceentityindex(el)=characterlistentity(tcharacterchoice)
+     endif
+     if dwCode=252
+      rem TRIGGER EVENT - using trigger code and value(s)
+      mptrigger=memblock byte(mb_move,1)
+      mptriggervalue1=memblock word(mb_move, 2)
+      gosub _multi_performtrigger
+     endif
+    endif
+    `
+    rem PLAYER DETAIL CHANGE - player health change
+    if dwCode=201
+     rem simply update health (also handled above for broadcast by server)
+     gosub _get_playerhealth
+    endif
+    if dwCode=202
+     rem PLAYDIEANIM - usually from being killed
+     el=getelfromid(memblock dword(mb_move, 4))
+     sourceel=getelfromid(memblock dword(mb_move, 8))
+     gosub _multi_dieanim
+    endif
+    if dwCode=203
+     rem update health negatively, and if local player, arg and redhud
+     gosub _get_playerhurt
+    endif
+    if dwCode=204
+     rem REPOSIITON - usually after die anim
+     trandomvalue=memblock byte(mb_move, 1)
+     tlifecode=memblock byte(mb_move, 2)
+     el=getelfromid(dwPlayerID)
+     gosub _multi_resetplrpos
+     rem restart weapon inventory
+     if el=iLocalEL
+      tcopyorrestart=1 : gosub _gun_resetgunsettings
+     endif
+     rem update entities locally around player
+     tupdatelocalentities=el
+    endif
+    if dwCode=205
+     rem NEWFRAGVALUE - informs who has new frag value and who they killed to get the update
+     tnewfrag=memblock byte(mb_move,1)
+     killerel=getelfromid(memblock dword(mb_move, 4))
+     victimel=getelfromid(memblock dword(mb_move, 8))
+     frags(killerel)=tnewfrag
+    endif
+    if dwCode=211
+     rem simply update weapon used by plr (also handled above for broadcast by server)
+     tlifecode=memblock byte(mb_move,1)
+     el=getelfromid(memblock dword(mb_move, 4))
+     stateweapon(el)=memblock dword(mb_move, 8)
+     rem also lifecode piggy backs a ride
+     te=characterchoiceentityindex(el)
+     entityelement(te).lifecode=tlifecode
+     rem handle weapon change in game
+     gosub _multi_changeweapon
+    endif
+    `
+   endif
+   `
+   rem
+   rem BOTH
+   rem
+`   rem Messages JUST for this one client (or all clients)
+`   if dwPlayerID=dwLocalPlayerID
+`    rem From itself - ignore
+`   else
+`    rem ROCKET FIRED - client updates FLAK with rocket event
+`    if dwCode=11
+`     a = memblock byte( mb_move, 1 ) * 2
+`     x = memblock word( mb_move, 2 )
+`     y = memblock word( mb_move, 4 )
+`     riaplr = memblock dword( mb_move, 6 )
+`     rix#=x : riy#=y : ria#=a : rii=memblock byte( mb_move, 10 )
+`     rem do not remote-fire own rockets!!
+`     if riaplr<>dwLocalPlayerID
+``      gosub _proto_fire
+`     endif
+`     rem if server intercepts a fire, send to other clients
+`     if createorjoin=1
+`      iLocalELAction=ri
+`     endif
+`    endif
+`   endif
+`   rem ROCKET COLLIDED - so trigger explosion
+`   if dwCode=12
+`    rii = memblock dword( mb_move, 4 )
+`    for ri=1 to rocketmax
+`     if rocket(ri).owner=dwPlayerID
+`      if rocket(ri).rii=rii
+`       rocket(ri).rocketmode=2 : rocket(ri).exploderadius=2 : exit
+`      endif
+`     endif
+`    next ri
+`   endif
+   `
+  endif
+  `
+  rem update entities locally around player
+  if tupdatelocalentities>0
+   el=tupdatelocalentities
+   if el=iLocalEL
+    mex#=statex(el) : mey#=statey(el) : mez#=statez(el)
+    gosub _entity_blastinitentities
+   endif
+   tupdatelocalentities=0
+  endif
+  `
+ endwhile
+ `
+ if showfpsinrealgame=2
+  set cursor 0,250
+  if tlifecodenotmatch<>0
+   print "lifecodenotmatch(el=";tlifecodenotmatch;") ";multiplayername$(tlifecodenotmatch)
+   print "entis:";tlifecodenotmatcha
+   print "asked:";tlifecodenotmatchb
+  endif
+  if tclientinformedhealthsubzero<>0
+   print "tclientinformedhealthsubzero(el=";tclientinformedhealthsubzero;") ";multiplayername$(tclientinformedhealthsubzero)
+  endif
+ endif
+ `
+ rem Restore all server sends (so no client is excluded)
+ MULTIPLAYER SEND MESSAGE TO 0
+ `
+return
+
+_multi_changeweapon:
+ `
+ rem uses el
+ tgunid=stateweapon(el)
+ e=characterchoiceentityindex(el)
+ tweap$=gun(tgunid).name$
+ tobj=entityelement(e).obj
+ entid=entityelement(e).bankindex
+ if entityprofile(entid).ischaracter=1
+  if object exist(tobj)=1
+   if entityprofile(entid).firespotlimb>-1
+    rem switch weapon carried and force reset of animation account for possible weapon
+    entityelement(e).eleprof.hasweapon$=tweap$
+    gosub _entity_switchattachment
+    entityelement(e).animset=entityelement(e).animdo+1
+   endif
+  endif
+ endif
+ `
+return
+
+_multi_transmitplayerdata:
+ `
+ rem prepare
+ if ttransmitpos=1
+  a=wrapvalue(statea(el))/2
+  x=statedx(el) : if x>65535 : x=65535 : endif : if x<0 : x=0 : endif
+  y=statedy(el) : if y>65535 : y=65535 : endif : if y<0 : y=0 : endif
+  z=statedz(el)*-1 : if z>65535 : z=65535 : endif : if z<0 : z=0 : endif
+ endif
+ if ttransmitanim=1
+  viewy=wrapvalue(stateviewy(el))/2
+  anim=stateanim(el)
+  tcolmat=1+statecolmaterialtype(el)
+  animdir=stateanimdir(el)
+ endif
+ `
+ rem if both pos and anim/viewy, ship as single packet
+ if ttransmitpos=1 and ttransmitanim=1
+  `
+  rem Both POS+ANIM message
+  write memblock byte mb_move, 0, 9
+  write memblock byte mb_move, 1, a
+  write memblock word mb_move, 2, x
+  write memblock word mb_move, 4, y
+  write memblock word mb_move, 6, z
+  write memblock byte mb_move, 8, viewy
+  write memblock byte mb_move, 9, anim
+  write memblock byte mb_move, 10, tcolmat
+  write memblock byte mb_move, 11, animdir
+  if guarenteedloadonmove>4
+   MULTIPLAYER SEND MESSAGE MEMBLOCK mb_move,0x0080,12
+   inc guarenteedbytes,12 : inc unreliablebytes,0
+  else
+   MULTIPLAYER SEND MESSAGE MEMBLOCK mb_move,12
+   inc guarenteedbytes,0 : inc unreliablebytes,12
+  endif
+  `
+ else
+  `
+  rem send out position (non-priority)
+  if ttransmitpos=1
+   write memblock byte mb_move, 0, 0
+   write memblock byte mb_move, 1, a
+   write memblock word mb_move, 2, x
+   write memblock word mb_move, 4, y
+   write memblock word mb_move, 6, z
+   if guarenteedloadonmove>4
+    rem ensure at least one out of five move messages will be guarenteed if bombed with priority traffic
+    MULTIPLAYER SEND MESSAGE MEMBLOCK mb_move,0x0080,8
+    inc guarenteedbytes,8 : inc unreliablebytes,0
+   else
+    MULTIPLAYER SEND MESSAGE MEMBLOCK mb_move,8
+    inc guarenteedbytes,0 : inc unreliablebytes,8
+   endif
+  endif
+  `
+  rem send out viewy and animation (non-priority)
+  if ttransmitanim=1
+   write memblock byte mb_move, 0, 4
+   write memblock byte mb_move, 1, viewy
+   write memblock byte mb_move, 2, anim
+   write memblock byte mb_move, 3, tcolmat
+   if guarenteedloadonmove>4
+    rem ensure at least one out of five move messages will be guarenteed if bombed with priority traffic
+    MULTIPLAYER SEND MESSAGE MEMBLOCK mb_move,0x0080,8
+    inc guarenteedbytes,8 : inc unreliablebytes,0
+   else
+    MULTIPLAYER SEND MESSAGE MEMBLOCK mb_move,8
+    inc guarenteedbytes,0 : inc unreliablebytes,8
+   endif
+  endif
+  `
+ endif
+ `
+ rem send out the shot-event (non-priority)
+ if ttransmitshot=1
+  write memblock byte mb_move, 0, 5
+  MULTIPLAYER SEND MESSAGE MEMBLOCK mb_move,8
+  inc guarenteedbytes,0 : inc unreliablebytes,8
+ endif
+ `
+return
+
+_multi_showlistofavailchars:
+ `
+ rem send list of chars to client from server
+ MULTIPLAYER SEND FROM PLAYER dwPlayerID
+ write memblock byte 102, 0, 101
+ rem server also sends who client has picked as their character
+ write memblock byte 102, 4, numberofplayers
+ for tcc=0 to numberofplayers-1
+  write memblock dword 102, 5+(tcc*5), multiplayeridlink(1+tcc)
+  write memblock byte 102, 9+(tcc*5), characterchosen(1+tcc)
+ next tcc
+ amount=4+4+(numberofplayers*5)
+ MULTIPLAYER SEND MESSAGE memblock 102,0x0080,amount
+ inc guarenteedbytes,amount : inc unreliablebytes,0
+ `
+return
+
+_multi_addplayer:
+ `
+ rem find free 'used' server player slot
+ plrindex=0
+ for ti=1 to playermax
+  if player(ti).serverplayer=2
+   plrindex=ti
+  endif
+ next ti
+ if plrindex=0
+  rem add player to array (use el)
+  playermax=playermax+1
+  dim player(playermax) as playertype
+  dim playersound(playermax,220) as integer
+  dim playersoundset$(playermax) as string
+  dim playermovementstep(playermax) as integer
+  dim playerinventory(playermax,100) as inventorytype
+  plrindex=playermax
+ endif
+ rem set new player and slot
+ multiplayerplrindex(el)=plrindex
+ player(plrindex).serverplayer=1
+ `
+return
+
+_server:
+ `
+ rem pretent FPI script tailoed for arena logic
+ for e=1 to entityelementmax
+  if entityelement(e).servercontrolled=1
+   rem go through server-linked-players
+   for mel=1 to multiplayeridlinkmax
+    if multiplayeridlink(mel)<>1
+     `
+     rem Entity Info
+     entid=entityelement(e).bankindex
+     `
+     rem pause while death/respawn happens (animwait set when death occurs)
+     if entityprofile(entid).ischaracter=1
+      if stateanimwait(mel)>0
+       stateanimwait(mel)=stateanimwait(mel)-1
+       if stateplayagain(mel)<>1 and stateanimwait(mel)=0 then stateanimwait(mel)=1
+       if stateanimwait(mel)=0
+        stateplayagain(mel)=0
+        el=mel : plrindex=multiplayerplrindex(el)
+        player(plrindex).health=100
+        trandomvalue=1+rnd(respawnmax-1)
+        tlifecode=rnd(255)
+        gosub _multi_resetplrpos
+        rem restart weapon inventory
+        if el=iLocalEL
+         tcopyorrestart=1 : gosub _gun_resetgunsettings
+        endif
+        rem update entities locally around player
+        tupdatelocalentities=el
+        rem server sends out 204 (to trigger respawn of dead player)
+        MULTIPLAYER SEND FROM PLAYER multiplayeridlink(el)
+        write memblock byte 102, 0, 204
+        write memblock byte 102, 1, trandomvalue
+        write memblock byte 102, 2, tlifecode
+        write memblock dword 102, 4, multiplayeridlink(el)
+        MULTIPLAYER SEND MESSAGE memblock 102,0x0080,8
+        inc guarenteedbytes,8 : inc unreliablebytes,0
+        rem update all clients with this players new health
+        tvalue=player(plrindex).health
+        for tel=1 to multiplayeridlinkmax
+         if multiplayeridlink(tel)<>1
+          MULTIPLAYER SEND FROM PLAYER multiplayeridlink(tel)
+          rem Update client player health
+          write memblock byte 102, 0, 201
+          write memblock dword 102, 4, multiplayeridlink(el)
+          write memblock dword 102, 8, tvalue
+          MULTIPLAYER SEND MESSAGE memblock 102,0x0080,12
+          inc guarenteedbytes,12 : inc unreliablebytes,0
+         endif
+        next tel
+       endif
+      endif
+     endif
+     `
+    endif
+   next mel
+  endif
+ next e
+ `
+ rem update entities locally around player
+ if tupdatelocalentities>0
+  el=tupdatelocalentities
+  if el=iLocalEL
+   mex#=statex(el) : mey#=statey(el) : mez#=statez(el)
+   gosub _entity_blastinitentities
+  endif
+  tupdatelocalentities=0
+ endif
+ `
+ rem Server Monitors for objective completion
+ tnumberofcurrentplayers=0
+ for el=1 to multiplayeridlinkmax
+  if multiplayeridlink(el)<>1
+   inc tnumberofcurrentplayers
+  endif
+ next el
+ `
+ tbroadcastresult=0
+ if ggameobjectivetype=1
+  rem any client/serverplayer can signal they have completed the mission (local AI message)
+ endif
+ if ggameobjectivetype=2
+  rem server ends game when a player reaches desired frags
+  if tnumberofcurrentplayers>1
+   for el=1 to multiplayeridlinkmax
+    if multiplayeridlink(el)<>1
+     if frags(el)>=ggameobjectivevalue
+      tbroadcastresult=el
+      exit
+     endif
+    endif
+   next el
+  endif
+ endif
+ if ggameobjectivetype=3
+  rem server monitors time and ends game when time expired
+  if ((timer()-dwStartTime)/1024)>=ggameobjectivevalue
+   highestel=1
+   if tnumberofcurrentplayers>1
+    for el=2 to multiplayeridlinkmax
+     if multiplayeridlink(el)<>1
+      if frags(el)>frags(highestel) then highestel=el
+     endif
+    next el
+   endif
+   tbroadcastresult=highestel
+  endif
+ endif
+ if tbroadcastresult>0
+  rem and then broadcast to clients
+  winnerel=tbroadcastresult
+  gosub _multi_informallplayersofcomplete
+  rem announce as winner/loser directly
+  gosub _multi_declarewinorlose
+ endif
+ `
+ rem Send a keepalive trigger to master database every 10 minutes
+ if (timer()-tenminutetimer)>600000
+  gosub _ai_gamelist_keepalive
+  tenminutetimer=timer()
+ endif
+ `
+return
+
+_multi_mptrigger:
+ `
+ if createorjoin=1
+  rem if server player does trigger, direct do and send triggers out
+  dwPlayerID=multiplayeridlink(iLocalEL)
+  gosub _multi_serversendtriggers
+ else
+  rem send trigger message to server
+  MULTIPLAYER SEND FROM PLAYER multiplayeridlink(iLocalEL)
+  write memblock byte 102, 0, 251
+  write memblock byte 102, 1, mptrigger
+  write memblock word 102, 2, mptriggervalue1
+  MULTIPLAYER SEND MESSAGE memblock 102,0x0080,8
+  inc guarenteedbytes,8 : inc unreliablebytes,0
+ endif
+ `
+return
+
+_multi_serversendtriggers:
+ `
+ rem uses mptrigger, mptriggervalue1
+ rem send trigger message to all clients (from server)
+ for el=1 to multiplayeridlinkmax
+  if multiplayeridlink(el)<>1
+   MULTIPLAYER SEND FROM PLAYER dwPlayerID
+   write memblock byte 102, 0, 252
+   write memblock byte 102, 1, mptrigger
+   write memblock word 102, 2, mptriggervalue1
+   MULTIPLAYER SEND MESSAGE memblock 102,0x0080,8
+   inc guarenteedbytes,8 : inc unreliablebytes,0
+  endif
+ next el
+ `
+return
+
+_multi_performtrigger:
+ `
+ rem perform locally, immediately
+ `
+ rem 1 - plrtake
+ if mptrigger=1
+  te=mptriggervalue1
+  if te>0
+   rem hide object
+   tobj=entityelement(te).obj
+   if tobj>0
+    if object exist(tobj)=1 then hide object tobj : set object collision off tobj
+   endif
+   rem if child of spawn leader, reset spawn count
+   tspawne=entityelement(te).spawn.leaderid
+   if tspawne=0 then tspawne=te
+   entityelement(tspawne).spawn.leadercount=entityelement(tspawne).spawn.delay
+   rem remove entity
+   entityelement(te).beenkilled=1
+   entityelement(te).active=0
+   rem clear entity from col map
+   tx=entityelement(te).x/25
+   ty=entityelement(te).y/100
+   tz=entityelement(te).z/-25
+   if tx>=0 and ty>=0 and tz>=0
+    if tx<=viscolx and ty<=viscoly and tz<=viscolz
+     if viscolmap(tx,ty,tz)=te then viscolmap(tx,ty,tz)=0
+    endif
+   endif
+  endif
+ endif
+ `
+ rem 2 - process logic instantly (colon/coloff)
+ if mptrigger=2
+  rem Command entity to process logic immediately (open doors/close doors/etc)
+  te=mptriggervalue1
+  if te>0
+   entityelement(te).active=1
+   entityelement(te).dormant=0
+   entityelement(te).logiccount=0
+   entityelement(te).logictimestamp=timer()
+   ste=e : e=te : gosub _entity_addetoprioritylist : e=ste
+  endif
+ endif
+ `
+return
+
+_client:
+ `
+ rem go through server-linked-players
+ for el=1 to multiplayeridlinkmax
+  if multiplayeridlink(el)<>1
+   te=characterchoiceentityindex(el)
+   entid=entityelement(te).bankindex
+   if entityprofile(entid).ischaracter=1
+    if stateanimwait(el)>10
+     stateanimwait(el)=stateanimwait(el)-1
+    endif
+   endif
+  endif
+ next mel
+ `
+ rem Handle local ID assignment when client comes online
+ if MULTIPLAYER GET PLAYER COUNT()>=1
+  if dwLocalPlayerID=0
+   rem AT VERY START OF JOINING STAGE
+   PlayerCanStartStage=1
+   rem establish local player ID
+   dwLocalPlayerID=MULTIPLAYER GET PLAYER ID(0)
+   dwStartJoinTime=timer()
+   rem Trigger server to send all init states (priority)
+   write memblock byte 102, 0, 1
+   MULTIPLAYER SEND MESSAGE memblock 102,0x0080,4
+   inc guarenteedbytes,4 : inc unreliablebytes,0
+  else
+   rem find and fill local player index
+   PlayerCanStartStage=2
+   if iLocalEL=0
+    for el=1 to multiplayeridlinkmax
+     if multiplayeridlink(el)=dwLocalPlayerID
+      iLocalEL=el : statemytimer(el)=timer() : exit
+     endif
+    next el
+   endif
+`  rem server ends (only when actually started game) - also wanted if host gone when joiner arrives
+`  if PlayerCanStart=1
+   rem server ends 5 second after started the join phase (or could have never been there)
+   if timer()-dwStartJoinTime>5000
+    if MULTIPLAYER GET CONNECTION()=0
+     rem Terminate game if server player leaves
+     gterminationcountdown=10
+    endif
+   endif
+  endif
+  rem if not voice setup, do it now
+  if setupvoicechat=0
+   setupvoicechat=1
+  endif
+ endif
+ `
+return
+
+_playersend:
+ `
+ rem player sends data to server (only sends if client data changed since last send)
+ if PlayerCanStart=1 or createorjoin=1
+  `
+  rem Regular burst of moveanim info
+  if timer()-dwBurstTime>lagmon#
+   rem reset bursttime counter (non-priority)
+   MULTIPLAYER SEND FROM PLAYER multiplayeridlink(iLocalEL)
+   dwBurstTime=timer()
+   rem movement (if changed)
+   tsendpos=0
+   tcodesignaturex=(statex(iLocalEL)-(int(statex(iLocalEL)/500)*500))*1
+   tcodesignaturey=(statey(iLocalEL)-(int(statey(iLocalEL)/500)*500))*500
+   tcodesignaturez=(statez(iLocalEL)-(int(statez(iLocalEL)/500)*500))*25000
+   tcodesignature=tcodesignaturex+tcodesignaturey+tcodesignaturez
+   if statecodeupdate(iLocalEL,0)<>tcodesignature
+    statecodeupdate(iLocalEL,0)=tcodesignature : tsendpos=1
+   endif
+   rem angle and animation and materialstoodon (if changed)
+   tsendanim=0
+   tcodesignature=stateviewy(iLocalEL)+(statecolmaterialtype(iLocalEL)*256)+(stateanim(iLocalEL)*(256*256))+(stateanimdir(iLocalEL)*123)
+   if statecodeupdate(iLocalEL,4)<>tcodesignature
+    statecodeupdate(iLocalEL,4)=tcodesignature : tsendanim=1
+   endif
+   if tsendpos=1 and tsendanim=1
+    rem send both in one packet
+    write memblock byte mb_move, 0, 9
+    write memblock byte mb_move, 1, wrapvalue(statea(iLocalEL))/2
+    x=statex(iLocalEL) : if x>65535 : x=65535 : endif : if x<0 : x=0 : endif
+    y=statey(iLocalEL) : if y>65535 : y=65535 : endif : if y<0 : y=0 : endif
+    z=abs(statez(iLocalEL)) : if z>65535 : z=65535 : endif : if z<0 : z=0 : endif
+    write memblock word mb_move, 2, x
+    write memblock word mb_move, 4, y
+    write memblock word mb_move, 6, z
+    write memblock byte mb_move, 8, wrapvalue(stateviewy(iLocalEL))/2
+    write memblock byte mb_move, 9, stateanim(iLocalEL)
+    write memblock byte mb_move, 10, 1+statecolmaterialtype(iLocalEL)
+    write memblock byte mb_move, 11, stateanimdir(iLocalEL)
+    MULTIPLAYER SEND MESSAGE MEMBLOCK mb_move,12
+    inc guarenteedbytes,0 : inc unreliablebytes,12
+   else
+    rem one or the other
+    if tsendpos=1
+     write memblock byte mb_move, 0, 0
+     write memblock byte mb_move, 1, wrapvalue(statea(iLocalEL))/2
+     x=statex(iLocalEL) : if x>65535 : x=65535 : endif : if x<0 : x=0 : endif
+     y=statey(iLocalEL) : if y>65535 : y=65535 : endif : if y<0 : y=0 : endif
+     z=abs(statez(iLocalEL)) : if z>65535 : z=65535 : endif : if z<0 : z=0 : endif
+     write memblock word mb_move, 2, x
+     write memblock word mb_move, 4, y
+     write memblock word mb_move, 6, z
+     MULTIPLAYER SEND MESSAGE MEMBLOCK mb_move,8
+     inc guarenteedbytes,0 : inc unreliablebytes,8
+    endif
+    if tsendanim=1
+     write memblock byte mb_move, 0, 4
+     write memblock byte mb_move, 1, wrapvalue(stateviewy(iLocalEL))/2
+     write memblock byte mb_move, 2, stateanim(iLocalEL)
+     write memblock byte mb_move, 3, 1+statecolmaterialtype(iLocalEL)
+     write memblock byte mb_move, 4, stateanimdir(iLocalEL)
+     MULTIPLAYER SEND MESSAGE MEMBLOCK mb_move,8
+     inc guarenteedbytes,0 : inc unreliablebytes,8
+    endif
+   endif
+   rem current health (if changed locally - if changed by server, update() is also updated)
+   plrindex=multiplayerplrindex(iLocalEL)
+   tcodesignature=player(plrindex).health
+   if statecodeupdate(iLocalEL,2)<>tcodesignature
+    statecodeupdate(iLocalEL,2)=tcodesignature
+    rem client cannot send a health of zero (it could interfere with respawn)
+    if player(plrindex).health>0
+     write memblock byte 102, 0, 201
+     write memblock dword 102, 4, multiplayeridlink(iLocalEL)
+     write memblock dword 102, 8, player(plrindex).health
+     MULTIPLAYER SEND MESSAGE memblock 102,0x0080,12
+     inc guarenteedbytes,12 : inc unreliablebytes,0
+    endif
+   endif
+   rem current weapon (if changed)
+   plrindex=multiplayerplrindex(iLocalEL)
+   tcodesignature=stateweapon(iLocalEL)
+   if statecodeupdate(iLocalEL,3)<>tcodesignature
+    statecodeupdate(iLocalEL,3)=tcodesignature
+    te=characterchoiceentityindex(iLocalEL)
+    write memblock byte 102, 0, 211
+    write memblock byte 102, 1, entityelement(te).lifecode
+    write memblock dword 102, 4, multiplayeridlink(iLocalEL)
+    write memblock dword 102, 8, stateweapon(iLocalEL)
+    MULTIPLAYER SEND MESSAGE memblock 102,0x0080,12
+    inc guarenteedbytes,12 : inc unreliablebytes,0
+   endif
+   `
+  endif
+  `
+ endif
+ `
+return
+
+_multi_playershoots:
+ `
+ rem Trigger a shot flash and sound on other clients
+ MULTIPLAYER SEND FROM PLAYER multiplayeridlink(iLocalEL)
+ write memblock byte mb_move, 0, 5
+ MULTIPLAYER SEND MESSAGE MEMBLOCK mb_move,8
+ inc guarenteedbytes,0 : inc unreliablebytes,8
+ `
+return
+
+_multi_dieanim:
+ rem work out relative direction to throw entity from entity angle
+ sourcete=characterchoiceentityindex(sourceel)
+ brayx1#=entityelement(sourcete).x
+ brayz1#=entityelement(sourcete).z
+ tdir=0
+ te=characterchoiceentityindex(el)
+ distx#=entityelement(te).x-brayx1# : distz#=entityelement(te).z-brayz1#
+ tentitya#=wrapvalue(atanfull(distx#,distz#))-wrapvalue(stateviewy(el))
+ if tentitya#<0.0 then tentitya#=tentitya#+360.0
+ if tentitya#>=360.0 then tentitya#=tentitya#-360.0
+ if tentitya#>180-45 and tentitya#<180+45
+  tdir=1
+ else
+  if tentitya#>315 or tentitya#<45
+   tdir=2
+  else
+   if tentitya#>45 and tentitya#<180-45
+    tdir=4
+   else
+    tdir=3
+   endif
+  endif
+ endif
+ rem Choose a good die anim (based on direction of shooter)
+ stateanim(el)=12 : stateanimdir(el)=0
+ if tdir=1 then stateanim(el)=12
+ if tdir=2 then stateanim(el)=15
+ if tdir=3 then stateanim(el)=21
+ if tdir=4 then stateanim(el)=18
+ rem Wipe out local health (so corpose can switch off radial collision)
+ tplrindex=multiplayerplrindex(el) : player(tplrindex).health=0
+ rem EL play die animation, timing it to end before a restart
+ stateanimwait(el)=200
+ rem ensure cannot respawn until plr has clicked to respawn
+ stateplayagain(el)=0
+ rem store who did it
+ statewhodidit(el)=sourceel
+ rem and freeze activity of states (which counts down after animwait is zero)
+ stategetready(el)=50
+ rem trigger sound for death-froan (excluded from regular takedamage subroutine)
+ tplrid=entityelement(te).fakeplayerid : tsnd=15
+ if playersound(tplrid,tsnd)>0
+  if tplrid=1
+   broadcast3dsound(camera position x(),camera position y(),camera position z(),10.0)
+   play sound playersound(tplrid,tsnd)
+  else
+   playinternal3dsoundfactor(playersound(tplrid,tsnd),entityelement(te).x,entityelement(te).y,entityelement(te).z,10.0)
+  endif
+ endif
+return
+
+_multi_resetplrpos:
+ `
+ rem find spawn points from multiplayer spawn array (uses trandomvalue) (uses randomposnotworkatlocalstart=1)
+ te=characterchoiceentityindex(el)
+ gosub _multi_playertorespawnpos
+ `
+ rem give lifecode to plr
+ entityelement(te).lifecode=tlifecode
+ `
+ rem make plr invincible at start for a while
+ entityelement(te).invincibleactive=150
+ `
+ rem Spawn sound (using real entity plr index (for sound))
+ plrindex=entityelement(te).fakeplrindex
+ gosub _player_spawnsound
+ `
+ rem uses el
+ statex(el)=playerstartx#
+ statey(el)=playerstarty#
+ statez(el)=playerstartz#
+ statea(el)=playerstartry#
+ stateanim(el)=2
+ stateanimdir(el)=0
+ stateanimwait(el)=0
+ stateweapon(el)=0
+ statesx(el)=statex(el)
+ statesy(el)=statey(el)
+ statesz(el)=statez(el)
+ statesa(el)=statea(el)
+ statedx(el)=statex(el)
+ statedy(el)=statey(el)
+ statedz(el)=statez(el)
+ multiplayerisnew(el)=1
+ px#=statex(el)
+ py#=statey(el)
+ pz#=statez(el)
+ pa#=statea(el)
+ gosub _packet_move
+ if el=iLocalEL
+  rem local plr - remove old plr marker and restart to new position
+  gosub _player_unmark
+  gosub _player_restart
+ else
+  rem non-local plr repositioning, ensure object is updated here (to defeat universe cull)
+  tobj=entityelement(te).obj
+  if tobj>0
+   if object exist(tobj)=1
+    position object tobj,statex(el),statey(el),statez(el)
+   endif
+  endif
+ endif
+ `
+ rem Fill updates with blanks to repeat playersend info (fixes firing with no gun bug)
+ for ti=0 to 4 : statecodeupdate(el,ti)=-1 : next ti
+ `
+return
+
+_multi_dealdamagedirect:
+ `
+ rem find out which player was hit (TE) (takes sourcee)
+ plrindex=0 : plrel=0 : tplrcntmax=0
+ for el=1 to multiplayeridlinkmax
+  if multiplayeridlink(el)<>1
+   if characterchoiceentityindex(el)=te and plrel=0 then plrindex=multiplayerplrindex(el) : plrel=el
+   inc tplrcntmax
+  endif
+ next el
+ el=plrel
+ rem no damage needed if being respawned (so do not get killed twice in close proximity)
+ if plrel>0 and stateanimwait(plrel)>0 then plrindex=0
+ rem update all clients with new health reading
+ if plrindex>0
+  player(plrindex).health=player(plrindex).health-tdamage
+  if player(plrindex).health<=0 or (goneshotkills=1 and tdamage>0)
+   `
+   rem Server Registers a Kill
+   sourceel=0
+   if sourcee>0
+    rem increment frag count
+    for sourceel=1 to multiplayeridlinkmax
+     if characterchoiceentityindex(sourceel)=sourcee then exit
+    next sourceel
+    rem only if you did not kill yourself
+    if sourceel<>el then frags(sourceel)=frags(sourceel)+1
+    `
+    rem only need to send frag to the guy who wants to know what he has
+    MULTIPLAYER SEND FROM PLAYER multiplayeridlink(iLocalEL)
+    write memblock byte 102, 0, 205
+    write memblock byte 102, 1, frags(sourceel)
+    write memblock dword 102, 4, multiplayeridlink(sourceel)
+    write memblock dword 102, 8, multiplayeridlink(el)
+    MULTIPLAYER SEND MESSAGE memblock 102,0x0080,12
+    inc guarenteedbytes,12 : inc unreliablebytes,0
+    `
+   endif
+   `
+   rem Play die animation
+   player(plrindex).health=0
+   gosub _multi_dieanim
+   rem inform player that they have been killed (who triggers dieanim)
+   MULTIPLAYER SEND FROM PLAYER multiplayeridlink(el)
+   write memblock byte 102, 0, 202
+   write memblock dword 102, 4, multiplayeridlink(el)
+   write memblock dword 102, 8, multiplayeridlink(sourceel)
+   MULTIPLAYER SEND MESSAGE memblock 102,0x0080,12
+   inc guarenteedbytes,12 : inc unreliablebytes,0
+   `
+  endif
+  `
+  rem Update client player health
+  if tplrcntmax>1
+   tvalue=player(plrindex).health
+   MULTIPLAYER SEND FROM PLAYER multiplayeridlink(iLocalEL)
+   write memblock byte 102, 0, 203
+   write memblock dword 102, 4, multiplayeridlink(el)
+   write memblock dword 102, 8, tvalue
+   MULTIPLAYER SEND MESSAGE TO 2+multiplayeri(el)
+   MULTIPLAYER SEND MESSAGE memblock 102,0x0080,12
+   MULTIPLAYER SEND MESSAGE TO 0
+   inc guarenteedbytes,12 : inc unreliablebytes,0
+  endif
+  `
+  rem if EL was hit, and is local, show damage by visual and sound
+  if el=iLocalEL then gosub _multi_showplrdamage
+  `
+ endif
+ `
+return
+
+_multi_dealentityedamage:
+ `
+ rem damage comes from caller of this subroutine
+ sourcee=characterchoiceentityindex(iLocalEL)
+ `
+ rem replaces direct entity damage, by sending message to server (which will deduct the health)
+ if createorjoin=1
+  rem server player can deal damage direct, and then inform clients
+  te=e : gosub _multi_dealdamagedirect
+ else
+  rem uses E which is the entity that has been damaged (client tells server to deal damage)
+  MULTIPLAYER SEND FROM PLAYER dwLocalPlayerID
+  write memblock byte 102, 0, 21
+  write memblock byte 102, 1, entityelement(e).lifecode
+  write memblock word 102, 2, e
+  write memblock word 102, 4, tdamage
+  write memblock word 102, 6, sourcee
+  MULTIPLAYER SEND MESSAGE memblock 102,0x0080,8
+  inc guarenteedbytes,8 : inc unreliablebytes,0
+ endif
+ `
+return
+
+_get_playerhealth:
+ rem can be assigned high and low (any value)
+ el=getelfromid(memblock dword(mb_move, 4))
+ plrindex=multiplayerplrindex(el)
+ tplayerhealth=memblock dword(mb_move, 8)
+ player(plrindex).health=tplayerhealth
+ if el=iLocalEL
+  rem when own health adjusted remotely, ensure now sent BACK to server
+  statecodeupdate(iLocalEL,2)=tplayerhealth
+ endif
+return
+
+_multi_showplrdamage:
+ rem hurt sound and visual
+ tpe=characterchoiceentityindex(el)
+ plrindex=entityelement(tpe).fakeplrindex
+ tdamage=0 : gosub _player_takedamage
+ rem no lives (multiplayer)
+ if player(plrindex).lives<1 then player(plrindex).lives=1
+return
+
+_get_playerhurt:
+ rem can only be assigned lower (as though shot)
+ el=getelfromid(memblock dword(mb_move, 4))
+ plrindex=multiplayerplrindex(el)
+ tplayerhealth=memblock dword(mb_move, 8)
+ if tplayerhealth>player(plrindex).health and memblock dword(mb_move, 4)=dwLocalPlayerID
+  rem damage dealt by server to affected player cannot go UP
+  rem fixes health value glitch where server messages are higher than latest local value
+ else
+  player(plrindex).health=tplayerhealth
+  if el=iLocalEL
+   rem when own health adjusted remotely, ensure now sent BACK to server
+   statecodeupdate(iLocalEL,2)=tplayerhealth
+  endif
+ endif
+ if el=iLocalEL then gosub _multi_showplrdamage
+return
+
+_multi_plrradial:
+ `
+ if multiplayerinitialised=1
+  raddmin#=30
+  for radel=1 to multiplayermax
+   if radel<>iLocalEL
+    if multiplayeridlink(radel)<>1
+     tplrindex=multiplayerplrindex(radel)
+     if tplrindex>0
+      if player(tplrindex).health>0
+       tte=characterchoiceentityindex(radel)
+       if entityelement(tte).invincibleactive=0
+        radx#=statedx(radel)-camerapositionx
+        rady#=statedy(radel)-(camerapositiony-phyeyeheight#)
+        radz#=statedz(radel)-camerapositionz
+        if abs(rady#)<75
+         radd#=sqrt(abs(radx#*radx#)+abs(radz#*radz#))
+         if radd#<raddmin#
+          rada#=atanfull(radx#,radz#)
+          camvelx#=newxvalue(0,rada#,-5.0)
+          camvelz#=newzvalue(0,rada#,-5.0)
+          exit
+         endif
+        endif
+       endif
+      endif
+     endif
+    endif
+   endif
+  next radel
+ endif
+ `
+return
+
+_packet_move:
+ `
+ rem if newly joined, no history to curve from (avoids crazy rush across universe from 0,0,0)
+ if multiplayerisnew(el)>0 and multiplayerisnew(el)<3
+  statesx(el)=px# : statesy(el)=py# : statesz(el)=pz#
+  statedx(el)=px# : statedy(el)=py# : statedz(el)=pz#
+  multiplayerisnew(el)=multiplayerisnew(el)-1
+ endif
+ `
+ rem move or no move
+ if abs(statex(el)-px#)>1.0 or abs(statey(el)-py#)>1.0 or abs(statez(el)-pz#)>1.0
+  eloff=((el-1)*5) : debugel=el
+  statedx(el)=px# : statedy(el)=py# : statedz(el)=pz#
+  statex(el)=statesx(el) : statey(el)=statesy(el) : statez(el)=statesz(el)
+  cpx#(1)=statex(el) : cpy#(1)=statey(el) : cpz#(1)=statez(el) : set vector3 10+eloff,cpx#(1),cpy#(1),cpz#(1)
+  tdx#=px#-statex(el)
+  tdz#=statez(el)-pz#
+  td#=sqrt(abs(tdx#*tdx#)+abs(tdz#*tdz#))/2.0
+  if statesvel(el)=0.0 then statesa(el)=atanfull(tdx#,tdz#)
+  ix#=newxvalue(statex(el),statesa(el),td#)
+  iy#=statey(el)
+  iz#=newzvalue(statez(el),statesa(el)+180,td#)
+  cpx#(2)=ix# : cpy#(2)=iy# : cpz#(2)=iz# : set vector3 11+eloff,cpx#(2),cpy#(2),cpz#(2)
+  cpx#(3)=px# : cpy#(3)=py# : cpz#(3)=pz# : set vector3 12+eloff,cpx#(3),cpy#(3),cpz#(3)
+  ix#=newxvalue(px#,pa#,td#)
+  iy#=py#
+  iz#=newzvalue(pz#,pa#+180,td#)
+  cpx#(4)=ix# : cpy#(4)=iy# : cpz#(4)=iz# : set vector3 13+eloff,cpx#(4),cpy#(4),cpz#(4)
+  statesx(el)=px# : statesy(el)=py# : statesz(el)=pz# : statesa(el)=pa#
+  statesvel(el)=1.0
+  statemsgap(el)=0
+  statemove(el)=1
+ else
+  rem no movement, but update direction from static pose
+  statesx(el)=px# : statesy(el)=py# : statesz(el)=pz# : statesa(el)=pa#
+  statesvel(el)=0.0
+  statemsgap(el)=0
+  statemove(el)=0
+ endif
+ `
+return
+
+_packet_viewyanim:
+ `
+ rem turn or no turn
+ statesviewdy(el)=pviewy#
+ `
+return
+
+_packet_move_dedrec:
+ `
+ rem move position to follow spline based on time
+ if statemove(el)=1
+  if 1
+   rem direct point to point
+   timespan#=(1.0/200.0)*statemsgap(el)
+   if timespan#>1.0 then timespan#=1.0 : statemove(el)=0
+   eloff=((el-1)*5)
+   cpx#=x vector3(10+eloff)
+   cpy#=y vector3(10+eloff)
+   cpz#=z vector3(10+eloff)
+   rem move position of plr
+   statex(el)=cpx#+((statesx(el)-cpx#)*timespan#)
+   statey(el)=cpy#+((statesy(el)-cpy#)*timespan#)
+   statez(el)=cpz#+((statesz(el)-cpz#)*timespan#)
+  else
+   rem catmulrom spline (changed vector numbers since)
+`   lastx#=statex(el) : lasty#=statez(el)
+`   timespan#=(2.0/statelag(el))*statemsgap(el)
+`   eloff=((el-1)*5)
+`   if timespan#>=0.0 and timespan#<1.0
+`    CATMULLROM VECTOR3 5+eloff,1+eloff,1+eloff,2+eloff,3+eloff,timespan#
+`    statex(el)=x vector3(5+eloff)
+`    statey(el)=y vector3(5+eloff)
+`    statez(el)=z vector3(5+eloff)
+`    dfx#=statex(el)-lastx#
+`    dfy#=lasty#-statez(el)
+`    if abs(dfx#)+abs(dfy#)>0.01
+`     statea(el)=wrapvalue(atanfull(dfx#,dfy#))
+`    endif
+`   else
+`    if timespan#>=1.0 and timespan#<2.0
+`     CATMULLROM VECTOR3 5+eloff,1+eloff,2+eloff,3+eloff,4+eloff,timespan#-1.0
+`     statex(el)=x vector3(5+eloff)
+`     statey(el)=y vector3(5+eloff)
+`     statez(el)=z vector3(5+eloff)
+`     dfx#=statex(el)-lastx#
+`     dfy#=lasty#-statez(el)
+`     if abs(dfx#)+abs(dfy#)>0.01
+ `     statea(el)=wrapvalue(atanfull(dfx#,dfy#))
+ `    endif
+ `   endif
+ `  endif
+  endif
+ endif
+ `
+return
+
+_packet_rotate_dedrec:
+ rem turn angle over time
+ stateviewy(el)=curveangle(statesviewdy(el),stateviewy(el),8.0)
+return
+
+`
+` User Interface Subroutines (screens/prompts)
+
+_multi_identifycharactersinentities:
+ `
+ rem fill characters with names from characters in level
+ tcharid=0
+ characterlistentity(0)=0
+ for te=1 to entityelementmax
+  tentid=entityelement(te).bankindex
+  if entityprofile(tentid).ischaracter=1
+   inc tcharid : characterlist$(tcharid)=entityelement(te).eleprof.name$
+   characterlistentity(tcharid)=te
+  endif
+ next te
+ rem and adjust max players if not enough characters in level
+ if numberofplayers>tcharid then numberofplayers=tcharid
+ if tcharid>=2 and numberofplayers<2 then numberofplayers=2
+ `
+return
+
+_multi_andwho:
+ `
+ rem first determine which entities the characters are
+ gosub _multi_identifycharactersinentities
+ `
+ rem who is left
+ characterlist(0)=0
+ for tcl=1 to multiplayermax
+  characterlist(tcl)=0
+  for tcc=0 to numberofplayers-1
+   if characterchosen(1+tcc)=tcl
+    characterlist(tcl)=1
+   endif
+  next tcc
+ next tcl
+ `
+ rem set text for choice
+ set text size 12+((screen width()-320.0)/320.0)*6.0
+ set text to normal
+ `
+ rem offer choice
+ gap#=screen height()/20
+ characterchoice=0
+ if numberofplayers>=2
+  repeat
+   t$=strarr$(641)
+   ink rgb(0,0,0),0 : center text screen width()/2,(gap#*2),t$
+   ink rgb(255,255,255),0 : center text (screen width()/2)-1,(gap#*2)-1,t$
+   for tcl=1 to numberofplayers
+    t$=str$(tcl)+". "+characterlist$(tcl)
+    ink rgb(0,0,0),0 : center text screen width()/2,(gap#*5)+((tcl-1)*gap#),t$
+    if characterlist(tcl)=0 then ink rgb(255,255,255),0 else ink rgb(64,64,64),0
+    center text (screen width()/2)-1,(gap#*5)+((tcl-1)*gap#)-1,t$
+   next tcl
+   k$=inkey$() : if k$>="1" and k$<="8" then characterchoice=(asc(k$)-asc("0"))
+   sync
+  until characterchoice>=1 and characterchoice<=numberofplayers
+ else
+  rem choose only character (if any)
+  if numberofplayers=1
+   characterchoice=1
+  else
+   characterchoice=0
+  endif
+ endif
+ `
+ rem restore text to in-game style and size
+ set text size 16 : set text to normal
+ `
+return
+
+_multi_cannotplay:
+ `
+ rem input tcannotplayreason
+ repeat
+  if tcannotplayreason=1 then t$=strarr$(642)
+  if tcannotplayreason=2 then t$=strarr$(643)
+  cls 0 : center text screen width()/2,(screen height()/2)-20,t$
+  center text screen width()/2,(screen height()/2)+20,strarr$(644)
+  sync
+ until spacekey()=1
+ `
+return
+
+_multi_missioncomplete:
+ `
+ rem announce as winner/loser directly
+ winnerel=iLocalEL
+ tbroadcastresult=iLocalEL
+ if createorjoin=1
+  rem broadcast that server has won to other players
+  gosub _multi_informallplayersofcomplete
+ else
+  rem client must tell server to tell other players
+  MULTIPLAYER SEND FROM PLAYER multiplayeridlink(iLocalEL)
+  write memblock byte 102, 0, 105
+  write memblock dword 102, 4, multiplayeridlink(tbroadcastresult)
+  MULTIPLAYER SEND MESSAGE memblock 102,0x0080,8
+  inc guarenteedbytes,8 : inc unreliablebytes,0
+ endif
+ `
+ rem declare last after broascast(s)
+ gosub _multi_declarewinorlose
+ `
+return
+
+_multi_informallplayersofcomplete:
+ `
+ rem takes tbroadcastresult as EL winner
+ for el=1 to multiplayeridlinkmax
+  if multiplayeridlink(el)<>1
+   MULTIPLAYER SEND FROM PLAYER multiplayeridlink(el)
+   write memblock byte 102, 0, 104
+   write memblock word 102, 2, frags(el)
+   write memblock dword 102, 4, multiplayeridlink(tbroadcastresult)
+   MULTIPLAYER SEND MESSAGE memblock 102,0x0080,8
+   inc guarenteedbytes,8 : inc unreliablebytes,0
+  endif
+ next el
+ `
+return
+
+_multi_declarewinorlose:
+ `
+ rem uses winnerel to determine winner identity
+ if winnerel=iLocalEL
+  tserverendsreason=2
+ else
+  tserverendsreason=3
+ endif
+ gosub _multi_serverendedgame
+ mpgameinprogress=0
+ continueokay=1
+ `
+return
+
+_multi_serverendedgame:
+ `
+ rem setup vars for win/lose channel (0-lost,1-skip,2-won)
+ if tserverendsreason=1
+  levelwon=2 : rem skip
+ else
+  if tserverendsreason=2
+   levelwon=1 : rem won
+  else
+   if tserverendsreason=3
+    levelwon=0 : rem lost
+   else
+    levelwon=2 : rem skip
+   endif
+  endif
+ endif
+ `
+return
+
+`
+` MP Functions
+`
+
+function getindexfromid(idin as dword)
+ index=0
+ for i = 1 to MULTIPLAYER GET PLAYER COUNT( )
+  if MULTIPLAYER GET PLAYER ID( i-1 )=idin
+   index=i : exit
+  endif
+ next i
+endfunction index
+
+function getelfromid(idin as dword)
+ gotel=0
+ for el=1 to multiplayeridlinkmax
+  if multiplayeridlink(el)=idin
+   gotel=el : exit
+  endif
+ next el
+endfunction gotel

@@ -1,0 +1,15 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Passive Sentry behaviour
+
+;Triggers
+
+:state=0:animate=1
+:state=0,plrcanbeseen:settarget
+:state=0,random=20:rotateheadrandom=65
+:state=0,shotdamage=10:settarget,rotatetotarget,resethead
+:state=0,noiseheard=5:rotateheadrandom=85
+
+;End of Script

@@ -1,0 +1,101 @@
+;Segment Spec
+
+;Header
+
+partmax = 2
+lastmeshmax = 0
+
+;Segment Parts
+
+partmode0       = 0
+meshname0       = meshbank\ww2\scenery\doors\door_a\door_a_frame.x
+offx0           = 0
+offy0           = -2.5
+offz0           = 50
+rotx0           = 0
+roty0           = 0
+rotz0           = 0
+texture0        = texturebank\ww2\scenery\doors\door_a\door_a_d2.tga
+textured0       = texturebank\ww2\scenery\doors\door_a\door_a_D.tga
+texturen0       = texturebank\ww2\scenery\doors\door_a\door_a_N.tga
+textures0       = texturebank\ww2\scenery\doors\door_a\door_a_S.tga
+transparency0   = 0
+effect0         = 
+colmode0        = 0
+csgmesh0        = 
+csgmode0        = 0
+csgimmune0      = 1
+lightmode0      = 0
+multimeshmode0  = 0
+materialindex0  = 2
+
+partmode1       = 3
+meshname1       = entitybank\ww2\scenery\doors\door_a.fpe
+offx1           = 0
+offy1           = -2.5
+offz1           = 50
+rotx1           = 0
+roty1           = 0
+rotz1           = 0
+texture1        = 
+textured1       = 
+texturen1       = 
+textures1       = 
+transparency1   = 0
+effect1         = 
+colmode1        = 0
+csgmesh1        = 
+csgmode1        = 0
+csgimmune1      = 0
+lightmode1      = 0
+multimeshmode1  = 0
+materialindex1  = 2
+
+partmode2       = 1
+meshname2       = meshbank\ww2\scenery\doors\door_a\door_a_punch.x
+offx2           = 0
+offy2           = -2.5
+offz2           = 50
+rotx2           = 0
+roty2           = 0
+rotz2           = 0
+texture2        = texturebank\common\basepunch.dds
+textured2       = 
+texturen2       = 
+textures2       = 
+transparency2   = 0
+effect2         = 
+colmode2        = 0
+csgmesh2        = 
+csgmode2        = 0
+csgimmune2      = 0
+lightmode2      = 0
+multimeshmode2  = 0
+materialindex2  = 2
+
+;Segment Visibility
+
+visoverlay      = 1
+visfloor        = -1
+visroof         = -1
+viswallb        = -1
+viswallr        = -1
+viswallf        = -1
+viswalll        = -1
+viscornertl     = -1
+viscornertr     = -1
+viscornerbr     = -1
+viscornerbl     = -1
+
+;Segment Blueprint
+
+mode            = 0
+symbol          = 0
+floorsizey      = 0
+sidesizex       = 100
+sidesizey       = 100
+sidesizez       = 100
+groundmode      = 0
+
+;end
+

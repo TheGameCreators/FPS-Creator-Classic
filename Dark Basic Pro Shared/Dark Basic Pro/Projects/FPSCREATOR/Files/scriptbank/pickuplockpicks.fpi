@@ -1,0 +1,12 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Pickup Lock Picks (for doors that can be picked) [G1]
+
+;Triggers
+
+:state=0,plrdistwithin=40:state=1,playertake,coloff,plrsound=audiobank\misc\ping.wav
+:state=1:rundecal=5,globalvar=1,setvar=1
+
+;End of Script

@@ -1,0 +1,15 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Light Flicker
+
+;Triggers
+
+:state=0:state=1
+:state=1,activated=1:state=2
+:state=1,random=10:state=2
+:state=1:lighton,state=0
+:state=2:lightoff,state=0
+
+;End of Script

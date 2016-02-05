@@ -1,0 +1,38 @@
+
+
+;header
+desc          = large_health_2
+
+;ai
+aiinit	      = appear1.fpi
+aimain	      = pickuphealthglow.fpi
+aidestroy     = disappear1.fpi
+
+;spawn
+spawnmax      = 1
+spawndelay    = 200
+spawnqty      = 1
+
+;Itemproperties
+defaultstatic = 0
+materialindex = 3
+collisionmode = 0
+debrisshape   = 0
+explodable    = 0
+
+;Orientation
+model         = large_health_2.x
+offy          = 0
+scale         = 100
+fixnewy       = 0
+
+;identity
+ishealth      = 1
+isimmobile    = 1
+
+;visualinfo
+textured      = large_health_2_d2.tga
+
+;Decals
+decalmax      = 1
+decal0        = glowzone

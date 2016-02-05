@@ -1,0 +1,385 @@
+rem
+rem ENTITY MAIN
+rem
+
+rem Deactivate backdrop
+autocam off : backdrop off
+set camera fov 30
+
+rem Load in all entities full quality
+gdividetexturesize=0
+scanforentitiescharactersonly=0
+gosub _entity_scanfornewentitiesnoload
+
+rem Create a scene for shadow view
+make object box 1,1000,5,1000
+make object box 2,1000,1000,5 : position object 2,0,0,65
+
+rem Set better font
+set text font "Verdana"
+
+rem Start position
+startlistindex=0
+
+rem Main loop
+do
+
+rem Scene visibility
+hide object 1 : hide object 2
+
+rem Display entities
+set cursor 0,0 : cls 0
+ink rgb(255,255,255),0 : set text size 12
+print strarr$(106);entidmaster;strarr$(107)
+print
+if entidmaster>0
+ t=0 : e=1+startlistindex
+ while t<30 and e<=entidmaster
+  if e<=entidmaster
+`   if entityprofile(e).ischaracter=1 or (scanforentitiescharactersonly=0 and entityprofile(e).ischaracter=0)
+    print e;" - ";entitybank$(e)
+    inc t
+`   endif
+  endif
+  inc e
+ endwhile
+endif
+
+rem Resize arrays to max size
+dim entitybodypart(entidmaster,100) as integer
+dim entityanim(entidmaster,animmax) as entityanimtype
+dim entityprofileheader(entidmaster) as entityprofileheadertype
+dim entityprofile(entidmaster) as entityprofiletype
+dim entitydecal$(entidmaster,100) as string
+dim entitydecal(entidmaster,100) as integer
+
+rem Select entity
+print : print strarr$(108)
+input strarr$(109);val$
+
+rem Page change or view
+ch$=lower$(val$)
+if ch$="p" or ch$="n" or ch$="c" or ch$="a"
+
+ rem page control
+ if ch$="p" then startlistindex=startlistindex-30
+ if ch$="n" then startlistindex=startlistindex+30
+ if ch$="c" then scanforentitiescharactersonly=1
+ if ch$="a" then scanforentitiescharactersonly=0
+ if startlistindex<0 then startlistindex=0
+ if startlistindex+30>entidmaster then startlistindex=entidmaster-30
+
+else
+
+rem Get entity index to view
+entid=val(val$)
+
+rem Load this entity
+ent$=entitybank$(entid)
+entpath$=getpath(ent$)
+entobj=entitybankoffset+entid
+if object exist(entobj)=0
+ gosub _entity_load
+endif
+
+rem Setup visuals
+set point light 0,-100,100,-100
+color light 0,1024,1024,1024
+
+rem Camera position
+position camera -100,200,-100 : point camera 0,-20,0
+
+rem Prepare for viewing
+autocam off : backdrop on
+color backdrop rgb(255,255,255)
+sync on : sync rate 60
+set text font "Verdana"
+set text size 14
+
+if entityprofile(entid).ismarker=4
+ if object exist(entobj)=1 then delete object entobj
+ make object box entobj,100,100,5
+ tfile$=left$(getfile(ent$),len(getfile(ent$))-4)
+ tfile$="gamecore\decals\"+tfile$+"\decal.tga"
+ load image tfile$,1
+ texture object entobj,1
+ position object entobj,0,50,0
+ position camera 0,0,-200
+ point camera 0,0,0
+endif
+
+rem If entity not loaded for whatever reason, make a sphere
+entobj=entitybankoffset+entid
+if object exist(entobj)=0 then make object sphere entobj,25
+
+rem Reveal the entitiy
+`position object entobj,0,0,0
+position object entobj,entityprofile(entid).offx,entityprofile(entid).offy,entityprofile(entid).offz
+rotate object entobj,0,80,0
+
+rem Transparency
+if entityprofile(entid).transparency<>0
+ set object transparency entobj,entityprofile(entid).transparency
+endif
+
+rem CHARACTER: Requires post-load step
+if entityprofile(entid).ischaracter=1
+ `
+ rem Best character view
+ set object speed entobj,15
+ `
+ rem better camera
+ position camera object size x(entobj)*-3,object size y(entobj),object size z(entobj)*-3 : point camera 0,object size y(entobj)/2.0,0
+ `
+ rem animation data in place
+ animset=1
+ loop object entobj,entityanim(entid,animset).start,entityanim(entid,animset).finish
+ `
+ rem we want shadows too (for good hardware)
+ show object 1 : ghost object on 1,1
+ `
+ rem speed test now - do we need lower poly shadow caster?!
+` show object 2
+ `set shadow shading on entobj
+ `set point light 0,-50,20,-100
+ `sync rate 0
+ `make object cube 3,25
+ `position object 3,15,12.5,55
+ `set shadow shading on 3
+ `
+ rem attach weapon if any attachements!
+ if entityprofile(entid).hasweapon$<>""
+  inc entityattachmentindex
+  obj=entityattachmentsoffset+entityattachmentindex
+  if object exist(obj)=1 then delete object obj
+  thasweapon$=entityprofile(entid).hasweapon$
+  tfile$="gamecore\Guns\"+thasweapon$+"\vweap.x"
+  load object tfile$,obj
+  set object transparency obj,4
+  texuseid=loadinternaltexture("gamecore\Guns\"+thasweapon$+"\gun_D2.tga")
+  glue object to limb obj,entobj,entityprofile(entid).firespotlimb
+  set object collision off obj
+  texture object obj,texuseid
+ endif
+ `
+endif
+
+rem Show loop
+saveentitythumb=0
+while spacekey()=0 and saveentitythumb=0
+ `
+ rem Entity
+ if mouseclick()=1
+  position object entobj,object position x(entobj),object position y(entobj)-mousemovey(),object position z(entobj)
+ else
+  position object entobj,object position x(entobj),object position y(entobj),object position z(entobj)
+  move camera mousemovey()*-0.5
+ endif
+ yrotate object entobj,object angle y(entobj)+mousemovex()
+ if controlkey()=1
+  position camera object size x(entobj)*-3,object size y(entobj),object size z(entobj)*-3 : point camera 0,object size y(entobj)/2.0,0
+  move camera -50
+ endif
+ if shiftkey()=1 then position camera -100,200,-100 : point camera 0,-20,0
+ if inkey$()="a" then position camera camera position x()-1,camera position y(),camera position z()-0.3 : point camera 0,-20,0
+ if inkey$()="z" then position camera camera position x()+1,camera position y(),camera position z()+0.3 : point camera 0,-20,0
+ if upkey()=1 then position camera camera position x()-0.3,camera position y(),camera position z()-0.3
+ if downkey()=1 then position camera camera position x()+0.3,camera position y(),camera position z()+0.3
+ if rightkey()=1 then position camera camera position x()-0.3,camera position y(),camera position z()+0.3
+ if leftkey()=1 then position camera camera position x()+0.3,camera position y(),camera position z()-0.3
+ if inkey$()="s" then saveentitythumb=1
+ `
+ rem ensure we handle the element, not the entity source
+ e=1 : entityelementlist=1
+ entityelement(e).bankindex=entid
+ entityelement(e).obj=entobj
+ `
+ rem animation trigger
+ k$=inkey$()
+ if k$>="0" and k$<="9"
+  triggeranimset=asc(k$)-asc("0")
+  if triggeranimset<entityprofile(entid).animmax
+   if entityelement(e).animdo<>triggeranimset
+    entityelement(e).animset=1+triggeranimset
+   endif
+  endif
+ endif
+ `
+ rem Animation control
+ if inkey$()="-" then set object speed entobj,15
+ if inkey$()="=" then set object speed entobj,75
+ if inkey$()="[" then stop object entobj
+ if inkey$()="]" then loop object entobj,0,1300 : set object frame entobj,0
+ if inkey$()="l" then loop object entobj,set1,set2
+ if inkey$()="a" then set1=int(mousex()*2.0)
+ if inkey$()="b" then set2=int(mousex()*2.0)
+ if mouseclick()=2
+  stop object entobj
+  set object frame entobj,int(mousex()*2.0)
+  yrotate object entobj,30
+ endif
+ `
+ rem animation and slerp handling - now poart of element mechanism
+ gosub _entity_controlelements
+ `
+ rem show limbs
+ if returnkey()=1
+  set text size 12 : ink rgb(0,32,0),0
+  perform checklist for object limbs entobj
+  while returnkey()=1
+   set cursor 0,0
+   for c=1 to checklist quantity() step 2
+    if c<=checklist quantity()
+     print c-1;" : ";checklist string$(c);
+    endif
+    if c+1<=checklist quantity()
+     print "         ";
+     print c;" : ";checklist string$(1+c)
+    else
+     print
+    endif
+   next c
+   sync
+  endwhile
+  set text size 20 : ink 0,0
+ endif
+ `
+ rem Update screen
+ sync
+ `
+ rem if not snapshotting, show info on entity
+ if saveentitythumb=0
+  `
+  set cursor 0,0
+  ink rgb(32,32,32),rgb(255,255,255)
+  print strarr$(110)
+  print strarr$(111)
+  print strarr$(112);desc$
+  print strarr$(113);int(object frame(entobj));"/";total object frames(entobj)
+  margin=(640-480)/2
+  line margin,0,margin,480
+  line 640-margin,0,640-margin,480
+  `
+ endif
+ `
+rem End loop
+endwhile
+
+rem page or view code
+endif
+
+rem save if flagged
+if saveentitythumb=1
+ hide object 1
+ tbmpfile$="entitybank\"+ent$
+ tbmpfile$=left$(tbmpfile$,len(tbmpfile$)-4)+".bmp"
+ if file exist(tbmpfile$)=1 then delete file tbmpfile$
+ sync : sync
+ create bitmap 5,64,64
+` copy bitmap 0,0,0,640,480,5,0,0,64,64
+ margin=(640-480)/2
+ copy bitmap 0,margin,0,640-margin,480,5,0,0,64,64
+ get image 1,0,0,64,64
+ delete bitmap 5
+ save image tbmpfile$,1
+ saveentitythumb=0
+endif
+
+rem hide object
+if entobj>0
+ if object exist(entobj)=1
+  position object entobj,99999,99999,99999
+  backdrop off : cls
+ endif
+endif
+
+rem End main loop
+loop
+
+`
+` Entity View Subroutines
+`
+
+_entityview_showmap_init:
+
+rem Simple 100x100 grid to simplify view
+`make matrix 1,4000,4000,40,40
+`position matrix 1,0,0,-4000
+
+rem Simple camera position
+position camera 800,1000,-600
+point camera 800,0,-600
+
+rem Load and create entity elements from testmap
+gosub _entity_loadbank
+gosub _entity_loadelementsdata
+gosub _entity_createelements
+
+return
+
+_entityview_showmap:
+
+rem Entity Statistics
+set cursor 0,0
+print strarr$(114);entidmaster
+if entidmaster>0
+ for t=1 to entidmaster
+  print t;" - ";entitybank$(t)
+ next t
+endif
+
+rem Show entity elements
+for e=1 to entityelementlist
+ tobj=entityelement(e).obj
+ if tobj>0
+  if object exist(tobj)=1
+   position object tobj,entityelement(e).x,entityelement(e).y,entityelement(e).z
+   rotate object tobj,entityelement(e).rx,entityelement(e).ry,entityelement(e).rz
+  endif
+ endif
+next e
+
+return
+
+`
+` Unused subs
+
+_version_commandlineprompt:
+_version_endofinit:
+_ode_entitydrivenphysics:
+_ode_entitydrivenstaticphysics:
+_ode_applyforce:
+_ode_triggermaterialsound:
+_ode_switchoffe:
+_ode_setupewithphysics:
+_ode_ensureeisnotpenetrated:
+_ode_playerborble:
+_ode_unmark:
+_ode_mark:
+_ode_playercamera:
+_ode_listener:
+_ode_applypointforce:
+_ode_pushusingtvelandangle:
+_multi_dealentityedamage:
+_multi_mptrigger:
+_multi_missioncomplete:
+_multi_playershoots:
+_part_createfragment:
+_part_triggerexplosion:
+_part_movedebrisifinray:
+_decalelement_create:
+_flakelement_create:
+_flakelement_explodeinstantly:
+return
+
+
+
+
+`
+` Spares
+`
+
+function timestampactivity(i,d$)
+endfunction
+
+

@@ -1,0 +1,38 @@
+;Entity Spec
+
+;Header
+desc          = Steel Door (auto)
+
+;AI
+aiinit	      = appear1.fpi
+aimain	      = autodoor.fpi
+aidestroy     = disappear1.fpi
+
+;Spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;Orientation
+model         = meshbank\ww2\scenery\doors\door_c\door_c.x
+offx          = 0
+offy          = 50
+offz          = 0
+rotx          = 0
+roty          = 0
+rotz          = 0
+materialindex = 3
+soundset      = audiobank\ww2\scenery\doors\open.wav
+soundset1     = audiobank\ww2\scenery\doors\close.wav
+
+;Visualinfo
+textured      = texturebank\ww2\scenery\doors\door_c\door_c_D2.tga
+effect        = 
+
+;Identity Details
+strength      = 0
+isimmobile    = 1
+
+;Animationinfo
+animmax       = 1
+anim0         = 0,30

@@ -1,0 +1,34 @@
+;Entity Spec
+
+;Header
+
+desc          = Bedside Lamp
+
+;AI
+aiinit	      = appear1.fpi
+aimain	      = default.fpi
+aidestroy     = disappear1.fpi
+
+;Spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;Orientation
+
+model         = meshbank\ww2\scenery\furniture\light_object_b\light_object_b.X
+offx          = 0
+offy          = 0
+offz          = 0
+rotx          = 0
+roty          = 0
+rotz          = 0
+forwardfacing = 0
+defaultheight = 0
+defaultstatic = 1
+
+;Visualinfo
+
+textured      = texturebank\ww2\scenery\furniture\light_object_b\light_object_b_D2.tga
+effect        = 
+castshadow    = 1

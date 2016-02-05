@@ -1,0 +1,13 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Pickup Item and mark as collected by player
+
+;Triggers
+
+:state=0:hudreset,hudx=50,hudy=90,hudimagefine=gamecore\text\pickedupanitem.tga,hudname=itemprompt,hudhide=1,hudmake=display,dimvar=collecteditemA,setvar=collecteditemA 0,state=10
+:state=10,plrdistwithin=40:state=1,playertake,coloff,plrsound=audiobank\misc\ping.wav,hudshow=itemprompt,hudfadeout=itemprompt,setvar=collecteditemA 1
+:state=1:rundecal=5
+
+;End of Script

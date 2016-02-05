@@ -1,0 +1,80 @@
+;Segment Spec
+
+;Header
+
+partmax = 1
+lastmeshmax = 0
+
+;Segment Parts
+
+partmode0       = 0
+meshname0       = meshbank\ww2\scenery\windows\window_a\win_a_frame.x
+offx0           = 0
+offy0           = -5
+offz0           = 50
+rotx0           = 0
+roty0           = 0
+rotz0           = 0
+texture0        = texturebank\ww2\scenery\windows\window_a\win_a_d2.tga
+textured0       = 
+texturen0       = 
+textures0       = 
+transparency0   = 0
+effect0         = 
+colmode0        = 0
+csgmesh0        = 
+csgmode0        = 0
+csgimmune0      = 1
+lightmode0      = 0
+multimeshmode0  = 0
+materialindex0  = 2
+
+partmode1       = 1
+meshname1       = meshbank\ww2\scenery\windows\window_a\win_a_punch.x
+offx1           = 0
+offy1           = -5
+offz1           = 50
+rotx1           = 0
+roty1           = 0
+rotz1           = 0
+texture1        = texturebank\common\basepunch.tga
+textured1       = 
+texturen1       = 
+textures1       = 
+transparency1   = 0
+effect1         = 
+colmode1        = 0
+csgmesh1        = 
+csgmode1        = 0
+csgimmune1      = 0
+lightmode1      = 0
+multimeshmode1  = 0
+materialindex1  = 2
+
+;Segment Visibility
+
+visoverlay      = 1
+visfloor        = -1
+visroof         = -1
+viswallb        = -1
+viswallr        = -1
+viswallf        = -1
+viswalll        = -1
+viscornertl     = -1
+viscornertr     = -1
+viscornerbr     = -1
+viscornerbl     = -1
+
+;Segment Blueprint
+
+mode            = 0
+symbol          = 0
+floorsizey      = 0
+sidesizex       = 0
+sidesizey       = 0
+sidesizez       = 0
+groundmode      = 0
+kindof          = 0
+
+;end
+

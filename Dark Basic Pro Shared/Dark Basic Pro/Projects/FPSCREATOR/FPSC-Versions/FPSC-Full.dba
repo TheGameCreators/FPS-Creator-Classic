@@ -1,0 +1,302 @@
+rem
+rem VERSIONS (Full)
+rem
+
+_version_commandlineprompt:
+ `
+ rem Triggers use of file map messaging
+ if lower$(cl$())="-t"
+  gtestgamemodefromeditor=1
+ endif
+ `
+return
+
+_version_endofinit:
+
+rem Ensure full game flag never set!!
+`grealgameviewstate=0 `demo versions with noEXEsave do this
+
+ rem Game Engine Demo would send this into filemap of OS
+` filemapname$="FPSCComm"
+` write filemap value filemapname$,42
+` write filemap string filemapname$,"demo version"
+
+return
+
+_version_splashtext:
+ `
+ rem Update Splash Text
+ open file map 2, "FPSSPLASH"
+ set file map dword 2, 4, 1
+ set file map string$ 2, 1000, strarr$(392)
+ set file map dword 2, 8, 1
+ wait for file map event 2
+ close file map 2
+ `
+return
+
+_version_onscreenlogos:
+return
+
+_version_permittestgame:
+ `
+ rem Map Editor launches test game
+ open file map 1,"FPSEXCHANGE"
+ set file map string$ 1, 1000, "FPSC-Game.exe"
+ set file map string$ 1, 1256, "-t"
+ set file map dword 1, 920, 1
+ wait for file map event 1
+ close file map 1
+ `
+return
+
+_version_resourcewarning:
+return
+
+_version_universe_saveELEandLGT:
+ `
+ rem Save newer elements list (that includes scene dynamic entities)
+ rem V106 also contains light indexes saved when universe is constructed
+ elementsfilename$="levelbank\testlevel\universe.ele" : gosub _entity_saveelementsdata
+ `
+ rem Save LGT lighting data
+ filename$="levelbank\testlevel\universe.lgt"
+ if file exist(filename$)=1 then delete file filename$
+ open to write 1,filename$
+  tinfinimax=array count(infinilight())
+  write file 1,tinfinimax
+  for i=0 to tinfinimax
+   write file 1,infinilight(i).used
+   write file 1,infinilight(i).type
+   write float 1,infinilight(i).x
+   write float 1,infinilight(i).y
+   write float 1,infinilight(i).z
+   write float 1,infinilight(i).range
+   write file 1,infinilight(i).id
+   write float 1,infinilight(i).dist
+   write file 1,infinilight(i).colrgb.r
+   write file 1,infinilight(i).colrgb.g
+   write file 1,infinilight(i).colrgb.b
+   write file 1,infinilight(i).islit
+  next i
+ close file 1
+ `
+return
+
+_version_universe_construct:
+  `
+  rem Save lighting data
+  gosub _version_universe_saveELEandLGT
+  `
+  rem New entities may have been aded, resave map.ent for transfer to level area
+  gosub _entity_savebank
+  `
+  rem Copy over key map data files this level required
+  for tkey=1 to 4
+   if tkey=1 then tfile$="levelbank\testlevel\header.dat" : tfile2$="mapbank\testmap\header.dat"
+   if tkey=2 then tfile$="levelbank\testlevel\map.fpmb" : tfile2$="mapbank\testmap\map.fpmb"
+   if tkey=3 then tfile$="levelbank\testlevel\map.ent" : tfile2$="mapbank\testmap\map.ent"
+   if tkey=4 then tfile$="levelbank\testlevel\map.way" : tfile2$="mapbank\testmap\map.way"
+   if file exist(tfile$)=1 then delete file tfile$
+   copy file tfile2$,tfile$
+  next tkey
+  `
+  rem Save ALL data in leveltest under a level file FPL (for use to extract new levels to play)
+  gosub _mapfile_save_fpl
+  `
+return
+
+_version_buildgame:
+ `
+ rem Is called when BUILD GAME selected from file menu
+ gosub _interface_openbuildgame : gosub _interface_handlebuildgame :  gosub _interface_closebuildgame
+ `
+return
+
+_version_main_game_buildexe:
+
+rem Despot file collection
+if file exist("..\buildfiles.ini")=1 then delete file "..\buildfiles.ini"
+save array "..\buildfiles.ini",filecollection$()
+
+rem Store root folder
+rootpath$=get dir$()
+
+rem Name without EXE
+exename$=gbuildname$
+if lower$(right$(exename$,4))=".exe"
+ exename$=left$(exename$,len(exename$)-4)
+endif
+
+rem Path to EXE
+if mid$(gbuildpath$,2)=":"
+ exepath$=gbuildpath$
+else
+ exepath$=exedir$
+endif
+if right$(exepath$,1)<>"\" then exepath$=exepath$+"\"
+if path exist(exepath$)=0 then exepath$=rootpath$+"\..\MyGames\"
+
+rem FPSCV104RC7 - user can delete the MyGames folder?
+if path exist(exepath$)=0
+ set dir rootpath$ : set dir ".."
+ make directory "MyGames"
+endif
+
+rem Create game folder
+set dir exepath$
+make directory exename$
+set dir exename$
+make directory "Files"
+set dir "Files"
+
+rem FPSCV10X, ensure gamesaves files are removed (if any)
+if path exist("gamesaves")=1
+ set dir "gamesaves"
+ perform checklist for files
+ for c=1 to checklist quantity()
+  tfile$=checklist string$(c)
+  if len(tfile$)>2
+   if file exist(tfile$)=1 then delete file tfile$
+  endif
+ next c
+ set dir ".."
+endif
+
+rem V109 BETA4 - 230408 - delete entries that already exist in IMAGEBLOCK
+if gimageblockmode=1
+ perform checklist for imageblock files
+ filesmax=array count(filecollection$())
+ for fileindex=0 to filesmax
+  srcstring$=lower$(filecollection$(fileindex))
+  if len(srcstring$)>0
+   rem scan imageblock
+   for c=1 to checklist quantity()
+    imageblockfile$=lower$(checklist string$(c))
+    if imageblockfile$=srcstring$
+     filecollection$(fileindex)=""
+     c=checklist quantity()+1
+    endif
+   next c
+  endif
+ next fileindex
+ addfiletocollection("imageblock.bin")
+endif
+
+rem V109 BETA5 - 250408 - build image block CLOSE
+if gcompilestandaloneexe=1 and gimageblockmode=1 then close imageblock
+
+rem ensure file path exists (by creating folders)
+filesmax=array count(filecollection$())
+for fileindex=0 to filesmax
+ olddir$=get dir$()
+ src$=filecollection$(fileindex)
+ srcstring$=src$
+ while len(srcstring$)>0
+  for c=1 to len(srcstring$)
+   if mid$(srcstring$,c)="\" or mid$(srcstring$,c)="/"
+    chunk$=left$(srcstring$,c-1)
+    if len(chunk$)>0
+     if path exist(chunk$)=0 then make directory chunk$
+     set dir chunk$
+    endif
+    srcstring$=right$(srcstring$,len(srcstring$)-c)
+    exit
+   endif
+  next c
+  if c>len(srcstring$) then exit
+ endwhile
+ set dir olddir$
+next fileindex
+
+rem v107 - 070807 - also detect for any HUD.X copies, and also copy texture files in its folder
+set dir rootpath$
+for fileindex=0 to filesmax
+ src$=filecollection$(fileindex)
+ if right$(lower$(src$),6)="\hud.x"
+  rem find all files in the folder that shares this file and add to collection
+  addallfilestocollection(left$(src$,len(src$)-5))
+ endif
+next fileindex
+filesmax=array count(filecollection$())
+
+rem copy file collection to exe folder
+set dir rootpath$
+debugviewtext(-1,strarr$(393))
+for fileindex=0 to filesmax
+ src$=filecollection$(fileindex)
+ dest$=exepath$+exename$+"\Files\"+src$
+ if file exist(dest$)=1 then delete file dest$
+ copy file src$,dest$
+next fileindex
+
+rem copy game engine and rename it
+set dir rootpath$ : set dir ".."
+dest$=exepath$+exename$+"\"+exename$+".exe"
+if file exist(dest$)=1 then delete file dest$
+copy file "FPSC-Game.exe",dest$
+
+rem create a setup.ini file here reflecting game
+dim setuparr$(999)
+setupfile$=exepath$+exename$+"\setup.ini" : i=0
+setuparr$(i)="[GAMERUN]" : inc i
+setuparr$(i)="realgameview=1" : inc i
+setuparr$(i)="dynamiclighting="+str$(gdynamiclightingstate) : inc i
+setuparr$(i)="dynamicshadows="+str$(gdynamicshadowsstate) : inc i
+setuparr$(i)="useeffects="+str$( guseeffectstate ) : inc i
+setuparr$(i)="useeffectsonguns="+str$( guseeffectongunsstate ) : inc i
+setuparr$(i)="useeffectsonscene="+str$( guseeffectonscenesstate ) : inc i
+setuparr$(i)="useeffectsonentities="+str$( guseeffectonentitiesstate ) : inc i
+setuparr$(i)="useeffectsonessentials="+str$( guseeffectsonessentials ) : inc i
+setuparr$(i)="dividetexturesize="+str$( gdividetexturesize ) : inc i
+`
+setuparr$(i)="" : inc i
+setuparr$(i)="[GAMEMULTIPLAYER]" : inc i
+setuparr$(i)="multiplayergame="+str$(gmultiplayergame) : inc i
+setuparr$(i)="gameobjectivetype="+str$(ggameobjectivetype) : inc i
+setuparr$(i)="gameobjectivevalue="+str$(ggameobjectivevalue) : inc i
+setuparr$(i)="oneshotkills="+str$(goneshotkills) : inc i
+setuparr$(i)="maxplayers="+str$(numberofplayers) : inc i
+setuparr$(i)="spawnrandom="+str$(gspawnrandom) : inc i
+setuparr$(i)="uniquegamecode="+guniquegamecode$ : inc i
+`
+setuparr$(i)="" : inc i
+setuparr$(i)="[GAMEDEBUG]" : inc i
+setuparr$(i)="usesky=1" : inc i
+setuparr$(i)="usefloor="+str$( gusefloorstate ) : inc i
+setuparr$(i)="useenvsounds=1" : inc i
+setuparr$(i)="useweapons=1" : inc i
+setuparr$(i)="" : inc i
+setuparr$(i)="[GAMEPROFILE]" : inc i
+setuparr$(i)="title="+titlefpi$ : inc i
+setuparr$(i)="global="+setupfpi$ : inc i
+setuparr$(i)="gamewon="+gamewonfpi$ : inc i
+setuparr$(i)="gameover="+gameoverfpi$ : inc i
+for num=1 to 11
+ setuparr$(i)="key"+str$(num)+"="+str$(listkey(num)) : inc i
+next num
+for num=1 to 9
+ setuparr$(i)="slot"+str$(num)+"="+gunslots$(num) : inc i
+next num
+setuparr$(i)="levelmax="+str$(glevelmax) : inc i
+for num=1 to glevelmax
+ setuparr$(i)="levelfpm"+str$(num)+"="+level$(num).fpm$ : inc i
+ setuparr$(i)="levelfpi"+str$(num)+"="+level$(num).fpi$ : inc i
+next num
+if file exist(setupfile$)=1 then delete file setupfile$
+save array setupfile$,setuparr$()
+undim setuparr$()
+`
+rem Also save out the localisation ptr file
+dim setuparr$(2)
+setupfile$=exepath$+exename$+"\userdetails.ini"
+setuparr$(0)="[LOCALIZATION]"
+setuparr$(1)="language="+language$
+save array setupfile$,setuparr$()
+undim setuparr$()
+`
+rem Restore directory
+set dir rootpath$
+
+return
+

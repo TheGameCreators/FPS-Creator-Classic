@@ -1,0 +1,11 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Zone Activate if any 'key object' enters it
+
+;Triggers
+
+:state=0,anykeywithinzone=1:activateifused=1,state=1,sound=$0
+
+;End of Script

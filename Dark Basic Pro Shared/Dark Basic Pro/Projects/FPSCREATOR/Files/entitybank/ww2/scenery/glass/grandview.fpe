@@ -1,0 +1,39 @@
+;Entity Spec
+
+;Header
+
+desc          = Grand Glass
+
+;AI
+aimain	      = default.fpi
+aidestroy     = destroy\window.fpi
+
+;Spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;Orientation
+model         = meshbank\ww2\scenery\windows\window_b\win_b.x
+offx          = 0
+offy          = 0
+offz          = 0
+rotx          = 0
+roty          = 0
+rotz          = 0
+materialindex = 5
+
+;Identity Details (0=indestructable)
+isimmobile    = 1
+strength      = 10
+
+;Visualinfo
+textured      = texturebank\ww2\scenery\windows\window_b\glass_b.tga
+transparency  = 2
+
+;Decals
+decalmax      = 1
+decal0        = glass_shatter
+
+;Animationinfo
+animmax       = 0

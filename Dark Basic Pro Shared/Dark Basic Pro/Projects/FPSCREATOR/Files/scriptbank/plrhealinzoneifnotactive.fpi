@@ -1,0 +1,9 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Plr Heal In Zone if not activated
+
+;Triggers
+
+:plrwithinzone=1,activated=0:state=1,plraddhealth=1

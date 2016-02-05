@@ -1,0 +1,263 @@
+`
+`
+`
+
+_gun_findweaponindexbyname_core:
+
+foundgunid=0
+if findgun$<>""
+ for tid=1 to gunmax
+  if lower$(findgun$)=lower$(gun(tid).name$)
+   foundgunid=tid
+   exit
+  endif
+ next tid
+endif
+
+return
+
+_gun_findweaponindexbyname:
+ `
+ rem try to find gun
+ storefindgun$=findgun$ : gosub _gun_findweaponindexbyname_core
+ `
+ rem V110 BETA3 - 060608 - if not found, try rescanning (as new guns can be added by store), and try a second time
+ if foundgunid=0
+  gosub _gun_scaninall_findnewlyaddedgun
+  findgun$=storefindgun$ : gosub _gun_findweaponindexbyname_core
+ endif
+ `
+return
+
+_player_resettrail:
+ playertrailmax=1
+ for tp=0 to 100
+  playertrial(tp).time=0
+ next tp
+return
+
+_player_spawnsound:
+ rem uses plrindex and te, make the spawn sound for the player appearing
+ if gmultiplayergame=1
+  tsnd=16
+  if playersound(plrindex,tsnd)>0
+   playinternal3dsoundfactor(playersound(plrindex,tsnd),entityelement(te).x,entityelement(te).y,entityelement(te).z,25.0)
+  endif
+ endif
+return
+
+_player_takedamage:
+
+rem Either player One (main) or tplrid to use 'fake player entity soundset (multiplayer)
+plrid=1 : tplrid=plrid : if gmultiplayergame=1 then tplrid=plrindex
+
+rem special client case
+if gmultiplayergame=1 and createorjoin=2
+`
+rem if multiplayer client, cannot take damage directly
+`
+else
+`
+rem Determine what to do from damage
+if player(plrid).health>0 and tdamage>0
+ player(plrid).health=player(plrid).health-tdamage
+ if player(plrid).health<=0
+  rem player looses a life
+  player(plrid).recovershield=100
+  player(plrid).health=0
+  player(plrid).lives=player(plrid).lives-1
+  if player(plrid).lives<=0
+   player(plrid).lives=0
+  endif
+  rem player grunts in deadness
+  tsnd=15
+  if playersound(tplrid,tsnd)>0
+   broadcast3dsound(camera position x(),camera position y(),camera position z(),10.0)
+   play sound playersound(tplrid,tsnd)
+  endif
+  rem player puts weapon away if fallen
+  autoloadgun=0 : gosub _gun_change
+  rem restore player zoom
+  plrzoominchange=1 : plrzoomin#=0.0
+  rem restore player modes
+  onladder=0 : jumpaction=0 : crouchmode=0
+  gunzoommode=0 : gunzoommag#=0
+  rem stop any sliding force
+  camflyforcex#=0 : camflyforcey#=0 : camflyforcez#=0
+  camforcex#=0 : camforcey#=0 : camforcez#=0
+ else
+  rem player grunts in hurt
+  tsnd=12+rnd(2)
+  if playersound(tplrid,tsnd)>0
+   broadcast3dsound(camera position x(),camera position y(),camera position z(),10.0)
+   play sound playersound(tplrid,tsnd)
+  endif
+ endif
+ rem cause eyehud(red) to flare quickly
+ hudid=internaleyehud
+ hud(hudid).hidedelay=3
+ hud(hudid).hide=0
+endif
+`
+endif
+
+return
+
+_decal_find:
+
+rem Load all decals
+for decalid=1 to decalmax
+ if decal(decalid).name$=decal$ then exit
+next decalid
+if decalid>decalmax then decalid=-1
+
+return
+
+_gun_free:
+
+rem Hide gun from HUD
+if currentgunobj>0
+ if object exist(currentgunobj)=1
+  set object interpolation currentgunobj,100
+  set object frame currentgunobj,gun(gunid).action.show.s
+  hide object currentgunobj
+ endif
+` if gun(gunid).secondobj>0
+`  if object exist(gun(gunid).secondobj)=1 then hide object gun(gunid).secondobj
+` endif
+endif
+
+rem Stop any gun sounds if free suddenly
+if gunid>0
+ for p=1 to 3
+  if gunsound(gunid,p).soundid>0 then stop sound gunsound(gunid,p).soundid
+  if gunsoundcompanion(gunid,p,0).soundid>0 then stop sound gunsoundcompanion(gunid,p,0).soundid
+  if gunsoundcompanion(gunid,p,1).soundid>0 then stop sound gunsoundcompanion(gunid,p,1).soundid
+  if gunsoundcompanion(gunid,p,2).soundid>0 then stop sound gunsoundcompanion(gunid,p,2).soundid
+ next p
+endif
+
+rem Disassociate gun with player
+gunselectionlockdown=0
+currentgunobj=0
+
+rem Hide support objects for gun
+if gun(gunid).settings.flashlimb<>-1
+ obj=hudbankoffset+5
+ if object exist(obj)=1 then hide object obj
+endif
+if gun(gunid).settings.brasslimb<>-1
+ for o=6 to 20
+  obj=hudbankoffset+o
+  if object exist(obj)=1 then hide object obj
+ next o
+endif
+if gun(gunid).settings.brasslimb<>-1
+ for o=21 to 30
+  obj=hudbankoffset+o
+  if object exist(obj)=1 then hide object obj
+ next o
+endif
+
+rem Hide cross hair
+obj=hudbankoffset+31
+if object exist(obj)=1 then hide object obj
+
+rem Clear basic gun vars
+gunflash=0 : gunsmoke=0 : gunbrass=0 : gunshoot=0 : gunmode=5
+
+return
+
+_gun_scaninall_ref:
+
+rem Scan entire guns folder
+set dir "gamecore" : gunid=1
+empty array filelist$()
+buildfilelist("guns","")
+set dir ".."
+if array count(filelist$())>0
+ dim gun(array count(filelist$())) as guntype
+ for chkfile=0 to array count(filelist$())
+  file$=filelist$(chkfile)
+  if file$<>"." and file$<>".."
+   rem V109 BETA6 - 290408 - support for HUD DBO
+   if lower$(right$(file$,5))="hud.x"
+    gun(gunid).name$=left$(file$,len(file$)-6)
+    inc gunid
+   endif
+   if lower$(right$(file$,7))="hud.dbo"
+    gun(gunid).name$=left$(file$,len(file$)-8)
+    inc gunid
+   endif
+  endif
+ next chkfile
+ gunmax=gunid-1
+ dim gun(gunmax+1) as guntype
+ dim gunsound(gunmax+1,5) as gunsoundbanktype
+ dim gunsoundcompanion(gunmax+1,5,2) as gunsoundbankcompaniontype
+ dim gunsounditem(gunmax+1,50) as gunsounditemtype
+endif
+
+rem Now sort the gun list into alphabetical order (MP needs gunid identical on each PC)
+for tgid1=1 to gunmax
+ for tgid2=1 to gunmax
+  if tgid1<>tgid2
+   tname1$=lower$(gun(tgid1).name$)
+   tname2$=lower$(gun(tgid2).name$)
+   if tname1$>tname2$
+    rem smallest at top
+    gun(tgid1).name$=tname2$
+    gun(tgid2).name$=tname1$
+   endif
+  endif
+ next tgid2
+next tgid1
+
+return
+
+_gun_scaninall_findnewlyaddedgun:
+
+rem V110 BETA3 - 060608 - if find gun that is not in list, if find, flag is 'found'
+storegunid=gunid
+
+rem gather files
+set dir "gamecore"
+empty array filelist$()
+buildfilelist("guns","")
+set dir ".."
+
+rem go through file list of latest guns
+if array count(filelist$())>0
+ for chkfile=0 to array count(filelist$())
+  file$=filelist$(chkfile)
+  if file$<>"." and file$<>".."
+   findgun$=""
+   if lower$(right$(file$,5))="hud.x"
+    findgun$=left$(file$,len(file$)-6)
+   else
+    if lower$(right$(file$,7))="hud.dbo"
+     findgun$=left$(file$,len(file$)-8)
+    endif
+   endif
+   if findgun$<>""
+    gosub _gun_findweaponindexbyname_core
+    if foundgunid=0
+     `
+     inc gunmax
+     dim gun(gunmax+1) as guntype
+     dim gunsound(gunmax+1,5) as gunsoundbanktype
+     dim gunsoundcompanion(gunmax+1,5,2) as gunsoundbankcompaniontype
+     dim gunsounditem(gunmax+1,50) as gunsounditemtype
+     gun(gunmax).name$=findgun$
+     gunid=gunmax : gun$=findgun$ : gosub _gun_loaddata
+     `
+    endif
+   endif
+  endif
+ next chkfile
+endif
+gunid=storegunid
+
+return
+
+

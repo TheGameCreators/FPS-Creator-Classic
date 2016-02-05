@@ -1,0 +1,18 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Look and Shoot
+
+;Triggers
+
+:state=0,plrcanbeseen:state=1,settarget
+:losetarget=10:runfpidefault=1
+:state=0:runfpidefault=1
+:state=1:rotatetoplr
+:state=1,ifweapon=1,plrcanbeseen=46,plringunsight,rateoffire:useweapon,rundecal=6
+:state=1,ifweapon=0:state=2,setframe=6
+:state=2:incframe=6
+:state=2,frameatend=6:state=1,reloadweapon,sound=audiobank\guns\reload.wav
+
+;End of Script

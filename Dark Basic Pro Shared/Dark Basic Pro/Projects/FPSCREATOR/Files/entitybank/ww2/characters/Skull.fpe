@@ -1,0 +1,50 @@
+
+
+;header
+
+desc          = Skull (unarmed)
+
+;ai
+aiinit	      = appearnogravity.fpi
+aimain	      = people\home.fpi
+aidestroy     = destroy\fadecorpse.fpi
+aishoot       = 
+soundset      = robotic
+
+;spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;orientation
+model         = skull.x
+offx          = 0
+offy          = 50
+offz          = 0
+rotx          = 0
+roty          = 0
+rotz          = 0
+scale         = 80
+fixnewy       = 180
+
+;cone of sight
+coneheight    = 0
+coneangle     = 85
+
+;visualinfo
+textured      = skull_D2.tga
+effect        = effectbank\illuminationmap\illuminationmap.fx
+transparency  = 1
+
+;decals
+decalmax      = 2
+decal0        = red
+decal1        = splinters
+
+;identity details
+strength      = 25
+ischaracter   = 1
+hasweapon     = 
+isobjective   = 0
+cantakeweapon = 0
+

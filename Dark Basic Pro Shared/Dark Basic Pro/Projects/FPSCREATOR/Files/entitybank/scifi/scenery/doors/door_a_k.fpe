@@ -1,0 +1,41 @@
+;Entity Spec
+
+;Header
+desc          = Iron Door (key)
+
+;AI
+aiinit	      = appear1.fpi
+aimain	      = doorkey.fpi
+aidestroy     = disappear1.fpi
+
+;AIKey (plrhaskey=1)
+usekey        = %key
+
+;Spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;Orientation
+model         = meshbank\scifi\scenery\doors\door_a\door_a.x
+offx          = 0
+offy          = 50
+offz          = 0
+rotx          = 0
+roty          = 0
+rotz          = 0
+materialindex = 3
+soundset      = audiobank\scifi\scenery\doors\lock.wav
+soundset1     = audiobank\scifi\scenery\doors\close.wav
+
+;Visualinfo
+textured      = texturebank\scifi\scenery\doors\door_a\door_a_D2.tga
+effect        = effectbank\bumpent\bumpent.fx
+
+;Identity Details
+strength      = 0
+isimmobile    = 1
+
+;Animationinfo
+animmax       = 1
+anim0         = 0,30

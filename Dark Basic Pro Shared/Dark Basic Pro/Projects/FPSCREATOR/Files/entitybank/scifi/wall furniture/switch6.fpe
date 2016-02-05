@@ -1,0 +1,43 @@
+;Entity Spec
+
+;Header
+desc          = Remote Switch
+
+;AI
+aiinit	      = appear1.fpi
+aimain	      = switch3.fpi
+aidestroy     = disappear1.fpi
+
+;AIUsed
+ifused        = %remote door
+
+;Spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;Orientation
+model         = meshbank\scifi\scenery\switches\switch6\switch6.X
+offx          = 0
+offy          = 0
+offz          = 0
+rotx          = 0
+roty          = 0
+rotz          = 0
+materialindex = 3
+forwardfacing = 0
+defaultheight = 0
+soundset      = audiobank\switches\activate.wav
+
+;Visualinfo
+textured      = texturebank\scifi\scenery\switches\switch6\switch6_D2.tga
+texturealtd   = 
+effect        = effectbank\illuminationent\illuminationent.fx
+
+;Identity Details
+isimmobile    = 1
+strength      = 0
+
+;Animationinfo
+animmax       = 1
+anim0         = 0,1

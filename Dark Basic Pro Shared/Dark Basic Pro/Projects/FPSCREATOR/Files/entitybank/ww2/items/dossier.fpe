@@ -1,0 +1,36 @@
+;Entity Spec
+
+;Header
+desc          = Dossier
+
+;AI
+aiinit	      = appear1.fpi
+aimain	      = pickup1.fpi
+aidestroy     = disappear1.fpi
+
+;Spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;Itemproperties
+defaultstatic = 0
+materialindex = 3
+collisionmode = 0
+debrisshape   = 0
+explodable    = 0
+
+;Orientation
+model         = dossier.X
+offy          = 5
+scale         = 100
+fixnewy       = 0
+
+;Visualinfo
+textured      = dossier_D2.TGA
+effect        =
+
+;Identity Details
+isweapon      = 0
+isammo	      = 0
+isobjective   = 2

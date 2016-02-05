@@ -1,0 +1,15 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Health Prison will reduce entities health if player gets too close, or reward entity if player keeps distance
+
+;Triggers
+
+:state=0,plrdistwithin=100,plrdistfurther=0:subhealth=1,plraddhealth=1
+:state=0,random=50,plrdistwithin=100,plrdistfurther=0:subhealth=20,plraddhealth=20
+:state=0,random=250,plrdistwithin=100,plrdistfurther=0:subhealth=50,plraddhealth=50
+:state=0,plrdistwithin=300,plrdistfurther=100:sethealth=100
+:state=0,plrdistwithin=400,plrdistfurther=300:addhealth=1,plrsubhealth=1
+
+;End of Script

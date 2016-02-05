@@ -1,0 +1,4 @@
+FOR variable = lowvalue TO highvalue : ` replace variable, lowvalue, and highvalue
+   ` insert commands here
+
+NEXT variable : ` replace variable

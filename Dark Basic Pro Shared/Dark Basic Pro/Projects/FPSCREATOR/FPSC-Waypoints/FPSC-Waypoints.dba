@@ -1,0 +1,596 @@
+rem
+rem Waypoint Core Functions
+rem
+
+`
+` Subroutines for waypoint system
+`
+
+_waypoint_savedata:
+
+rem Save list
+if file exist("mapbank\testmap\map.way")=1 then delete file "mapbank\testmap\map.way"
+open to write 1,"mapbank\testmap\map.way"
+ rem strands
+ write file 1,waypointmax
+ if waypointmax>0
+  for w=1 to waypointmax
+   a=waypoint(w).count : write file 1,a
+   a=waypoint(w).start : write file 1,a
+   a=waypoint(w).finish : write file 1,a
+  next w
+ endif
+ rem coords
+ write file 1,waypointcoordmax
+ if waypointcoordmax>0
+  for w=1 to waypointcoordmax
+   a#=waypointcoord(w).x : write float 1,a#
+   a#=waypointcoord(w).y : write float 1,a#
+   a#=waypointcoord(w).z : write float 1,a#
+   a=waypointcoord(w).link : write file 1,a
+   a=waypointcoord(w).index : write file 1,a
+  next w
+ endif
+close file 1
+
+return
+
+_waypoint_loaddata:
+
+rem Free any old
+gosub _waypoint_deleteall
+
+rem load list
+if file exist(levelmapptah$+"\map.way")=1
+ filename$=levelmapptah$+"map.way"
+ open to read 1,filename$
+  rem strands
+  read file 1,waypointmax
+  if waypointmax>0
+   undim waypoint()
+   dim waypoint(waypointmax+1) as waypointtype
+   for w=1 to waypointmax
+    read file 1,a : waypoint(w).count=a
+    read file 1,a : waypoint(w).start=a
+    read file 1,a : waypoint(w).finish=a
+   next w
+  endif
+  rem coords
+  read file 1,waypointcoordmax
+  if waypointcoordmax>0
+   undim waypointcoord()
+   dim waypointcoord(waypointcoordmax+1) as waypointcoordtype
+   for w=1 to waypointcoordmax
+    read float 1,a# : waypointcoord(w).x=a#
+    read float 1,a# : waypointcoord(w).y=a#
+    read float 1,a# : waypointcoord(w).z=a#
+    read file 1,a : waypointcoord(w).link=a
+    read file 1,a : waypointcoord(w).index=a
+   next w
+  endif
+ close file 1
+endif
+
+rem also ensure data is not pointing to larger arrays than we have (old legacy editing rogue data)
+if waypointmax>0
+ for waypointindex=1 to waypointmax
+  if waypoint(waypointindex).count>0
+   if waypoint(waypointindex).start>waypointcoordmax or waypoint(waypointindex).finish>waypointcoordmax
+    rem waypoint indexes exceed current arrays - diable waypoint
+    waypoint(waypointindex).count=0
+    waypoint(waypointindex).start=0
+    waypoint(waypointindex).finish=0
+   endif
+  endif
+ next waypointindex
+ for w=1 to waypointcoordmax
+  if waypointcoord(w).link>waypointcoordmax
+   waypointcoord(w).link=0
+  endif
+  if waypointcoord(w).index>waypointmax
+   waypointcoord(w).index=0
+  endif
+ next w
+endif
+
+return
+
+_waypoint_recreateobjs:
+ for waypointindex=1 to waypointmax
+  if waypoint(waypointindex).count>0
+   createwaypointobj(editorwaypointoffset+waypointindex,waypointindex)
+  endif
+ next waypointindex
+return
+
+_waypoint_createnew:
+
+rem Create a new waypoint strand (or find empty one)
+for tw=1 to waypointmax
+ if waypoint(tw).count=0
+  waypointindex=tw : exit
+ endif
+next tw
+if tw>waypointmax
+ inc waypointmax
+ dim waypoint(waypointmax)
+ waypointindex=waypointmax
+endif
+`
+rem Do the creatin
+waypoint(waypointindex).count=1
+inc waypointcoordmax
+w=waypointcoordmax
+dim waypointcoord(waypointcoordmax)
+waypoint(waypointindex).start=w
+waypoint(waypointindex).finish=w
+waypointcoord(w).x=mx#
+waypointcoord(w).y=(gridlayer*100.0)+5
+waypointcoord(w).z=mz#
+waypointcoord(w).index=waypointindex
+`if waypointindex<=10 `odd - 210105
+ if gdontcreatewaypointobjects=0
+  if waypoint(waypointindex).count>0
+   createwaypointobj(editorwaypointoffset+waypointindex,waypointindex)
+  endif
+ endif
+`endif
+
+rem Create highlight sphere for easier selection
+if gdontcreatewaypointobjects=0
+ if object exist(editorwaypointoffset+0)=0
+  make object sphere editorwaypointoffset+0,25
+  set object collision off editorwaypointoffset+0
+  ghost object on editorwaypointoffset+0
+  set object transparency editorwaypointoffset+0,2
+  disable object zread editorwaypointoffset+0
+  hide object editorwaypointoffset+0
+ endif
+endif
+
+return
+
+_waypoint_createallobjs:
+ for waypointindex=1 to waypointmax
+  obj=editorwaypointoffset+waypointindex
+  if gdontcreatewaypointobjects=0
+   if waypoint(waypointindex).count>0
+    createwaypointobj(obj,waypointindex)
+   else
+    if object exist(obj)=1 then delete object obj
+   endif
+  endif
+ next waypointindex
+return
+
+_waypoint_deleteall:
+ for waypointindex=1 to waypointmax
+  obj=editorwaypointoffset+waypointindex
+  if object exist(obj)=1 then delete object obj
+ next waypointindex
+ waypointmax=0
+ waypointcoordmax=0
+return
+
+_waypoint_hideall:
+ for waypointindex=1 to waypointmax
+  obj=editorwaypointoffset+waypointindex
+  if object exist(obj)=1 then hide object obj
+ next waypointindex
+return
+
+_waypoint_showall:
+ for waypointindex=1 to waypointmax
+  obj=editorwaypointoffset+waypointindex
+  if object exist(obj)=1 then show object obj
+ next waypointindex
+return
+
+_waypoint_mousemanage:
+
+rem Grid the waypoint coordinate input
+mx#=int(mx#/5)*5 : mz#=int(mz#/5)*5
+
+rem Simply find waypoint over cursor
+waypointiovercursor=0
+waypointindexovercursor=0
+for twaypointindex=1 to waypointmax
+ if waypoint(twaypointindex).count>0
+  tbest#=9999 : tbestwaypointindex=0 : tbestwaypointiovercursor=0
+  for w=waypoint(twaypointindex).start to waypoint(twaypointindex).finish
+   dx#=abs(mx#-waypointcoord(w).x)
+   dz#=abs(mz#-waypointcoord(w).z)
+   tdd#=sqrt((dx#*dx#)+(dz#*dz#))
+   if tdd#<20 and abs(waypointeditheight#-waypointcoord(w).y)<20
+    if tdd#<tbest#
+     tbest#=tdd# : tbestwaypointindex=twaypointindex : tbestwaypointiovercursor=w
+    endif
+   endif
+  next w
+  if tbest#<9999
+   if tbestwaypointiovercursor<>0
+    waypointindexovercursor=tbestwaypointindex
+    waypointiovercursor=tbestwaypointiovercursor
+    exit
+   endif
+  endif
+ endif
+next twaypointindex
+
+rem mclickdone is for singlr mouse clicks
+mclickdone=0
+if mclick=0 then mclickpressed=0
+if mclick>0 and mclickpressed=0 then mclickdone=mclick : mclickpressed=1
+
+rem Move existing new waypoint
+if mclick>0
+ `
+ if onedrag=0
+  rem Find waypoint
+  if waypointiovercursor>0 and waypointindexovercursor>0
+   onedrag=waypointiovercursor : onedragmode=mclick : onedragx#=mx# : onedragz#=mz#
+   waypointindex=waypointindexovercursor
+  endif
+ else
+  rem Drag waypoint around
+  if onedragmode=1 and (mx#<>onedragx# or mz#<>onedragz#)
+   w=onedrag
+   waypointcoord(w).x=mx#
+   waypointcoord(w).y=waypointeditheight#
+   waypointcoord(w).z=mz#
+   createwaypointobj(editorwaypointoffset+waypointindex,waypointindex)
+   rem Drag linked waypoint too
+   linkto=waypointcoord(w).link
+   if linkto>0
+    waypointcoord(linkto).x=mx#
+    waypointcoord(linkto).y=waypointeditheight#
+    waypointcoord(linkto).z=mz#
+    for twayp=1 to waypointmax
+     for w=waypoint(twayp).start to waypoint(twayp).finish
+      if w=linkto then createwaypointobj(editorwaypointoffset+twayp,twayp)
+     next w
+    next twayp
+   endif
+  endif
+ endif
+else
+ rem Release waypoint
+ if onedrag>0
+  if onedragmode=1
+   rem Glue if waypoint is linked to other waypoint
+   for twayp=1 to waypointmax
+    if twayp<>waypointindex
+     for w=waypoint(twayp).start to waypoint(twayp).finish
+      clipx1=int(mx#/20)
+      clipz1=int(mz#/20)
+      clipx2=int(waypointcoord(w).x/20)
+      clipz2=int(waypointcoord(w).z/20)
+      if clipx1=clipx2 and abs(waypointcoord(w).y-waypointeditheight#)<20 and clipz1=clipz2
+       if waypointcoord(w).link=0
+        waypointcoord(onedrag).link=w : waypointcoord(w).link=onedrag
+        createwaypointobj(editorwaypointoffset+twayp,twayp)
+        exit
+       endif
+      endif
+     next w
+    endif
+   next twayp
+  else
+   rem Detatch if waypoint is linked
+   if waypointcoord(onedrag).link>0
+    linkto=waypointcoord(onedrag).link
+    waypointcoord(linkto).x=waypointcoord(linkto).x+10
+    waypointcoord(linkto).z=waypointcoord(linkto).z+10
+    waypointcoord(onedrag).x=waypointcoord(onedrag).x
+    waypointcoord(onedrag).z=waypointcoord(onedrag).z
+    waypointcoord(onedrag).link=0
+    waypointcoord(linkto).link=0
+   endif
+   for twayp=1 to waypointmax
+    for w=waypoint(twayp).start to waypoint(twayp).finish
+     if w=onedrag then createwaypointobj(editorwaypointoffset+twayp,twayp) : exit
+     if w=linkto then createwaypointobj(editorwaypointoffset+twayp,twayp) : exit
+    next w
+   next twayp
+  endif
+ endif
+ onedrag=0
+endif
+
+rem Delete last waypoint selected
+if inputsys.keyshift=1 and mclickdone=2 and waypointiovercursor>0
+ rem Delete waypoint
+ w=waypointiovercursor
+ if w=waypoint(waypointindex).start
+  rem delete whole waypoint
+  tsize0=0+waypoint(waypointindex).finish-waypoint(waypointindex).start
+  tsize1=1+waypoint(waypointindex).finish-waypoint(waypointindex).start
+  while w<waypointcoordmax-tsize0
+   waypointcoord(w).x=waypointcoord(w+tsize1).x
+   waypointcoord(w).y=waypointcoord(w+tsize1).y
+   waypointcoord(w).z=waypointcoord(w+tsize1).z
+   waypointcoord(w).link=waypointcoord(w+tsize1).link
+   waypointcoord(w).index=waypointcoord(w+tsize1).index
+   inc w
+  endwhile
+  for tw=w to w+tsize0
+   waypointcoord(tw).x=0
+   waypointcoord(tw).y=0
+   waypointcoord(tw).z=0
+   waypointcoord(tw).link=0
+   waypointcoord(tw).index=0
+  next tw
+  dec waypointcoordmax,tsize1
+  w=waypointiovercursor+tsize0
+  for twayp=1 to waypointmax
+   if twayp<>waypointindex
+    if w<waypoint(twayp).start then waypoint(twayp).start=waypoint(twayp).start-tsize1
+    if w<waypoint(twayp).finish then waypoint(twayp).finish=waypoint(twayp).finish-tsize1
+   endif
+  next twayp
+  rem delete wayppint-sequence itself
+  waypoint(waypointindex).count=0
+  waypoint(waypointindex).start=0
+  waypoint(waypointindex).finish=0
+ else
+  rem delete node from waypoint
+  w=waypointiovercursor
+  while w<waypointcoordmax
+   waypointcoord(w).x=waypointcoord(w+1).x
+   waypointcoord(w).y=waypointcoord(w+1).y
+   waypointcoord(w).z=waypointcoord(w+1).z
+   waypointcoord(w).link=waypointcoord(w+1).link
+   waypointcoord(w).index=waypointcoord(w+1).index
+   inc w
+  endwhile
+  waypointcoord(w).x=0
+  waypointcoord(w).y=0
+  waypointcoord(w).z=0
+  waypointcoord(w).link=0
+  waypointcoord(w).index=0
+  dec waypointcoordmax
+  waypoint(waypointindex).count=waypoint(waypointindex).count-1
+  waypoint(waypointindex).finish=waypoint(waypointindex).finish-1
+  w=waypointiovercursor
+  for twayp=1 to waypointmax
+   for tw=waypoint(twayp).start to waypoint(twayp).finish
+    if w<waypointcoord(tw).link then waypointcoord(tw).link=waypointcoord(tw).link-1
+   next tw
+   if twayp<>waypointindex
+    if w<waypoint(twayp).start then waypoint(twayp).start=waypoint(twayp).start-1
+    if w<waypoint(twayp).finish then waypoint(twayp).finish=waypoint(twayp).finish-1
+   endif
+  next twayp
+ endif
+ if waypoint(waypointindex).count>0
+  createwaypointobj(editorwaypointoffset+waypointindex,waypointindex)
+ else
+  if object exist(editorwaypointoffset+waypointindex)=1
+   delete object editorwaypointoffset+waypointindex
+  endif
+ endif
+ waypointiovercursor=0
+ mdoubleclick=0
+ onedragmode=0
+ onedrag=0
+endif
+
+rem Insert waypoint at selected
+if inputsys.keyshift=1 and mclickdone=1 and waypointiovercursor>0
+ w=waypointiovercursor+1
+ if w>=waypointcoordmax
+  rem at end
+  inc waypointcoordmax
+  dim waypointcoord(waypointcoordmax)
+  w=waypointcoordmax
+ else
+  rem shuffle
+  inc waypointcoordmax
+  dim waypointcoord(waypointcoordmax)
+  w=waypointcoordmax
+  while w>waypointiovercursor+1
+   waypointcoord(w).x=waypointcoord(w-1).x
+   waypointcoord(w).y=waypointcoord(w-1).y
+   waypointcoord(w).z=waypointcoord(w-1).z
+   waypointcoord(w).link=waypointcoord(w-1).link
+   waypointcoord(w).index=waypointcoord(w-1).index
+   dec w
+  endwhile
+  w=waypointiovercursor+1
+ endif
+ waypointcoord(w).x=waypointcoord(w-1).x+10
+ waypointcoord(w).y=waypointcoord(w-1).y
+ waypointcoord(w).z=waypointcoord(w-1).z+10
+ waypointcoord(w).link=0
+ waypointcoord(w).index=waypointindex
+ waypoint(waypointindex).count=waypoint(waypointindex).count+1
+ waypoint(waypointindex).finish=waypoint(waypointindex).finish+1
+ for twayp=1 to waypointmax
+  if twayp<>waypointindex
+   if w<=waypoint(twayp).start then waypoint(twayp).start=waypoint(twayp).start+1
+   if w<=waypoint(twayp).finish then waypoint(twayp).finish=waypoint(twayp).finish+1
+  endif
+  for tw=waypoint(twayp).start to waypoint(twayp).finish
+   if waypointcoord(tw).link>0
+    if w<=waypointcoord(tw).link then waypointcoord(tw).link=waypointcoord(tw).link+1
+   endif
+  next tw
+ next twayp
+ if waypoint(waypointindex).count>0
+  createwaypointobj(editorwaypointoffset+waypointindex,waypointindex)
+ else
+  if object exist(editorwaypointoffset+waypointindex)=1
+   delete object editorwaypointoffset+waypointindex
+  endif
+ endif
+ waypointiovercursor=0
+ onedragmode=0
+ onedrag=0
+endif
+
+rem Show selected waypoint
+if object exist(editorwaypointoffset+0)=1
+ if waypointiovercursor>0
+  w=waypointiovercursor
+  position object editorwaypointoffset+0,waypointcoord(w).x,waypointcoord(w).y,waypointcoord(w).z
+  show object editorwaypointoffset+0
+ else
+  hide object editorwaypointoffset+0
+ endif
+endif
+
+return
+
+
+`
+` Function to build waypoint object
+`
+
+
+function createwaypointobj(obj,waypointindex)
+if obj<=editorwaypointoffsetmax
+ if waypoint(waypointindex).count>0
+  polycount=((waypoint(waypointindex).count-1)*2)+(waypoint(waypointindex).count*2)
+  makepolymesh(obj,polycount)
+  w=waypoint(waypointindex).start
+  fwx#=waypointcoord(w).x
+  fwy#=waypointcoord(w).y+6
+  fwz#=waypointcoord(w).z
+  polyindex=0
+  diffuse as DWORD
+  rem lines
+  for w=waypoint(waypointindex).start+1 to waypoint(waypointindex).finish
+   wx#=waypointcoord(w).x
+   wy#=waypointcoord(w).y+6
+   wz#=waypointcoord(w).z
+   wa#=atanfull(wx#-fwx#,wz#-fwz#)-90
+   pwa#=wa# : fwa#=wa#
+   fade#=1.0-(abs(waypointcoord(w).y-waypointeditheight#)/500.0)
+   tcolorcycle=waypointcoord(w).index-((waypointcoord(w).index/6)*6)
+   if tcolorcycle=0 then diffuse=rgb(0*fade#,0*fade#,155*fade#)
+   if tcolorcycle=1 then diffuse=rgb(155*fade#,0,0)
+   if tcolorcycle=2 then diffuse=rgb(0,155*fade#,0)
+   if tcolorcycle=3 then diffuse=rgb(155*fade#,155*fade#,0)
+   if tcolorcycle=4 then diffuse=rgb(155*fade#,0,155*fade#)
+   if tcolorcycle=5 then diffuse=rgb(0,155*fade#,155*fade#)
+   if w=waypoint(waypointindex).start+1 then lastdiffuse=diffuse
+   c1x#=newxvalue(fwx#,fwa#,5) : c1z#=newzvalue(fwz#,fwa#,5) : c1y#=fwy#
+   c2x#=newxvalue(fwx#,fwa#,-5) : c2z#=newzvalue(fwz#,fwa#,-5) : c2y#=fwy#
+   c3x#=newxvalue(wx#,pwa#,5) : c3z#=newzvalue(wz#,pwa#,5) : c3y#=wy#
+   c4x#=newxvalue(wx#,pwa#,-5) : c4z#=newzvalue(wz#,pwa#,-5) : c4y#=wy#
+   addpolytomesh(obj,polyindex+0,lastdiffuse,diffuse,diffuse,c1x#,c1y#,c1z#,c3x#,c3y#,c3z#,c4x#,c4y#,c4z#)
+   addpolytomesh(obj,polyindex+1,lastdiffuse,lastdiffuse,diffuse,c2x#,c2y#,c2z#,c1x#,c1y#,c1z#,c4x#,c4y#,c4z#)
+   fwx#=wx# : fwy#=wy# : fwz#=wz# : fwa#=wa# : lastdiffuse=diffuse : inc polyindex,2
+  next w
+  rem stars
+  for w=waypoint(waypointindex).start to waypoint(waypointindex).finish
+   wx#=waypointcoord(w).x
+   wy#=waypointcoord(w).y+6
+   wz#=waypointcoord(w).z
+   if waypointcoord(w).link>0
+    if abs(waypointcoord(w).y-waypointeditheight#)<50
+     diffuse=rgb(0,255,255)
+    else
+     diffuse=rgb(0,128,128)
+    endif
+   else
+    if abs(waypointcoord(w).y-waypointeditheight#)<50
+     diffuse=rgb(255,255,0)
+    else
+     diffuse=rgb(255,0,0)
+    endif
+   endif
+   if w=waypoint(waypointindex).start then tsize#=1.5 else tsize#=1.0
+   c1x#=newxvalue(wx#,55,8*tsize#) : c1z#=newzvalue(wz#,55,8*tsize#) : c1y#=wy#
+   c2x#=newxvalue(wx#,-55,8*tsize#) : c2z#=newzvalue(wz#,-55,8*tsize#) : c2y#=wy#
+   c3x#=newxvalue(wx#,180,10*tsize#) : c3z#=newzvalue(wz#,180,10*tsize#) : c3y#=wy#
+   c4x#=newxvalue(wx#,235,8*tsize#) : c4z#=newzvalue(wz#,235,8*tsize#) : c4y#=wy#
+   c5x#=newxvalue(wx#,125,8*tsize#) : c5z#=newzvalue(wz#,125,8*tsize#) : c5y#=wy#
+   c6x#=newxvalue(wx#,0,10*tsize#) : c6z#=newzvalue(wz#,0,10*tsize#) : c6y#=wy#
+   addpolytomesh(obj,polyindex+0,diffuse,diffuse,diffuse,c1x#,c1y#,c1z#,c2x#,c2y#,c2z#,c3x#,c3y#,c3z#)
+   addpolytomesh(obj,polyindex+1,diffuse,diffuse,diffuse,c4x#,c4y#,c4z#,c5x#,c5y#,c5z#,c6x#,c6y#,c6z#)
+   inc polyindex,2
+  next w
+  finalisepolymesh(obj)
+ else
+  if object exist(obj)=1 then delete object obj
+ endif
+endif
+endfunction
+
+function makepolymesh(obj,polycount)
+ `
+ rem Free old memblock
+ memblock=1 : if memblock exist(1)=1 then delete memblock 1
+ `
+ rem Make a Simple Cube Mesh Memblock
+ headersize=12 : fvf=338 : vertsize=36 : verts=polycount*3
+ memsize=headersize+(vertsize*verts)
+ make memblock 1,memsize
+ `
+ rem Set header info
+ write memblock dword 1,0,fvf
+ write memblock dword 1,4,vertsize
+ write memblock dword 1,8,verts
+ `
+endfunction
+
+function addpolytomesh(obj,polyindex,diffuse1 as DWORD,diffuse2 as DWORD,diffuse3 as DWORD,x1#,y1#,z1#,x2#,y2#,z2#,x3#,y3#,z3#)
+ `
+ rem Create vertex data (3 make a triangle polygon)
+ diff as DWORD
+ memblock=1 : vertsize=36
+ for t=0 to 2
+  `
+  rem Corners of poly
+  if t=0 then x#=x1#:y#=y1#:z#=z1# : diff=diffuse1
+  if t=1 then x#=x2#:y#=y2#:z#=z2# : diff=diffuse2
+  if t=2 then x#=x3#:y#=y3#:z#=z3# : diff=diffuse3
+  v=(polyindex*3)+t
+  `
+  rem Position of vertex in memblock
+  pos=12+(v*vertsize)
+  `
+  rem Create some random vertex data
+  nx#=0 : ny#=1.0 : nz#=0
+  `
+  rem Set vertex position
+  write memblock float 1,pos+0,x#
+  write memblock float 1,pos+4,y#
+  write memblock float 1,pos+8,z#
+  `
+  rem Set vertex normals
+  write memblock float 1,pos+12,nx#
+  write memblock float 1,pos+16,ny#
+  write memblock float 1,pos+20,nz#
+  `
+  rem Set vertex diffuse
+  write memblock dword 1,pos+24,diff
+  `
+  rem Set vertex texture UV coords
+  write memblock float 1,pos+28,0
+  write memblock float 1,pos+32,0
+  `
+ next t
+ `
+endfunction
+
+function finalisepolymesh(obj)
+ `
+ rem Make a new object from the memblock
+ if object exist(obj)=1 then delete object obj
+ if mesh exist(2)=1 then delete mesh 2
+ memblock=1 : make mesh from memblock 2,memblock
+ make object obj,2,0 : set object obj,1,0,0,0,0,0,0
+ texture object obj,editorimagesoffset+13
+ set object transparency obj,2
+ set object collision off obj
+ disable object zdepth obj
+ set object light obj,0
+ ghost object on obj
+ set object transparency obj,2
+ disable object zread obj
+ `
+endfunction
+
+

@@ -1,0 +1,11 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Leave corpse
+
+;Triggers
+
+:state=0:state=1,suspend,coloff
+
+;End of Script

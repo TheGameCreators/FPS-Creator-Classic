@@ -1,0 +1,13 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Control spawn mode via activation
+
+;Triggers
+
+
+:state=0,activated=1:spawnon,state=1
+:state=1,activated=0:spawnoff,state=0
+
+;End of Script

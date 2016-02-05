@@ -1,0 +1,40 @@
+
+
+;header
+
+desc          = generator
+
+;ai
+aiinit	      = repeatsound.fpi
+aimain	      = default.fpi
+aidestroy     = disappear1.fpi
+
+;spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;orientation
+
+model         = meshbank\scifi\scenery\special\generator\generator.x
+offx          = 0
+offy          = 0
+offz          = 0
+rotx          = 0
+roty          = 0
+rotz          = 0
+defaultstatic = 0
+soundset      = audiobank\atmos\motorhum.wav
+materialindex = 3
+
+;statistics
+strength      = 0
+explodable    = 0
+debrisshape   = 0
+
+;visualinfo
+
+textured      = texturebank\scifi\scenery\special\generator\generator_d2.tga
+effect        = effectbank\bumpent\bumpent.fx
+castshadow    = 0
+

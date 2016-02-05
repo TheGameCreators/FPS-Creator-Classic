@@ -1,0 +1,21 @@
+;Entity Spec
+
+;Header
+desc          = Player Start Position
+
+;Orientation
+model         = arrow.X
+textured      = arrow_D.tga
+scale         = 100
+fixnewy       = 270
+ismarker      = 1
+forwardfacing = 2
+
+;Identity Details
+strength      = 500
+lives         = 3
+hasweapon     = 
+quantity      = 1
+
+;Sound
+soundset      = player

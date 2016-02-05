@@ -1,0 +1,11 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Instant On (with No Gravity)
+
+;Triggers
+
+:state=0:setalphafade=100,nogravity,runfpidefault=1
+
+;End of Script

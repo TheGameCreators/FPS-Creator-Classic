@@ -1,0 +1,38 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Duck For Cover and Shoot
+
+;Triggers
+
+:state=0,plrdistwithin=100:state=21
+:state=0,plrcanbeseen:state=1,settarget
+:state=0,random=50:animate=1
+:state=0:runfpidefault=1
+
+:state=4:state=5
+:state=1:state=4,animate=31
+
+:state=5:rotatetoplr
+:state=5,plrdistwithin=100:state=11
+:state=5,ifweapon=1,plrcanbeseen=46,plringunsight:useweapon,rundecal=6
+:state=5,ifweapon=0:state=6,setframe=36
+:state=5,shotdamage=3:state=11
+:state=6:incframe=36
+:state=6,frameatend=36:state=5,reloadweapon,sound=audiobank\guns\reload.wav
+
+:state=13:state=25
+:state=11:state=13,animate=1
+
+:state=21,ifweapon=1,plrcanbeseen,rateoffire:rotatetoplr,useweapon,rundecal=6
+:state=21,ifweapon=0:state=5
+
+:state=25,random=1:state=26,setframe=4
+:state=25:state=27,setframe=3
+:state=26:incframe=4,strafe=90,rotatetoplr
+:state=26,frameatend=4:animate=1,runfpidefault=1
+:state=27:incframe=3,strafe=-90,rotatetoplr
+:state=27,frameatend=3:animate=1,runfpidefault=1
+
+;End of Script

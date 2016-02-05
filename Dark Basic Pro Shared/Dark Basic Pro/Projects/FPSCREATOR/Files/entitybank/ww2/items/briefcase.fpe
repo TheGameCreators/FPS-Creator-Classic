@@ -1,0 +1,38 @@
+;Entity Spec
+
+;Header
+desc          = Briefcase
+
+;AI
+aiinit	      = appear1.fpi
+aimain	      = pickup1.fpi
+aidestroy     = disappear1.fpi
+
+;Spawn
+spawnmax      = 1
+spawndelay    = 500
+spawnqty      = 1
+
+;Itemproperties
+defaultstatic = 0
+materialindex = 3
+collisionmode = 0
+debrisshape   = 0
+explodable    = 0
+
+;Orientation
+model         = briefcase.x
+offy          = 5
+scale         = 100
+fixnewy       = 0
+
+;Visualinfo
+textured      = briefcase_D2.TGA
+effect        =
+
+;Identity Details
+isweapon      = 0
+isammo	      = 0
+
+;Specific Data
+quantity      = 30

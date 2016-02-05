@@ -1,0 +1,185 @@
+; Language file for TDK_Man's Dark Basic Professional IDE. 
+
+; This file may be translated to any language and each one saved as 'languageX'.txt 
+; on disk for convenience, but whichever version is supplied with the IDE, it must 
+; always be called Default.dat and stored in the Lang folder. 
+
+; Each legitimate entry line MUST start with a 3 character code in the format 'X: ' 
+; where X is the type of data stored. For example, M: is a main menu entry and S: 
+; is a sub-menu entry for the Windows menu system. The actual data MUST start at the 
+; 4th character on each line.
+
+; All comments MUST start with a semi-colon (;) but can be removed from the final 
+; Default.dat file if desired.
+
+; The following codes are used in this file:
+
+; M: Main Menu entry
+; S: Sub-Menu Entry (drop-down entry)
+; W: Windows Caption Entries (Title Bars)
+; D: Dialog Box Captions
+; G: General Form Text
+; H: Button Hints
+; C: Combo Box List Entries
+; T: Tabs
+; L: Labels
+
+; Finally, remember that all entries are tied to options in the IDE. Do NOT add or 
+; remove ANY entries or all subsequent options in the IDE will be incorrectly labelled.
+
+
+; Windows Menu Text:
+; ------------------
+
+; If translating into another language, place an ampersand (&) immediately before the 
+; letter you wish to be the keyboard shortcut for that menu entry. Note that only one 
+; M: and one S: entry can use the same shortcut keyboard letter when translated.
+
+; All Main-menu entries are listed first, followed by their drop-down entries.
+
+M: &File
+M: &Edit
+M: &Search
+M: &View
+M: &Compile
+M: &Tools
+M: &Window
+M: &Help
+
+S: &New Project
+S: -
+S: &Open Project
+S: O&pen Source
+S: &Reopen
+S: -
+S: S&ave Project
+S: Sav&e Source
+S: Save So&urce As...
+S: &Save All
+S: &Close
+S: C&lose All
+S: -
+S: Pr&int
+S: -
+S: E&xit
+
+S: &Undo
+S: &Redo
+S: -
+S: &Cut
+S: C&opy
+S: &Paste
+S: &Delete Block
+S: &Select All
+S: -
+S: &Toggle Breakpoint
+S: S&et Bookmark
+
+S: &Find
+S: F&ind Again
+S: &Search/Replace...
+S: -
+S: &Go To Line #
+S: G&o To Bookmark
+
+S: &Show Tool Bar
+S: &Toolbars
+S: &Display Mode
+S: -
+S: &Fold All Functions
+S: &Unfold All Functions
+
+S:    &Check Syntax/Make EXE           F4
+S:    &Make EXE/Run                    F5
+S:    &Run In Debug Mode               F6
+S:    R&un In Step-Through Mode        F7
+
+S: &System Options
+S: Screen &Theme
+S: &Project Info
+
+S: &Cascade
+S: Tile &Horizontally
+S: Tile &Vertically
+S: -
+S: Show/Hide Project &Panel
+
+S: &Command Help...
+S: &Help Contents...
+S: &Last Help File...
+S: &Index...
+S: -
+S: &The Game Creators Home
+S: D&ark BASIC Developer Network
+S: &MatEdit Home Page
+S: -
+S: A&bout...
+
+; The following are for the button tooltip hints...
+
+H: New Project
+H: Open Project
+H: Open DBA Source File
+H: Save Project
+H: Save DBA Source
+H: Save Source As
+H: Save All
+H: Compile Only
+H: Compile & Run
+H: Run In Debug Mode
+H: Run In Step Through Mode
+H: Show/Hide Project Panel
+H: Help Files
+H: Exit
+
+; Text for the Project Panel...
+
+; Project Panel Tabs
+T: General
+T: Settings
+T: Labels
+T: Functions
+T: Variables
+T: External
+
+; Project Page Labels
+L: Project Name:
+L: Project Exe:
+L: Project Comments:
+L: To Do List:
+
+G: Screen Options
+; Screen Options Panel Contents
+L: Mode:
+C: Full Screen Exclusive Mode
+C: Windowed
+C: Windowed (Desktop)
+C: Windowed (Full Screen)
+C: Hidden
+L: Resolution:
+L: Col Depth:
+
+L: Assigned Labels/Procedures:
+L: Assigned Functions:
+L: Assigned Variables:
+L: External Include Files:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

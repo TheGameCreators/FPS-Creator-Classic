@@ -1,0 +1,55 @@
+;Segment Spec
+
+;Header
+
+partmax = 0
+lastmeshmax = 0
+
+;Segment Parts
+
+partmode0       = 0
+meshname0       = meshbank\ww2\scenery\special\roof_a\roof_straight.x
+offx0           = 0
+offy0           = -52.25
+offz0           = 0
+rotx0           = 0
+roty0           = 0
+rotz0           = 0
+texture0        = texturebank\ww2\scenery\special\roof_a\roof_a_d2.tga
+transparency0   = 0
+effect0         = 
+colmode0        = 0
+csgmesh0        = 
+csgmode0        = 0
+csgimmune0      = 0
+lightmode0      = 0
+multimeshmode0  = 0
+materialindex0  = 4
+
+;Segment Visibility
+
+visoverlay      = 2
+visfloor        = -1
+visroof         = -1
+viswallb        = -1
+viswallr        = -1
+viswallf        = -1
+viswalll        = -1
+viscornertl     = -1
+viscornertr     = -1
+viscornerbr     = -1
+viscornerbl     = -1
+
+;Segment Blueprint
+
+mode            = 3
+symbol          = 0
+floorsizey      = 0
+sidesizex       = 100
+sidesizey       = 100
+sidesizez       = 100
+groundmode      = 0
+kindof          = 1
+
+;end
+

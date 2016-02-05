@@ -1,0 +1,41 @@
+;Entity Spec
+
+;Header
+
+desc          = Uzi
+
+;AI
+aiinit	      = appear2.fpi
+aimain	      = weaponglow.fpi
+aidestroy     = disappear2.fpi
+
+;Spawn
+spawnmax      = 1
+spawndelay    = 5000
+spawnqty      = 1
+
+;Itemproperties
+defaultstatic = 0
+materialindex = 3
+collisionmode = 0
+debrisshape   = 0
+explodable    = 0
+
+;Orientation
+
+model         = uzi.x
+scale         = 200
+texturepath   = gamecore\guns\modernday\uzi\
+textured      = gun_D2.tga
+reducetexture = -1
+transparency  = 1
+isimmobile    = 1
+
+;Identity Details
+isweapon      = modernday\uzi
+quantity      = 1
+speed         = 100
+
+;Decals
+decalmax      = 1
+decal0        = glowred

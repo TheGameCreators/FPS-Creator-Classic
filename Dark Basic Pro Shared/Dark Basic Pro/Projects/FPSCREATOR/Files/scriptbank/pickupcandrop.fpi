@@ -1,0 +1,17 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Pickup Item (can drop - press H) [MUST USE PHYSICS ALWAYS ON]
+
+;Triggers
+
+:state=0:hudreset,hudx=50,hudy=90,hudimagefine=gamecore\text\pickedupanitem.tga,hudname=itemprompt,hudhide=1,hudmake=display,state=10,coloff
+:state=10,plrdistwithin=40:state=1,playertake,plrsound=$0,hudshow=itemprompt,hudfadeout=itemprompt
+
+;playerdrop when press H key causes an automatic increment of the state value
+:state=1,scancodekeypressed=35:plrsound=$1,playerdrop
+
+:state=2,plrdistfurther=45:state=10
+
+;End of Script

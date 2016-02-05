@@ -1,0 +1,42 @@
+;Header
+
+desc          = glaive
+
+;AI
+aiinit	      = appear2.fpi
+aimain	      = weaponglow.fpi
+aidestroy     = disappear2.fpi
+
+;Spawn
+spawnmax      = 1
+spawndelay    = 1000
+spawnqty      = 1
+
+;Itemproperties
+defaultstatic = 0
+materialindex = 3
+collisionmode = 0
+debrisshape   = 0
+explodable    = 0
+
+;Orientation
+model         = glaive.X
+scale         = 100
+rotx          = 0
+texturepath   = gamecore\guns\scifi\glaive\
+textured      = gun_D2.tga
+reducetexture = -1
+transparency  = 1
+isimmobile    = 1
+
+;Identity Details
+isammo	      = 1
+isweapon      = scifi\glaive
+isflak        = 1
+hasweapon     = scifi\glaive
+quantity      = 1
+speed         = 100
+
+;Decals
+decalmax      = 1
+decal0        = glowzone

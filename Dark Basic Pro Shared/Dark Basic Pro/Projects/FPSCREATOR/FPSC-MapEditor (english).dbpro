@@ -1,0 +1,80 @@
+; **** Dark BASIC Professional Project File ****
+version=DBP1.00
+project name=FPSC Map Editor
+
+
+
+; **** source file information ****
+main=FPSCREATOR.dba
+include1=FPSC-MapEditor\FPSC-MapEditorMain.dba
+include2=FPSC-MapEditor\FPSC-MapEditor.dba
+include3=FPSC-Segments\FPSC-Segments.dba
+include4=FPSC-Debug\FPSC-Debug.dba
+include5=FPSC-Common\FPSC-Common.dba
+include6=FPSC-Waypoints\FPSC-Waypoints.dba
+include7=FPSC-Common\FPSC-ExeLink.dba
+include8=FPSC-Entities\FPSC-EntitiesCore.dba
+include9=FPSC-Player\FPSC-GunForEntity.dba
+include10=FPSC-AI\FPSC-AI.dba
+include11=FPSC-MapEditor\FPSC-MapFile.dba
+include12=FPSC-Game\FPSC-Universe.dba
+include13=FPSC-Game\FPSC-Lighting.dba
+include14=FPSC-Entities\FPSC-EntitiesAI.dba
+include15=FPSC-AI\FPSC-AIHUD.dba
+include16=FPSC-MapEditor\FPSC-Interface.dba
+include17=FPSC-Player\FPSC-Gun.dba
+include18=FPSC-Flak\FPSC-Flak.dba
+include19=FPSC-Versions\FPSC-Full.dba
+include20=FPSC-Screens\FPSC-SaveLoad.dba
+; The compiler only needs to read the final source from this entry - the editor
+; handles include files, concatenation, etc.
+final source=_Temp.dbsource
+
+; The editor will replace any references to %temp in the EXE path/filename
+executable=FPSC-MapEditor.exe
+
+; **** Executable Information  ***
+; build types: exe, media, installer,alone
+build type=exe
+
+; ** Media file compression **
+compression=NO
+; ** Media file encryption **
+encryption=NO
+; ** Display the card options screen window? **
+card options window=NO
+
+; **** debugger information ****
+; If the editor sets this to yes, it is running in debug mode
+CLI=NO
+
+; **** display mode information ****
+app title=FPSC Map Editor
+; graphics mode options: fullscreen, window, desktop,fulldesktop, hidden
+graphics mode=hidden
+fullscreen resolution=799x599x16
+; arbitrary sizes are valid for windowed mode
+window resolution=799x599
+
+; **** External Files Information ****
+; **** Media ****
+media root path=
+; example entries: media1=graphics\*.jpg
+
+; **** Icons ****
+
+; **** Cursors ****
+cursorarrow=FILES\EDITORS\GFX\MOVE4WAY.CUR
+cursorwait=FILES\EDITORS\GFX\MOVE4WAY.CUR
+
+; **** Version Info ****
+VerComments=
+VerCompany=
+VerFileDesc=
+VerFileNumber=v1.0
+VerInternal=
+VerCopyright=
+VerTrademark=
+VerFilename=
+VerProduct=
+VerProductNumber=v1.0

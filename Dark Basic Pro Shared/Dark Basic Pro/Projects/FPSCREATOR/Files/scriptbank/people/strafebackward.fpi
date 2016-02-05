@@ -1,0 +1,42 @@
+;Artificial Intelegence Script
+
+;Header
+
+desc          = Strafe and Advance Shoot
+
+;Triggers
+
+:state=0,ifweapon=0:state=8,setframe=6
+:plrcanbeseen:settarget,rotatetotarget,resethead
+:plrdistwithin=200:rotatetoplr,resethead
+
+:state=0,random=20:state=9
+:state=0,shotdamage=1:rotatetoplr,state=7
+:state=0,ifweapon=1,plrcanbeseen:state=2
+
+:state=1:incframe=3,strafe=-155,rotatetoplr
+:state=1,frameatend=3:state=0,animate=1
+
+:state=5:useweapon,rundecal=6,state=0
+:state=4:state=5
+:state=3:state=4
+:state=2:state=3
+
+:state=6:incframe=4,strafe=155,rotatetoplr
+:state=6,frameatend=4:state=0,animate=1
+
+:state=7,random=1:state=6,setframe=4
+:state=7:state=1,setframe=3
+
+:state=8:incframe=6
+:state=8,frameatend=6:state=0,reloadweapon,sound=audiobank\guns\reload.wav
+
+:state=9,plrcannotbeseen:state=10
+:state=9:state=0
+:state=10,random=1:rotatetoplr,strafe=135
+:state=10,random=1:rotatetoplr,strafe=-135
+:state=10,random=1:rotatetoplr,strafe=-65
+:state=10,random=1:rotatetoplr,strafe=65
+:state=10:state=7
+
+;End of Script

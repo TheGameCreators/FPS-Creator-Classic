@@ -1,0 +1,11 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Default Entity Behaviour (Nothing)
+
+;Triggers
+
+:state=0:state=1
+
+;End of Script

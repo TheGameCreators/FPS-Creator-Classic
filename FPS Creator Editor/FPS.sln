@@ -1,0 +1,19 @@
+Microsoft Visual Studio Solution File, Format Version 9.00
+# Visual Studio 2005
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FPS", "FPS.vcproj", "{797D18BC-CD9D-4D81-8E11-0E9F7FBE52B5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		DebugTGCStore|Win32 = DebugTGCStore|Win32
+		ReleaseTGCStore|Win32 = ReleaseTGCStore|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{797D18BC-CD9D-4D81-8E11-0E9F7FBE52B5}.DebugTGCStore|Win32.ActiveCfg = DebugTGCStore|Win32
+		{797D18BC-CD9D-4D81-8E11-0E9F7FBE52B5}.DebugTGCStore|Win32.Build.0 = DebugTGCStore|Win32
+		{797D18BC-CD9D-4D81-8E11-0E9F7FBE52B5}.ReleaseTGCStore|Win32.ActiveCfg = ReleaseTGCStore|Win32
+		{797D18BC-CD9D-4D81-8E11-0E9F7FBE52B5}.ReleaseTGCStore|Win32.Build.0 = ReleaseTGCStore|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

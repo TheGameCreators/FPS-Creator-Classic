@@ -1,0 +1,11 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Flak follow waypoints
+
+;Triggers
+
+:state=0:movefore=100
+
+;End of Script

@@ -1,0 +1,16 @@
+;Artificial Intelligence Script
+; 0-once face player
+; 1-once keep angle
+; 2-loop face player
+; 3-loop keep angle
+; 4-once face up
+; 5-loop face up
+; 6-character-spot-decal (at end of entity characters gun if available)
+
+;Header
+desc          = Runs Decal Loop
+
+;Triggers
+:state=0:rundecal=2
+
+;End of Script

@@ -1,0 +1,499 @@
+rem
+rem FLAK
+rem
+
+_flak_init:
+
+rem V109 BETA10 - 120508 - only load flak data files
+`rem Load in all flak
+`gosub _flak_scaninall
+
+rem Scan entire flaks folder
+gosub _flak_scaninall_ref
+
+rem Load all flak data only
+gosub _flak_scaninall_dataonly
+
+rem Start with no flak
+flakid=0
+
+return
+
+_flak_initonlyused:
+
+rem V109 BETA10 - 120508 - only load flak that has been flagged
+for flakid=1 to flakmax
+ flak$=flak(flakid).name$
+ if flak(flakid).usedinlevel=1
+  gosub _flak_load
+ endif
+next flakid
+
+return
+
+_flak_loaddata:
+
+dim data$(100)
+filename$="gamecore\flak\"+flak$+"\flakspec.txt"
+load array filename$,data$()
+addfiletocollection(filename$)
+for l=0 to 99
+ line$=data$(l)
+ if len(line$)>0
+  if left$(line$,1)<>";"
+   `
+   rem take fieldname and value
+   for c=0 to len(line$)
+    if mid$(line$,c)="=" then mid=c : exit
+   next c
+   field$=lower$(removeedgespaces(left$(line$,mid-1)))
+   value$=removeedgespaces(right$(line$,len(line$)-mid))
+   `
+   rem take value 1 and 2 from value
+   for c=0 to len(value$)
+    if mid$(value$,c)="," then mid=c : exit
+   next c
+   value1=val(removeedgespaces(left$(value$,mid-1)))
+   value2=val(removeedgespaces(right$(value$,len(value$)-mid)))
+   `
+   rem flak START
+   if field$="throwangle" then flak(flakid).throwangle=value1
+   if field$="throwforward" then flak(flakid).throwforward=value1
+   if field$="throwheight" then flak(flakid).throwheight=value1
+   `
+   rem flak MOVEMENT
+   if field$="lifespan" then flak(flakid).profile.lifespan=value1
+   if field$="yinc" then flak(flakid).profile.yinc=value1
+   if field$="zinc" then flak(flakid).profile.zinc=value1
+   if field$="xspeed" then flak(flakid).profile.xspeed=1.0+(value1/1000.0)
+   if field$="yspeed" then flak(flakid).profile.yspeed=1.0+(value1/1000.0)
+   if field$="zspeed" then flak(flakid).profile.zspeed=1.0+(value1/1000.0)
+   if field$="weight" then flak(flakid).profile.weight=value1/1000.0
+   if field$="spinx" then flak(flakid).profile.spinx=value1/10.0
+   if field$="bounceonhit" then flak(flakid).profile.bounceonhit=value1
+   if field$="explodeonhit" then flak(flakid).profile.explodeonhit=value1
+   if field$="damage" then flak(flakid).profile.damage=value1
+   `
+   rem flak EXPLOSION
+   if field$="exponfloor" then flak(flakid).exponfloor$=value$
+   if field$="expinair" then flak(flakid).expinair$=value$
+   `
+   rem flak SOUND
+   if field$="sndbounce" then flak(flakid).sound.sndbounce$=value$
+   if field$="sndexplode" then flak(flakid).sound.sndexplode$=value$
+   `
+  endif
+ endif
+next l
+undim data$()
+
+rem V109 BETA10 - by default, flak is not used
+flak(flakid).usedinlevel=0
+
+return
+
+_flak_load:
+
+rem Load flak data
+gosub _flak_loaddata
+
+rem Load flak models
+currentflakobj=loadflak("gamecore\flak\"+flak$+"\PROJECTILE.x")
+flak(flakid).obj=currentflakobj
+
+rem Effect on projectiles
+`if guseeffectongunsstate=0 `lee, currently no NORMAL MAPS for projectiles!
+if 1
+ `
+ rem Base texture for fast moving projectiles
+ img$="gamecore\flak\"+flak$+"\projectile_D2.tga" : imgD2id=loadinternalimage(img$)
+ texture object currentflakobj,imgD2id
+ `
+else
+ `
+ rem Load Effect
+ tfile$="effectbank\BumpCubeReflectAlpha\BumpCubeReflectAlpha.fx"
+ debugfilename(tfile$,"effect for flak")
+ teffectid=loadinternaleffect(tfile$)
+ `
+ rem First Textures are PLATES
+ img$="gamecore\flak\"+flak$+"\flak_D.tga" : imgDid=loadinternalimage(img$)
+ img$="gamecore\flak\"+flak$+"\flak_N.tga" : imgNid=loadinternalimage(img$)
+ img$="gamecore\flak\"+flak$+"\flak_R.tga" : imgRid=loadinternalimage(img$)
+ `
+ rem Last Texture Image is CUBE
+ img$="gamecore\flak\"+flak$+"\flak_cube.dds" : imgCUBEid=loadinternalimage(img$)
+ if file exist(img$)=1 then load image img$,imgCUBEid,2
+ addfiletocollection(img$)
+ `
+ rem Bump Quality
+ texture object currentflakobj,0,imgDid
+ texture object currentflakobj,1,imgNid
+ texture object currentflakobj,2,imgRid
+ texture object currentflakobj,3,imgCUBEid
+ `
+ rem Apply effect to object
+ set object effect currentflakobj,teffectid
+ `
+endif
+
+rem Setup flak for correct visuals
+set object transparency currentflakobj,1
+disable object zdepth currentflakobj
+
+rem Setup flak for animation
+set object speed currentflakobj,45
+loop object currentflakobj
+
+rem Find Explosion for this flak
+decal$=flak(flakid).exponfloor$ : gosub _decal_find : flak(flakid).exponfloorid=decalid : if decalid>0 then decal(decalid).active=1
+decal$=flak(flakid).expinair$ : gosub _decal_find : flak(flakid).expinairid=decalid : if decalid>0 then decal(decalid).active=1
+
+rem Load sounds into bank
+flak(flakid).sound.sndbounceid=loadinternalsoundcore("gamecore\flak\"+flak$+"\"+flak(flakid).sound.sndbounce$,1)
+flak(flakid).sound.sndexplodeid=loadinternalsoundcore("gamecore\flak\"+flak$+"\"+flak(flakid).sound.sndexplode$,1)
+
+return
+
+_flak_scaninall_ref:
+
+rem Scan entire flaks folder
+set dir "gamecore" : flakid=1
+empty array filelist$()
+buildfilelist("flak","")
+set dir ".."
+if array count(filelist$())>0
+ for chkfile=0 to array count(filelist$())
+  file$=filelist$(chkfile)
+  if file$<>"." and file$<>".."
+   rem V109 BETA10 - 120508 - check for projectile replaced with flak text file (always find these)
+   if lower$(right$(file$,12))="flakspec.txt"
+    if flakid>flakmax
+     flakmax=flakid
+     dim flak(flakmax) as flaktype
+    endif
+    flak(flakid).name$=left$(file$,len(file$)-13)
+    inc flakid
+   endif
+  endif
+ next chkfile
+endif
+
+return
+
+_flak_scaninall_dataonly:
+ for flakid=1 to flakmax
+  flak$=flak(flakid).name$
+  gosub _flak_loaddata
+ next flakid
+return
+
+`V109 BETA10 - not needed - do not load ALL flak!
+`_flak_scaninall:
+`rem Scan entire flaks folder
+`gosub _flak_scaninall_ref
+`rem Load all flaks
+`for flakid=1 to flakmax
+` flak$=flak(flakid).name$
+` gosub _flak_load
+`next flakid
+`return
+
+_flak_findindex:
+ `tindex=-1
+ rem V109 BETA6 - 290408 - this would crash array if no flak found for weapon!
+ tindex=0
+ for flakid=1 to flakmax
+  if flak$=flak(flakid).name$
+   tindex=flakid : exit
+  endif
+ next flakid
+return
+
+`
+` FLAK ELEMENTS HANDLING
+`
+
+_flakelement_create:
+
+for tf=1 to flakelementmax
+ if flakelement(tf).active=0 then exit
+next tf
+if tf<flakelementmax
+ rem found free flak element
+ flakelement(tf).flakid=flakid
+ flakelement(tf).profile=flak(flakid).profile
+ rem activate new flak element
+ flakelement(tf).active=1
+ flakelement(tf).range=0
+ flakelement(tf).xpos=flakx
+ flakelement(tf).ypos=flaky
+ flakelement(tf).zpos=flakz
+ flakelement(tf).owner=flakowner
+ rem create projectile
+ flakelement(tf).obj=flakelementoffset+tf
+ tfobj=flakelement(tf).obj
+ if object exist(tfobj)=1 then delete object tfobj
+ instance object tfobj,flak(flakid).obj
+ rem use ORIENT to get correct rotation and intertias
+ if flakowner=0
+  set object to camera orientation tfobj
+ else
+  rotate object tfobj,flakpitch,flakangle,0
+ endif
+ move object tfobj,flakelement(tf).profile.zinc
+ flakelement(tf).profile.xinc=object position x(tfobj)*2
+ flakelement(tf).profile.yinc=flakelement(tf).profile.yinc+(object position y(tfobj)*2)
+ flakelement(tf).profile.zinc=object position z(tfobj)*2
+ flakelement(tf).xpos=flakelement(tf).xpos+(flakelement(tf).profile.xinc*flakspeed#)
+ flakelement(tf).ypos=flakelement(tf).ypos+(flakelement(tf).profile.yinc*flakspeed#)
+ flakelement(tf).zpos=flakelement(tf).zpos+(flakelement(tf).profile.zinc*flakspeed#)
+ position object tfobj,99999,99999,99999
+ rem show flak object
+ show object tfobj
+else
+ rem no more free flak
+endif
+
+return
+
+_flakelement_explodeinstantly:
+ rem last tick before BANG! (tf from _flakelement_create)
+ flakelement(tf).profile.lifespan=1
+return
+
+_flakelement_control:
+
+rem update me vars
+mex#=camera position x()
+mey#=camera position y()
+mez#=camera position z()
+
+rem Control all flak activity
+for f=1 to flakelementmax
+ tobj=flakelement(f).obj
+ if flakelement(f).active=1
+  rem update flak object (initial so we see starting position of flak)
+  tflakid=flakelement(f).flakid
+  position object tobj,flakelement(f).xpos,flakelement(f).ypos,flakelement(f).zpos
+  xrotate object tobj,object angle x(tobj)+flakelement(f).profile.spinx
+  rem affect flak by inertia and gravity
+  tmpx1#=flakelement(f).xpos : tmpy1#=flakelement(f).ypos : tmpz1#=flakelement(f).zpos
+  flakelement(f).xpos=flakelement(f).xpos+flakelement(f).profile.xinc
+  flakelement(f).ypos=flakelement(f).ypos+flakelement(f).profile.yinc
+  flakelement(f).zpos=flakelement(f).zpos+flakelement(f).profile.zinc
+  flakelement(f).profile.xinc=flakelement(f).profile.xinc/flakelement(f).profile.xspeed
+  flakelement(f).profile.yinc=flakelement(f).profile.yinc/flakelement(f).profile.yspeed
+  flakelement(f).profile.zinc=flakelement(f).profile.zinc/flakelement(f).profile.zspeed
+  flakelement(f).profile.yinc=flakelement(f).profile.yinc-flakelement(f).profile.weight
+  rem handle flak collision
+  tdetonate=0 : tcollide=0
+  rem handle timer delay
+  if flakelement(f).profile.lifespan>0
+   dec flakelement(f).profile.lifespan
+   if flakelement(f).profile.lifespan=0
+    tdetonate=1
+   endif
+  endif
+  if tdetonate=0
+   `
+   rem if not zero-life
+   if flakelement(f).ypos<0
+    flakelement(f).profile.yinc=flakelement(f).profile.yinc*-0.9
+    flakelement(f).ypos=0
+    tcollide=1
+   endif
+   tmpx2#=tmpx1#+(flakelement(f).profile.xinc*3.0)
+   tmpy2#=tmpy1#+(flakelement(f).profile.yinc*3.0)
+   tmpz2#=tmpz1#+(flakelement(f).profile.zinc*3.0)
+   if static raycast(tmpx1#,tmpy1#,tmpz1#,tmpx2#,tmpy2#,tmpz2#)<>0
+    `
+    rem checklist now filled with collision feedback data
+    flakelement(f).profile.xinc=checklist fvalue a(8)
+    flakelement(f).profile.yinc=checklist fvalue b(8)
+    flakelement(f).profile.zinc=checklist fvalue c(8)
+    flakelement(f).profile.xinc=flakelement(f).profile.xinc*0.4
+    flakelement(f).profile.yinc=flakelement(f).profile.yinc*0.6
+    flakelement(f).profile.zinc=flakelement(f).profile.zinc*0.4
+    flakelement(f).xpos=checklist fvalue a(6)+flakelement(f).profile.xinc
+    flakelement(f).ypos=checklist fvalue b(6)+flakelement(f).profile.yinc
+    flakelement(f).zpos=checklist fvalue c(6)+flakelement(f).profile.zinc
+    tcollide=2
+    `
+    rem collision bounce requires orientation
+    if flakelement(f).profile.bounceonhit>0
+     point object tobj,flakelement(f).xpos+(flakelement(f).profile.xinc*10.0),flakelement(f).ypos+(flakelement(f).profile.yinc*10.0),flakelement(f).zpos+(flakelement(f).profile.zinc*10.0)
+    endif
+    `
+    rem kill Y ineria if get too low
+    if abs(flakelement(f).profile.yinc)<0.02
+     flakelement(f).profile.spinx=0
+     flakelement(f).profile.yinc=0
+    endif
+    `
+   endif
+   rem collides with entity in area
+   spherex#=flakelement(f).xpos
+   spherey#=flakelement(f).ypos
+   spherez#=flakelement(f).zpos
+   spherenx#=spherex#+flakelement(f).profile.xinc
+   sphereny#=spherey#+flakelement(f).profile.yinc
+   spherenz#=spherez#+flakelement(f).profile.zinc
+   gosub _entity_spherecollision
+   if spheree<>-1
+    if flakelement(f).owner=spheree
+     rem owners of flak are except
+    else
+     rem backtrack to leave collision
+     flakelement(f).profile.xinc=flakelement(f).profile.xinc*-1
+     flakelement(f).profile.zinc=flakelement(f).profile.zinc*-1
+     flakelement(f).xpos=flakelement(f).xpos+flakelement(f).profile.xinc
+     flakelement(f).ypos=flakelement(f).ypos+flakelement(f).profile.yinc
+     flakelement(f).zpos=flakelement(f).zpos+flakelement(f).profile.zinc
+     tcollide=1
+    endif
+   endif
+   rem if shot BY entity, can collide with player
+   if flakelement(f).owner<>0
+    tx#=flakelement(f).xpos-mex#
+    tz#=flakelement(f).zpos-mez#
+    td#=sqrt(abs(tx#*tx#)+abs(tz#*tz#))
+    ty#=abs(flakelement(f).ypos-mey#)
+    if td#<30.0 and ty#<100.0 then tcollide=1
+   endif
+   rem complete collision code
+   if tcollide>0
+    if flakelement(f).profile.explodeonhit>0 or flakelement(f).profile.bounceonhit>0
+     if flakelement(f).profile.bounceonhit>0 and flakelement(f).profile.explodeonhit=0
+      flakelement(f).profile.bounceonhit=flakelement(f).profile.bounceonhit-1
+      playinternal3dsound(flak(tflakid).sound.sndbounceid,tmpx1#,tmpy1#,tmpz1#)
+     else
+      rem detonate at last collision, add scorch
+      tdetonate=1
+     endif
+    endif
+   endif
+   `
+  endif
+  rem detonate trigger
+  if tdetonate=1
+   rem trigger explosion
+   flakelement(f).active=2
+  endif
+ endif
+ if flakelement(f).active=2
+  rem hide flak object
+  hide object tobj
+  rem trigger exploder
+  frox#=flakelement(f).xpos
+  froy#=flakelement(f).ypos
+  froz#=flakelement(f).zpos
+  gosub _part_triggerexplosion
+  rem make sound seem louder by moving it closer to player
+  playinternal3dsound(flak(tflakid).sound.sndexplodeid,decalx,decaly,decalz)
+  rem ONLY affect decal with ZBIAS if explosion that needs to be seen by player in full
+  if object exist(tobj)=1 then enable object zbias tobj,-500.0,0.0
+  rem initial blast creates scorch (in six directions)
+  for tscdir=1 to 6
+   if tscdir=1 then t=static raycast(decalx+0,decaly,decalz,decalx-200,decaly,decalz)
+   if tscdir=2 then t=static raycast(decalx+0,decaly,decalz,decalx+200,decaly,decalz)
+   if tscdir=3 then t=static raycast(decalx,decaly+0,decalz,decalx,decaly-200,decalz)
+   if tscdir=4 then t=static raycast(decalx,decaly+0,decalz,decalx,decaly+200,decalz)
+   if tscdir=5 then t=static raycast(decalx,decaly,decalz+0,decalx,decaly,decalz-200)
+   if tscdir=6 then t=static raycast(decalx,decaly,decalz+0,decalx,decaly,decalz+200)
+   tsize#=45-rnd(30) : if t=1 then add static scorch tsize#,4+rnd(3)
+  next tscdir
+  rem initial blast creates light flash
+  spotflash=100 : tx#=decalx : ty#=decaly : tz#=decalz
+  tcolr=255
+  tcolg=255
+  tcolb=0
+  gosub _lighting_spotflash
+  rem start range of expanding explosion at zero
+  flakelement(f).range=0
+  rem create force of damage
+  flakelement(f).active=3
+  rem all entities that can take damage (characters, windows)
+  tx#=flakelement(f).xpos : ty#=flakelement(f).ypos : tz#=flakelement(f).zpos
+  spheredamage=flakelement(f).profile.damage
+  spherex#=tx# : spherey#=ty# : spherez#=tz# : sphereforce#=1.0
+  gosub _entity_addforcesphere
+ endif
+ if flakelement(f).active=3
+  rem increase range as force expands
+  flakelement(f).range=flakelement(f).range+10
+  if flakelement(f).range>100
+   flakelement(f).active=0
+  endif
+  rem detonate any other flak (other grenades)
+  tx#=flakelement(f).xpos
+  ty#=flakelement(f).ypos
+  tz#=flakelement(f).zpos
+  for sf=1 to flakelementmax
+   if f<>sf and flakelement(sf).active=1
+    tsx#=flakelement(sf).xpos-tx#
+    tsy#=flakelement(sf).ypos-ty#
+    tsz#=flakelement(sf).zpos-tz#
+    d#=sqrt(abs(tsx#*tsx#)+abs(tsy#*tsy#)+abs(tsz#*tsz#))
+    if d#<flakelement(f).range
+     rem explode the flak
+     flakelement(sf).active=2
+     flakelement(sf).range=0
+    endif
+   endif
+  next sf
+ endif
+ `
+next f
+
+return
+
+`
+` FUNCTIONS FOR FLAK
+`
+
+function loadflak(tfile$)
+ index=0
+ if flakbankmax>0
+  for t=1 to flakbankmax
+   if tfile$=flakbank$(t) then index=flakbankoffset+t : exit
+  next t
+ else
+  t=flakbankmax+1
+ endif
+ if t>flakbankmax
+  inc flakbankmax
+  `
+  rem V109 BETA6 - replaced X file load with optional DBO convert/load for HUD.X
+  `addfiletocollection(tfile$)
+  `load object tfile$,index
+  if lower$(right$(tfile$,2))=".x" then tdbofile$=left$(tfile$,len(tfile$)-2)+".dbo" else tdbofile$=""
+  if file exist(tfile$)=1 or file exist(tdbofile$)=1
+   index=flakbankoffset+flakbankmax
+   flakbank$(flakbankmax)=tfile$
+   rem V109 BETA6 - replaced X file load with optional DBO convert/load for HUD.X
+   if file exist(tdbofile$)=1
+    tfile$=tdbofile$
+    tdbofile$=""
+   else
+    rem allowed to save DBO (once only)
+   endif
+   load object tfile$,index
+   if len(tdbofile$)>1
+    save object tdbofile$,index
+    if file exist(tdbofile$)=1
+     delete object index
+     load object tdbofile$,index
+     tfile$=tdbofile$
+    endif
+   endif
+   addfiletocollection(tfile$)
+   `
+   yrotate object index,180
+   fix object pivot index
+   set object collision off index
+   hide object index
+  endif
+ endif
+endfunction index
+

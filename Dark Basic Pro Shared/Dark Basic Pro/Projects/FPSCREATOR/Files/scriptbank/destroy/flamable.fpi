@@ -1,0 +1,12 @@
+;Artificial Intelligence Script
+
+;Header
+
+desc          = Decal Explosion
+
+;Triggers
+
+:state=1:destroy
+:state=0:sound=audiobank\explode\explode1.wav,rundecal=0,triggerforce=100,state=1
+
+;End of Script

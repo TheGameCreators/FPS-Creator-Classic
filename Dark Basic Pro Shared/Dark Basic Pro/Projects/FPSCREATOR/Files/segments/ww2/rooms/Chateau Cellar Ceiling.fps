@@ -1,0 +1,80 @@
+;Segment Spec
+
+;Header
+
+partmax = 1
+lastmeshmax = 1
+
+;Segment Parts
+
+partmode0       = 0
+meshname0       = meshbank\ww2\france\rooms\chateau_cellar\floor_b.x
+offx0           = 0
+offy0           = -50
+offz0           = 0
+rotx0           = 0
+roty0           = 0
+rotz0           = 0
+texture0        = texturebank\ww2\floors\concrete\f_g_01_d2.tga
+textured0       = texturebank\ww2\floors\concrete\f_g_01_D.tga
+texturen0       = texturebank\ww2\floors\concrete\f_g_01_N.tga
+textures0       = texturebank\ww2\floors\concrete\f_g_01_S.tga
+transparency0   = 0
+effect0         = 
+colmode0        = 1
+csgmesh0        = 
+csgmode0        = 0
+csgimmune0      = 1
+lightmode0      = 0
+multimeshmode0  = 1
+materialindex0  = 2
+
+partmode1       = 0
+meshname1       = meshbank\ww2\france\rooms\chateau_cellar\ceiling_a.x
+offx1           = 0
+offy1           = -51
+offz1           = 0
+rotx1           = 0
+roty1           = 0
+rotz1           = 0
+texture1        = texturebank\ww2\ceilings\concrete\c_g_01_d2.tga
+textured1       = texturebank\ww2\ceilings\concrete\c_g_01_D.tga
+texturen1       = texturebank\ww2\ceilings\concrete\c_g_01_N.tga
+textures1       = texturebank\ww2\ceilings\concrete\c_g_01_S.tga
+transparency1   = 0
+effect1         = 
+colmode1        = 1
+csgmesh1        = 
+csgmode1        = 0
+csgimmune1      = 1
+lightmode1      = 0
+multimeshmode1  = 1
+materialindex1  = 2
+
+;Segment Visibility
+
+visoverlay      = 0
+visfloor        = 0
+visroof         = 1
+viswallb        = -1
+viswallr        = -1
+viswallf        = -1
+viswalll        = -1
+viscornertl     = -1
+viscornertr     = -1
+viscornerbr     = -1
+viscornerbl     = -1
+
+;Segment Blueprint
+
+mode            = 2
+symbol          = 0
+floorsizey      = 1
+sidesizex       = 100
+sidesizey       = 1
+sidesizez       = 100
+groundmode      = 2
+kindof          = 0
+
+;end
+

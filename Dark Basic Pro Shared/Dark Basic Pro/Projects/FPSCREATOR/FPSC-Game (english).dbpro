@@ -1,0 +1,85 @@
+; **** Dark BASIC Professional Project File ****
+version=DBP1.00
+project name=FPSC-Game
+
+
+
+; **** source file information ****
+main=FPSCREATOR.dba
+include1=FPSC-Game\FPSC-GameMain.dba
+include2=FPSC-Game\FPSC-Game.dba
+include3=FPSC-Segments\FPSC-Segments.dba
+include4=FPSC-Debug\FPSC-Debug.dba
+include5=FPSC-Entities\FPSC-Entities.dba
+include6=FPSC-AI\FPSC-AI.dba
+include7=FPSC-Common\FPSC-Common.dba
+include8=FPSC-Player\FPSC-Player.dba
+include9=FPSC-Player\FPSC-Gun.dba
+include10=FPSC-Waypoints\FPSC-Waypoints.dba
+include11=FPSC-Common\FPSC-ExeLink.dba
+include12=FPSC-Flak\FPSC-Flak.dba
+include13=FPSC-Flak\FPSC-Decal.dba
+include14=FPSC-Player\FPSC-GunForEntity.dba
+include15=FPSC-Game\FPSC-Lighting.dba
+include16=FPSC-Entities\FPSC-EntitiesCore.dba
+include17=FPSC-MapEditor\FPSC-MapFile.dba
+include18=FPSC-Screens\FPSC-GameFlow.dba
+include19=FPSC-Screens\FPSC-Screens.dba
+include20=FPSC-Game\FPSC-Universe.dba
+include21=FPSC-Entities\FPSC-EntitiesAI.dba
+include22=FPSC-AI\FPSC-AIHUD.dba
+include23=FPSC-Versions\FPSC-Full.dba
+include24=FPSC-Physics\FPSC-ODE.dba
+include25=FPSC-Particles\FPSC-Particles.dba
+include26=FPSC-Multiplayer\FPSC-Multiplayer.dba
+include27=FPSC-Screens\FPSC-SaveLoad.dba
+; The compiler only needs to read the final source from this entry - the editor
+; handles include files, concatenation, etc.
+final source=_Temp.dbsource
+
+; The editor will replace any references to %temp in the EXE path/filename
+executable=FPSC-Game.exe
+
+; **** Executable Information  ***
+; build types: exe, media, installer,alone
+build type=exe
+
+; ** Media file compression **
+compression=NO
+; ** Media file encryption **
+encryption=NO
+; ** Display the card options screen window? **
+card options window=NO
+
+; **** debugger information ****
+; If the editor sets this to yes, it is running in debug mode
+CLI=NO
+
+; **** display mode information ****
+app title=FPSC Game
+; graphics mode options: fullscreen, window, desktop,fulldesktop, hidden
+graphics mode=hidden
+fullscreen resolution=1024x768x16
+; arbitrary sizes are valid for windowed mode
+window resolution=1024x768
+
+; **** External Files Information ****
+; **** Media ****
+media root path=
+; example entries: media1=graphics\*.jpg
+
+; **** Icons ****
+
+; **** Cursors ****
+
+; **** Version Info ****
+VerComments=
+VerCompany=
+VerFileDesc=
+VerFileNumber=v1.0
+VerInternal=
+VerCopyright=
+VerTrademark=
+VerFilename=
+VerProduct=
+VerProductNumber=v1.0

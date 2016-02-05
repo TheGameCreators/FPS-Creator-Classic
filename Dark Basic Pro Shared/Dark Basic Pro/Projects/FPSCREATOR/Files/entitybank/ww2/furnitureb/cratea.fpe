@@ -1,0 +1,39 @@
+
+;header
+
+desc          = cratea
+
+;ai
+aiinit	      = appear1.fpi
+aimain	      = default.fpi
+aidestroy     = disappear1.fpi
+
+;spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;orientation
+
+model         = meshbank\ww2\scenery\furniture\cratea\crate_a.x
+offx          = 0
+offy          = 0
+offz          = 0
+rotx          = 0
+roty          = 0
+rotz          = 0
+defaultstatic = 0
+materialindex = 4
+collisionmode = 1
+
+;statistics
+strength      = 25
+explodable    = 0
+debrisshape   = 7
+
+;visualinfo
+
+textured      = texturebank\ww2\scenery\furniture\cratea\crate_a_d2.tga
+effect        = 
+castshadow    = 0
+

@@ -1,0 +1,43 @@
+;Entity Spec
+
+;Header
+desc          = Light Switch
+
+;AI
+aiinit	      = appear1.fpi
+aimain	      = switch.fpi
+aidestroy     = disappear1.fpi
+
+;AIUsed
+ifused        = %light
+
+;Spawn
+spawnmax      = 0
+spawndelay    = 0
+spawnqty      = 0
+
+;Orientation
+model         = meshbank\scifi\scenery\switches\switch2\switch2.X
+offx          = 0
+offy          = 0
+offz          = 0
+rotx          = 0
+roty          = 0
+rotz          = 0
+materialindex = 3
+forwardfacing = 1
+defaultheight = 50
+soundset      = audiobank\switches\activate.wav
+
+;Visualinfo
+textured      = texturebank\scifi\scenery\switches\switch2\switch2_ON_D2.tga
+texturealtd   = texturebank\scifi\scenery\switches\switch2\switch2_OFF_D2.tga
+effect        = effectbank\illuminationent\illuminationent.fx
+
+;Identity Details
+isimmobile    = 1
+strength      = 0
+
+;Animationinfo
+animmax       = 0
+anim0         = 0,0
