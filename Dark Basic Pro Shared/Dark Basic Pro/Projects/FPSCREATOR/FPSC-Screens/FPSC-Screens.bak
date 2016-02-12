@@ -1,0 +1,106 @@
+rem
+rem SCREEN TEMPLATES
+rem
+
+`
+` TITLE
+`
+_screen_title_init:
+ aifile$=titlefpi$
+ gosub _screen_init
+return
+
+`
+` LOADING
+`
+_screen_loading_init:
+ aifile$=level$(level).fpi$
+ gosub _screen_init
+return
+
+`
+` GAME
+`
+_screen_game_init:
+ aifile$=setupfpi$
+ gosub _screen_init
+return
+
+`
+` LEVEL COMPLETE
+`
+_screen_levelcomplete_init:
+ aifile$=gamewonfpi$
+ gosub _screen_init
+return
+
+`
+` GAMEOVER
+`
+_screen_gameover_init:
+ aifile$=gameoverfpi$
+ gosub _screen_init
+return
+
+`
+` SCREEN INPUT CONTROL
+`
+_screen_init:
+ `
+ rem Load AIFILE for screen
+ inc aiindexmaster
+ dim scriptbank$(aiindexmaster)
+ aiindex=aiindexmaster : scriptbank$(aiindex)=aifile$
+ aidir$="" : ai$=aifile$ : gosub _ai_load
+ screenai=aiindex
+ `
+ rem Prepare Entity Zero
+ obj=0 : e=0
+ if array count(entityelement())<=0
+  dim entityelement(e) as entitytype
+ endif
+ entityelement(e).active=1
+ entityelement(e).ai.state=0
+ `
+ rem HUD Control
+ hudselectionmade=0
+ `
+return
+
+_screen_control:
+ `
+ rem Run Global AI Script (in entity element zero)
+ if screenai>0
+  obj=0 : e=0 : aiindex=screenai : gosub _ai_control
+  if entityelement(e).active=0
+   rem FPI has been ended
+   continueokay=1
+  endif
+ endif
+ `
+ rem Run Any HUD activity
+ gosub _ai_hud_view
+ `
+return
+
+_screen_close:
+ `
+ rem Terminate screen AI
+ if screenai>0
+  aiindex=screenai
+  gosub _ai_free
+  screenai=0
+ endif
+ `
+ rem Free HUDs
+ hudmax=0
+ `
+ rem Reset HUD dependent vars
+ internalloaderhud=0
+ hudfadeoutoneatatime=0
+ internalloaderhud=0
+ internaleyehud=0
+ internalfaderhud=0
+ `
+return
+

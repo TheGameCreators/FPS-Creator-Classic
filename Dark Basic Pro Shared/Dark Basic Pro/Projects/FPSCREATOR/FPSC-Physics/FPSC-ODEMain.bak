@@ -1,0 +1,216 @@
+rem
+rem Prototype to test the ODE under FPSC data structures
+rem
+
+rem Rpeeat start
+do
+
+rem TEST DATA ONLY
+entityelementmax=5
+for e=1 to entityelementmax
+ `
+ tobj=e
+ entityelement(e).profileobj=100+tobj
+ `
+ rem object
+ entid=e
+ if e=1
+  load object "meshbank\scifi\scenery\furniture\cylinderf\cylinder_F.x",entityelement(e).profileobj
+  hide object entityelement(e).profileobj
+  clone object tobj,entityelement(e).profileobj
+  entityprofile(entid).collisionmode=3
+  position object tobj,175,80,-75
+  tmatindex=3
+ endif
+ if e=2
+  load object "entitybank\ww2\characters\JACK_UNARM.X",entityelement(e).profileobj
+  hide object entityelement(e).profileobj
+  clone object tobj,entityelement(e).profileobj
+`  loop object tobj,71,99
+`  show object bounds tobj
+  position object tobj,150,45,-50
+`  entityprofile(entid).ischaracter=1
+  tmatindex=2
+ endif
+ if e=3
+  load object "meshbank\ww2\scenery\furniture\itemb\item_b.x",entityelement(e).profileobj
+  hide object entityelement(e).profileobj
+  clone object tobj,entityelement(e).profileobj
+  position object tobj,50,70,-100
+  entityprofile(entid).collisionmode=3
+  tmatindex=5
+ endif
+ if e=4
+  t$="meshbank\scifi\scenery\doors\door_c\door_c.x"
+  load object t$,entityelement(e).profileobj
+  hide object entityelement(e).profileobj
+  clone object tobj,entityelement(e).profileobj
+  position object tobj,150,50,-350
+`  loop object tobj
+`  entityelement(e).eleprof.isimmobile=1
+  tmatindex=1
+ endif
+ if e=5
+  load object "meshbank\scifi\scenery\windows\win_c\win_c.x",entityelement(e).profileobj
+  hide object entityelement(e).profileobj
+  clone object tobj,entityelement(e).profileobj
+  rotate object tobj,0,0,0
+  position object tobj,250,50,-300
+`  entityelement(e).eleprof.isimmobile=1
+  tmatindex=4
+ endif
+ `
+ rem must be filled with defaults
+ entityelement(e).bankindex=entid
+ entityelement(e).obj=tobj
+ entityelement(e).active=1
+ entityelement(e).eleprof.physics=1 : rem settings in init setup
+ entityprofile(entid).materialindex=tmatindex
+ `
+next e
+
+rem test player
+plrid=1 : player(plrid).health=100 : playerspeedratio#=1.0
+playerhurtfall=10
+
+rem Setup proto
+sync on : sync rate 33
+
+rem Init
+physicsproto=1
+gtestgamemodefromeditor=1
+gosub _ode_init
+
+rem PLR-A:implement into plr code (new way)
+camerapositionx as float
+camerapositiony as float
+camerapositionz as float
+camerapositionx=50
+camerapositiony=80
+camerapositionz=-50
+cameraspeed as float : cameraspeed=0
+position camera camerapositionx,camerapositiony,camerapositionz
+point camera 150,75,-150
+set camera fov 75.0
+autocam off
+ctx#=camerapositionx
+cty#=camerapositiony
+ctz#=camerapositionz
+
+rem init player borble
+gosub _ode_playerborble
+
+rem Prototype code
+while inkey$()<>"#"
+set cursor 0,0
+print screen fps()
+
+rem extra proto controls
+if inkey$()="[" then set static objects wireframe on
+if inkey$()="]" then set static objects wireframe off
+
+rem test point force
+if mouseclick()=1
+ tpx#=newxvalue(camera position x(),camera angle y(),50.0)
+ tpy#=newyvalue(camera position y(),camera angle x(),50.0)
+ tpz#=newzvalue(camera position z(),camera angle y(),50.0)
+ if object exist(6765)=0 then make object sphere 6765,10
+ position object 6765,tpx#,tpy#,tpz#
+ for todee=1 to 5
+  if intersect object(todee,camera position x(),0,camera position z(),tpx#,tpy#,tpz#)<>0
+   tdx#=tpx#-camera position x()
+   tdy#=0.0
+   tdz#=tpz#-camera position z()
+   todeforce#=50
+   todefalloff#=0.0
+   gosub _ode_applypointforce
+  endif
+ next todee
+endif
+
+rem test entity control of physics object mode 2 (and coloff)
+if inkey$()="n" and coloffokay=0 then e=4 : gosub _ode_switchoffe : coloffokay=1
+if inkey$()="b" and coloffokay=1 then e=4 : gosub _ode_setupewithphysics : gosub _ode_ensureeisnotpenetrated : coloffokay=0
+for e=1 to 5
+ entid=e
+ tobj=entityelement(e).obj
+ if tobj>0
+  if entityelement(e).eleprof.physics=2
+   `
+   rem test movement
+   inc dada#
+   entityelement(e).x=450+(cos(dada#)*100)
+   entityelement(e).y=(object size y(tobj)/2.0)+2.5 : rem fpsc functionality change- characters not on floor, but in middle of body (ode needs center of mass)
+   entityelement(e).z=-50
+   entityelement(e).ry=dada#
+   `
+   rem perform the movement and rotation of the physics object representing the entity
+   todee=e : gosub _ode_entitydrivenphysics
+   `
+   rem info
+   center text object screen x(tobj),object screen y(tobj),str$(stress#)
+   `
+  endif
+ endif
+next e
+
+rem initial controls
+gosub _ode_playercamera
+`
+rem move some entities here
+for e=1 to entityelementmax
+ if entityelement(e).eleprof.physics<>0
+  tobj=entityelement(e).obj
+  entityelement(e).x=object position x(tobj)
+  entityelement(e).y=object position y(tobj)
+  entityelement(e).z=object position z(tobj)
+ endif
+next e
+
+rem complete player activity
+gosub _ode_playeraftermove
+gosub _ode_playerpickup
+
+rem Update physics
+gosub _ode_update
+
+rem Update screen
+sync
+
+rem End loop
+endwhile
+
+rem Cleanup
+gosub _ode_cleanup
+
+rem delete actual objects
+for e=1 to entityelementmax
+ tobj=entityelement(e).obj
+ if tobj>0
+  if object exist(tobj)=1 then delete object tobj
+ endif
+next e
+
+rem Repeat
+loop
+
+`
+` No need for redundant subroutines
+`
+
+_player_takedamage:
+ print "player hurt=";tdamage;"/";playerhurtfall
+return
+
+_player_leavetrail:
+_version_commandlineprompt:
+_version_endofinit:
+_entity_deducthealth:
+_decal_find:
+return
+
+function timestampactivity(i,s$)
+endfunction
+function debugstring(s$,t$)
+endfunction
+

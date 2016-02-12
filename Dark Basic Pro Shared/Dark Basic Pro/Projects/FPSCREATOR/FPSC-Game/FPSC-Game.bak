@@ -1,0 +1,180 @@
+
+rem
+rem GAME
+rem
+
+`
+` Game Core Functions
+`
+_game_loadmap:
+
+rem Load map data (in real mode, we ignore what the header gmultiplayergame flag is)
+storegmultiplayergame=gmultiplayergame : gosub _mapfile_loadmap
+if grealgameviewstate=1 then gmultiplayergame=storegmultiplayergame
+
+rem Setup lighting
+gosub _lighting_init
+
+rem V106 Can skip universe construction if flagged
+rem do not call skip code if real game or build game
+rem compare MAP arrays with last saved copy
+rem compare static lights to last saved copy
+rem compare static entities to last saved copy
+if gcompilestandaloneexe=1 or grealgameviewstate=1
+ if grealgameviewstate=1 then tperformuniverseconstruction=0
+ if gcompilestandaloneexe=1 then tperformuniverseconstruction=1
+else
+ rem only in test game scenario should this check be made
+ tperformuniverseconstruction=1
+ gosub _universe_construct_skip : rem sets universeconstructskip flag
+ if universeconstructskip=1 then tperformuniverseconstruction=0
+endif
+
+rem If universe.dbo not present, construct it
+universefile$="levelbank\testlevel\universe.dbo"
+if tperformuniverseconstruction=0
+ `
+ rem sneak automatic floor texture into data!
+ thorizonplanes$=""
+ `
+ rem Load effects (as some scene geometry needs setting changes)
+ debugviewtext(195,strarr$(115))
+ filename$="levelbank\testlevel\universe.eff"
+ open to read 1,filename$
+  read file 1,teffectbankmax
+  for eff=1 to teffectbankmax
+   read string 1,tfile$
+   teffectid=loadinternaleffect(tfile$)
+  next eff
+  read string 1,thorizonplanes$
+ close file 1
+ `
+ rem load pre-created universe for level
+ debugviewtext(200,strarr$(116))
+ load static objects universefile$,gdividetexturesize
+ `
+ rem Load elements list (that includes scene dynamic entities)
+ if grealgameviewstate=1 or gcompilestandaloneexe=1
+  `
+  rem V106 RC4 only for final game loading and construction
+  debugviewtext(201,strarr$(117))
+  elementsfilename$="levelbank\testlevel\universe.ele" : gosub _entity_loadelementsdata
+  `
+  rem Load infinity lights data
+  debugviewtext(202,strarr$(118))
+  filename$="levelbank\testlevel\universe.lgt"
+  open to read 1,filename$
+   read file 1,tinfinimax
+   dim infinilight(tinfinimax) as infinilighttype
+   for i=0 to tinfinimax
+    read file 1,infinilight(i).used
+    read file 1,infinilight(i).type
+    read float 1,infinilight(i).x
+    read float 1,infinilight(i).y
+    read float 1,infinilight(i).z
+    read float 1,infinilight(i).range
+    read file 1,infinilight(i).id
+    read float 1,infinilight(i).dist
+    read file 1,infinilight(i).colrgb.r
+    read file 1,infinilight(i).colrgb.g
+    read file 1,infinilight(i).colrgb.b
+    read file 1,infinilight(i).islit
+   next i
+  close file 1
+  `
+ else
+  `
+  rem V109 BETA3 - 210408 - TEST GAME recreates LGT data as it is not consistent with quick rebuild which has different entities!
+  gosub _universe_recreateinfinilights
+  tinfinimax=infinilightindex
+  `
+ endif
+ `
+ rem count dynamic lights for the counter that controls this activity
+ activatedynamiclightscount=0
+ if array count(infinilight())>0
+  if gdynamiclightingstate=1
+   for i=0 to tinfinimax
+    if infinilight(i).type=1
+     inc activatedynamiclightscount
+    endif
+   next i
+  endif
+ endif
+ `
+ rem create horizon planes
+ segobjstart=universebuildobjstartoffset
+ segobj=segobjstart
+ if gusefloorstate=1
+  rem load in the texture used by the horizon polys (from filename got from above)
+  mapselection=1 : dim segmentprofile(mapselection,64) as segmentprofiletype
+  if thorizonplanes$="" then thorizonplanes$="texturebank\common\ground_D2.tga"
+  segmentprofile(mapselection,0).texdid=loadinternalimage(thorizonplanes$)
+  rem create the edge of universe polys
+  gosub _universe_createhorizonplanes
+ endif
+ lastsegobj=segobj
+ `
+else
+ `
+ rem construct universe for level
+ segobjstart=universebuildobjstartoffset
+ gosub _universe_construct
+ `
+endif
+
+rem V111BETA4 - 240608 - new mode which asks portal clipper NOT to skip empty nodes that have already been traversed
+rem (default is designed for speed, this mode restores older system which recurses through more portals (large indoor scene))
+if ghsrmode=2
+ set static culling 1
+else
+ set static culling 0
+endif
+
+rem Opportunity for ambience to be adjusted based on number of lights
+gosub _lighting_postdefaults
+
+rem Use mapdata to build viscolmap data
+gosub _entity_fillviscolmap
+
+rem setup scorch texture
+if guseweaponsstate=1
+ debugviewtext(280,strarr$(119))
+ tbullethole=loadinternalimage("gamecore\Bulletholes\bulletholes.tga")
+ debugviewtext(290,strarr$(120))
+ set static scorch tbullethole,4,4
+endif
+
+return
+
+`
+` SUPPORT SUBROUTINES FOR GRIDEDIT CODE
+`
+
+_gridedit_getmapvalues:
+ `
+ rem mapid in
+ mapselection    = ( mapid && %11111111111100000000000000000000 ) >> 20
+ mapscaler       = ( mapid && %00000000000011110000000000000000 ) >> 16
+ mapground       = ( mapid && %00000000000000001100000000000000 ) >> 14
+ maprotate       = ( mapid && %00000000000000000011000000000000 ) >> 12
+ maporient       = ( mapid && %00000000000000000000110000000000 ) >> 10
+ mapsymbol       = ( mapid && %00000000000000000000001111110000 ) >> 4
+ maptile         = ( mapid && %00000000000000000000000000001111 )
+ `
+return
+
+_gridedit_makemapvalues:
+ `
+ mapid = 0
+ mapid = mapid + ( ( mapselection && %111111111111 ) << 20 )
+ mapid = mapid + ( ( mapscaler && %1111 ) << 16 )
+ mapid = mapid + ( ( mapground && %11 ) << 14 )
+ mapid = mapid + ( ( maprotate && %11 ) << 12 )
+ mapid = mapid + ( ( maporient && %11 ) << 10 )
+ mapid = mapid + ( ( mapsymbol && %111111 ) << 4 )
+ mapid = mapid + ( ( maptile && %1111 ) )
+ rem mapid out
+ `
+return
+

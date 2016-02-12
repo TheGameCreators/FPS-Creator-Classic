@@ -1,0 +1,339 @@
+rem
+rem GAMEFLOW (DEFAULT PIPELINE FOR FPSC-V1)
+rem
+
+_gameflow_default:
+ `
+ rem Test Game Mode - hide camera until ready
+ if gtestgamemodefromeditor=1
+  gtestgamemodefromeditorokaypressed=0
+  set camera view 0,0,1,1
+  rem Ready With Test Game Engine
+  open file map 1, "FPSTESTGAMEDIALOG"
+  wait for file map event 1
+  if get file map dword( 1, 0 ) = 1
+   set file map dword 1, 12, 1
+   set file map string$ 1, 1000, strarr$(377)
+   wait for file map event 1
+   while get file map dword ( 1, 12 ) = 1
+    wait for file map event 1
+   endwhile
+  endif
+  close file map 1
+ endif
+ rem Build Executable Game Mode
+ if gcompilestandaloneexe=1
+  rem Ready With Build Game Engine
+  open file map 1, "FPSBUILDGAME"
+  set file map dword 1, 40, 12
+  set file map dword 1, 44, 1
+  set file map string$ 1, 1000, strarr$(378)
+  wait for file map event 1
+  while get file map dword ( 1, 44 ) = 1
+   wait for file map event 1
+  endwhile
+  close file map 1
+ endif
+ `
+ rem App Loop
+ loopapp=1
+ while loopapp=1
+  `
+  rem Preapp Init
+  gosub _ai_setkeywords
+  gosub _ai_scanfornewscriptsonly
+  gosub _ai_reset
+  `
+  rem Title screen
+  controlSPACE=1
+  controlESCAPE=1
+  if gtestgamemodefromeditor=0 then gosub _screen_title_init
+  if grealgameviewstate=1
+   continueokay=0
+   while continueokay=0
+    gosub _screen_control
+    sync
+   endwhile
+  else
+   rem in test mode, we are the 'host'
+   if gtestgamemodefromeditor<>0 then createorjoin=1
+  endif
+  `
+  rem Obtain title screen info (multiplayer)
+  if gmultiplayergame=1
+   if gtestgamemodefromeditor<>0
+    rem Test Game Mode
+    playername$="testarenaplr"
+    ipaddress$=""
+   else
+    rem Scan HUD array for name [and ip]
+    for hudid=1 to hudmax
+     if hud(hudid).maintype=8
+      if hud(hudid).typemode=21 then playername$=hud(hudid).text$ : hudhaveplayername=1
+      if hud(hudid).typemode=22 then ipaddress$=hud(hudid).text$
+     endif
+    next hidid
+   endif
+   rem Early init sets up connection (if it can)
+   gosub _multi_earlyinit
+  endif
+  `
+  rem until editor has flag set when building arena exe..
+  gosub _multi_assetloader
+  `
+  rem Close title screen
+  if gtestgamemodefromeditor=0 then gosub _screen_close
+  `
+  rem if not quitting
+  if loopapp=1
+   `
+   rem Set first level
+   controlSPACE=1
+   controlESCAPE=0
+   level=1
+   `
+   rem Start level loop
+   looplevel=1
+   while looplevel=1
+    `
+    rem V113 BETA4 - Reset global variables (before loading from saved data below)
+    gosub _ai_reset_presaveposition
+    `
+    rem [OPTIONAL] Triggers a 'saved game' dataset to load
+    if loadsavedlevel$<>""
+     saveloadfile$=loadsavedlevel$
+     gosub _saveload_loadgame
+     saveloadfile$=""
+    endif
+    `
+    rem Loading level
+    if gtestgamemodefromeditor=0 then gosub _screen_loading_init
+    if grealgameviewstate=1
+     gosub _screen_control
+     sync
+    endif
+    `
+    rem CORE : LOAD GAME DATA
+    gosub _ai_reset
+    gosub _ai_scanfornewscriptsonly
+    gosub _main_game_loadgamedata
+    `
+    rem Only play if not building the executable
+    if gcompilestandaloneexe=1
+     `
+     rem First action of core is to finishing loading of level
+     gosub _load_game_scene
+     gosub _main_game_freeleveldata
+     `
+     rem Review FPI screens
+     gosub _screen_game_init
+     gosub _screen_levelcomplete_init
+     gosub _screen_gameover_init
+     `
+     rem Will load all levels to gather all files required for standalone
+     inc level : if level>glevelmax then looplevel=0
+     `
+    else
+     `
+     rem First action of core is to finishing loading of level
+     gosub _load_game_scene
+     `
+     rem Repeat an arema game
+     repeatsamelevel=0
+     repeat
+      `
+      rem Flag to control the repeat (multiaplayer)
+      if gmultiplayergame=1
+       if repeatsamelevel<>0
+        rem Game has been repeated, so reset some small elements to reproduce exact restart (quicker than reload)
+        gosub _multiplayer_repeatresetgame
+        rem Reset flag for another new game
+        repeatsamelevel=0
+       else
+        rem copy entire entityelement states at start (for repeat renewgame)
+        tcopyorrestart=0 : gosub _gun_resetgunsettings
+        tcopyorrestart=0 : gosub _entity_resetentitiestorestartstates
+       endif
+      endif
+      `
+      rem Prepare Game HUD After Loading
+      gosub _screen_close
+      gosub _screen_game_init
+      `
+      rem Give entities a blast of logic
+      rem (but after HUD-creation of status-panels) (entAI adds HUDS)
+      gosub _entity_blastinitentities
+      `
+      rem [OPTIONAL] saveload data overwrite default level settings
+      if loadsavedlevel$<>""
+       gosub _saveload_retrievesavedata
+       loadsavedlevel$=""
+      endif
+      `
+      rem CORE : PLAY LEVEL
+      controlSPACE=0
+      controlESCAPE=2
+      showgamemenu=0
+      levelwon=0
+      startofgametime=timer()
+      continueokay=0
+      gamewarmupcount=30
+      while continueokay=0
+       if showgamemenu=0
+        gosub _main_game_core
+       else
+        if gmultiplayergame=1 then gosub _main_game_core
+        gosub _screen_control
+        if len(loadsavedlevel$)<2 then sync
+       endif
+      endwhile
+      controlSPACE=1
+      controlESCAPE=0
+      `
+      rem If arena, pop up game win/lose screens (and repeat game choice)
+      if gtestgamemodefromeditor<>0
+       `
+       rem Quick Exit from test arena mode
+       repeatsamelevel=0
+       `
+      else
+       `
+       if gmultiplayergame=1
+        `
+        rem Stop ALL sounds from game
+        for s=1 to 65535 : if sound exist(s)=1 : stop sound s : endif : next s
+        `
+        rem Ensure mouse button released totally
+        while mouseclick()<>0 : sync : endwhile
+        `
+        rem ARENA GAME FINISHED
+        rem levelwon (0-lost,1-won,2-skip)
+        if levelwon=0 or levelwon=1
+         if levelwon=0 then gosub _screen_gameover_init
+         if levelwon=1 then gosub _screen_levelcomplete_init
+         continueokay=0
+         while continueokay=0
+          gosub _screen_control
+          sync
+         endwhile
+        endif
+        `
+        rem Absolutely leave leveloop after arena game
+        looplevel=0
+        `
+       else
+        `
+        rem SINGLE PLAYER GAME FINISHED
+        rem Record any player states
+        gosub _player_savestate
+        `
+       endif
+       `
+      endif
+      `
+      rem Close down all HUDs
+      gosub _screen_close
+      `
+     rem if AI has chosen to repeat level, repeatsamelevel will be set to 1
+     until repeatsamelevel=0
+     `
+     rem CORE : FREE LEVEL DATA
+     if gtestgamemodefromeditor<>0
+      rem if test game, leave and let heap be removed entirely
+      levelwon=2
+      rem but multiplayer still needs freeing manually (or crash)
+      if gmultiplayergame<>0 then gosub _multi_free
+     else
+      rem level free, or game free
+      leavegamedataalone=1
+      rem game free instead (removes usually retained AI and WEAPON arrays, etc)
+      if levelwon=0 or levelwon=2 or (levelwon=1 and level+1>glevelmax)
+       leavegamedataalone=0
+      endif
+      gosub _main_game_freeleveldata
+     endif
+     `
+     rem If single player, do gameover/complete/nextlevel
+     if gmultiplayergame=0
+      `
+      if levelwon=0
+       `
+       rem Game Over
+       continueokay=0
+       gosub _screen_gameover_init
+       while continueokay=0
+        gosub _screen_control
+        sync
+       endwhile
+       gosub _screen_close
+       `
+       rem End level loop
+       looplevel=0
+       `
+      endif
+      if levelwon=1
+       `
+       rem Next level
+       inc level : if level>glevelmax then levelwon=2
+       `
+      endif
+      if levelwon=2
+       `
+       rem Game Complete
+       if level>1 and level>glevelmax and gtestgamemodefromeditor=0
+        continueokay=0
+        gosub _screen_levelcomplete_init
+        while continueokay=0
+         gosub _screen_control
+         sync
+        endwhile
+        gosub _screen_close
+       endif
+       `
+       rem Level Quit - end level loop
+       looplevel=0
+       `
+      endif
+     endif
+     `
+    endif
+    `
+    rem TestGameFromEditor Mode
+    if grealgameviewstate=0 and gcompilestandaloneexe=0
+     rem Always terminate after the level has been won/lost
+     looplevel=0 : loopapp=0
+    endif
+    `
+   endwhile
+   `
+   rem QUICK-TEST-MODE : Leave after one pass
+   if grealgameviewstate=0 then loopapp=0
+   `
+  endif
+  `
+ endwhile
+ `
+ rem Instruct Map Editor To Relaunch and Reload Settings
+ if gtestgamemodefromeditor=1
+  rem Inform user of potentiall ylong delay while unloading
+  set current bitmap 0
+  set text font "Verdana" : set text size 24 : ink rgb(255,255,255),0
+  for sss=0 to 3
+   center text screen width()/2,screen height()/2,strarr$(379)
+   sync
+  next sss
+  rem TestGameFromEditor Mode
+  open file map 1, "FPSEXCHANGE"
+  set file map string$ 1, 1000, "FPSC-MapEditor.exe"
+  set file map string$ 1, 1256, "-r"
+  set file map dword 1, 994, 0
+  set file map dword 1, 924, 1
+  wait for file map event 1
+  close file map 1
+  rem Terminate
+  timestampactivity(0,"Test Game Delete Exit")
+  end
+ endif
+ `
+return
+

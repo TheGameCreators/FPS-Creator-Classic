@@ -1,0 +1,681 @@
+Rem Project: WINGUIThumbnailBrowser
+Rem Created: 27/09/2003 22:13:40
+
+rem Init app
+sync on : sync rate 60 : color backdrop rgb(192,192,192) : autocam off
+
+rem Browser Control data structure
+type browsefiltertype
+ first last all f2d f3d wav fx seg pre map ent
+endtype
+type browseindextype
+ browsebar
+ topbar bottombar
+ tabs
+ ok cancel
+ library
+ folders preview files
+ filter as browsefiltertype
+endtype
+browseindex as browseindextype
+dim selectioninfilter(10)
+dim filterlistinit(10)
+
+rem Icon Bank data structure
+type iconbanktype
+ hfolder as DWORD
+ hfiles as DWORD
+ hexit as DWORD
+ h2d as DWORD
+ h3d as DWORD
+ hwav as DWORD
+ hfx as DWORD
+ hseg as DWORD
+ hpre as DWORD
+ hmap as DWORD
+ hent as DWORD
+endtype
+iconbank as iconbanktype
+
+rem Prepare screen-based dimensions
+type screendimtype
+ barheight
+ width height
+ statustop
+ panelwidth
+ buttonwidth
+ basepreviewheight
+endtype
+scr as screendimtype
+scr.barheight=24
+scr.width=screen width()
+scr.height=screen height()
+scr.statustop=scr.height-scr.barheight
+scr.panelwidth=scr.width/4
+scr.buttonwidth=scr.width/8
+scr.basepreviewheight=scr.height/4
+
+rem Slow thumbnail update
+slowthumbnailcount=0
+slowthumbnailchecklistupdate=0
+dim slowthumbnailfile$(slowthumbnailcount)
+
+rem Set name of browser window
+subappname$=browsername$
+
+rem Create empty panel
+gosub _browser_create
+
+rem Main loop selection within panel
+subappmode=0 : sync off : always active off
+do
+
+rem Trigger Browse Modes (F1-F9)
+for k=59 to 59+8
+ if keystate(k)=1 then triggerbrowsesession=k-58
+next k
+if triggerbrowsesession>0
+ browsesession=triggerbrowsesession
+ gosub _browser_triggersession
+ triggerbrowsesession=0
+endif
+
+rem Usage or Standby
+if subappmode=1
+ `
+ rem Detect selection
+ gosub _browser_selectfolder
+ gosub _browser_selectfile
+ gosub _browser_manage
+ `
+ rem Select exit controls
+ tresult=0
+ if get control click(browseindex.ok)=1 then tresult=1
+ if get control click(browseindex.cancel)=1 then tresult=2
+ if tresult<>0
+  if subappmode=1
+   `
+   rem RETURN RESULT
+   filemapname$=subappname$+"(ACTIVE)"
+   write filemap value filemapname$,0
+   write filemap string filemapname$,"not active"
+   filemapname$=subappname$+"(RESULT)"
+   write filemap value filemapname$,tresult
+   write filemap string filemapname$,browserfile$
+   subappexitflag=1
+   `
+  endif
+ endif
+ `
+ rem END SESSION
+ if subappexitflag=1
+  if object exist(1)=1 then delete object 1
+  update wingui : sync off : always active off
+  subappexitflag=0
+  subappmode=0
+ endif
+ `
+ rem Update screen
+ update wingui
+ sync
+ `
+else
+ `
+ rem debug prompt - to be removed
+ ink rgb(255,255,255),0
+ center text (scr.width/8),scr.height-(scr.basepreviewheight/2),"BROWSE MODE"
+ center text (scr.width/8),scr.height-(scr.basepreviewheight/2)+20,"F1 - F9"
+ `
+endif
+
+rem WAIT FOR NEW SESSION
+filemapname$=subappname$+"(ACTIVE)"
+if read filemap value(filemapname$)=1
+ `
+ rem Activate Session to Full
+ subappmode=1 : sync on : always active on
+ `
+ rem NEW SESSION
+ write filemap value filemapname$,2
+ write filemap string filemapname$,"up and running"
+ filemapname$=subappname$+"(RESULT)"
+ write filemap value filemapname$,0
+ write filemap string filemapname$,""
+ `
+ rem LOAD SPECIFICS FOR SESSION
+ filemapname$=subappname$+"(MODE)"
+ browsetype=read filemap value(filemapname$)-1
+ if browsetype>=0 and browsetype<=8
+  gosub _browser_loadspecific
+ endif
+ `
+endif
+
+rem End loop
+loop
+
+
+rem
+rem WINGUI Thumbnail Browser
+rem
+
+_browser_create:
+
+rem Base winguiindex
+basei=0 : basewidth=scr.width : baseheight=scr.height
+basesplit=scr.panelwidth
+
+rem Area for browser
+i=basei+2 : browseindex.topbar=i : make control text i,1,6,"  "+"DESC",0,0,basewidth,scr.barheight
+i=basei+4 : browseindex.bottombar=i : make control text i,1,6,strarr$(16),0,baseheight-scr.barheight,basewidth-(scr.buttonwidth*2),scr.barheight
+
+rem OK and CANCEL buttons
+i=basei+5 : browseindex.ok=i : make control button i,0,0,strarr$(17),basewidth-(scr.buttonwidth*2),baseheight-scr.barheight,scr.buttonwidth,scr.barheight
+i=basei+6 : browseindex.cancel=i : make control button i,0,0,strarr$(18),basewidth-scr.buttonwidth,baseheight-scr.barheight,scr.buttonwidth,scr.barheight
+
+rem Tabs view for folders
+i=basei+7 : browseindex.tabs=i : make control tabs i,0,0,0,scr.barheight,basesplit,baseheight-scr.barheight-scr.barheight-scr.basepreviewheight
+add control item browseindex.tabs,0,"CATEGORY"
+
+rem Tree views for folders
+for tfilter=0 to 8
+ i=basei+8+tfilter
+ make control treeview i,0,1,4,scr.barheight+scr.barheight+4,basesplit-8,baseheight-8-(scr.barheight+scr.barheight+scr.barheight)-scr.basepreviewheight
+ link control i, browseindex.tabs, 0
+ if tfilter=0 then browseindex.filter.all=i : browseindex.filter.first=i
+ if tfilter=1 then browseindex.filter.f2d=i
+ if tfilter=2 then browseindex.filter.f3d=i
+ if tfilter=3 then browseindex.filter.wav=i
+ if tfilter=4 then browseindex.filter.fx=i
+ if tfilter=5 then browseindex.filter.seg=i
+ if tfilter=6 then browseindex.filter.pre=i
+ if tfilter=7 then browseindex.filter.map=i
+ if tfilter=8 then browseindex.filter.ent=i : browseindex.filter.last=i
+ hide control i
+next tfilter
+
+rem List view of files
+i=basei+17 : browseindex.files=i : make control listview i,3,6,basesplit,scr.barheight,basewidth-basesplit,baseheight-scr.barheight-scr.barheight
+
+rem Load all default icons
+old$=get dir$()
+icondir$="editors\gfx\"
+`makeicons=1
+`if makeicons=1
+` set dir icondir$
+` load bitmap "11.bmp",1
+` iconame$="iconfolder.ico" : get image 1,(0*48),(0*48),(0*48)+48,(0*48)+48 : save icon from image iconame$,1
+` iconame$="iconfiles.ico" : get image 1,(1*48),(0*48),(1*48)+48,(0*48)+48 : save icon from image iconame$,1
+` iconame$="icon2d.ico" : get image 1,(0*48),(1*48),(0*48)+48,(1*48)+48 : save icon from image iconame$,1
+` iconame$="icon3d.ico" : get image 1,(1*48),(1*48),(1*48)+48,(1*48)+48 : save icon from image iconame$,1
+` iconame$="iconwav.ico" : get image 1,(2*48),(1*48),(2*48)+48,(1*48)+48 : save icon from image iconame$,1
+` iconame$="iconfx.ico" : get image 1,(3*48),(1*48),(3*48)+48,(1*48)+48 : save icon from image iconame$,1
+` iconame$="iconseg.ico" : get image 1,(0*48),(2*48),(0*48)+48,(2*48)+48 : save icon from image iconame$,1
+` iconame$="iconpre.ico" : get image 1,(1*48),(2*48),(1*48)+48,(2*48)+48 : save icon from image iconame$,1
+` iconame$="iconmap.ico" : get image 1,(2*48),(2*48),(2*48)+48,(2*48)+48 : save icon from image iconame$,1
+` iconame$="iconent.ico" : get image 1,(3*48),(2*48),(3*48)+48,(2*48)+48 : save icon from image iconame$,1
+` delete bitmap 1
+`endif
+set dir icondir$
+iconame$="File.ico" : iconbank.hfiles=load icon(iconame$)
+iconame$="Folder.ico" : iconbank.hfolder=load icon(iconame$)
+iconame$="Texture.ico" : iconbank.h2d=load icon(iconame$)
+iconame$="Mesh.ico" : iconbank.h3d=load icon(iconame$)
+iconame$="Sound.ico" : iconbank.hwav=load icon(iconame$)
+iconame$="Effect.ico" : iconbank.hfx=load icon(iconame$)
+iconame$="Segment.ico" : iconbank.hseg=load icon(iconame$)
+iconame$="Prefab.ico" : iconbank.hpre=load icon(iconame$)
+iconame$="Map.ico" : iconbank.hmap=load icon(iconame$)
+iconame$="AI Script.ico" : iconbank.hent=load icon(iconame$)
+set dir old$
+
+rem Setup tree views with default folder icons
+for tfilter=browseindex.filter.first to browseindex.filter.last
+ set control item icon tfilter,0,iconbank.hfolder
+ set control item icon tfilter,1,iconbank.hfiles
+next tfilter
+
+rem Adjust camera for preview pane
+previewpanetop=((scr.barheight*2)+8)+(baseheight-8-(scr.barheight*3)-scr.basepreviewheight)
+set camera view 0,2,previewpanetop+2,basesplit-4,(previewpanetop+scr.basepreviewheight)-4
+make object cube 1,100
+
+return
+
+_browser_loadspecific:
+
+rem Flags for filters
+dim browsetypeusing(10)
+for t=1 to 9 : browsetypeusing(t)=0 : next t
+
+rem Prepare browse type settings
+if browsetype=0
+ for t=1 to 9 : browsetypeusing(t)=1 : next t
+ browsedesc$=strarr$(19)
+ browsetitle$=strarr$(20)
+ baselib$=".\"
+endif
+if browsetype=1
+ browsedesc$=strarr$(21)
+ browsetypeusing(1+browsetype)=1
+ browsetitle$=strarr$(22)
+ baselib$=".\texturebank\"
+endif
+if browsetype=2
+ browsedesc$=strarr$(23)
+ browsetypeusing(1+browsetype)=1
+ browsetitle$=strarr$(24)
+ baselib$=".\meshbank\"
+endif
+if browsetype=3
+ browsedesc$=strarr$(25)
+ browsetypeusing(1+browsetype)=1
+ browsetitle$=strarr$(26)
+ baselib$=".\audiobank\"
+endif
+if browsetype=4
+ browsedesc$=strarr$(27)
+ browsetypeusing(1+browsetype)=1
+ browsetitle$=strarr$(28)
+ baselib$=".\effectbank\"
+endif
+if browsetype=5
+ browsedesc$=strarr$(29)
+ browsetypeusing(1+browsetype)=1
+ browsetitle$=strarr$(30)
+ baselib$=".\segments\"
+endif
+if browsetype=6
+ browsedesc$=strarr$(31)
+ browsetypeusing(1+browsetype)=1
+ browsetitle$=strarr$(32)
+ baselib$=".\prefabs\"
+endif
+if browsetype=7
+ browsedesc$=strarr$(33)
+ browsetypeusing(1+browsetype)=1
+ browsetitle$=strarr$(34)
+ baselib$=".\mapbank\"
+endif
+if browsetype=8
+ browsedesc$=strarr$(35)
+ browsetypeusing(1+browsetype)=1
+ browsetitle$=strarr$(36)
+ baselib$=".\entitybank\"
+endif
+
+rem Assign filters to browse types
+browseextcount=0
+dim browseext$(64)
+dim browseexttype(64)
+if browsetypeusing(1)=1
+ browseext$(browseextcount+1)=".tga" : browseexttype(browseextcount+1)=1
+ browseext$(browseextcount+2)=".jpg" : browseexttype(browseextcount+2)=1
+ browseext$(browseextcount+3)=".bmp" : browseexttype(browseextcount+3)=1
+ browseext$(browseextcount+4)=".dds" : browseexttype(browseextcount+4)=1
+ inc browseextcount,4
+endif
+if browsetypeusing(2)=1
+ browseext$(browseextcount+1)="d2.tga" : browseexttype(browseextcount+1)=2
+ browseext$(browseextcount+2)="d2.dds" : browseexttype(browseextcount+2)=2
+` browseext$(browseextcount+2)="_01_d2.jpg" : browseexttype(browseextcount+2)=2
+` browseext$(browseextcount+3)="_01_d2.bmp" : browseexttype(browseextcount+3)=2
+` browseext$(browseextcount+4)="_01_d2.dds" : browseexttype(browseextcount+4)=2
+ inc browseextcount,2
+endif
+if browsetypeusing(3)=1
+` browseext$(browseextcount+1)="_a.x" : browseexttype(browseextcount+1)=3
+` browseext$(browseextcount+2)="_a_e.x" : browseexttype(browseextcount+2)=3
+ browseext$(browseextcount+1)=".x" : browseexttype(browseextcount+1)=3
+ inc browseextcount,1
+endif
+if browsetypeusing(4)=1
+ browseext$(browseextcount+1)=".wav" : browseexttype(browseextcount+1)=4
+ browseext$(browseextcount+2)=".mp3" : browseexttype(browseextcount+2)=4
+ inc browseextcount,2
+endif
+if browsetypeusing(5)=1
+ browseext$(browseextcount+1)=".fx" : browseexttype(browseextcount+1)=5
+ inc browseextcount
+endif
+if browsetypeusing(6)=1
+ browseext$(browseextcount+1)=".fps" : browseexttype(browseextcount+1)=6
+ inc browseextcount
+endif
+if browsetypeusing(7)=1
+ browseext$(browseextcount+1)=".fpp" : browseexttype(browseextcount+1)=7
+ inc browseextcount
+endif
+if browsetypeusing(8)=1
+ browseext$(browseextcount+1)=".fpm" : browseexttype(browseextcount+1)=8
+ inc browseextcount
+endif
+if browsetypeusing(9)=1
+ browseext$(browseextcount+1)=".fpe" : browseexttype(browseextcount+1)=9
+ inc browseextcount
+endif
+
+rem Set Browse Desc
+set control text browseindex.topbar,"  "+browsedesc$
+
+rem Folder Category Name
+set control item browseindex.tabs,0,browsetitle$
+
+rem Hide all trees
+for tfilter=browseindex.filter.first to browseindex.filter.last
+ hide control tfilter
+next tfilter
+
+rem Choose tree for session
+if browsetype=0 then browseindex.library=browseindex.filter.all
+if browsetype=1 then browseindex.library=browseindex.filter.f2d
+if browsetype=2 then browseindex.library=browseindex.filter.f3d
+if browsetype=3 then browseindex.library=browseindex.filter.wav
+if browsetype=4 then browseindex.library=browseindex.filter.fx
+if browsetype=5 then browseindex.library=browseindex.filter.seg
+if browsetype=6 then browseindex.library=browseindex.filter.pre
+if browsetype=7 then browseindex.library=browseindex.filter.map
+if browsetype=8 then browseindex.library=browseindex.filter.ent
+
+rem Show correct tree for this session
+show control browseindex.library
+
+rem Fill tree areas with folders
+if filterlistinit(browsetype)=0
+ rem new folders for tree view
+ delete all control items browseindex.library
+ old$=get dir$() : buildtreeview(browseindex.library,0,1,baselib$,"") : set dir old$
+ filterlistinit(browsetype)=1
+else
+ rem restore selection within existing tree view
+ set control selection browseindex.library, selectioninfilter(browsetype)
+endif
+
+rem Clear file area to reset browser session
+delete all control items browseindex.files
+forcefolderclicked=1
+
+return
+
+_browse_findfilefiltertype:
+ tpassfilter=0
+ for tfilter=1 to browseextcount
+  if lower$(right$(file$,len(browseext$(tfilter))))=browseext$(tfilter)
+   tpassfilter=browseexttype(tfilter) : exit
+  endif
+ next tfilter
+return
+
+_browser_selectfile:
+
+rem Folder view selection
+folderclicked=0
+if get control click(browseindex.library)=1 then folderclicked=browseindex.library : basedir$=baselib$
+if forcefolderclicked=1 then forcefolderclicked=0 : folderclicked=browseindex.library : basedir$=baselib$
+if folderclicked>0
+ `
+ rem Get tree view file path
+ selectiontext$=get control string$(folderclicked)
+ browserfolder$=basedir$+selectiontext$
+ set control text browseindex.bottombar,strarr$(37)+browserfolder$
+ `
+ rem Fill files area with browse files
+ old$=get dir$()
+ set dir browserfolder$
+ perform checklist for files
+ undim slowthumbnailfile$()
+ slowthumbnailchecklistupdate=0
+ slowthumbnailcount=checklist quantity()
+ dim slowthumbnailfile$(slowthumbnailcount)
+ delete all control items browseindex.files
+ browsecontrolindex=0
+ for c=1 to checklist quantity()
+  rem Apply files filters
+  if checklist value a(c)=0
+   file$=lower$(checklist string$(c))
+   gosub _browse_findfilefiltertype
+   if tpassfilter>0
+    if tpassfilter=1 then ticonhandle=iconbank.h2d
+    if tpassfilter=2 then ticonhandle=iconbank.h2d
+    if tpassfilter=3 then ticonhandle=iconbank.h3d
+    if tpassfilter=4 then ticonhandle=iconbank.hwav
+    if tpassfilter=5 then ticonhandle=iconbank.hfx
+    if tpassfilter=6 then ticonhandle=iconbank.hseg
+    if tpassfilter=7 then ticonhandle=iconbank.hpre
+    if tpassfilter=8 then ticonhandle=iconbank.hmap
+    if tpassfilter=9 then ticonhandle=iconbank.hent
+    add control item browseindex.files,browsecontrolindex,file$
+    set control item icon browseindex.files,browsecontrolindex,ticonhandle
+    slowthumbnailfile$(c)=file$
+    inc browsecontrolindex
+   endif
+  endif
+ next c
+ set dir old$
+ `
+ rem starts the slow thumbnail update
+ if browsecontrolindex>0
+  slowthumbnailchecklistupdate=1
+  browsecontrolindex=0
+ endif
+ `
+endif
+
+rem File View selection
+if get control click(browseindex.files)=1
+ `
+ rem Get tree view file path
+ selectiontext$=get control string$(browseindex.files)
+ browserfile$=lower$(browserfolder$+selectiontext$)
+ set control text browseindex.bottombar,"  "+strarr$(38)+upper$(browserfile$)
+ `
+ rem Show preview based on type
+ file$=browserfile$
+ gosub _browse_findfilefiltertype
+ if tpassfilter>0
+  tpreviewsomething=0 : browsepreviewtype=0
+  if object exist(1)=1 then delete object 1
+  if tpassfilter=1 or tpassfilter=2
+   rem preview 2D
+   load image browserfile$,1
+   make object plain 1,480,480 : position object 1,0,0,450
+   position camera 0,0,0 : point camera 0,0,450
+   texture object 1,1 : set object light 1,0
+   tpreviewsomething=1
+   browsepreviewtype=1
+  endif
+  if tpassfilter=3
+   rem preview 3D
+   autocam on : load object browserfile$,1 : autocam off
+   set object ambience 1,rgb(255,255,255)
+   set object diffuse 1,rgb(255,255,255)
+   tpreviewsomething=1
+   browsepreviewtype=2
+  endif
+  if tpassfilter=4
+   rem preview AUDIO
+   load image "editors\gfx\12.bmp",1
+   make object plain 1,480,480 : position object 1,0,0,450
+   position camera 0,0,0 : point camera 0,0,450
+   texture object 1,1 : set object light 1,0
+   tpreviewsomething=1
+   browsepreviewtype=3
+  endif
+  if tpassfilter=5
+   rem preview EFFECT
+   autocam on : set effect on 1,browserfile$,1 : autocam off
+   t#=abs(camera position z()/2)
+   position camera t#,t#,t#*-1.0
+   point camera 0,0,0
+   tpreviewsomething=1
+   browsepreviewtype=4
+  endif
+  if tpreviewsomething=0
+   rem standby preview display
+   autocam on : make object cube 1,100 : autocam off
+   browsepreviewtype=0
+  endif
+  rem Set default light
+  set point light 0,50,50,-200
+ endif
+ `
+ rem preview load complete
+ set control text browseindex.bottombar,"  "+"LOADED "+upper$(browserfile$)
+ `
+endif
+
+return
+
+_browser_manage:
+
+rem control preview if required
+if object exist(1)=1
+ if browsepreviewtype=0
+  rotate object 1,object angle x(1)+1,object angle y(1)+2,object angle z(1)+3
+ endif
+ if browsepreviewtype=2
+  yrotate object 1,object angle y(1)+1
+ endif
+ if browsepreviewtype=4
+  yrotate object 1,object angle y(1)+0.1
+ endif
+endif
+
+rem thumbnail slow update
+if slowthumbnailchecklistupdate>0
+ `
+ rem get icon name
+ c=slowthumbnailchecklistupdate
+ file$=slowthumbnailfile$(c)
+ if file$<>""
+  `
+  rem correct browser dir
+  old$=get dir$()
+  set dir browserfolder$
+  iconame$=left$(file$,len(file$)-4)+".ico"
+  `
+  rem create icon (if not exist)
+`  if lower$(left$(browserfolder$+file$,14))=".\texturebank\"
+`   if file exist(iconame$)=0 then load image file$,1 : save icon from image iconame$,1
+`  endif
+  `
+  rem refresh control item (if ico file exists)
+  if file exist(iconame$)=1
+   iconhandle as DWORD
+   iconhandle=load icon(iconame$)
+   set control item icon browseindex.files,browsecontrolindex,iconhandle
+  endif
+  `
+  rem restore dir
+  set dir old$
+  `
+  rem always track control index
+  inc browsecontrolindex
+
+ endif
+ `
+ rem next item
+ inc slowthumbnailchecklistupdate
+ if slowthumbnailchecklistupdate>slowthumbnailcount
+  slowthumbnailchecklistupdate=0
+ endif
+ `
+endif
+
+return
+
+_browser_selectfolder:
+
+rem user clicked folder in tree view
+if get control click(browseindex.library)=1
+
+ rem Get current tree selection
+ treeselect as DWORD
+ treeselect=get control selected(browseindex.library)
+
+ rem Record selection to remember it
+ selectioninfilter(browsetype)=treeselect
+
+ rem Expand folder tree as required
+ tlevel=get control item value(browseindex.library)
+ ticonvalue=get control item icon(browseindex.library)
+ if ticonvalue=0
+  old$=get dir$()
+  tlevelstring$=get control string$(browseindex.library)
+  buildtreeview(browseindex.library,tlevel+1,tlevel+2,baselib$+tlevelstring$,"")
+  set control selection browseindex.library,treeselect
+  set dir old$
+ endif
+endif
+
+return
+
+_browser_triggersession:
+
+if browsesession>0
+ `
+ rem INIT NEW SESSION
+ write filemap value filemapname$,1
+ write filemap string filemapname$,strarr$(39)
+ filemapname$=subappname$+"(MODE)"
+ write filemap value filemapname$,browsesession
+ write filemap string filemapname$,strarr$(40)
+ `
+ rem Reset trigger after key released
+ while scancode()<>0 : sync : endwhile
+ browsesession=0
+ `
+ rem Must exit old session if any
+ if subappmode=1 then subappexitflag=1
+ `
+endif
+
+return
+
+
+rem
+rem FILE MANAGEMENT FUNCTIONS
+rem
+
+function buildtreeview(treecontrol,treehistory,treemax,folder$,rel$)
+ set dir folder$
+ find first : fin=0
+ while get file type()>-1
+  file$=get file name$()
+  if file$="." or file$=".."
+   rem ignore . and ..
+  else
+   if get file type()=1
+    rem folder
+    add control item treecontrol,treehistory,file$
+    if treehistory+1<treemax
+     buildtreeview(treecontrol,treehistory+1,treemax,file$,rel$+file$+"\")
+     find first
+     if fin>0
+      for t=1 to fin : find next : next t
+     endif
+    endif
+   else
+    rem files
+   endif
+  endif
+  find next
+  fin=fin+1
+ endwhile
+ set dir ".."
+endfunction
+
+function timestampactivity(a,s$)
+endfunction
+
+_version_commandlineprompt:
+_version_endofinit:
+_version_splashtext:
+_version_onscreenlogos:
+_version_permittestgame:
+_version_resourcewarning:
+_version_universe_construct:
+_version_buildgame:
+_version_main_game_buildexe:
+return
+

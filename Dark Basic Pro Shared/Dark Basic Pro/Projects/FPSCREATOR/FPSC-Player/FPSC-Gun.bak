@@ -1,0 +1,1778 @@
+rem
+rem GUN CORE
+rem
+
+
+_gun_init:
+
+rem Load all guns into memory
+gosub _gun_scaninall_ref
+
+rem Force all weapons into weapon slots (initial default start)
+if level=1 then gosub _gun_gatherslotorder
+
+rem No gun to start with
+weaponammoindex=0
+autoloadgun=-1
+gunid=0
+
+rem V114 - 021208 - trigger weapon one automatically if exists
+triggerweapononeifexists=1
+
+rem V111 - 140608 - modifier to adjust gun animation speed based on change from 32fps to 38fps cap
+`100   +1.0      32fps   32.0
+`84.2  +0.842    38fps   32.0  SO (75.0*0.842) and (125.0*0.842)
+
+return
+
+_gun_loadonlypresent:
+ `
+ rem Load only active guns from slots (and from playerstartentry)
+ for tww=1 to 10
+  gunid=weaponslot(tww).pref
+  if gunid>0 then gun(gunid).activeingame=1
+ next tww
+ `
+ rem load in any guns that entities specify
+ for e=1 to entityelementlist
+  entid=entityelement(e).bankindex
+  gunid=entityprofile(entid).hasweapon
+  if gunid>0 then gun(gunid).activeingame=1
+  gunid=entityprofile(entid).isweapon
+  if gunid>0 then gun(gunid).activeingame=1
+ next e
+ `
+ rem Load all guns that have been activated
+ for gunid=1 to gunmax
+  if gun(gunid).activeingame=1
+   gun$=gun(gunid).name$ : gosub _gun_load
+  endif
+ next gunid
+ `
+ rem And now fill in player weapon details
+ for tww=1 to 10
+  gunid=weaponslot(tww).pref
+  if gunid>0
+   if gun(gunid).activeingame=1
+    weaponhud(tww)=gun(gunid).hudimage
+   endif
+  endif
+ next tww
+ `
+ rem Ensure gun vars are reset
+ gunid=0
+ `
+return
+
+_gun_resetgunsettings:
+ `
+ rem Reset weapons (1=restart)
+ if tcopyorrestart=0
+  rem copy
+  dim copyweaponslot(10) as weaponslottype
+  dim copyweaponammo(10) as integer
+  dim copyweaponclipammo(10) as integer
+  dim copyweaponhud(10) as integer
+  for ws=1 to 10
+   copyweaponslot(ws)=weaponslot(ws)
+   copyweaponammo(ws)=weaponammo(ws)
+   copyweaponclipammo(ws)=weaponclipammo(ws)
+   copyweaponhud(ws)=weaponhud(ws)
+  next ws
+ else
+  rem restore
+  for ws=1 to 10
+   weaponslot(ws)=copyweaponslot(ws)
+   weaponammo(ws)=copyweaponammo(ws)
+   weaponclipammo(ws)=copyweaponclipammo(ws)
+   weaponhud(ws)=copyweaponhud(ws)
+  next ws
+ endif
+ `
+return
+
+_gun_manager:
+
+rem V110 - new freeze mode (PLRDISABLE) which stops player attacking
+gunclick=player(1).state.firingmode
+if mefrozen>0 and mefrozentype=2 then gunclick=0
+
+rem Gun controls
+if gunmode<100
+ rem Gun Firing
+ if gunclick<>1 then gunmustreleasefirst=0
+ if gunclick<>0
+  if gunclick=1 and gunmustreleasefirst=0 then gunmode=101
+  rem V109 BETA10 - 120508 - can only reload when gun idle (stops gun freeze when do change then reload quickly)
+  `if gunmode<11
+  rem V110 - 220508 - and also for when walking/running
+  if gunmode<30
+   if gunclick=2 then gunmode=121
+  endif
+ else
+  rem Gun Movement
+  if gunmode<21 or gunmode>39
+   if player(1).state.moving=1 then gunmode=21
+  endif
+ endif
+endif
+
+rem Gun Selection
+if gunselectionlockdown=0
+ if player(1).command.newweapon>0
+  sel=player(1).command.newweapon
+  player(1).command.newweapon=0
+  if weaponammoindex>0
+   rem only if 'different weapon'
+   if weaponslot(weaponammoindex).pref<>sel
+    gunmode=31 : gunselectionafterhide=sel
+   endif
+  else
+   gunmode=131 : autoloadgun=sel
+  endif
+ endif
+endif
+
+rem Change weapon
+gosub _gun_change
+
+rem Need to update hud object for gun here (and again after SYNC)
+gosub _gun_update_hud
+
+rem Gun control
+if gunid>0
+ if object exist(currentgunobj)=1
+  gosub _gun_control
+  gosub _gun_shoot
+  if gun(gunid).settings.flashlimb>=0 then gosub _gun_flash
+  if gun(gunid).settings.brasslimb>=0 then gosub _gun_brass
+  if gun(gunid).settings.brasslimb>=0 then gosub _gun_smoke
+  gosub _gun_soundcontrol
+ endif
+endif
+
+rem Independent handling (no matter which guns is selected)
+gosub _gun_brass_indi
+
+return
+
+_gun_change:
+
+rem V114 - 021208 - at start of level, this is set to one
+if triggerweapononeifexists>0
+ triggerweapononeifexists=0
+ tgunid=weaponslot(1).got
+ if tgunid>0
+  if len(gun(tgunid).name$)>1
+   autoloadgun=tgunid
+  endif
+ endif
+endif
+
+if autoloadgun<>-1
+ `
+ rem Free the old gun
+ gosub _gun_free
+ `
+ rem Gun selection
+ gunid=autoloadgun
+ gun$=gun(gunid).name$
+ autoloadgun=-1
+ `
+ rem If gun selection valid, load it
+ if gun$<>"" then gosub _gun_selectandorload
+
+ rem cause gun lighting to reset
+ currentguncolr=-1 : gosub _lighting_applyplayerlighting
+
+ rem Show gun as active
+ currentgunobj=gun(gunid).obj
+ if currentgunobj>0
+  set object interpolation currentgunobj,100
+  set object frame currentgunobj,gun(gunid).action.show.s
+  show object currentgunobj
+ else
+  gunid=0
+ endif
+
+ rem Default gun action is to SHOW and reveal gun (then goes to gunmode=5 idle)
+ gunmode=131 : keyboardpress=0
+
+ rem locate slot for ammo usage
+ weaponammoindex=0
+ if gunid>0
+  for ws=1 to 10
+   if weaponslot(ws).pref=gunid
+    weaponammoindex=ws : exit
+   endif
+  next ws
+ endif
+
+endif
+
+return
+
+_gun_update_hud:
+
+rem HUD marker update
+if object exist(hudbankoffset+2)=1
+ gunax#=camera angle x() : gunay#=camera angle y()
+ position object hudbankoffset+2,camera position x(),camera position y(),camera position z()
+ rotate object hudbankoffset+2,gunax#,gunay#,0
+ if currentgunobj>0
+  if object exist(currentgunobj)=1
+   if player(1).health>0
+    show object currentgunobj
+   else
+    hide object currentgunobj
+   endif
+  endif
+ endif
+endif
+
+return
+
+_gun_update_overlay:
+return
+
+_gun_control:
+
+rem gun position offset and rotation
+if plrzoomin#<>0.0
+ plrzoomaccuracy#=gun(gunid).settings.zoomaccuracy/100.0
+ position object currentgunobj,gun(gunid).horiz#,gun(gunid).vert#,gun(gunid).forward#-(plrzoomin#*10.0)
+else
+ position object currentgunobj,gun(gunid).horiz#,gun(gunid).vert#,gun(gunid).forward#
+endif
+rotate object currentgunobj,0,180,0
+
+rem hide the object if weapon-ammo and no qty left
+if gun(gunid).settings.weaponisammo=1
+ if weaponammo(weaponammoindex)=0
+  hide object currentgunobj
+ else
+  show object currentgunobj
+ endif
+endif
+
+rem gun idle control ((4*0.75)=3.0)
+if gunmode=5
+ gunmode=6
+ guninterp=4
+ stop object currentgunobj
+ set object interpolation currentgunobj,25
+ set object frame currentgunobj,gun(gunid).action.idle.s+3.0
+endif
+if gunmode=6
+ dec guninterp,1
+ if guninterp<=0
+  set object interpolation currentgunobj,100
+  set object frame currentgunobj,gun(gunid).action.idle.s+3.0
+  gunmode=7
+ endif
+endif
+if gunmode=7
+ gunmode=8
+ play object currentgunobj,gun(gunid).action.idle.s+3.0,gun(gunid).action.idle.e
+endif
+if gunmode=8
+ if object frame(currentgunobj)>=gun(gunid).action.idle.e then gunmode=9
+endif
+if gunmode=9
+ gunmode=10
+ guninterp=4
+ stop object currentgunobj
+ set object interpolation currentgunobj,25
+ set object frame currentgunobj,gun(gunid).action.idle.s+3.0
+endif
+if gunmode=10
+ dec guninterp,1
+ if guninterp<=0
+  set object interpolation currentgunobj,100
+  set object frame currentgunobj,gun(gunid).action.idle.s+3.0
+  gunmode=7
+ endif
+endif
+
+rem gun movment control ((4*0.75)=3.0
+if gunmode=21
+ gunmode=22
+ guninterp=4
+ stop object currentgunobj
+ set object interpolation currentgunobj,25
+ set object frame currentgunobj,gun(gunid).action.move.s+3.0
+endif
+if gunmode=22
+ dec guninterp,1
+ if guninterp<=0
+  set object interpolation currentgunobj,100
+  set object frame currentgunobj,gun(gunid).action.move.s+3.0
+  gunmode=23
+ endif
+endif
+if gunmode>=23 and gunmode<=26
+ if movement=0 then gunmode=5
+endif
+if gunmode=23
+ gunmode=24
+ play object currentgunobj,gun(gunid).action.move.s+3.0,gun(gunid).action.move.e
+endif
+if gunmode=24
+ if object frame(currentgunobj)>=gun(gunid).action.move.e then gunmode=25
+endif
+if gunmode=25
+ gunmode=26
+ guninterp=4
+ stop object currentgunobj
+ set object interpolation currentgunobj,25
+ set object frame currentgunobj,gun(gunid).action.move.s+3.0
+endif
+if gunmode=26
+ dec guninterp,1
+ if guninterp<=0
+  set object interpolation currentgunobj,100
+  set object frame currentgunobj,gun(gunid).action.move.s+3.0
+  gunmode=23
+ endif
+endif
+
+rem gun put away and hide control
+if gunmode=31
+ gunmode=32
+ guninterp=4
+ gunselectionlockdown=1
+ stop object currentgunobj
+ set object interpolation currentgunobj,25
+ set object frame currentgunobj,gun(gunid).action.hide.s
+ rem play sound of gun select-change
+ if gunsound(gunid,4).soundid>0
+  if sound exist(gunsound(gunid,4).soundid)=1
+   if sound playing(gunsound(gunid,4).soundid)=0
+    playinternalBC3dsound(gunsound(gunid,4).soundid,camera position x(),camera position y(),camera position z(),1)
+   endif
+  endif
+ endif
+endif
+if gunmode=32
+ dec guninterp,1
+ if guninterp<=0
+  set object interpolation currentgunobj,100
+  set object frame currentgunobj,gun(gunid).action.hide.s
+  rem V111 - 140608 - modifier to adjust gun animation speed based on change from 32fps to 38fps cap
+  set object speed currentgunobj,(125.0*0.842)
+  gunmode=33
+ endif
+endif
+if gunmode=33
+ gunmode=34
+ set object interpolation currentgunobj,100
+ play object currentgunobj,gun(gunid).action.hide.s,gun(gunid).action.hide.e
+endif
+if gunmode=34
+ if object frame(currentgunobj)>=gun(gunid).action.hide.e then gunmode=35
+endif
+if gunmode=35
+ rem V111 - 140608 - modifier to adjust gun animation speed based on change from 32fps to 38fps cap
+ set object speed currentgunobj,(75.0*0.842)
+ autoloadgun=gunselectionafterhide
+ gunselectionlockdown=0
+ gunmode=5
+endif
+
+rem gun firing control
+if gunmode=101
+ if gun(gunid).settings.reloadqty=0 then weaponammo(weaponammoindex)=99999
+ if weaponammo(weaponammoindex)>0
+  gunmode=102
+  set object interpolation currentgunobj,100
+  play object currentgunobj,gun(gunid).action.start.s,gun(gunid).action.start.e
+ else
+  if gunclick<>1
+   if gunsound(gunid,3).soundid>0
+    if sound exist(gunsound(gunid,3).soundid)=1
+     if sound playing(gunsound(gunid,3).soundid)=0
+      playinternalBC3dsound(gunsound(gunid,3).soundid,camera position x(),camera position y(),camera position z(),50)
+     endif
+    endif
+   endif
+   gunmode=107
+  endif
+ endif
+endif
+if gunmode=102
+ if object frame(currentgunobj)>=gun(gunid).action.start.e then gunmode=103
+endif
+if gunmode=103
+ gunmode=104 : gunflash=1
+ gunshoot=1 : guntimercount=gun(gunid).settings.firerate/2 : rem V113 AIRSLIDE 5/8/8 guntimercount=6
+ weaponammo(weaponammoindex)=weaponammo(weaponammoindex)-1
+ if gun(gunid).settings.brasslimb<>-1 then gunbrass=1 : gunbrasscount=gun(gunid).settings.firerate/2 : rem V113 AIRSLIDE 5/8/8 guntimercount=6
+ if gun(gunid).settings.brasslimb<>-1 then gunsmoke=1 : gunsmokecount=gun(gunid).settings.firerate/2 : rem V113 AIRSLIDE 5/8/8 guntimercount=6
+ sndid=gunsound(gunid,1).soundid
+ if sndid>0
+  if sound exist(sndid)=1
+   if gun(gunid).action.automatic.s>0
+    loop object currentgunobj,gun(gunid).action.automatic.s,gun(gunid).action.automatic.e
+    play sound sndid,gun(gunid).sound.fireloopend : rem some sound bug
+    loop sound sndid,0,gun(gunid).sound.fireloopend
+    gunmodeloopsnd=sndid : gunmodeloopstarted=timer()
+   endif
+  endif
+ endif
+endif
+if gunmode=104
+ if weaponammo(weaponammoindex)>0
+  if gunflash=0 then gunflash=1
+  dec gunbrasscount : dec gunsmokecount : dec guntimercount
+  if gunbrasscount<=0 and gun(gunid).settings.brasslimb<>-1 then gunbrass=1 : gunbrasscount=gun(gunid).settings.firerate/2 : rem V113 AIRSLIDE 5/8/8 guntimercount=6
+  if gunsmokecount<=0 and gun(gunid).settings.brasslimb<>-1 then gunsmoke=1 : gunsmokecount=gun(gunid).settings.firerate/2 : rem V113 AIRSLIDE 5/8/8 guntimercount=6
+  `if guntimercount<=0 then gunshoot=1 : guntimercount=6 : weaponammo(weaponammoindex)=weaponammo(weaponammoindex)-1
+  if guntimercount<=0 then gunshoot=1 : guntimercount=gun(gunid).settings.firerate/2 : weaponammo(weaponammoindex)=weaponammo(weaponammoindex)-1 : rem rem V113 AIRSLIDE 5/8/8
+  if gun(gunid).action.automatic.s=0 then gunmode=105
+  if gunclick<>1 then gunmode=105
+  sndid=gunsound(gunid,1).soundid
+  if sndid>0
+   if sound exist(sndid)=1
+    position sound sndid,camera position x(),camera position y(),camera position z()
+    broadcast3dsound(camera position x(),camera position y(),camera position z(),100)
+   endif
+  endif
+ else
+  gunmode=105
+ endif
+endif
+if gunmode=105
+ if gun(gunid).action.automatic.s>0
+  rem automatic weapons cannot resume firing right away
+ else
+  gunmustreleasefirst=1
+ endif
+ if gun(gunid).action.finish.s>0
+  gunmode=106
+  play object currentgunobj,gun(gunid).action.finish.s,gun(gunid).action.finish.e
+  sndid=gunsound(gunid,1).soundid
+  if sndid>0
+   if sound exist(sndid)=1
+    position sound sndid,camera position x(),camera position y(),camera position z()
+    play sound sndid,gun(gunid).sound.fireloopend
+   endif
+  endif
+  broadcast3dsound(camera position x(),camera position y(),camera position z(),50)
+ else
+  gunmode=107
+ endif
+endif
+if gunmode=106
+ if object frame(currentgunobj)>=gun(gunid).action.finish.e then gunmode=107
+endif
+if gunmode=107
+ rem reset to normal
+ gunmode=5
+ rem auto-reload if no bullets
+ if weaponammo(weaponammoindex)=0
+  if weaponclipammo(weaponammoindex)>0
+   rem direct into reload
+   gunmode=121
+  endif
+ endif
+endif
+`
+rem V109 BETA10 - 120508 - if gunloop sound continues beyond gunfire loop, end it!
+if gunmodeloopsnd>0
+ if timer()>gunmodeloopstarted+300
+  if gunmode<101 or gunmode>107
+   if sound exist(gunmodeloopsnd)=1
+    if sound playing(gunmodeloopsnd)=1
+     stop sound gunmodeloopsnd
+    endif
+   endif
+   gunmodeloopsnd=0 : gunmodeloopstarted=0
+  endif
+ endif
+endif
+
+rem gun reload and cock control
+if gunmode=121
+ if weaponclipammo(weaponammoindex)=0 or gun(gunid).settings.weaponisammo=1
+  if gun(gunid).settings.weaponisammo=0
+   if gunsound(gunid,3).soundid>0
+    if sound exist(gunsound(gunid,3).soundid)=1
+     if sound playing(gunsound(gunid,3).soundid)=0
+      playinternalBC3dsound(gunsound(gunid,3).soundid,camera position x(),camera position y(),camera position z(),50)
+     endif
+    endif
+   endif
+  endif
+  gunmode=5
+ else
+  gunmode=122
+  guninterp=4
+  stop object currentgunobj
+  set object interpolation currentgunobj,25
+  set object frame currentgunobj,gun(gunid).action.startreload.s
+ endif
+endif
+if gunmode=122
+ dec guninterp,1
+ if guninterp<=0
+  set object interpolation currentgunobj,100
+  set object frame currentgunobj,gun(gunid).action.startreload.s
+  `gunmode=123 : rem V113 AIRSLIDE 5/8/8 : shotgun
+  if gun(gunid).settings.shotgun=1
+   gunmode=700
+  else
+   gunmode=123
+  endif
+ endif
+endif
+`
+rem AIRSLIDE SHOTGUN CODE BEGIN
+if gunmode = 700
+ gunmode = 701
+ set object interpolation currentgunobj,100
+ play object currentgunobj,gun(gunid).action.startreload.s,gun(gunid).action.startreload.e
+endif
+if gunmode=701
+ if object frame(currentgunobj)>=gun(gunid).action.startreload.e then gunmode=703
+endif
+if gunmode=703
+ play object currentgunobj,gun(gunid).action.reloadloop.s,gun(gunid).action.reloadloop.e
+ gunmode = 7031
+endif
+if gunmode=7031
+ if object frame(currentgunobj)>=gun(gunid).action.reloadloop.e then gunmode=702
+endif
+if gunmode=702 `and object frame(currentgunobj)>=gun(gunid).action.reloadloop.e
+ rem actual reload
+ tneedfromclip=gun(gunid).settings.reloadqty+gunchamber-weaponammo(weaponammoindex)
+ if tneedfromclip > 1 then tneedfromclip = 1
+ if tneedfromclip>weaponclipammo(weaponammoindex) then tneedfromclip=weaponclipammo(weaponammoindex)
+ if tneedfromclip>0
+  weaponammo(weaponammoindex)=weaponammo(weaponammoindex)+tneedfromclip
+  weaponclipammo(weaponammoindex)=weaponclipammo(weaponammoindex)-tneedfromclip
+  gunmode = 703
+  if gun(gunid).settings.reloadqty+gunchamber-weaponammo(weaponammoindex) < 1 then gunmode = 7041
+  if player(plrid).state.firingmode = 1 then gunmode = 7041
+ else
+  gunmode = 7041
+ endif
+ if gunsound(gunid,2).soundid>0
+  if sound exist(gunsound(gunid,2).soundid)=1
+   position sound gunsound(gunid,2).soundid,camera position x(),camera position y(),camera position z()
+  endif
+ endif
+endif
+if gunmode = 7041
+ `if gunchamber > 0 ` future feature?
+ ` gunmode = 706
+ `else
+  gunmode = 704
+ `endif
+endif
+if gunmode = 704
+ play object currentgunobj,gun(gunid).action.endreload.s,gun(gunid).action.cock.e
+ gunmode = 705
+endif
+if gunmode=705
+ if object frame(currentgunobj)>=gun(gunid).action.cock.e then gunmode=5
+endif
+if gunmode = 706
+ play object currentgunobj,gun(gunid).action.endreload.s,gun(gunid).action.endreload.e
+ gunmode = 707
+endif
+if gunmode=707
+ if object frame(currentgunobj)>=gun(gunid).action.endreload.e then gunmode=5
+endif
+rem AIRSLIDE SHOTGUN CODE END
+`
+if gunmode=123
+ gunmode=124
+ set object interpolation currentgunobj,100
+ play object currentgunobj,gun(gunid).action.startreload.s,gun(gunid).action.cock.e
+ if gunsound(gunid,2).soundid>0
+  if sound exist(gunsound(gunid,2).soundid)=1
+   position sound gunsound(gunid,2).soundid,camera position x(),camera position y(),camera position z()
+  endif
+ endif
+endif
+if gunmode=124
+ if object frame(currentgunobj)>=gun(gunid).action.cock.e then gunmode=125
+endif
+if gunmode=125
+ rem actual reload
+ tneedfromclip=gun(gunid).settings.reloadqty-weaponammo(weaponammoindex)
+ if tneedfromclip>weaponclipammo(weaponammoindex) then tneedfromclip=weaponclipammo(weaponammoindex)
+ if tneedfromclip>0
+  weaponammo(weaponammoindex)=weaponammo(weaponammoindex)+tneedfromclip
+  weaponclipammo(weaponammoindex)=weaponclipammo(weaponammoindex)-tneedfromclip
+ endif
+ gunmode=5
+endif
+
+rem gun reveal
+if gunmode=131
+ set object interpolation currentgunobj,100
+ set object frame currentgunobj,gun(gunid).action.show.s
+ play object currentgunobj,gun(gunid).action.show.s,gun(gunid).action.show.e
+ if gunsound(gunid,2).soundid>0
+  if sound exist(gunsound(gunid,2).soundid)=1
+   position sound gunsound(gunid,2).soundid,camera position x(),camera position y(),camera position z()
+  endif
+ endif
+ gunmode=132
+endif
+if gunmode=132
+ if object frame(currentgunobj)>=gun(gunid).action.show.e then gunmode=5
+endif
+
+return
+
+_gun_flash:
+
+if plrzoomin#<>0.0
+ gunflash=0
+ rem V109 BETA10 - 120508 - hide muzzle if still visible (quick shot then zoom bug)
+ if object visible(hudbankoffset+5)=1 then hide object hudbankoffset+5
+ if object visible(hudbankoffset+32)=1 then hide object hudbankoffset+32
+endif
+if gunflash=1
+ `
+ rem fire flash init
+ gunflash=2
+ gunflashcount=gun(gunid).settings.firerate/2 : rem V113 AIRSLIDE 5/8/8 gunflashcount=6
+ rotate object hudbankoffset+5,0,0,rnd(360)
+ show object hudbankoffset+5
+ if gun(gunid).settings.flashlimb2<>-1
+  rotate object hudbankoffset+32,0,0,rnd(360)
+  show object hudbankoffset+32
+ endif
+ `
+ rem light flash init
+ spotflash=100
+ tx#=camera position x()
+ ty#=camera position y()
+ tz#=camera position z()
+ tcolr=gun(gunid).settings.muzzlecolorr
+ tcolg=gun(gunid).settings.muzzlecolorg
+ tcolb=gun(gunid).settings.muzzlecolorb
+ gosub _lighting_spotflash
+ `
+endif
+if gunflash=2
+ dec gunflashcount
+ `if gunflashcount<=4
+ if gunflashcount<=(gun(gunid).settings.firerate/2)-2 : rem V113 AIRSLIDE 5/8/8 (<=4)
+  rem hide early
+  hide object hudbankoffset+5
+  hide object hudbankoffset+32
+ endif
+ if gunflashcount<=0
+  gunflash=3
+ endif
+endif
+if gunflash=3
+ gunflash=0
+ rem final hide
+ hide object hudbankoffset+5
+ hide object hudbankoffset+32
+endif
+
+return
+
+_gun_brass:
+
+rem FPSCV104RC5-twingun
+gunbrass2=0 : if gunbrass=1 and gun(gunid).settings.flashlimb2<>-1 then gunbrass2=1
+
+rem find free shell and expell
+for o=6 to 20
+ obj=hudbankoffset+o
+ if object visible(obj)=0 and gunbrass=1
+  lx#=limb position x(currentgunobj,gun(gunid).settings.brasslimb)+1.0-(rnd(20)/10.0)
+  ly#=limb position y(currentgunobj,gun(gunid).settings.brasslimb)
+  lz#=limb position z(currentgunobj,gun(gunid).settings.brasslimb)+1.0-(rnd(20)/10.0)
+  position object obj,lx#,ly#,lz#
+  set object to object orientation obj,hudbankoffset+2
+  roll object left obj,25+rnd(10)
+  brassfallcount(o)=15
+  show object obj
+  gunbrass=0
+ endif
+ if object visible(obj)=0 and gunbrass=0 and gunbrass2=1
+  lx#=limb position x(currentgunobj,gun(gunid).settings.brasslimb2)+1.0-(rnd(20)/10.0)
+  ly#=limb position y(currentgunobj,gun(gunid).settings.brasslimb2)
+  lz#=limb position z(currentgunobj,gun(gunid).settings.brasslimb2)+1.0-(rnd(20)/10.0)
+  position object obj,lx#,ly#,lz#
+  set object to object orientation obj,hudbankoffset+2
+  roll object left obj,25+rnd(10)
+  brassfallcount(o)=15
+  show object obj
+  gunbrass2=0
+ endif
+next o
+
+return
+
+_gun_brass_indi:
+ for o=6 to 20
+  obj=hudbankoffset+o
+  if object visible(obj)=1
+   if brassfallcount(o)>5
+    eject#=1.0
+   else
+    eject#=brassfallcount(o)/5.0
+   endif
+   move object right obj,1.0
+   if object position y(obj)>object position y(hudbankoffset+2)-20
+    if brassfallcount(o)>0
+     brassfallcount(o)=brassfallcount(o)-1
+     roll object right obj,4.0
+    endif
+   endif
+   position object obj,object position x(obj),object position y(obj)-((1.0-eject#)*1.0),object position z(obj)
+   if object position y(obj)<object position y(hudbankoffset+2)-50 or object in screen(obj)=0
+    hide object obj
+   endif
+  endif
+ next o
+return
+
+_gun_smoke:
+
+rem FPSCV104RC5-twingun
+gunsmoke2=0 : if gunsmoke=1 and gun(gunid).settings.flashlimb2<>-1 then gunsmoke2=1
+
+rem find free smoke and puff
+for o=21 to 30
+ obj=hudbankoffset+o
+ if object visible(obj)=0 and gunsmoke=1
+  ttsmokelimb=gun(gunid).settings.smokelimb
+  if ttsmokelimb<=0 then ttsmokelimb=gun(gunid).settings.brasslimb
+  lx#=limb position x(currentgunobj,ttsmokelimb)+1.0-(rnd(20)/10.0)
+  ly#=limb position y(currentgunobj,ttsmokelimb)+1.0-(rnd(20)/10.0)
+  lz#=limb position z(currentgunobj,ttsmokelimb)+1.0-(rnd(20)/10.0)
+  position object obj,lx#,ly#,lz#
+  show object obj
+  gunsmoke=0 : smokeframe=0
+ endif
+ if object visible(obj)=0 and gunsmoke=0 and gunsmoke2=1
+  ttsmokelimb=gun(gunid).settings.smokelimb2
+  if ttsmokelimb<=0 then ttsmokelimb=gun(gunid).settings.brasslimb
+  lx#=limb position x(currentgunobj,ttsmokelimb)+1.0-(rnd(20)/10.0)
+  ly#=limb position y(currentgunobj,ttsmokelimb)+1.0-(rnd(20)/10.0)
+  lz#=limb position z(currentgunobj,ttsmokelimb)+1.0-(rnd(20)/10.0)
+  position object obj,lx#,ly#,lz#
+  show object obj
+  gunsmoke2=0 : smokeframe=0
+ endif
+ if object visible(obj)=1
+  point object obj,camera position x(),camera position y(),camera position z()
+  smokerisespeed#=gun(gunid).settings.smokespeed/100.0
+  position object obj,object position x(obj),object position y(obj)+smokerisespeed#,object position z(obj)
+  smokeframe=(object position y(obj)-ly#)/0.75
+  if object in screen(obj)=1 and smokeframe<=15
+   ty=smokeframe/4
+   tx=smokeframe-(ty*4)
+   q#=1.0/4.0 : tx#=tx*q# : ty#=ty*q#
+   rem vertex data lock mode of 1=update (faster method if mesh size unchanged)
+   lock vertexdata for limb obj,0,1
+   set vertexdata uv 0,tx#+q#,ty#
+   set vertexdata uv 1,tx#,ty#
+   set vertexdata uv 2,tx#+q#,ty#+q#
+   set vertexdata uv 3,tx#,ty#
+   set vertexdata uv 4,tx#,ty#+q#
+   set vertexdata uv 5,tx#+q#,ty#+q#
+   unlock vertexdata
+  else
+   hide object obj
+  endif
+ endif
+next o
+
+return
+
+_gun_shoot:
+
+rem when fire line active
+if gunshoot=1
+ if gun(gunid).settings.flakindex=0
+  `
+  rem BULLET
+  rem gun data controls iterations and accuracy
+  trayiter=1+gun(gunid).settings.iterate
+  trayaccuracy=gun(gunid).settings.accuracy
+  bulletdamage=gun(gunid).settings.damage
+  `
+  rem Special ZOOMODE kill in multiplayer
+  if gmultiplayergame=1
+   if gunzoommode<>0
+    bulletdamage=65500
+   endif
+  endif
+  `
+  rem for some weapons, blunderbus style five-ray shot
+  multiplayerdamagecollected=0
+  for traycount=1 to trayiter
+   `
+   rem project gun-line-for-shot
+   x1#=camera position x()+(trayaccuracy/2)-rnd(trayaccuracy)
+   y1#=camera position y()+(trayaccuracy/2)-rnd(trayaccuracy)
+   z1#=camera position z()+(trayaccuracy/2)-rnd(trayaccuracy)
+   position object hudbankoffset+3,x1#,y1#,z1#
+   set object to camera orientation hudbankoffset+3
+   move object hudbankoffset+3,gun(gunid).settings.range
+   disable object zdepth hudbankoffset+3
+   x2#=object position x(hudbankoffset+3)+trayaccuracy-rnd(trayaccuracy*2)
+   y2#=object position y(hudbankoffset+3)+trayaccuracy-rnd(trayaccuracy*2)
+   z2#=object position z(hudbankoffset+3)+trayaccuracy-rnd(trayaccuracy*2)
+   `
+   rem reset bullethit vars
+   bullethit=0 : bullethitstatic=0
+   tbullethitmaterial=0 : tbullethitflesh=0
+   bulletraytype=gun(gunid).settings.damagetype
+   gunrange#=gun(gunid).settings.range
+   `
+   rem raycastto entity
+   gosub _entity_hasbulletrayhit
+   `
+   rem raycast to surface (bullets path)
+   dstwallhit#=static raycast(x1#,y1#,z1#,x2#,y2#,z2#)
+   if dstwallhit#>0
+    wallhitx#=checklist fvalue a(6)
+    wallhity#=checklist fvalue b(6)
+    wallhitz#=checklist fvalue c(6)
+    wallhitmaterial=get static collision value()-1
+   endif
+   `
+   rem has bullet hit any entity
+   if tcloseste>0 and (dstwallhit#=0 or dstwallhit#>tclosestdist#)
+    `
+    rem complete rayhit if wall not in way (must come right after _entity_hasbulletrayhit)
+    gosub _entity_completerayhit
+    `
+    rem bulletraytype (1-pierce, 2-shutgun)
+    tix#=x#-x1# : tiy#=y#-y1# : tiz#=z#-z1#
+    tnorm#=(abs(tix#)+abs(tiy#)+abs(tiz#))/3.0
+    tix#=tix#/tnorm# : tiy#=tiy#/tnorm# : tiz#=tiz#/tnorm#
+    `
+    rem move entity by that direction with some force (non-multiplayer)
+    e=bulletrayhit
+    tentid=entityelement(e).bankindex
+    if gmultiplayergame=0
+     if bulletraytype=2
+      tforce#=gun(gunid).settings.damage/5.0
+     else
+      tforce#=gun(gunid).settings.damage/30.0
+     endif
+     rem entity prone to force
+     if entityelement(e).eleprof.isimmobile=0
+      rem apply force
+      if entityelement(e).eleprof.physics=1
+       rem using advanced physics (force is soft if entity destroyed in hit)
+       todee=e : tdx#=tix# : tdy#=tiy# : tdz#=tiz# : todefalloff#=0.0
+       if entityelement(e).health>0 then todeforce#=tforce#*10.0 else todeforce#=tforce#/10.0
+       tpx#=x# : tpy#=y# : tpz#=z# : gosub _ode_applypointforce
+      else
+       rem using regular force calc
+       entityelement(e).force.active=1
+       entityelement(e).force.ix=tix#*tforce#
+       entityelement(e).force.iy=tiy#*tforce#
+       entityelement(e).force.iz=tiz#*tforce#
+      endif
+     endif
+    endif
+    if entityprofile(tentid).ischaracter=1
+     rem only if character full of red blood (and had health)!
+     tbullethitflesh=entityprofile(tentid).bloodscorch
+    endif
+    bullethit=1
+    `
+   else
+    `
+    rem has bullet hit some debris between gun and wall
+    if dstwallhit#>0
+     tforce#=gun(gunid).settings.damage/5.0
+     gosub _part_movedebrisifinray
+    endif
+    `
+   endif
+   `
+   rem had bulletray hit anything solid
+   if bulletrayhit>0
+    if tbullethitflesh=0
+     if bulletrayhitdist#<dstwallhit# then dstwallhit#=0.0
+    else
+     rem work out size of blood splat based on distance from flesh to surface (0-100)
+     t#=abs(dstwallhit#-bulletrayhitdist#)
+     if t#<200
+      tbullethitflesh=t#/2.0
+     else
+      dstwallhit#=0.0
+     endif
+    endif
+   endif
+   `
+   rem wallhit?
+   tsoundtrigger=0 : tsoundmaterial=0
+   if dstwallhit#>0
+    rem flag the creation of a scorch for the solid surface
+    x#=wallhitx# : y#=wallhity# : z#=wallhitz#
+    `if wallhitmaterial>=1 and wallhitmaterial<=4 then tbullethitmaterial=wallhitmaterial : rem FPSCV101 - fix
+    if wallhitmaterial>=1 then tbullethitmaterial=wallhitmaterial
+    bullethitstatic=1 : bullethit=1
+    rem trigger a sound for this material type (1-stone/4-glass)
+    if wallhitmaterial>=0
+     tmatindex=wallhitmaterial
+     `if tmatindex>=0 and tmatindex<gmaterialmax : rem FPSCV101 - fix
+     if tmatindex>=0 and tmatindex<=gmaterialmax
+      tsoundmaterial=1+tmatindex
+      tsoundtrigger=material(tmatindex).impactid
+      tsx#=wallhitx# : tsy#=wallhity# : tsz#=wallhitz#
+      tspd#=(material(tmatindex).freq*2)+rnd(material(tmatindex).freq)
+     endif
+    endif
+   endif
+   `
+   rem if material sound triggered
+   gosub _ode_triggermaterialsound
+   gosub _decal_triggermaterialdebris
+   `
+   rem bullet result
+   if bullethit=1
+    `
+    rem trigger decal for blood splat/whatever effect
+    if bulletrayhit>0
+     e=bulletrayhit
+     tentid=entityelement(e).bankindex
+     decalid=entitydecal(tentid,1)
+     rem FPSCV101 - decal effect already used
+     `rem if no built-in decal, use material of entity
+     `if decalid=0
+      `if entityprofile(tentid).ischaracter=0
+      ` if entityprofile(tentid).materialindex>0
+        `tmatindex=entityprofile(tentid).materialindex : rem FPSCV101 - fix
+        `if tmatindex>=0 and tmatindex<gmaterialmax : rem FPSCV101 - fix
+      `  tmatindex=entityprofile(tentid).materialindex-1
+      `  if tmatindex>=0 and tmatindex<=gmaterialmax
+      `   decalid=material(tmatindex).decalid
+      `  endif
+      ` endif
+      `endif
+     `endif
+     if decalid>0
+      rem direction from player to entity
+      tix#=x2#-x1# : tiy#=y2#-y1# : tiz#=z2#-z1#
+      tdd#=sqrt(abs(tix#*tix#)+abs(tiy#*tiy#)+abs(tiz#*tiz#))
+      tix#=tix#/tdd# : tiy#=tiy#/tdd# : tiz#=tiz#/tdd#
+      rem find point of impact
+      tix#=tix#*(bulletrayhitdist#-10.0)
+      tiy#=tiy#*(bulletrayhitdist#-10.0)
+      tiz#=tiz#*(bulletrayhitdist#-10.0)
+      rem create a splat decal
+      decalscalemodx=0 : rem FPSCV101 - fix
+      decalorient=0 : decalx=x1#+tix# : decaly=y1#+tiy# : decalz=z1#+tiz#
+      originatore=-1 : gosub _decalelement_create
+     endif
+    endif
+    `
+    rem add scorch if hit universe static polygons
+    if bullethitstatic=1
+     tscorchtype=gun(gunid).settings.scorchtype
+     gosub _entity_doscorch
+    endif
+    `
+   endif
+   `
+  rem repeat ray over
+  next traycount
+  `
+  rem after all rays of shot, deal damage OR missed-shot (multiplayer)
+  if gmultiplayergame<>0
+   rem inform session when make a shot
+   gosub _multi_playershoots
+   rem deal damage if collected for character hit
+   if multiplayerdamagecollected>0
+    rem deal damage to entitycharacter (to multiplayerdamagechar)
+    tdamage=multiplayerdamagecollected
+    e=multiplayerdamagechar : gosub _entity_deducthealth
+   endif
+  endif
+  `
+  rem shot over
+  gunshoot=0
+  `
+ else
+  `
+  rem FLAK
+  rem create-projectile-for-shot
+  flakid=gun(gunid).settings.flakindex
+  if flakid>0
+   flakangle=camera angle y() : flakpitch=camera angle x() : flakowner=0
+   if gun(gunid).settings.flashlimb<>-1
+    flakx=limb position x(hudbankoffset+5,0)
+    flaky=limb position y(hudbankoffset+5,0)
+    flakz=limb position z(hudbankoffset+5,0)
+   else
+    flakx=camera position x()+newxvalue(0,flakangle+flak(flakid).throwangle,flak(flakid).throwforward)
+    flaky=camera position y()+flak(flakid).throwheight
+    flakz=camera position z()+newzvalue(0,flakangle+flak(flakid).throwangle,flak(flakid).throwforward)
+    flaky=flaky-(sin(flakpitch)*flak(flakid).throwforward)
+   endif
+   flakspeed#=1.0
+   gosub _flakelement_create
+   rem if something blocking launch, explode flak
+   texplodeflakinstantly=0
+   flakx=flakelement(tf).xpos
+   flaky=flakelement(tf).ypos
+   flakz=flakelement(tf).zpos
+   if static raycast(camerapositionx,camerapositiony,camerapositionz,flakx,flaky,flakz)<>0
+    texplodeflakinstantly=1
+   endif
+   rem intensive scan for solid entity obstacles
+   for te=1 to entityelementlist
+    if entityelement(te).active=1
+     if entityelement(te).obj>0 and entityelement(te).collisionactive=1
+      tentid=entityelement(te).bankindex
+      if intersect object(entityelement(te).obj,camerapositionx,camerapositiony,camerapositionz,flakx,flaky,flakz)<>0
+       texplodeflakinstantly=1 : exit
+      endif
+     endif
+    endif
+   next te
+   if texplodeflakinstantly=1
+    flakelement(tf).profile.weight=0
+    flakelement(tf).profile.xinc=0
+    flakelement(tf).profile.yinc=0
+    flakelement(tf).profile.zinc=0
+    flakelement(tf).xpos=camerapositionx
+    flakelement(tf).ypos=camerapositiony
+    flakelement(tf).zpos=camerapositionz
+    gosub _flakelement_explodeinstantly
+   endif
+  endif
+  `
+  rem shot over
+  gunshoot=0
+  `
+ endif
+endif
+
+return
+
+_gun_soundcontrol:
+
+rem Play sound frames when object frame matches
+if gun(gunid).sound.soundframes>0
+ for p=0 to gun(gunid).sound.soundframes-1
+  sndid=gunsound(gunid,gunsounditem(gunid,p).playsound).soundid
+  if gun(gunid).action.automatic.s>0 and p=0 then sndid=0
+  if sndid>0
+   if int(gunsounditem(gunid,p).keyframe)=int(object frame(currentgunobj))
+    if gunsounditem(gunid,p).lastplay=0
+     gunsounditem(gunid,p).lastplay=1
+     broadcast3dsound(camera position x(),camera position y(),camera position z(),50)
+     if sound exist(sndid)=1
+      play sound sndid
+     endif
+    endif
+   else
+    gunsounditem(gunid,p).lastplay=0
+   endif
+  endif
+ next p
+endif
+
+return
+
+`
+` Gun Resources
+`
+
+_gun_create_hud:
+
+rem Setup HUD Center Marker
+make object box hudbankoffset+2,30,100,30
+set object collision off hudbankoffset+2
+hide object hudbankoffset+2
+
+rem Setup HUD Gun-line Marker (shows impact coord)
+make object cube hudbankoffset+3,5
+set object collision off hudbankoffset+3
+hide object hudbankoffset+3
+
+rem Muzzle Flash(es)
+for t=0 to 1
+ if t=0 then tobj=hudbankoffset+5
+ if t=1 then tobj=hudbankoffset+32
+ make object plain tobj,25,25
+ set object collision off tobj
+ set object transparency tobj,1
+ disable object zdepth tobj
+ set object ambient tobj,0
+ set object light tobj,0
+ set object fov tobj,45
+ hide object tobj
+next t
+
+rem Brass
+for o=6 to 20
+ obj=hudbankoffset+o
+ make object sphere obj,5
+ set object collision off obj
+ disable object zdepth obj
+ hide object obj
+next o
+
+rem Smoke
+for o=21 to 30
+ obj=hudbankoffset+o
+ make object plain obj,20,20
+ set object collision off obj
+ disable object zdepth obj
+ disable object zwrite obj
+ set object transparency obj,1
+ set object ambient obj,0
+ set object light obj,0
+ set object fov obj,45
+ hide object obj
+next obj
+
+rem crosshair hud object
+obj=hudbankoffset+31
+make object cube obj,25
+set object collision off obj
+disable object zdepth obj
+disable object zwrite obj
+lock object on obj
+position object obj,0,0,400
+ghost object on obj
+set object ambient obj,0
+set object light obj,0
+hide object obj
+
+return
+
+_gun_setup:
+
+rem Create common resources for gun
+gosub _gun_create_hud
+
+rem Debris
+img$="gamecore\debris\debris1.tga"
+imgid=loadinternalimage(img$)
+for p=1 to 32
+ make particles p,imgid,2,20.0
+ set particle life p,12.0
+ set particle speed p,0.04
+ set particle velocity p,5.0
+ ghost particles on p,5
+ hide particles p
+next p
+
+return
+
+_gun_gatherslotorder:
+
+tslotmax=0
+gunslotmax=0
+dim data$(100)
+filename$="..\"+setupfilename$
+if file exist(filename$)=0 then debugstring(strarr$(375),filename$)
+load array filename$,data$()
+for l=0 to 99
+ line$=data$(l)
+ if len(line$)>0
+  if left$(line$,1)<>";"
+   `
+   rem take fieldname and value
+   for c=0 to len(line$)
+    if mid$(line$,c)="=" then mid=c : exit
+   next c
+   field$=lower$(removeedgespaces(left$(line$,mid-1)))
+   value$=removeedgespaces(right$(line$,len(line$)-mid))
+   `
+   rem gather gun type from slot
+   for tww=1 to 9
+    tryfield$="slot"+str$(tww)
+    if field$=tryfield$
+     rem find gun id from name
+     findgun$=value$
+     gosub _gun_findweaponindexbyname
+     weaponslot(tww).pref=foundgunid
+     if foundgunid>0 then gunslotmax=tww
+    endif
+   next tww
+   `
+  endif
+ endif
+next l
+undim data$()
+
+return
+
+_gun_loaddata:
+
+dim data$(100)
+filename$="gamecore\guns\"+gun$+"\gunspec.txt"
+if file exist(filename$)=1
+load array filename$,data$()
+addfiletocollection(filename$)
+for l=0 to 99
+ line$=data$(l)
+ if len(line$)>0
+  if left$(line$,1)<>";"
+   `
+   rem take fieldname and value
+   for c=0 to len(line$)
+    if mid$(line$,c)="=" then mid=c : exit
+   next c
+   field$=lower$(removeedgespaces(left$(line$,mid-1)))
+   value$=removeedgespaces(right$(line$,len(line$)-mid))
+   `
+   rem take value 1 and 2 from value
+   for c=0 to len(value$)
+    if mid$(value$,c)="," then mid=c : exit
+   next c
+   value1=val(removeedgespaces(left$(value$,mid-1)))
+   value2=val(removeedgespaces(right$(value$,len(value$)-mid)))
+   `
+   rem GUN SETTINGS
+   if field$="muzzleflash" then gun(gunid).settings.muzzleflash=value1
+   if field$="muzzlesize" then gun(gunid).settings.muzzlesize#=value1
+   if field$="muzzlecolorr" then gun(gunid).settings.muzzlecolorr=value1
+   if field$="muzzlecolorg" then gun(gunid).settings.muzzlecolorg=value1
+   if field$="muzzlecolorb" then gun(gunid).settings.muzzlecolorb=value1
+   if field$="brass" then gun(gunid).settings.brass=value1
+   if field$="smoke" then gun(gunid).settings.smoke=value1
+   if field$="flak" then gun(gunid).settings.flakname$=value$
+   if field$="second" then gun(gunid).settings.seconduse=value1
+   if field$="damage" then gun(gunid).settings.damage=value1
+   if field$="damagetype" then gun(gunid).settings.damagetype=value1
+   if field$="scorchtype" then gun(gunid).settings.scorchtype=value1
+   if field$="reloadqty" then gun(gunid).settings.reloadqty=value1
+   if field$="weaponisammo" then gun(gunid).settings.weaponisammo=value1
+   if field$="iterate" then gun(gunid).settings.iterate=value1
+   if field$="accuracy" then gun(gunid).settings.accuracy=value1
+   if field$="zoommode" then gun(gunid).settings.zoommode=value1
+   if field$="zoomaccuracy" then gun(gunid).settings.zoomaccuracy=value1
+   if field$="range" then gun(gunid).settings.range=value1
+   if field$="decal" then gun(gunid).decal$=value$
+   if field$="smokespeed" then gun(gunid).settings.smokespeed=value1
+   if field$="smokedecal" then gun(gunid).settings.smokedecal$=value$
+   if field$="firerate" then gun(gunid).settings.firerate=value1 : rem V113 AIRSLIDE 5/8/8
+   if field$="shotgun" then gun(gunid).settings.shotgun=value1 : rem V113 AIRSLIDE 5/8/8
+   `
+   rem GUN VISUALS
+   tryfield$="textured"
+   if field$=tryfield$ then gun(gunid).texd$=value$
+   tryfield$="effect"
+   if field$=tryfield$ then gun(gunid).effect$=value$
+   tryfield$="transparency"
+   if field$=tryfield$ then gun(gunid).transparency=value1
+   tryfield$="zoomscope"
+   if field$=tryfield$ then gun(gunid).zoomscope$=value$
+   tryfield$="weapontype"
+   if field$=tryfield$ then gun(gunid).weapontype=value1
+   `
+   rem GUN SOUNDS
+   if field$="fireloop" then gun(gunid).sound.fireloopend=value1
+   for p=1 to 4
+    tryfield$="sound"+str$(p)
+    if field$=tryfield$ then gunsound(gunid,p).name$=value$
+   next p
+   `
+   rem GUN AND MUZZLE ALIGNMENT
+   if field$="horiz" then gun(gunid).horiz#=value1
+   if field$="vert" then gun(gunid).vert#=value1
+   if field$="forward" then gun(gunid).forward#=value1
+   if field$="alignx" then gun(gunid).settings.muzzlex#=value1
+   if field$="aligny" then gun(gunid).settings.muzzley#=value1
+   if field$="alignz" then gun(gunid).settings.muzzlez#=value1
+   `
+   rem HUD ANIMATION DATA
+   if field$="select" then gun(gunid).action.show.s=value1 : gun(gunid).action.show.e=value2
+   if field$="idle" then gun(gunid).action.idle.s=value1 : gun(gunid).action.idle.e=value2
+   if field$="move" then gun(gunid).action.move.s=value1 : gun(gunid).action.move.e=value2
+   if field$="fire" then gun(gunid).action.start.s=value1 : gun(gunid).action.start.e=value1 : gun(gunid).action.finish.s=value1 : gun(gunid).action.finish.e=value2
+   if field$="start fire" then gun(gunid).action.start.s=value1 : gun(gunid).action.start.e=value2
+   if field$="automatic fire" then gun(gunid).action.automatic.s=value1 : gun(gunid).action.automatic.e=value2
+   if field$="end fire" then gun(gunid).action.finish.s=value1 : gun(gunid).action.finish.e=value2
+   if field$="reload"
+    gun(gunid).action.startreload.s=value1 : gun(gunid).action.startreload.e=value2
+    gun(gunid).action.reloadloop.s=value2 : gun(gunid).action.reloadloop.e=value2
+    gun(gunid).action.endreload.s=value2 : gun(gunid).action.endreload.e=value2
+   endif
+   if field$="start reload" then gun(gunid).action.startreload.s=value1 : gun(gunid).action.startreload.e=value2
+   if field$="reload loop" then gun(gunid).action.reloadloop.s=value1 : gun(gunid).action.reloadloop.e=value2
+   if field$="end reload" then gun(gunid).action.endreload.s=value1 : gun(gunid).action.endreload.e=value2
+   if field$="cock" then gun(gunid).action.cock.s=value1 : gun(gunid).action.cock.e=value2
+   if field$="putaway" then gun(gunid).action.hide.s=value1 : gun(gunid).action.hide.e=value2
+   if field$="keyframe ratio" then keyframeratio=value1
+   `
+   rem GUN SOUND FRAMES DATA
+   tryfield$="soundframes"
+   if field$=tryfield$ then gun(gunid).sound.soundframes=value1
+   if gun(gunid).sound.soundframes>0
+    for p=0 to gun(gunid).sound.soundframes
+     tryfield$="sframe"+str$(p)
+     if field$=tryfield$ then gunsounditem(gunid,p).keyframe=(value1*keyframeratio) : gunsounditem(gunid,p).playsound=value2
+    next p
+   endif
+   `
+  endif
+ endif
+next l
+undim data$()
+endif
+
+rem If no COCK animation, fill with end of reload data
+if gun(gunid).action.cock.e=0
+ gun(gunid).action.cock.s=gun(gunid).action.endreload.e
+ gun(gunid).action.cock.e=gun(gunid).action.endreload.e
+endif
+
+rem FPSCV104RC5 if no muzzle colour, go with default
+if gun(gunid).settings.muzzlecolorr=0 and gun(gunid).settings.muzzlecolorg=0 and gun(gunid).settings.muzzlecolorb=0
+ gun(gunid).settings.muzzlecolorr=255
+ gun(gunid).settings.muzzlecolorg=255
+ gun(gunid).settings.muzzlecolorb=0
+endif
+
+rem FPSCV104RC8 - can set the smoke speed
+if gun(gunid).settings.smokespeed=0
+ gun(gunid).settings.smokespeed=25
+endif
+
+rem V113 AIRSLIDE 5/8/8 : FPSC-AirMod 0.5 - can set rate of fire
+if gun(gunid).settings.firerate=0
+ gun(gunid).settings.firerate=12
+endif
+
+rem FPSCV104RC9
+if gun(gunid).settings.smokedecal$=""
+ gun(gunid).settings.smokedecal$="smoke1"
+endif
+
+rem Find the decal specified
+gun(gunid).decalid=0
+if gun(gunid).decal$<>""
+ decal$=gun(gunid).decal$ : gosub _decal_find
+ if decalid<0
+  decalid=0
+ else
+  decal(decalid).active=1
+  gun(gunid).decalid=decalid
+ endif
+endif
+
+rem Default gun range
+if gun(gunid).settings.range=0 then gun(gunid).settings.range=1000
+
+return
+
+_gun_selectandorload:
+
+rem Load gun if not selected
+if gun(gunid).obj=0
+ gosub _gun_load
+endif
+
+rem Associate gun with player
+currentgunobj=gun(gunid).obj
+
+rem Setup gun with muzzle flash image
+if gun(gunid).settings.flashlimb<>-1
+ texture object hudbankoffset+5,gun(gunid).settings.flashimg
+ glue object to limb hudbankoffset+5,hudbankoffset+2,0
+ position object hudbankoffset+5,gun(gunid).settings.muzzlex#,gun(gunid).settings.muzzley#,gun(gunid).settings.muzzlez#
+ size#=gun(gunid).settings.muzzlesize# : if size#=0.0 then size#=100.0
+ scale object hudbankoffset+5,size#,size#,size#
+endif
+if gun(gunid).settings.flashlimb2<>-1
+ texture object hudbankoffset+32,gun(gunid).settings.flashimg
+ glue object to limb hudbankoffset+32,hudbankoffset+2,0
+ position object hudbankoffset+32,gun(gunid).settings.muzzlex#*-1,gun(gunid).settings.muzzley#,gun(gunid).settings.muzzlez#
+ size#=gun(gunid).settings.muzzlesize# : if size#=0.0 then size#=100.0
+ scale object hudbankoffset+32,size#,size#,size#
+else
+ scale object hudbankoffset+32,0,0,0
+endif
+
+rem Setup gun with brass models
+if gun(gunid).settings.brasslimb<>-1
+ for o=6 to 20
+  obj=hudbankoffset+o
+  if object exist(obj)=1 then delete object obj
+  instance object obj,gun(gunid).settings.brassobjmaster
+  set object collision off obj
+  disable object zdepth obj
+  set object fov obj,45
+  hide object obj
+ next o
+endif
+
+rem Setup gun with smoke images
+if gun(gunid).settings.brasslimb<>-1
+ for o=21 to 30
+  obj=hudbankoffset+o
+  texture object obj,gun(gunid).settings.smokeimg
+  hide object obj
+ next o
+endif
+
+rem Setup gun with crosshair
+obj=hudbankoffset+31
+timg=gun(gunid).settings.crosshairimg
+texture object obj,timg
+crosshairx=(screen width()-image width(timg))/2
+crosshairy=(screen height()-image height(timg))/2
+ts#=(100.0/64.0)*image width(timg)
+scale object obj,ts#,ts#,ts#
+show object obj
+
+`rem Second-Handed Weapon Mode
+`if gun(gunid).settings.seconduse=1
+` currentgunsecondobj=gun(gunid).secondobj
+` glue object to limb currentgunsecondobj,hudbankoffset+2,0
+` if gun(gunid).settings.flashlimb<>-1
+`  texture object hudbankoffset+32,gun(gunid).settings.flashimg
+`  glue object to limb hudbankoffset+32,hudbankoffset+2,0
+`  position object hudbankoffset+32,gun(gunid).settings.muzzlex#*-1.0,gun(gunid).settings.muzzley#,gun(gunid).settings.muzzlez#
+`  size#=gun(gunid).settings.muzzlesize# : if size#=0.0 then size#=100.0
+`  scale object hudbankoffset+32,size#,size#,size#
+` endif
+`else
+` hide object hudbankoffset+32
+`endif
+
+return
+
+_gun_load:
+
+rem Load gun data
+gosub _gun_loaddata
+
+rem Load gun models
+currentgunobj=loadgun("gamecore\guns\"+gun$+"\HUD.x")
+gun(gunid).obj=currentgunobj
+
+rem FPSCV10X - ensure multi-textures in HUD are recorded for final build
+nout$=findmaterialtexturesinmodelfile("gamecore\guns\"+gun$+"\HUD.x","gamecore\guns\"+gun$+"\")
+
+rem Set the unique FOV aspect of the gun
+set object fov currentgunobj,45
+
+rem Perform scan to determine hotspot markers
+flashlimb=-1 : brasslimb=-1 : smokelimb=-1 : handlimb=-1
+flashlimb2=-1 : brasslimb2=-1 : smokelimb2=-1
+perform checklist for object limbs currentgunobj
+for c=1 to checklist quantity()
+ name$=upper$(checklist string$(c))
+ if name$="FIRESPOT" then flashlimb=c-1
+ if name$="X3DS_FIRESPOT" then flashlimb=c-1
+ if name$="FIRESPOT02" then flashlimb2=c-1
+ if name$="BRASS" then brasslimb=c-1
+ if name$="X3DS_BRASS" then brasslimb=c-1
+ if name$="BRASS02" then brasslimb2=c-1
+ if name$="SMOKE" then smokelimb=c-1
+ if name$="X3DS_SMOKE" then smokelimb=c-1
+ if name$="SMOKE02" then smokelimb2=c-1
+ if name$="HAND" then handlimb=c-1
+ if name$="X3DS_HAND" then handlimb=c-1
+next c
+
+rem Store limbs in limb-data
+gun(gunid).settings.flashlimb=flashlimb
+gun(gunid).settings.brasslimb=brasslimb
+gun(gunid).settings.handlimb=handlimb
+rem FPSCV104RC5 - new fields
+gun(gunid).settings.smokelimb=smokelimb
+gun(gunid).settings.flashlimb2=flashlimb2
+gun(gunid).settings.brasslimb2=brasslimb2
+gun(gunid).settings.smokelimb2=smokelimb2
+
+rem Determine number of frames per keyframe
+if keyframeratio>0
+ ratio#=keyframeratio
+else
+ ratio#=1
+endif
+
+rem Adjust animation data based on actual number of keyframes
+gun(gunid).action.show.s = gun(gunid).action.show.s * ratio#
+gun(gunid).action.show.e = gun(gunid).action.show.e * ratio#
+gun(gunid).action.idle.s = gun(gunid).action.idle.s * ratio#
+gun(gunid).action.idle.e = gun(gunid).action.idle.e * ratio#
+gun(gunid).action.move.s = gun(gunid).action.move.s * ratio#
+gun(gunid).action.move.e = gun(gunid).action.move.e * ratio#
+gun(gunid).action.start.s = gun(gunid).action.start.s * ratio#
+gun(gunid).action.start.e = gun(gunid).action.start.e * ratio#
+gun(gunid).action.automatic.s = gun(gunid).action.automatic.s * ratio#
+gun(gunid).action.automatic.e = gun(gunid).action.automatic.e * ratio#
+gun(gunid).action.finish.s = gun(gunid).action.finish.s * ratio#
+gun(gunid).action.finish.e = gun(gunid).action.finish.e * ratio#
+gun(gunid).action.startreload.s = gun(gunid).action.startreload.s * ratio#
+gun(gunid).action.startreload.e = gun(gunid).action.startreload.e * ratio#
+gun(gunid).action.reloadloop.s = gun(gunid).action.reloadloop.s * ratio#
+gun(gunid).action.reloadloop.e = gun(gunid).action.reloadloop.e * ratio#
+gun(gunid).action.endreload.s = gun(gunid).action.endreload.s * ratio#
+gun(gunid).action.endreload.e = gun(gunid).action.endreload.e * ratio#
+gun(gunid).action.cock.s = gun(gunid).action.cock.s * ratio#
+gun(gunid).action.cock.e = gun(gunid).action.cock.e * ratio#
+gun(gunid).action.hide.s = gun(gunid).action.hide.s * ratio#
+gun(gunid).action.hide.e = gun(gunid).action.hide.e * ratio#
+
+rem Load Effect (if allowed)
+if guseeffectongunsstate=1 and gun(gunid).effect$<>""
+ tfile$=gun(gunid).effect$
+ debugfilename(tfile$,"effect for gun")
+ teffectid=loadinternaleffect(tfile$)
+else
+ teffectid=0
+endif
+
+rem Setup gun model materiual properties
+set object diffuse currentgunobj,rgb(255,255,255)
+set object ambience currentgunobj,rgb(255,255,255)
+set object specular currentgunobj,0
+set object emissive currentgunobj,0
+
+rem First Textures are PLATES
+if teffectid>0
+ `
+ rem Load effect textures
+ if gun(gunid).transparency>2
+  img$="gamecore\guns\"+gun$+"\gun_D.tga" : imgDid=loadinternalimagecompressquality(img$,0,1)
+  img$="gamecore\guns\"+gun$+"\gun_N.tga" : imgNid=loadinternalimagecompressquality(img$,0,1)
+  img$="gamecore\guns\"+gun$+"\gun_R.tga" : imgRid=loadinternalimagecompressquality(img$,0,1)
+ else
+  img$="gamecore\guns\"+gun$+"\gun_D.tga" : imgDid=loadinternalimagecompress(img$,5)
+  img$="gamecore\guns\"+gun$+"\gun_N.tga" : imgNid=loadinternalimage(img$)
+  img$="gamecore\guns\"+gun$+"\gun_R.tga" : imgRid=loadinternalimage(img$)
+ endif
+ `
+ rem Last Texture Image is CUBE
+ img$="gamecore\guns\"+gun$+"\gun_cube.dds" : imgCUBEid=loadinternalimage(img$)
+ if file exist(img$)=1 then load image img$,imgCUBEid,2
+ `
+ rem Bump Quality
+ texture object currentgunobj,0,imgDid
+ texture object currentgunobj,1,imgNid
+ texture object currentgunobj,2,imgRid
+ texture object currentgunobj,3,imgCUBEid
+ `
+ rem Apply effect to object
+ gun(gunid).effectidused=teffectid
+ set object effect currentgunobj,teffectid
+ `
+else
+ `
+ rem Basic Diffuse2 for Gun (and AmmoClip) - if specified in gunspec.txt
+ tfile$=gun(gunid).texd$
+ if len(tfile$)=0 then tfile$="gun_D2.tga"
+ img$="gamecore\guns\"+gun$+"\"+tfile$
+ if gun(gunid).transparency>2
+  imgD2id=loadinternalimagecompressquality(img$,0,1)
+ else
+  imgD2id=loadinternalimagecompress(img$,5)
+ endif
+ if len(gun(gunid).texd$)>0 and left$(gun(gunid).texd$,1)<>" "
+  texture object currentgunobj,imgD2id
+ endif
+ tfile$="ammo_D2.tga"
+ img$="gamecore\guns\"+gun$+"\"+tfile$
+ if gun(gunid).transparency>2
+  imgD2id=loadinternalimagecompressquality(img$,0,1)
+ else
+  imgD2id=loadinternalimagecompress(img$,5)
+ endif
+ tfile$="scope_D2.tga"
+ img$="gamecore\guns\"+gun$+"\"+tfile$
+ if gun(gunid).transparency>2
+  imgD2id=loadinternalimagecompressquality(img$,0,1)
+ else
+  imgD2id=loadinternalimagecompress(img$,5)
+ endif
+ rem FPSCV104RC10
+ tfile$="hand_D2.tga"
+ img$="gamecore\guns\"+gun$+"\"+tfile$
+ if gun(gunid).transparency>2
+  imgD2id=loadinternalimagecompressquality(img$,0,1)
+ else
+  imgD2id=loadinternalimagecompress(img$,5)
+ endif
+ tfile$="supressor_D2.tga"
+ img$="gamecore\guns\"+gun$+"\"+tfile$
+ if gun(gunid).transparency>2
+  imgD2id=loadinternalimagecompressquality(img$,0,1)
+ else
+  imgD2id=loadinternalimagecompress(img$,5)
+ endif
+ `
+endif
+
+rem load in scope if any
+if gun(gunid).zoomscope$<>""
+ img$="gamecore\guns\"+gun$+"\"+gun(gunid).zoomscope$
+ gun(gunid).zoomscope=loadinternalimagecompress(img$,5)
+ addfiletocollection(img$)
+else
+ rem V109 BETA8 - try to load common scope files in case not specified in gunspec
+ tzoomscope$="scope_d2.tga"
+ img$="gamecore\guns\"+gun$+"\"+tzoomscope$
+ gun(gunid).zoomscope=loadinternalimagecompress(img$,5)
+ if gun(gunid).zoomscope=0
+  tzoomscope$="scope.tga"
+  img$="gamecore\guns\"+gun$+"\"+tzoomscope$
+  gun(gunid).zoomscope=loadinternalimagecompress(img$,5)
+  if gun(gunid).zoomscope=0
+   tzoomscope$="scope1.tga"
+   img$="gamecore\guns\"+gun$+"\"+tzoomscope$
+   gun(gunid).zoomscope=loadinternalimagecompress(img$,5)
+  endif
+ endif
+endif
+
+rem Glue gun to HUD-Gun-Marker
+glue object to limb currentgunobj,hudbankoffset+2,0
+
+rem Setup gun for correct visuals (special transparency for after-shadow setting)
+if gun(gunid).transparency>2
+ set object transparency currentgunobj,gun(gunid).transparency
+else
+ set object transparency currentgunobj,2
+endif
+disable object zdepth currentgunobj
+
+rem Setup gun for animation
+rem V111 - 140608 - modifier to adjust gun animation speed based on change from 32fps to 38fps cap
+set object speed currentgunobj,(75.0*0.842)
+loop object currentgunobj
+
+rem Setup gun with muzzle flash image
+num=gun(gunid).settings.muzzleflash : if num=0 then num=1
+size#=gun(gunid).settings.muzzlesize# : if size#=0.0 then size#=100.0
+muzzleflash$="gamecore\muzzleflash\flash"+str$(num)+".tga"
+imgid=loadmuzzle(muzzleflash$)
+gun(gunid).settings.flashimg=imgid
+`
+rem Setup gun with brass models
+num=gun(gunid).settings.brass : if num=0 then num=1
+brass$="gamecore\brass\brass"+str$(num)+"\brass"+str$(num)+".x"
+brassobj=loadbrass(brass$)
+if brassobj=0
+ rem leefix - 290308 - v109 - specifying a brass value that does not exist crashes engine
+ num=1 : gun(gunid).settings.brass=0
+ brass$="gamecore\brass\brass"+str$(num)+"\brass"+str$(num)+".x"
+ brassobj=loadbrass(brass$)
+endif
+addfiletocollection("gamecore\brass\brass"+str$(num)+"\brass"+str$(num)+"_D2.dds")
+gun(gunid).settings.brassobjmaster=brassobj
+
+rem Setup gun with smoke images
+num=gun(gunid).settings.smoke
+if len(gun(gunid).settings.smokedecal$)>0
+ smoke$="gamecore\decals\"+gun(gunid).settings.smokedecal$+"\decal.tga"
+ imgid=loadsmoke(smoke$)
+else
+ if num=0 then num=1
+ rem FPSCV04RC9 0- replace smoke1 usage with gunsmoke usage (better visual)
+ if num=1
+  smoke$="gamecore\decals\gunsmoke\decal.tga"
+ else
+  smoke$="gamecore\decals\smoke"+str$(num)+"\decal.tga"
+ endif
+ imgid=loadsmoke(smoke$)
+endif
+gun(gunid).settings.smokeimg=imgid
+
+rem Setup gun with crosshair
+crosshair$="gamecore\guns\"+gun$+"\crosshair.tga"
+crosshairimage=loadinternalimagecompressquality(crosshair$,5,1)
+gun(gunid).settings.crosshairimg=crosshairimage
+gun(gunid).secondobj=0
+
+rem Load gun sounds (and companions)
+for p=1 to 5
+ if gunsound(gunid,p).name$<>""
+  rem main sound for player
+  snd$="gamecore\guns\"+gun$+"\"+gunsound(gunid,p).name$
+  timestampactivity(0,"Loading Sound:"+snd$)
+  gunsound(gunid,p).soundid=loadinternalsound(snd$)
+  rem FPSCV104RC4 - extra sound value checks in many places
+  if gunsound(gunid,p).soundid>0
+   if sound exist(gunsound(gunid,p).soundid)=0
+    gunsound(gunid,p).soundid=0
+   endif
+  endif
+  rem companion sounds for other weapon sound uses
+  if p<=3
+   gunsoundcompanion(gunid,p,0).soundid=loadinternalsoundcore(snd$,1)
+   gunsoundcompanion(gunid,p,1).soundid=loadinternalsoundcore(snd$,1)
+   gunsoundcompanion(gunid,p,2).soundid=loadinternalsoundcore(snd$,1)
+  endif
+ endif
+next p
+
+rem Load HUD image (ammo and weapon selected image)
+img$="gamecore\guns\"+gun$+"\hud_icon.tga" : addfiletocollection(img$)
+gun(gunid).hudimage=loadinternalimagecompressquality(img$,5,1)
+
+rem Find and store flak index for later use
+if gun(gunid).settings.flakname$<>""
+ flak$=gun(gunid).settings.flakname$ : gosub _flak_findindex
+ gun(gunid).settings.flakindex=tindex
+ rem V109 BETA10 - 120508 - flag that we are using this flak
+ flak(tindex).usedinlevel=1
+endif
+
+return
+
+_gun_freeafterlevel:
+ `
+ rem Free the old gun
+ autoloadgun=0 : gosub _gun_change
+ `
+return
+
+_gun_scaninall:
+
+rem Scan entire guns folder
+gosub _gun_scaninall_ref
+
+rem Load all guns
+for gunid=1 to gunmax
+ gun$=gun(gunid).name$ : gosub _gun_load
+next gunid
+
+return
+
+_gun_scaninall_dataonly:
+ for gunid=1 to gunmax
+  gun$=gun(gunid).name$ : gosub _gun_loaddata
+ next gunid
+return
+
+
+`
+` Particles
+`
+
+
+_particles_control:
+
+rem Handle any debris
+for p=1 to 32
+ if debris(p)>0
+  if debris(p)<=38 then show particles p
+  if debris(p)<=37 then set particle emissions p,0
+  debris(p)=debris(p)-1
+  if debris(p)=0
+   hide particles p
+  endif
+ endif
+next p
+
+return
+
+

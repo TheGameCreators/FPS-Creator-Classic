@@ -1,0 +1,286 @@
+`
+` Player and AI Shared Code
+`
+
+_entity_getactualframe:
+ `
+ rem work out actual frame from base frame and entity-character state and weapon used
+ rem only applies to characters with weapons
+ if entityprofile(entid).ischaracter=1
+  if entityelement(e).attachmentweapontype>0
+   rem if weapon, use 50-99 range
+   if tbasetype=1 then tactualframe=entityanim(entid,50+tbaseframe).start
+   if tbasetype=2 then tactualframe=entityanim(entid,50+tbaseframe).finish
+   rem if greater than pistol, apply an offset to final frame number
+   if tbaseframe>=10 and tbaseframe<=22
+    if tbaseframe=13 or tbaseframe=16
+     tokay=1
+    else
+     tokay=0
+    endif
+   else
+    tokay=1
+   endif
+   if tokay=1
+    if entityelement(e).attachmentweapontype=2 then tactualframe=tactualframe+389
+    if entityelement(e).attachmentweapontype=3 then tactualframe=tactualframe+778
+    if entityelement(e).attachmentweapontype=4 then tactualframe=tactualframe+1167
+    if entityelement(e).attachmentweapontype=5 then tactualframe=tactualframe+1556
+   endif
+  else
+   rem if no weapon, we are done (NOWEAP)
+   if tbasetype=1 then tactualframe=entityanim(entid,tbaseframe).start
+   if tbasetype=2 then tactualframe=entityanim(entid,tbaseframe).finish
+  endif
+  rem assign crouch flag (profile of character for hit detect)
+  if tbaseframe>=31 and tbaseframe<40 then entityelement(e).crouchprofile=1 else entityelement(e).crouchprofile=0
+ else
+  if tbasetype=1 then tactualframe=entityanim(entid,tbaseframe).start
+  if tbasetype=2 then tactualframe=entityanim(entid,tbaseframe).finish
+ endif
+ `
+return
+
+_entity_getactualframestart:
+ tbasetype=1 : gosub _entity_getactualframe
+return
+
+_entity_getactualframefinish:
+ tbasetype=2 : gosub _entity_getactualframe
+return
+
+_player_determinevisibility:
+
+rem used by an entity when looking at mex#,mey#,mez#
+rem determine if player exposed to be visible to tmpx#,tmpy#,tmpz#,dist# and (e)
+tvisibility=1
+tvisibilityifbreak=0 : tvisibilityifbreakdist#=9999.99
+
+rem deduct from 100 percent visible, if drop below zero, enemy cannot see plr
+visprobcount=100
+
+rem instant block if other object obstructs it
+for tte=1 to entityelementlist
+ if tte<>e
+  if entityelement(tte).active=1 and entityelement(tte).dormant=0 and entityelement(tte).collisionactive=1
+   tdistx#=entityelement(e).x-entityelement(tte).x
+   tdisty#=entityelement(e).y-entityelement(tte).y
+   tdistz#=entityelement(e).z-entityelement(tte).z
+   ttdist#=sqrt(abs(tdistx#*tdistx#)+abs(tdisty#*tdisty#)+abs(tdistz#*tdistz#))
+   if ttdist#<=dist# and entityelement(tte).obj>0
+    ttdst#=intersect object(entityelement(tte).obj,tmpx#,tmpy#,tmpz#,mex#,mey#,mez#)
+    if ttdst#>0
+     if entityelement(tte).eleprof.transparency=0 then tvisibility=0
+     if entityelement(tte).eleprof.transparency>0
+      if ttdst#<tvisibilityifbreakdist#
+       tvisibilityifbreak=tte
+       tvisibilityifbreakdist#=ttdst#
+      endif
+     endif
+     if tvisibility=0 then tte=entityelementlist+1
+    endif
+   endif
+  endif
+ endif
+next tte
+
+rem loose accuracy on exposure of player (if peeking, crouched, moving)
+if tvisibility=1
+ if peeklean#<>0.0 then dec visprobcount,10
+ if movement=0 then dec visprobcount,25
+ if crouchmode<>0 then dec visprobcount,10
+endif
+
+rem loose accuracy on distance
+if tvisibility=1
+ if dist#>1000 then dec visprobcount,10
+ if dist#>2000 then dec visprobcount,50
+endif
+
+rem loose accuracy on light level of player
+if tvisibility=1
+ if dist#>200
+  if array count(infinilight())>0
+   tavlightcol#=(avlightcolr#+avlightcolg#+avlightcolb#)/3.0
+   tavlightcol#=tavlightcol#/2.5
+   tavlightcol=100-tavlightcol# : if tavlightcol<1 then tavlightcol=1
+   tavlightcol=tavlightcol/2
+   dec visprobcount,tavlightcol
+  endif
+ endif
+endif
+
+rem use visual probability count for final visibile check
+if tvisibility=1
+ if visprobcount<0 then tvisibility=0
+endif
+
+return
+
+_player_leavetrail:
+ `
+ rem leave trail one per tile
+ if trailaction=0
+  trax1=trailx#/100
+  tray1=traily#/100
+  traz1=trailz#/100
+  trax2=playertrial(playertrailmax).x/100
+  tray2=playertrial(playertrailmax).y/100
+  traz2=playertrial(playertrailmax).z/100
+ else
+  trax1=trailx#/5
+  tray1=traily#/50
+  traz1=trailz#/5
+  trax2=playertrial(playertrailmax).x/5
+  tray2=playertrial(playertrailmax).y/50
+  traz2=playertrial(playertrailmax).z/5
+ endif
+ if trax1<>trax2 or tray1<>tray2 or traz1<>traz2
+  `
+  rem deposit new trail blob
+  inc playertrailmax
+  if playertrailmax>100 then playertrailmax=1
+  playertrial(playertrailmax).time=timer()
+  playertrial(playertrailmax).x=trailx#
+  playertrial(playertrailmax).y=traily#
+  playertrial(playertrailmax).z=trailz#
+  `
+  rem if in debug, create object to illustrate blob
+  if gshowdebugtextingamestate=1
+   `
+   rem create fresh new blob
+   tobj=gamdebugobjoffset+playertrailmax
+   if object exist(tobj)=0 then make object cube tobj,10 : set object collision off tobj
+   position object tobj,trailx#,traily#,trailz#
+   set object emissive tobj,rgb(255,200,0)
+   scale object tobj,100,100,100
+   `
+   rem discolour rest of blobs by their age
+   tai=playertrailmax
+   for ta=1 to 99
+    dec tai : if tai<1 then tai=100
+    tobj=gamdebugobjoffset+tai
+    if object exist(tobj)=1
+     set object emissive tobj,rgb(255-(ta*2.5),200-(ta*2),0)
+     scale object tobj,100.0-(ta*0.95),100,100.0-(ta*0.95)
+    endif
+   next ta
+   `
+  endif
+  `
+ endif
+ `
+return
+
+`
+` Entities and AI Shared Code
+`
+
+_entity_controlrecalcdist:
+ ttokay=0
+ if entityelement(e).active=1
+  if gmultiplayergame=0 then ttokay=1
+  if gmultiplayergame=1 and PlayerCanStart=1 then ttokay=1
+ endif
+ if ttokay=1
+  distx#=mex#-entityelement(e).x
+  disty#=(mey#-phyeyeheight#)-entityelement(e).y
+  distz#=mez#-entityelement(e).z
+  dist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
+  diffangle#=atanfull(distx#,distz#)
+  if diffangle#<0 then diffangle#=diffangle#+360
+ else
+  dist#=9999999
+ endif
+return
+
+_entity_conescanforentity:
+ `
+ rem e looking for another e of type tentitytype (1=weapon)
+ entityelement(e).mover.viewconeused=10
+ tfounde=0
+ telex#=entityelement(e).x
+ teley#=entityelement(e).y+65.0
+ telez#=entityelement(e).z
+ for te=1 to entityelementlist
+  tokay=0
+  if entityelement(te).active=1
+   tentid=entityelement(te).bankindex
+   if tentitytype=1
+    if entityprofile(tentid).isweapon<>0 then tokay=1
+   endif
+  endif
+  if tokay=1
+   tdistx#=telex#-entityelement(te).x
+   tdisty#=teley#-entityelement(te).y+10.0
+   tdistz#=telez#-entityelement(te).z
+   tdist#=sqrt(abs(tdistx#*tdistx#)+abs(tdisty#*tdisty#)+abs(tdistz#*tdistz#))
+   if tdist#<1000.0
+    tmpx#=entityelement(te).x
+    tmpy#=entityelement(te).y+6.0
+    tmpz#=entityelement(te).z
+    if static raycast(telex#,teley#,telez#,tmpx#,tmpy#,tmpz#)=0
+     tfounde=te : te=entityelementlist
+    endif
+   endif
+  endif
+ next te
+ `
+return
+
+_entity_playerhavekey:
+ rem Is USEKEY Collected?
+ tokay=0
+ for te=1 to entityelementlist
+  if entityelement(te).collected=1
+   if lower$(entityelement(te).eleprof.name$)=lower$(entityelement(e).eleprof.usekey$)
+    tokay=1 : exit
+   endif
+  endif
+ next te
+return
+
+_entity_activatename:
+ rem Activate All Entities that share tname$ (using tstate)
+ for te=1 to entityelementlist
+  if entityelement(te).active=1
+   if lower$(entityelement(te).eleprof.name$)=lower$(tname$)
+    entityelement(te).activated=tstate
+    entityelement(te).logiccount=0 : entityelement(te).logiccountburst=5
+    entityelement(te).dormant=0
+   endif
+  endif
+ next te
+return
+
+_entity_activateallinzone:
+ for te=1 to entityelementlist
+  if entityelement(te).active=1 or entityelement(te).spawn.atstart=0
+   tex=entityelement(te).x
+   tey=entityelement(te).y
+   tez=entityelement(te).z
+   if tex>condx1 and tex<condx2
+    if tey>condy1-5 and tey<condy2+5
+     if tez<condz1 and tez>condz2
+      entityelement(te).activated=tactivated
+      entityelement(te).logiccount=0 : entityelement(te).logiccountburst=5
+      entityelement(te).dormant=0
+     endif
+    endif
+   endif
+  endif
+ next te
+return
+
+_entity_findname:
+ rem Activate All Entities that share tname$ (using tstate)
+ foundte=0
+ for te=1 to entityelementlist
+  if entityelement(te).active=1
+   if lower$(entityelement(te).eleprof.name$)=lower$(tname$)
+    foundte=te : exit
+   endif
+  endif
+ next te
+return
+

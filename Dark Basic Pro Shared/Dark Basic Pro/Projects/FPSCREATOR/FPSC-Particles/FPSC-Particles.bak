@@ -1,0 +1,466 @@
+rem
+rem Particles (debris, fragments, particles, damage)
+rem
+
+_part_init:
+
+rem Setup particles
+gosub _part_initexploders
+
+rem Setup fragment objects
+
+rem SCIFI
+rem Crate
+debrisshapeindex=1
+i=debrisshapeindex
+bitdetails(debrisshapeindex).max=6
+bitdetails(debrisshapeindex).collisionmode=2
+bitdetails(debrisshapeindex).file$="meshbank\scifi\scenery\furniture\cratec\crate_c"
+bitoffset(i,1).x#=0 : bitoffset(i,1).y#=0 : bitoffset(i,1).z#=0
+bitoffset(i,2).x#=0 : bitoffset(i,2).y#=15 : bitoffset(i,2).z#=-15
+bitoffset(i,3).x#=15 : bitoffset(i,3).y#=15 : bitoffset(i,3).z#=0
+bitoffset(i,4).x#=0 : bitoffset(i,4).y#=15 : bitoffset(i,4).z#=15
+bitoffset(i,5).x#=-15 : bitoffset(i,5).y#=15 : bitoffset(i,5).z#=0
+bitoffset(i,6).x#=0 : bitoffset(i,6).y#=30 : bitoffset(i,6).z#=0
+rem Gas Canister
+debrisshapeindex=2
+i=debrisshapeindex
+bitdetails(debrisshapeindex).max=2
+bitdetails(debrisshapeindex).collisionmode=2
+bitdetails(debrisshapeindex).file$="meshbank\scifi\scenery\furniture\cylindera\cylinder_a"
+bitoffset(i,1).x#=0 : bitoffset(i,1).y#=0 : bitoffset(i,1).z#=0
+bitoffset(i,2).x#=0 : bitoffset(i,2).y#=24 : bitoffset(i,2).z#=0
+rem Cylinder
+debrisshapeindex=3
+i=debrisshapeindex
+bitdetails(debrisshapeindex).max=5
+bitdetails(debrisshapeindex).collisionmode=2
+bitdetails(debrisshapeindex).file$="meshbank\scifi\scenery\furniture\cylinderb\cylinder_b"
+bitoffset(i,1).x#=0 : bitoffset(i,1).y#=0 : bitoffset(i,1).z#=0
+bitoffset(i,2).x#=3 : bitoffset(i,2).y#=17 : bitoffset(i,2).z#=6
+bitoffset(i,3).x#=-8 : bitoffset(i,3).y#=17 : bitoffset(i,3).z#=3
+bitoffset(i,4).x#=-3 : bitoffset(i,4).y#=17 : bitoffset(i,4).z#=-8
+bitoffset(i,5).x#=8 : bitoffset(i,5).y#=17 : bitoffset(i,5).z#=-5
+`
+rem WW2
+rem Bottle
+debrisshapeindex=4
+i=debrisshapeindex
+bitdetails(debrisshapeindex).max=3
+bitdetails(debrisshapeindex).collisionmode=2
+bitdetails(debrisshapeindex).file$="meshbank\ww2\scenery\furniture\itemb\item_b"
+bitoffset(i,1).x#=0 : bitoffset(i,1).y#=0 : bitoffset(i,1).z#=0
+bitoffset(i,2).x#=0 : bitoffset(i,2).y#=7 : bitoffset(i,2).z#=0
+bitoffset(i,3).x#=0 : bitoffset(i,3).y#=14 : bitoffset(i,3).z#=0
+rem CrateC
+debrisshapeindex=5
+i=debrisshapeindex
+bitdetails(debrisshapeindex).max=7
+bitdetails(debrisshapeindex).collisionmode=2
+bitdetails(debrisshapeindex).file$="meshbank\ww2\scenery\furniture\cratec\crate_c"
+bitoffset(i,1).x#=0 : bitoffset(i,1).y#=0 : bitoffset(i,1).z#=0
+bitoffset(i,2).x#=-15 : bitoffset(i,2).y#=15 : bitoffset(i,2).z#=0
+bitoffset(i,3).x#=0 : bitoffset(i,3).y#=15 : bitoffset(i,3).z#=-15
+bitoffset(i,4).x#=15 : bitoffset(i,4).y#=15 : bitoffset(i,4).z#=0
+bitoffset(i,5).x#=0 : bitoffset(i,5).y#=15 : bitoffset(i,5).z#=15
+bitoffset(i,6).x#=0 : bitoffset(i,6).y#=15 : bitoffset(i,6).z#=15
+bitoffset(i,7).x#=0 : bitoffset(i,7).y#=30 : bitoffset(i,7).z#=0
+rem CrateE
+debrisshapeindex=6
+i=debrisshapeindex
+bitdetails(debrisshapeindex).max=6
+bitdetails(debrisshapeindex).collisionmode=2
+bitdetails(debrisshapeindex).file$="meshbank\ww2\scenery\furniture\cratee\crate_e"
+bitoffset(i,1).x#=0 : bitoffset(i,1).y#=0 : bitoffset(i,1).z#=0
+bitoffset(i,2).x#=-15 : bitoffset(i,2).y#=15 : bitoffset(i,2).z#=0
+bitoffset(i,3).x#=0 : bitoffset(i,3).y#=15 : bitoffset(i,3).z#=-15
+bitoffset(i,4).x#=15 : bitoffset(i,4).y#=15 : bitoffset(i,4).z#=0
+bitoffset(i,5).x#=0 : bitoffset(i,5).y#=15 : bitoffset(i,5).z#=15
+bitoffset(i,6).x#=0 : bitoffset(i,6).y#=30 : bitoffset(i,6).z#=0
+rem CrateF
+debrisshapeindex=7
+i=debrisshapeindex
+bitdetails(debrisshapeindex).max=5
+bitdetails(debrisshapeindex).collisionmode=2
+bitdetails(debrisshapeindex).file$="meshbank\ww2\scenery\furniture\cratef\crate_f"
+bitoffset(i,1).x#=-16 : bitoffset(i,1).y#=0 : bitoffset(i,1).z#=-11
+bitoffset(i,2).x#=-16 : bitoffset(i,2).y#=2 : bitoffset(i,2).z#=6
+bitoffset(i,3).x#=16 : bitoffset(i,3).y#=1 : bitoffset(i,3).z#=0
+bitoffset(i,4).x#=0 : bitoffset(i,4).y#=10 : bitoffset(i,4).z#=2
+bitoffset(i,5).x#=0 : bitoffset(i,5).y#=5 : bitoffset(i,5).z#=-4
+rem CylinderF
+debrisshapeindex=8
+i=debrisshapeindex
+bitdetails(debrisshapeindex).max=5
+bitdetails(debrisshapeindex).collisionmode=2
+bitdetails(debrisshapeindex).file$="meshbank\ww2\scenery\furniture\cylinderf\cylinder_f"
+bitoffset(i,1).x#=0 : bitoffset(i,1).y#=0 : bitoffset(i,1).z#=0
+bitoffset(i,2).x#=0 : bitoffset(i,2).y#=12 : bitoffset(i,2).z#=-6
+bitoffset(i,3).x#=0 : bitoffset(i,3).y#=13 : bitoffset(i,3).z#=5
+bitoffset(i,4).x#=0 : bitoffset(i,4).y#=24 : bitoffset(i,4).z#=-10
+bitoffset(i,5).x#=0 : bitoffset(i,5).y#=24 : bitoffset(i,5).z#=8
+
+rem Load the fragment objects (three sets of each)
+fragmento=fragmentobjectoffset
+for debrisshapeindex=1 to 8
+ `
+ rem V109 BETA5 - 250408 - load if used in game
+ if debrisshapeindexused(debrisshapeindex)=0
+  `
+  rem not used in game
+  bitdetails(debrisshapeindex).fragmentobjstart=0
+  `
+ else
+  `
+  rem use original to get fragment complete size
+  o$=bitdetails(debrisshapeindex).file$+".x"
+
+  rem V109 BETA6 - replaced X file load with optional DBO convert/load
+  `addfiletocollection(o$)
+  `load object o$,fragmento
+  if lower$(right$(o$,2))=".x" then tdbofile$=left$(o$,len(o$)-2)+".dbo" else tdbofile$=""
+  if file exist(o$)=1 or file exist(tdbofile$)=1
+   if file exist(tdbofile$)=1
+    o$=tdbofile$
+    tdbofile$=""
+   endif
+   load object o$,fragmento
+   if len(tdbofile$)>1
+    save object tdbofile$,fragmento
+    if file exist(tdbofile$)=1
+     delete object fragmento
+     load object tdbofile$,fragmento
+     o$=tdbofile$
+    endif
+   endif
+   addfiletocollection(o$)
+  endif
+  `
+  bitdetails(debrisshapeindex).sizex=object size x(fragmento)
+  bitdetails(debrisshapeindex).sizey=object size y(fragmento)
+  bitdetails(debrisshapeindex).sizez=object size z(fragmento)
+  delete object fragmento
+  `
+  rem mark start of fragment objects sequence (seeder,3xallfragments)
+  bitdetails(debrisshapeindex).fragmentobjstart=fragmento
+  `
+  rem create object seeder
+  make object cone fragmento,10
+  make mesh from object fragmento,fragmento
+  for o=1 to 8 : add limb fragmento,o,fragmento : next o
+  delete mesh fragmento
+  hide object fragmento
+  inc fragmento
+  `
+  rem load original
+  for o=1 to bitdetails(debrisshapeindex).max
+   o$=bitdetails(debrisshapeindex).file$+"_chunk"+str$(o)+".x"
+   `
+   rem V109 BETA6 - replaced X file load with optional DBO convert/load
+   `addfiletocollection(o$)
+   `load object o$,fragmento
+   if lower$(right$(o$,2))=".x" then tdbofile$=left$(o$,len(o$)-2)+".dbo" else tdbofile$=""
+   if file exist(o$)=1 or file exist(tdbofile$)=1
+    if file exist(tdbofile$)=1
+     o$=tdbofile$
+     tdbofile$=""
+    endif
+    load object o$,fragmento
+    if len(tdbofile$)>1
+     save object tdbofile$,fragmento
+     if file exist(tdbofile$)=1
+      delete object fragmento
+      load object tdbofile$,fragmento
+      o$=tdbofile$
+     endif
+    endif
+    addfiletocollection(o$)
+   endif
+   `
+   hide object fragmento
+   inc fragmento
+  next o
+  `
+  rem instance two more sets
+  for n=1 to 2
+   for o=1 to bitdetails(debrisshapeindex).max
+    fragmentorig=bitdetails(debrisshapeindex).fragmentobjstart+1+(o-1)
+    clone object fragmento,fragmentorig
+    hide object fragmento
+    inc fragmento
+   next o
+  next n
+  `
+ endif
+ `
+next debrisshapeindex
+fragmentobjectoffsetmax=fragmento-1
+
+return
+
+_part_free:
+ `
+ rem Delete particles and fragments
+ for o=fragmentobjectoffset to fragmentobjectoffsetmax
+  if object exist(o)=1
+   ode destroy object o
+   rem V105 delete object o
+  endif
+ next o
+ `
+ rem V106 RC3 quicker this way
+ delete objects fragmentobjectoffset,fragmentobjectoffsetmax
+ `
+ rem Delete explosion objects
+ gosub _part_freeexploders
+ `
+return
+
+_part_movedebrisifinray:
+ `
+ rem ray is x1#,y1#,z1#,wallhitx#,wallhity#,wallhitz#
+ for o=fragmentobjectoffset to fragmentobjectoffsetmax
+  if object visible(o)=1
+   if intersect object(o,x1#,y1#,z1#,wallhitx#,wallhity#,wallhitz#)<>0
+    tix#=wallhitx#-x1# : tiy#=wallhity#-y1# : tiz#=wallhitz#-z1#
+    tnorm#=(abs(tix#)+abs(tiy#)+abs(tiz#))/3.0
+    tix#=tix#/tnorm# : tiy#=tiy#/tnorm# : tiz#=tiz#/tnorm#
+    ode set linear velocity o,tix#*tforce#,tiy#*tforce#,tiz#*tforce#
+   endif
+  endif
+ next o
+ `
+return
+
+_part_createfragment:
+ `
+ rem takes debrisshapeindex,frox,y,z,a#,debrissize,x,y,z# (and new froobjtocopy)
+ debrisscalex#=(debrissizex#/bitdetails(debrisshapeindex).sizex)*100.0
+ debrisscaley#=(debrissizey#/bitdetails(debrisshapeindex).sizey)*100.0
+ debrisscalez#=(debrissizez#/bitdetails(debrisshapeindex).sizez)*100.0
+ `
+ rem seeder obj placement
+ frbo=bitdetails(debrisshapeindex).fragmentobjstart
+ if frbo>0
+  `
+  rem V2109BETA5 - 250408 - no fragment if not initialised (not used in game)
+  position object frbo,frox#,froy#,froz#
+  set object to object orientation frbo,frocopyorientfrom
+  scale object frbo,debrisscalex#,debrisscaley#,debrisscalez#
+  `
+  rem cycle through fragment instances (3 copies avail)
+  fragmentchoose=bitdetails(debrisshapeindex).choice+1
+  if fragmentchoose>2 then fragmentchoose=0
+  bitdetails(debrisshapeindex).choice=fragmentchoose
+  fragmentchoose=fragmentchoose*bitdetails(debrisshapeindex).max
+  `
+  rem place fragments using seeder limbs
+  frchi=bitdetails(debrisshapeindex).choice
+  stparte=e : stparttobj=tobj
+  for o=1 to bitdetails(debrisshapeindex).max
+   fragmento=bitdetails(debrisshapeindex).fragmentobjstart+1+(o-1)+fragmentchoose
+   ode destroy object fragmento
+   tfx#=bitoffset(debrisshapeindex,o).x#
+   tfy#=bitoffset(debrisshapeindex,o).y#
+   tfz#=bitoffset(debrisshapeindex,o).z#
+   offset limb frbo,o,tfx#,tfy#,tfz#
+   position object fragmento,limb position x(frbo,o),limb position y(frbo,o),limb position z(frbo,o)
+   rotate object fragmento,limb direction x(frbo,o),limb direction y(frbo,o),limb direction z(frbo,o)
+   rem maybe a scale of *0.9 will reduce fling-away effect
+   scale object fragmento,debrisscalex#*0.8,debrisscaley#*0.8,debrisscalez#*0.8
+   select bitdetails(debrisshapeindex).collisionmode
+    case 2 : ode create dynamic box fragmento : endcase
+    case 3 : ode create dynamic cylinder fragmento : endcase
+    case 4 : ode create dynamic sphere fragmento : endcase
+   endselect
+   ode set contact fdir1 fragmento,50
+   ode set body mass fragmento,10
+   if debrisexplodable=1
+    ode add force fragmento,0,-1,0,object position x(fragmento),object position y(fragmento)+object size y(fragmento),object position z(fragmento)
+    ode set angular velocity fragmento,2.5+rnd(10)/10.0,1.5+rnd(5)/10.0,rnd(2)/10.0
+   else
+    ode set linear velocity fragmento,0,-20,0
+    ode set angular velocity fragmento,0,0,0
+   endif
+   texture object fragmento,debristextureused
+   if debrisexplodable=1
+    set blend mapping on fragmento, 1, explosionscorch, 3, 6
+   else
+    set blend mapping on fragmento, 1, explosionstressed, 3, 7
+   endif
+   tobj=fragmento : e=0
+   gosub _ode_ensurephysicsobjvalid
+   show object fragmento
+  next o
+  e=stparte : tobj=stparttobj
+ endif
+ `
+return
+
+_part_initexploders:
+ `
+ rem Load spark, fire and smoke
+ tfile$="gamecore\debris\spark.tga" : explodedecalspark=loadinternalimagecompressquality(tfile$,5,1)
+ tfile$="gamecore\debris\fire.tga" : explodedecalfire=loadinternalimagecompressquality(tfile$,5,1)
+ tfile$="gamecore\debris\smoke.tga" : explodedecalsmoke=loadinternalimagecompressquality(tfile$,5,1)
+ tfile$="gamecore\debris\scorched.tga" : explosionscorch=loadinternalimagecompressquality(tfile$,5,1)
+ tfile$="gamecore\debris\stressed.tga" : explosionstressed=loadinternalimagecompressquality(tfile$,5,1)
+ `
+ rem Create Explosion Decals
+ texplodersnd=1
+ o=explodedecalobjstart
+ tsndid=explodesoundoffset
+ for exploderindex=1 to explodermax
+  `
+  rem Set vars and load sound
+  exploder(exploderindex).obj=o
+  exploder(exploderindex).explode=0
+  tfile$="gamecore\debris\explosionfuel"+str$(texplodersnd)+".wav" : addfiletocollection(tfile$)
+  inc texplodersnd : if texplodersnd>5 then texplodersnd=1
+  load sound tfile$,tsndid
+  exploder(exploderindex).explodesound=tsndid
+  inc tsndid
+  `
+  for oi=0 to 16
+   make object plain o,100,100
+   if oi=0 then texture object o,explodedecalspark
+   if oi>=1 and oi<=3 then texture object o,explodedecalfire
+   if oi>=4 then texture object o,explodedecalsmoke
+   set object transparency o,2
+   disable object zwrite o
+   hide object o
+   inc o
+  next oi
+ next exploderindex
+ explodedecalobjmax=o-1
+ explodesoundmax=tsndid-1
+ `
+return
+
+_part_freeexploders:
+ `
+ rem Delete Explosion Decals
+ for o=explodedecalobjstart to explodedecalobjmax
+  if object exist(o)=1
+   ode destroy object o
+   rem V105 delete object o
+  endif
+ next o
+ `
+ rem V106 RC3 quicker this way
+ delete objects explodedecalobjstart,explodedecalobjmax
+ `
+ rem Delete sounds
+ for tsndid=explodesoundoffset to explodesoundmax
+  if sound exist(tsndid)=1
+   delete sound tsndid
+  endif
+ next tsndid
+ `
+return
+
+_part_triggerexplosion:
+ `
+ rem Find free exploder
+ for exploderindex=1 to explodermax
+  if exploder(exploderindex).explode=0 then exit
+ next exploderindex
+ if exploderindex<explodermax
+  rem visual
+  exploder(exploderindex).explode=1
+  exploder(exploderindex).x=frox#
+  exploder(exploderindex).y=froy#
+  exploder(exploderindex).z=froz#
+  rem audio
+  ts=exploder(exploderindex).explodesound
+  if sound exist(ts)=1
+   rem make explosion X times larger (ie closer)
+   tscamx#=camera position x(0)
+   tscamy#=camera position y(0)
+   tscamz#=camera position z(0)
+   tscamx#=(frox#-tscamx#)
+   tscamy#=(froy#-tscamy#)
+   tscamz#=(froz#-tscamz#)
+   tvol=100-(sqrt(abs(tscamx#*tscamx#)+abs(tscamy#*tscamy#)+abs(tscamz#*tscamz#))/200.0)
+   if tvol<0 then tvol=0
+   if tvol>100 then tvol=100
+   broadcast3dsound(frox#,froy#,froz#,100.0)
+   set sound volume ts,tvol
+   play sound ts
+  endif
+ endif
+ `
+return
+
+_part_controlexploders:
+ `
+ rem Handle all explosions in progress
+ for exploderindex=1 to explodermax
+  select exploder(exploderindex).explode
+   case 1:
+    o=exploder(exploderindex).obj
+    show object o+0 : position object o+0,exploder(exploderindex).x,exploder(exploderindex).y,exploder(exploderindex).z
+    show object o+1 : position object o+1,exploder(exploderindex).x,exploder(exploderindex).y,exploder(exploderindex).z
+    show object o+2 : position object o+2,exploder(exploderindex).x,exploder(exploderindex).y,exploder(exploderindex).z
+    show object o+3 : position object o+3,exploder(exploderindex).x,exploder(exploderindex).y,exploder(exploderindex).z
+    for oi=4 to 13
+     o=exploder(exploderindex).obj+oi
+     position object o,exploder(exploderindex).x+(cos(((o-5)*20)-180)*50),exploder(exploderindex).y+((sin(((o-5)*20)-180)*20)),exploder(exploderindex).z
+     scale object o,25+rnd(25),25+rnd(25),25+rnd(25)
+     zrotate object o,rnd(360)
+     show object o
+    next oi
+    for oi=14 to 16
+     o=exploder(exploderindex).obj+oi
+     position object o,exploder(exploderindex).x+(cos(((o-15)*20)-180)*25),exploder(exploderindex).y+rnd(10),exploder(exploderindex).z
+     scale object o,50+rnd(50),50+rnd(50),50+rnd(50)
+     zrotate object o,rnd(360)
+     show object o
+    next oi
+    for oi=0 to 16
+     o=exploder(exploderindex).obj+oi
+     point object o,camera position x(),camera position y(),camera position z()
+     move object o,20 : rem get out of flat wall
+    next oi
+    exploder(exploderindex).explode=2
+    exploder(exploderindex).dist#=15
+    exploder(exploderindex).smoke#=0
+    exploder(exploderindex).fade#=100
+   endcase
+  endselect
+  if exploder(exploderindex).explode>0
+   rem flash
+   exploder(exploderindex).fade#=exploder(exploderindex).fade#-10
+   if exploder(exploderindex).fade#<1 then exploder(exploderindex).fade#=0
+   sparkfade#=100-((90-exploder(exploderindex).fade#)*40)
+   if sparkfade#<0 then sparkfade#=0
+   if sparkfade#>100 then sparkfade#=100
+   set alpha mapping on exploder(exploderindex).obj+0,sparkfade#
+   set alpha mapping on exploder(exploderindex).obj+1,exploder(exploderindex).fade#/1.1 : s#=120+(25-(exploder(exploderindex).fade#/4))
+   scale object exploder(exploderindex).obj+1,s#,s#,s#
+   set alpha mapping on exploder(exploderindex).obj+2,exploder(exploderindex).fade#/1.5 : s#=100+(25-(exploder(exploderindex).fade#/4))
+   scale object exploder(exploderindex).obj+2,s#,s#,s#
+   set alpha mapping on exploder(exploderindex).obj+3,exploder(exploderindex).fade#/2.0 : s#=80+(25-(exploder(exploderindex).fade#/4))
+   scale object exploder(exploderindex).obj+3,s#,s#,s#
+   rem smoke
+   exploder(exploderindex).dist#=exploder(exploderindex).dist#+0.1
+   exploder(exploderindex).smoke#=exploder(exploderindex).smoke#+2.0
+   if exploder(exploderindex).smoke#>=100
+    for oi=0 to 16
+     o=exploder(exploderindex).obj+oi
+     hide object o
+    next oi
+    exploder(exploderindex).explode=0
+   else
+    for oi=4 to 16
+     o=exploder(exploderindex).obj+oi
+     if oi>=14 then up#=0.3 else up#=0.05
+     position object o,object position x(o),object position y(o)+up#,object position z(o)
+     set alpha mapping on o,100.0-exploder(exploderindex).smoke#
+    next oi
+   endif
+  endif
+ next exploderindex
+ `
+return
+

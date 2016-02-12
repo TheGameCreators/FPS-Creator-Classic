@@ -1,0 +1,279 @@
+rem
+rem MAP FILE FORMAT
+rem
+
+`
+` Blank New
+`
+
+_mapfile_newmap:
+ `
+ rem Free arrays
+ undim map()
+ undim mapolay()
+ undim olaylist()
+ `
+ rem Defaults
+ layermax=20 : maxx=40 : maxy=40
+ olaylistmax=100
+ `
+ rem Create arrays
+ dim map(layermax,maxx,maxy)
+ dim mapolay(layermax,maxx,maxy)
+ dim olaylist(olaylistmax,50) as DWORD
+ `
+return
+
+`
+` Load
+`
+
+_mapfile_loadmap:
+ `
+ rem Free arrays
+ undim map()
+ undim mapolay()
+ undim olaylist()
+ `
+ rem Load header data (need main mapdata for visdata)
+ filename$=levelmapptah$+"header.dat"
+ if file exist(filename$)=1
+  if file size(filename$)=16
+   rem V-EA Header
+   open to read 1,filename$
+    read file 1,layermax
+    read file 1,maxx
+    read file 1,maxy
+    read file 1,olaylistmax
+   close file 1
+  endif
+  if file size(filename$)=32
+   rem V-V1 Header
+   open to read 1,filename$
+    read file 1,layermax
+    read file 1,maxx
+    read file 1,maxy
+    read file 1,olaylistmax
+    read file 1,gmultiplayergame
+    read file 1,temp
+    read file 1,temp
+    read file 1,temp
+   close file 1
+  endif
+ else
+  layermax=20 : maxx=40 : maxy=40
+  olaylistmax=100
+ endif
+ `
+ rem Create arrays
+ dim map(layermax,maxx,maxy)
+ dim mapolay(layermax,maxx,maxy)
+ dim olaylist(olaylistmax,50) as DWORD
+ `
+ rem Dump main map data
+ filename$=levelmapptah$+"map.fpmb"
+ if file exist(filename$)=1 then load array filename$,map()
+ `
+ rem Dump array data
+ if file exist("mapbank\testmap\map.fpmo")=1 then load array "mapbank\testmap\map.fpmo",mapolay()
+ if file exist("mapbank\testmap\map.fpml")=1 then load array "mapbank\testmap\map.fpml",olaylist()
+ `
+return
+
+`
+` Save
+`
+
+_mapfile_savemap:
+ `
+ rem Store old folder
+ old$=get dir$()
+ `
+ rem Enter folder
+ set dir "mapbank\testmap\"
+ `
+ rem Clear old files out (TEMP)
+ if file exist("map.fpmb")=1 then delete file "map.fpmb"
+ if file exist("header.dat")=1 then delete file "header.dat"
+ if file exist("map.fpmo")=1 then delete file "map.fpmo"
+ if file exist("map.fpml")=1 then delete file "map.fpml"
+ `
+ rem Create header file
+ open to write 1,"header.dat"
+  `
+  rem EA
+  rem map dimensions
+  write file 1,layermax
+  write file 1,maxx
+  write file 1,maxy
+  rem list sizes
+  write file 1,olaylistmax
+  `
+  rem V1
+  write file 1,gmultiplayergame
+  write file 1,0
+  write file 1,0
+  write file 1,0
+  `
+ rem end of header
+ close file 1
+ `
+ rem Dump array data
+ save array "map.fpmb",map()
+ save array "map.fpmo",mapolay()
+ save array "map.fpml",olaylist()
+ `
+ rem Restore
+ set dir old$
+ `
+return
+
+`
+` ProjectFilename FPM Saver (ZIP)
+`
+
+_mapfile_saveproject_fpm:
+ `
+ rem Delete any olf file
+ if file exist(projectfilename$)=1 then delete file projectfilename$
+ `
+ rem Copy CFG to testgame area for saving with other files
+ tttfile$="cfg.cfg"
+ if file exist(get dir$()+"\editors\gridedit\"+tttfile$)=1
+  if file exist("mapbank\testmap\"+tttfile$)=1 then delete file "mapbank\testmap\"+tttfile$
+  copy file get dir$()+"\editors\gridedit\"+tttfile$,"mapbank\testmap\"+tttfile$
+ endif
+ `
+ rem Create a FPM (zipfile)
+ create file block 1, projectfilename$
+ set file block key 1, "mypassword"
+ set dir "mapbank\testmap\"
+ add file to block 1, "header.dat"
+ add file to block 1, "map.ele"
+ add file to block 1, "map.ent"
+ add file to block 1, "map.seg"
+ add file to block 1, "map.way"
+ add file to block 1, "map.fpmb"
+ add file to block 1, "map.fpmo"
+ add file to block 1, "map.fpml"
+ add file to block 1, "cfg.cfg"
+ set dir "..\.."
+ save file block 1
+ `
+return
+
+_mapfile_loadgamemap_fpm:
+ `
+ rem FPM for level loaded into mapbank\testmap
+ projectfilename$=level$(level).fpm$
+ gosub _mapfile_loadproject_fpm
+ `
+return
+
+_mapfile_loadproject_fpm:
+ `
+ rem Ensure FPM exists
+ if file exist(projectfilename$)=1
+  `
+  rem Store and switch folders
+  tdirst$=get dir$() : set dir "mapbank\testmap\"
+  `
+  rem Delete key testmap file (if any)
+  if file exist("header.dat")=1
+   delete file "header.dat"
+  endif
+  `
+  rem Retore folder to Files (for extraction)
+  set dir tdirst$
+
+  rem Read FPM into testmap area
+  open file block projectfilename$,1,"mypassword"
+  perform checklist for file block data 1
+  tpath$=rootpath$+"mapbank\testmap\"
+  for i = 1 to checklist quantity( )
+   extract file from block 1, checklist string$( i ), tpath$
+  next i
+  close file block 1
+  `
+  rem If file still not present, extraction failed
+  set dir tdirst$+"\mapbank\testmap\"
+  if file exist("header.dat")=0
+   rem inform user the FPM could not be loaded (corrupt file)
+   tloadsuccessfully=0
+  endif
+  `
+  rem if CFG file present, copy to editor folder for later use (stores FPG for us)
+  if tloadsuccessfully=1
+   tttfile$="cfg.cfg"
+   if file exist(tttfile$)=1
+    if file exist(tdirst$+"\editors\gridedit\"+tttfile$)=1 then delete file tdirst$+"\editors\gridedit\"+tttfile$
+    copy file tttfile$,tdirst$+"\editors\gridedit\"+tttfile$
+   endif
+  endif
+  `
+  rem Retore and switch folders
+  set dir tdirst$
+  `
+ else
+  tloadsuccessfully=0
+ endif
+ `
+return
+
+_mapfile_save_fpl:
+ `
+ rem Delete any old file before saving
+ levelfilename$="levelbank\level"+str$(level)+".zip"
+ if file exist(levelfilename$)=1 then delete file levelfilename$
+ create file block 1, levelfilename$
+ set file block key 1, "mypassword"
+ set dir "levelbank\testlevel\"
+ add file to block 1, "header.dat"
+ add file to block 1, "map.ent"
+ add file to block 1, "map.way"
+ add file to block 1, "map.fpmb"
+ add file to block 1, "universe.eff"
+ add file to block 1, "universe.dbo"
+ add file to block 1, "universephy.dbo"
+ add file to block 1, "universe.dbu"
+ add file to block 1, "universe.ele"
+ add file to block 1, "universe.lgt"
+ tdds=0
+ while tdds<65535
+  if file exist("lightmaps\"+str$(tdds)+".dds")=1
+   add file to block 1,"lightmaps\"+str$(tdds)+".dds"
+  else
+   if file exist("lightmaps\"+str$(tdds)+".png")=1
+    add file to block 1,"lightmaps\"+str$(tdds)+".png"
+   else
+    exit
+   endif
+  endif
+  inc tdds
+ endwhile
+ set dir "..\.."
+ save file block 1
+ addfiletocollection(levelfilename$)
+ `
+return
+
+_mapfile_load_fpl:
+ `
+ rem Load if exists
+ levelfilename$="levelbank\level"+str$(level)+".zip"
+ if file exist(levelfilename$)=1
+  `
+  rem Read FPL into testlevel area
+  open file block levelfilename$,1,"mypassword"
+  perform checklist for file block data 1
+  tpath$=rootpath$+"levelbank\testlevel\"
+  for i = 1 to checklist quantity( )
+   extract file from block 1, checklist string$( i ), tpath$
+  next i
+  close file block 1
+  `
+ endif
+ `
+return
+
+

@@ -1,0 +1,1106 @@
+rem
+rem GAME PLAYER
+rem
+
+`
+` Player Core Subroutines (for human and NPC players)
+`
+
+_player_resetmaterialsused:
+ `
+ rem V109 BETA5 - 250408 - clear usage flags, and set them when entity/segment uses that material
+ for mi=0 to gmaterialmax
+  material(mi).usedinlevel=0
+ next mi
+ for di=0 to 8
+  debrisshapeindexused(di)=0
+ next di
+ `
+return
+
+_player_savematerialsused:
+ `
+ rem V109 BETA5 - 250408 - uses that material
+ tmaterialfile$="audiobank\materials\materialsused.bin"
+ if file exist(tmaterialfile$)=1 then delete file tmaterialfile$
+ open to write 1,tmaterialfile$
+  tversionnum=101
+  write file 1,tversionnum
+  if tversionnum>=100
+   for mi=0 to gmaterialmax
+    write file 1,material(mi).usedinlevel
+   next mi
+   for di=0 to 8
+    write file 1,debrisshapeindexused(di)
+   next di
+  endif
+  if tversionnum>=101
+   for fi=0 to flakmax
+    write file 1,flak(fi).usedinlevel
+   next fi
+  endif
+ close file 1
+ addfiletocollection(tmaterialfile$)
+ `
+return
+
+_player_loadmaterialsused:
+ `
+ rem V109 BETA5 - 250408 - uses that material
+ tmaterialfile$="audiobank\materials\materialsused.bin"
+ if file exist(tmaterialfile$)=1
+  open to read 1,tmaterialfile$
+   read file 1,tversionnum
+   if tversionnum>=100
+    for mi=0 to gmaterialmax
+     read file 1,a : material(mi).usedinlevel=a
+    next mi
+    for di=0 to 8
+     read file 1,a : debrisshapeindexused(di)=a
+    next di
+   endif
+   if tversionnum>=101
+    for fi=0 to flakmax
+     read file 1,a : flak(fi).usedinlevel=a
+    next fi
+   endif
+  close file 1
+ endif
+ `
+return
+
+_player_init:
+
+rem For all players
+for plrid=1 to playermax
+ `
+ rem Player or NPCs
+ if plrid=1 then t3d=0 else t3d=1
+ `
+ rem Sounds 0-9 reserved
+ `
+ rem Load player grunt sounds
+ tsoundset$=playersoundset$(plrid)
+ if tsoundset$<>"" and right$(tsoundset$,1)<>"\" then tsoundset$=tsoundset$+"\"
+ snd$="audiobank\voices\"+tsoundset$+"leap.wav"
+ playersound(plrid,10)=loadinternalsoundcore(snd$,t3d)
+ snd$="audiobank\voices\"+tsoundset$+"land.wav"
+ playersound(plrid,11)=loadinternalsoundcore(snd$,t3d)
+ snd$="audiobank\voices\"+tsoundset$+"hurt1.wav"
+ playersound(plrid,12)=loadinternalsoundcore(snd$,t3d)
+ snd$="audiobank\voices\"+tsoundset$+"hurt2.wav"
+ playersound(plrid,13)=loadinternalsoundcore(snd$,t3d)
+ snd$="audiobank\voices\"+tsoundset$+"hurt3.wav"
+ playersound(plrid,14)=loadinternalsoundcore(snd$,t3d)
+ snd$="audiobank\voices\"+tsoundset$+"finalmoan.wav"
+ playersound(plrid,15)=loadinternalsoundcore(snd$,t3d)
+ snd$="audiobank\voices\"+tsoundset$+"spawn.wav"
+ playersound(plrid,16)=loadinternalsoundcore(snd$,t3d)
+ `
+ rem Load tred sounds from material list
+ for mi=0 to gmaterialmax
+  rem only load materials
+  for titer=0 to 3
+   playersound(plrid,21+(mi*4)+titer)=0
+   rem V109 BETA8 - 060508 - material used or all if test game
+   tloadthismaterialsound=0
+   if gtestgamemodefromeditor=1 then tloadthismaterialsound=1
+   if material(mi).usedinlevel=1 then tloadthismaterialsound=1
+   if material(mi).name$<>"" and tloadthismaterialsound=1
+    if titer=0 then snd$=material(mi).tred0$
+    if titer=1 then snd$=material(mi).tred1$
+    if titer=2 then snd$=material(mi).tred2$
+    if titer=3 then snd$=material(mi).tred3$
+    playersound(plrid,21+(mi*4)+titer)=loadinternalsoundcore(snd$,t3d)
+   endif
+  next titer
+ next mi
+ `
+ rem Setup player default start values (before startpos fills with real ones)
+ if plrid=1
+  checkpointentity=-1
+  gosub _entity_findplayerstartposition : rem gets 'playerstartlives'
+  player(plrid).lives=playerstartlives
+ else
+  player(plrid).lives=1
+ endif
+ player(plrid).recovershield=0
+ player(plrid).health=100
+ `
+ rem test game gives player 99 lives (but regular health to test logic)
+ if gtestgamemodefromeditor=1 then player(plrid).lives=99
+ `
+next plrid
+
+rem place listener far away at start
+position listener -999999,-999999,-999999
+rotate listener 90,0,0
+
+return
+
+_player_free:
+
+rem As sounds are unique, free them before re-creating players
+for plrid=1 to playermax
+ for tt=0 to 520
+  tsnd=playersound(plrid,tt)
+  if tsnd>0
+   if sound exist(tsnd)=1 then delete sound tsnd
+  endif
+ next tt
+next plrid
+
+return
+
+_player_startgun:
+
+rem Get player start data
+gosub _entity_findplayerstartposition
+if playerstarthasweapon>0
+ rem only if not got gun in slot already
+ for tww=1 to 10
+  if weaponslot(tww).pref>0
+   if weaponslot(tww).pref=playerstarthasweapon then exit
+  endif
+ next tww
+ if tww>10
+  for tww=1 to 10
+   if weaponslot(tww).pref=0
+    weaponslot(tww).pref=playerstarthasweapon
+    weaponslot(tww).got=playerstarthasweapon
+    weaponhud(tww)=gun(playerstarthasweapon).hudimage
+    tww=11 : exit
+   endif
+  next tww
+ endif
+ gun(playerstarthasweapon).activeingame=1
+endif
+
+return
+
+_player_setstartposonly:
+ `
+ rem Find player start location
+ gosub _entity_findplayerstartposition
+ if playerstartx#=0
+  rem look for first filled map piece
+  for lay=0 to 19
+   for x=0 to maxx-1
+    for y=0 to maxy-1
+     if map(lay,x,y)<>0
+      playerstartx#=(x*100)+50
+      playerstarty#=(lay*100)
+      playerstartz#=(y*-100)-50
+      playerstartry#=135
+      x=maxx : y=maxy : lay=20
+      exit
+     endif
+    next y
+   next x
+  next lay
+ endif
+ `
+return
+
+_player_startpos:
+ `
+ rem clear weaponammoindex (startpostion routine can fill this var)
+ weaponammoindex=0
+ `
+ rem Find player start location
+ gosub _player_setstartposonly
+ `
+ rem Setup player default start values
+ player(1).health=playerstartstrength
+ if level>1
+  rem FPSCV10X - carried from previous level (no longer writes over MAX)
+  player(1).health=saveplayerstate.health
+ endif
+ `
+ rem restart basic player vars
+ gosub _player_restart
+ `
+return
+
+_player_restart:
+ `
+ rem uses playerstartxyz#
+ rem Ensure player start height avoids stairs and other ground obstacles
+ pttry=0
+ while pttry<500
+  if static volume(playerstartx#,playerstarty#+1.0,playerstartz#,playerstartx#,playerstarty#,playerstartz#,1.0)=0 then exit
+  playerstarty#=playerstarty#+1.0
+  inc pttry
+ endwhile
+ `
+ rem sort out camera default rotation at start
+ yrotate camera playerstartry#
+ zrotate camera 0
+ `
+ rem start with a jump
+ grav#=-1.0 : jumpaction=0 : jumpspeed#=0.0 : jumpangle#=camera angle y() : gravlasty#=mey#
+ camflyforcex#=0 : camflyforcey#=0 : camflyforcez#=0
+ camforcex#=0 : camforcey#=0 : camforcez#=0
+ `
+ rem crouch state
+ crouchmode=0
+ tcamerasize#=1.0
+ ellipsevolumesize#=1.0
+ `
+ rem recover shield
+ player(1).recovershield=0`
+ `
+ rem Me-vars
+ meridingtransporter=0
+ meridinglift=0
+ mefrozentype=0
+ mefrozen=0
+ `
+ rem Player Weapon default
+ if gunzoommode=10 then gunzoommode=11
+ autoloadgun=playerstarthasweapon
+ `
+ rem Default position in center (borble uses this xyz for its position, then camera adjustment later)
+ tvalueheight=11 : rem height from base of player start value to center of borble
+ lastcamx#=playerstartx# : lastcamy#=playerstarty#+tvalueheight : lastcamz#=playerstartz#
+ phystood#=40.0 : phyeyeheight#=phystood#
+ camerapositionx=lastcamx#
+ camerapositiony=lastcamy#+phyeyeheight#
+ camerapositionz=lastcamz#
+ mex#=camerapositionx : mey#=camerapositiony : mez#=camerapositionz
+ cx#=camerapositionx : cy#=camerapositiony : cz#=camerapositionz
+ `
+ rem Activate player borble (uses plrpos)
+ gosub _ode_playerborble
+ `
+ rem Can be called within before_and_after move, so ensure vars are set
+ ctox#=ctx# : ctoy#=cty# : ctoz#=ctz#
+ if object exist(physicsplayerborble)=1
+  camerapositionx=object position x(physicsplayerborble)
+  camerapositiony=object position y(physicsplayerborble)+phyeyeheight#
+  camerapositionz=object position z(physicsplayerborble)
+  position camera camerapositionx,camerapositiony,camerapositionz
+ endif
+ realcx#=camerapositionx : realcy#=camerapositiony : realcz#=camerapositionz
+ `
+return
+
+_player_savestate:
+
+rem Record players leaving level state
+saveplayerstate.lives=player(1).lives
+saveplayerstate.health=player(1).health
+saveplayerstate.weaponindexholding=weaponammoindex
+
+return
+
+_player_setup:
+ `
+ rem Setup camera
+ position camera 0,52,0
+ point camera 0,52,0
+ set light range 0,10000
+ `
+ rem start camera for player
+ plrzoominchange=0 : plrzoomin#=0.0
+ set camera fov 75.0
+ `
+ rem Find player start location
+ gosub _player_startpos
+ `
+ rem if weapon, add bullets if any
+ if playerstarthasweapon>0 and level=1
+  for tww=1 to 10
+   if weaponslot(tww).pref=playerstarthasweapon
+    tqty=gun(playerstarthasweapon).settings.reloadqty
+    if playerstarthasweaponqty>=1
+     weaponammo(tww)=tqty
+     if playerstarthasweaponqty>1
+      weaponclipammo(tww)=(playerstarthasweaponqty-1)*tqty
+     endif
+    endif
+    tww=11 : exit
+   endif
+  next tww
+ endif
+ `
+ rem Reset some plater related states when restart
+ gosub _player_resettrail
+ trailx#=mex# : traily#=mey#-52 : trailz#=mez#
+ inc playertrailmax
+ playertrial(playertrailmax).time=timer()
+ playertrial(playertrailmax).x=trailx#
+ playertrial(playertrailmax).y=traily#
+ playertrial(playertrailmax).z=trailz#
+ `
+ rem restore player camera states
+ phyeyeheight#=phystood#
+ tcamerasize#=1.0
+ grav#=0
+ cameraspeed=0
+ cameraholding=0
+ camerapickupkeyrelease=0
+ camerareach#=0
+ camerapicked=0
+ cameradampen#=1.0
+ `
+return
+
+_player_playfootfall:
+
+sndid=0
+if colmaterialtype>=0
+ if colmaterialtype>=100 then colmaterialtype=colmaterialtype-(int(colmaterialtype/100)*100)
+ if colmaterialtype>=0 and colmaterialtype<100
+  tt=21+(colmaterialtype*4)
+  for titer=0 to 3
+   ttrr=rnd(3)
+   sndid=playersound(plrid,tt+ttrr)
+   if sndid>0
+    if sound playing(sndid)=1 then sndid=0
+   endif
+   if sndid<>0 then playersoundtimeused(plrid,tt+ttrr)=perftimer() : exit
+  next titer
+  if sndid=0
+   titerdw as DWORD
+   tdwsmalltest as DWORD
+   bestsndid=0
+   for titer=0 to 3
+    titerdw=playersoundtimeused(plrid,tt+titer)
+    if titer=0 then tdwsmalltest=titerdw
+    sndid=playersound(plrid,tt+titer)
+    if sndid>0
+     if titerdw<=tdwsmalltest
+      tdwsmalltest=titerdw : bestsndid=sndid
+     endif
+    endif
+   next titer
+   sndid=bestsndid
+  endif
+ endif
+ if sndid>0
+  if (movement<>0 and jumpaction=0) or leapedlanded=1 or plrid>1
+   `
+   if manuallycontrolledfootfallframe>0 and plrid>1
+    rem manually controlled footfall (entities only)
+    if manuallycontrolledfootfallframe<>playermovementstep(plrid) or leapedlanded=1
+     playermovementstep(plrid)=manuallycontrolledfootfallframe : leapedlanded=0
+     playinternal3dsoundfactor(sndid,entityelement(e).x,entityelement(e).y,entityelement(e).z,10.0)
+    endif
+   else
+    rem default timer based footfall
+    playermovementstep(plrid)=playermovementstep(plrid)+timeelapsed#
+    if movement=2 then tfootspeed#=2.0 else tfootspeed#=1.0
+    if plrid=1
+     if basespeed#<=40.0 then tsteppingsound#=6.0*tfootspeed#
+     if basespeed#>40.0 then tsteppingsound#=5.0*tfootspeed#
+    else
+     if basespeed#<=40.0 then tsteppingsound#=11.0*tfootspeed#
+     if basespeed#>40.0 then tsteppingsound#=7.0*tfootspeed#
+    endif
+    if plrid=1 then tsteppingsound#=tsteppingsound#/playerspeedratio#
+    if playermovementstep(plrid)>tsteppingsound# or leapedlanded=1
+     leapedlanded=0 : playermovementstep(plrid)=0.0
+     if plrid>1
+      playinternal3dsoundfactor(sndid,entityelement(e).x,entityelement(e).y,entityelement(e).z,10.0)
+     else
+      broadcast3dsound(camera position x(),camera position y(),camera position z(),10.0)
+      play sound sndid
+     endif
+    endif
+   endif
+   `
+  endif
+ endif
+endif
+
+return
+
+_player_resetobjectives:
+
+rem Set mission after 100 cycle void, for now reset objectives
+for mi=1 to 99 : playerobjective(mi)=0 : next mi
+newlevelobjectivevoid=10
+triggergameexitfade=0
+missiongoaltotal=0
+
+return
+
+_player_mission:
+
+rem For player one only
+plrid=1
+
+rem Only if game in ful swing
+if newlevelobjectivevoid>0
+ `
+ rem Ensure objective cannot be met for 100 cycles at start of level
+ dec newlevelobjectivevoid
+ if newlevelobjectivevoid<=0
+  rem Set mission through entity objective flags
+  for mi=1 to 99 : playerobjective(mi)=0 : next mi
+  gosub _entity_calculateobjectivestotal
+  newlevelobjectivevoid=0
+  triggergameexitfade=0
+  rem FPSCV104RC4 - if just loaded a game, refresh objectives from savedata
+  if gsaveloadobjectivesloaded=1
+   for mi=0 to 99
+    playerobjective(mi)=saveloadgamepositionplayerobjective(mi)
+   next mi
+   gsaveloadobjectivesloaded=0
+  endif
+ endif
+ `
+else
+ `
+ rem Decide when player wins/loses
+ if player(plrid).lives=0 and player(plrid).health=0
+  `
+  rem Never lose if in arena mode (other players you see)
+  if gmultiplayergame=1
+   rem simply skip
+  else
+   rem LOST
+   if triggergameexitfade=0
+    triggergameexitfade=1 : levelwon=0
+   endif
+  endif
+  `
+ else
+  `
+  rem only if objectives in this level
+  if missiongoaltotal>0
+   `
+   rem default is mission COMPLETE
+   objectivesmet=1
+   `
+   rem All active objectives must be met, else mission not complete
+   for mi=1 to missiongoaltotal
+    if playerobjective(mi)=0 then objectivesmet=0
+   next mi
+   `
+   rem Objective never met if arena game not objective based
+   if gmultiplayergame=1
+    if ggameobjectivetype<>1 then objectivesmet=0
+   endif
+   `
+   rem If all objectives met, player wins level
+   if objectivesmet=1
+    `
+    rem WON
+    if triggergameexitfade=0
+     triggergameexitfade=1 : levelwon=1
+    endif
+    `
+   endif
+   `
+  endif
+  `
+ endif
+ `
+endif
+
+rem Fading system prior to WIN/LOSE logic escape
+if triggergameexitfade>0
+ `
+ rem Fade out screen
+ inc triggergameexitfade,4
+ if triggergameexitfade>255
+  triggergameexitfade=255
+ endif
+ `
+ rem apply fade to hud
+ if internalfaderhud>0
+  hudid=internalfaderhud : hud(hudid).hide=0
+  set sprite alpha hudid,triggergameexitfade
+ endif
+ `
+ rem When fade complete, can continue win/lose triggers
+ if triggergameexitfade=255
+  rem can switch from WIN to LOSE if no health by time fade done
+  if player(1).health<=0 then levelwon=0
+  rem complete game session
+  if gmultiplayergame=1
+   rem allow multi code to determine conclusion actions (multiplayer)
+   gosub _multi_missioncomplete
+  else
+   rem exit level (single player)
+   continueokay=1
+  endif
+  rem reset fader
+  triggergameexitfade=0
+ endif
+ `
+endif
+
+return
+
+_player_manager:
+
+rem For all players
+for plrid=1 to playermax
+ `
+ rem Player commands received
+ dropitem=player(plrid).command.drop
+ if dropitem>0
+  playerinventory(plrid,dropitem).drop=1
+  player(plrid).command.drop=0
+ endif
+ `
+next plrid
+
+return
+
+_player_obtainaweapon:
+ `
+ rem uses weaponindex,tqty
+ if weaponindex>0
+  rem adds the weapon
+  weaponinvposition=pi : tgunid=weaponindex
+  if gun(tgunid).settings.weaponisammo=0 and tqty=0 then tqty=1
+  tqty=tqty*gun(tgunid).settings.reloadqty
+  gosub _player_addweapon
+ endif
+ `
+return
+
+_player_itemmanager:
+
+rem For all players
+for plrid=1 to playermax
+ `
+ rem Check inventory for any new items added
+ for pi=1 to player(plrid).inventorymax
+  if playerinventory(plrid,pi).new=1
+   `
+   rem Item checked in
+   playerinventory(plrid,pi).new=0
+   `
+   rem Entity ID
+   e=playerinventory(plrid,pi).index
+   entid=entityelement(e).bankindex
+   `
+   rem If main player, handle internal resources
+   if plrid=1
+    `
+    rem Entities record when they have been collected
+    entityelement(e).collected=1
+    `
+    rem Respond to presence of WEAPON
+    weaponindex=entityprofile(entid).isweapon
+    tqty=entityelement(e).eleprof.quantity
+    gosub _player_obtainaweapon
+    `
+    rem Respond to presence of AMMO
+    ammoindex=entityprofile(entid).isammo
+    if ammoindex>0
+     tnogunforammo=1
+     for ws=1 to 10
+      tgunid=weaponslot(ws).pref
+      if tgunid=entityprofile(entid).hasweapon
+       tnogunforammo=0
+       tqty=entityelement(e).eleprof.quantity*gun(tgunid).settings.reloadqty
+       if gun(tgunid).settings.weaponisammo=1
+        weaponammo(ws)=weaponammo(ws)+tqty
+       else
+        weaponclipammo(ws)=weaponclipammo(ws)+tqty
+       endif
+       exit
+      endif
+     next ws
+     if tnogunforammo=1
+      rem create a gun slot for it, and fill with ready ammo
+      for ws=1 to 10
+       if weaponslot(ws).pref=0
+        tgunid=entityprofile(entid).hasweapon
+        weaponslot(ws).pref=tgunid
+        weaponhud(ws)=gun(tgunid).hudimage
+        tqty=entityelement(e).eleprof.quantity*gun(tgunid).settings.reloadqty
+        weaponclipammo(ws)=tqty
+        exit
+       endif
+      next ws
+     endif
+    endif
+    `
+   else
+    `
+    rem any maintenance the NPC needs to do when it gets an item
+    `
+   endif
+   `
+  endif
+ next pi
+ `
+ rem Check inventory for any items we need to drop
+ for pi=1 to player(plrid).inventorymax
+  if playerinventory(plrid,pi).drop=1
+   `
+   rem Entity ID
+   e=playerinventory(plrid,pi).index
+   entid=entityelement(e).bankindex
+   `
+   rem Item Entities expect a state incrememt if player drops after pickup
+   entityelement(e).ai.state=entityelement(e).ai.state+1
+   `
+   rem Handle main player internal resources
+   if plrid=1
+    `
+    rem Entities record when they have been dropped
+    entityelement(e).collected=0
+    `
+    rem Respond to removal of item from inventory
+    weaponindex=entityprofile(entid).isweapon
+    if weaponindex>0 then gosub _player_removeweapon
+    `
+   else
+    `
+    rem any maintenance the NPC needs to do when it drops an item
+    `
+   endif
+   `
+   rem Item checked out
+   playerinventory(plrid,pi).drop=0
+   playerinventory(plrid,pi).index=0
+   `
+  endif
+ next pi
+ `
+next plrid
+
+return
+
+`
+` Main Player Subroutines Only
+`
+
+_player_input:
+
+rem Input relates to PLAYER ONE ONLY (main controller of this app)
+plrid=1
+
+rem Gather input data
+k$=lower$(inkey$())
+
+rem Invincibe Mode - God Mode
+if ggodmodestate=1 or gtestgamemodefromeditor=1
+ if k$="i" then player(1).health=9999
+endif
+
+rem Mouseclick
+tmouseclick=mouseclick()
+
+rem U71 - XBOX360 Contoller
+if gxbox=1 : rem define in a config later
+ if joystick z()<-500 then tmouseclick=1
+ if joystick fire x(9)=1 then tmouseclick=2
+endif
+
+if showgamemenu=1 then tmouseclick=0
+
+rem Mouse
+player(plrid).state.firingmode=0
+if player(plrid).health>0
+ if tmouseclick=1 then player(plrid).state.firingmode=1
+ if tmouseclick=2
+  if gunzoommode=0 and gun(gunid).settings.zoommode<>0
+   gunzoommode=1 : gunzoommag#=1.0
+   rem play sound of gun select-zoom
+   if gunsound(gunid,4).soundid>0
+    if sound exist(gunsound(gunid,4).soundid)=1
+     if sound playing(gunsound(gunid,4).soundid)=0
+      playinternalBC3dsound(gunsound(gunid,4).soundid,camera position x(),camera position y(),camera position z(),1)
+     endif
+    endif
+   endif
+  endif
+  if gunzoommode=10 then gunzoommode=11
+ else
+  if gunzoommode=9 then gunzoommode=10
+  if gunzoommode=20 then gunzoommode=0
+ endif
+ if (plrkeyR)=1 then player(plrid).state.firingmode=2
+endif
+
+rem U71 - XBOX360 Contoller
+if gxbox=1 : rem define in a config later
+ if joystick hat angle(0)=18000 then k$="0"
+ if joystick hat angle(0)=0 then k$=str$(weaponkeyselection)
+endif
+
+rem Keyboard
+if k$<>"" and gunzoommode=0
+ if keyboardpress=0
+  `
+  rem Change weapon
+  if player(plrid).health>0
+   `
+   rem Weapon select
+   wepsel=0
+   `
+   rem Keyboard input
+   if (k$>="1" and k$<="9")
+    sel=(asc(k$)-asc("1")) : wepsel=1+sel
+   endif
+   if k$="0" then wepsel=-1
+   `
+   rem Actual weapon change
+   if wepsel>0
+    weaponkeyselection=wepsel
+    weaponindex=weaponslot(weaponkeyselection).got
+    if weaponindex>0 then player(plrid).command.newweapon=weaponindex
+   endif
+   if wepsel=-1
+    if gunid<>0
+     gunmode=31 : gunselectionafterhide=0
+    endif
+   endif
+   `
+  endif
+  `
+  rem Restart if in recovermode, early start
+  if player(plrid).recovershield>0 and player(plrid).recovershield<50 and k$=" "
+   player(plrid).recovershield=1
+  endif
+  `
+  rem Cannot keypress until release
+  keyboardpress=1
+  `
+ endif
+else
+ keyboardpress=0
+endif
+
+rem Mouse Wheel scrolls weapons
+tmz=mousemovez()
+
+rem U71 - XBOX360 Contoller
+if gxbox=1 : rem define in a config later
+ if joystick hat angle(0)=9000 then tmz=10
+ if joystick hat angle(0)=27000 then tmz=-10
+endif
+
+rem Change weapon
+if gunselectionlockdown=0 and gunzoommode=0
+ if tmz<>0
+  tokay=0 : ttries=10
+  while tokay=0 and ttries>0
+   if tmz<0 then weaponkeyselection=weaponkeyselection-1
+   if tmz>0 then weaponkeyselection=weaponkeyselection+1
+   if weaponkeyselection>10 then weaponkeyselection=1
+   if weaponkeyselection<1 then weaponkeyselection=10
+   tweaponindex=weaponslot(weaponkeyselection).got
+   if tweaponindex>0 then tokay=1
+   dec ttries
+  endwhile
+  if tokay=1
+   rem change up or down
+   weaponindex=weaponslot(weaponkeyselection).got
+   if weaponindex>0 then player(plrid).command.newweapon=weaponindex
+  endif
+ endif
+else
+ rem zoom magnification wheel
+ if tmz<>0
+  tmz#=tmz : gunzoommag#=gunzoommag#+(tmz#/100.0)
+  if gunzoommag#<1.0 then gunzoommag#=1.0
+  if gunzoommag#>10.0 then gunzoommag#=10.0
+  plrzoominchange=1
+ endif
+endif
+
+rem Use Action
+if (plrkeyRETURN)=1
+ player(plrid).usingaction=1
+else
+ player(plrid).usingaction=0
+endif
+
+rem Recover mode progress (RESTART PLAYER NEW LIFE)
+tsetplayereyehud=0
+if player(plrid).recovershield>0
+ if player(plrid).lives>0
+  player(plrid).recovershield=player(plrid).recovershield-1
+  if player(plrid).recovershield>0
+   tsetplayereyehud=1
+  else
+   rem recover player
+   player(plrid).recovershield=0
+   player(plrid).health=playerstartstrength
+   rem restart player at spawn point
+   gosub _player_unmark
+   gosub _player_startpos
+   rem reset entities to make distant ones dormant again
+   gosub _entity_resetentitiesifplrleaps
+  endif
+ endif
+endif
+if player(plrid).lives=0 and player(plrid).health<=0
+ tsetplayereyehud=1
+endif
+if tsetplayereyehud=1
+ rem update sprite used for screen fade
+ if internaleyehud>0
+  hudid=internaleyehud : hud(hudid).hide=0
+  hud(hudid).hidedelay=5
+ endif
+endif
+
+return
+
+_player_addweapon:
+
+rem check all weapon slots
+gotweapon=0
+for ws=1 to 10
+ if weaponslot(ws).got=weaponindex then gotweapon=ws
+next ws
+if gotweapon=0
+ rem check if we have a slot preference
+ gotweaponpref=0
+ for ws=1 to 10
+  if weaponslot(ws).pref=weaponindex then gotweaponpref=ws
+ next ws
+ rem add weapon
+ if gotweaponpref=0
+  rem find free slot
+  for ws=1 to 10
+   if weaponslot(ws).pref=0 then exit
+  next ws
+  if ws<=10
+   rem add weapon into free slow and create pref for it
+   weaponslot(ws).pref=weaponindex
+   weaponhud(ws)=gun(weaponindex).hudimage
+  else
+   rem no room for weapon in available slots
+   ws=0
+  endif
+ else
+  ws=gotweaponpref
+ endif
+ remstart
+ rem switch to collected weapon
+ if ws>0
+  rem insert as slot weapon
+  weaponslot(ws).got=weaponindex
+  weaponslot(ws).invpos=weaponinvposition
+  autoloadgun=weaponindex
+  weaponkeyselection=ws
+  gotweapon=ws
+ endif
+ remend
+ rem place details of weapon in slot
+ if ws>0
+  rem insert as slot weapon
+  weaponslot(ws).got=weaponindex
+  weaponslot(ws).invpos=weaponinvposition
+  gotweapon=ws
+  if gunid=0
+   rem if no gun held, auto select collected
+   autoloadgun=weaponindex
+   weaponkeyselection=ws
+  endif
+ endif
+endif
+`
+rem weapons start with some ammo
+if gotweapon>0
+ tgunid=weaponslot(gotweapon).pref
+ if gun(tgunid).settings.weaponisammo=0
+  if tqty=0 then tqty=1
+  if weaponammo(gotweapon)=0
+   weaponammo(gotweapon)=tqty
+  else
+   weaponclipammo(gotweapon)=weaponclipammo(gotweapon)+tqty
+  endif
+ endif
+endif
+
+return
+
+_player_removeweapon:
+
+rem check all weapon slots
+for ws=1 to 10
+ if weaponslot(ws).got=weaponindex then exit
+next ws
+if ws<=10
+ `
+ rem Ensure gun is removed (if applicable)
+ if gunid>0 and weaponslot(ws).got=gunid
+  autoloadgun=0
+ endif
+ `
+ rem drop weapon from slot
+ weaponslot(ws).got=0
+ weaponslot(ws).invpos=0
+ `
+endif
+
+return
+
+`
+` Player Movement Related
+`
+
+_player_unmark:
+ gosub _ode_unmark
+return
+
+_player_mark:
+ gosub _ode_mark
+return
+
+_player_camera:
+ plrid=1 : gosub _ode_playercamera
+ basespeed#=plrbasespeed# : gosub _player_playfootfall
+ if cty#<=-100 then tdamage=65000 : gosub _player_takedamage
+return
+
+_player_listener:
+ gosub _ode_listener
+return
+
+`
+` Player Gun Functions (should they be here)
+`
+
+function loadgun(tfile$)
+ index=0
+ if gunbankmax>0
+  for t=1 to gunbankmax
+   if tfile$=gunbank$(t) then index=gunbankoffset+t : exit
+  next t
+ else
+  t=gunbankmax+1
+ endif
+ if t>gunbankmax
+  inc gunbankmax
+  `
+  rem V109 BETA8 - some models do not re-load as HUD DBO correctly, so exclude them here:
+  legacyhudmode=0
+  if lower$(right$(tfile$,10))="ak47\hud.x" then legacyhudmode=1
+  `
+  rem V109 BETA6 - replaced X file load with optional DBO convert/load for HUD.X
+  if lower$(right$(tfile$,2))=".x" then tdbofile$=left$(tfile$,len(tfile$)-2)+".dbo" else tdbofile$=""
+  if legacyhudmode=1 then tdbofile$=""
+  if file exist(tfile$)=1 or file exist(tdbofile$)=1
+   index=gunbankoffset+gunbankmax
+   gunbank$(gunbankmax)=tfile$
+   rem V109 BETA6 - replaced X file load with optional DBO convert/load for HUD.X
+   if file exist(tdbofile$)=1
+    tfile$=tdbofile$
+    tdbofile$=""
+   else
+    rem allowed to save DBO (once only)
+   endif
+   load object tfile$,index
+   if len(tdbofile$)>1
+    save object tdbofile$,index
+    if file exist(tdbofile$)=1
+     delete object index
+     load object tdbofile$,index
+     tfile$=tdbofile$
+    endif
+   endif
+   addfiletocollection(tfile$)
+   `
+   set object collision off index
+   set object interpolation index,100
+   set object frame index,gun(gunbankmax).action.show.s
+   hide object index
+  else
+   exit prompt str$(file exist(tfile$))+" "+tfile$,str$(file exist(tdbofile$))+" "+tdbofile$
+   end
+
+  endif
+ endif
+endfunction index
+
+function createsecondgun()
+ inc gunbankmax
+ gunbank$(gunbankmax)="second"
+ index=gunbankoffset+gunbankmax
+endfunction index
+
+function loadbrass(tfile$)
+ index=0
+ if brassbankmax>0
+  for t=1 to brassbankmax
+   if tfile$=brassbank$(t) then index=brassbankoffset+t : exit
+  next t
+ else
+  t=brassbankmax+1
+ endif
+ if t>brassbankmax
+  inc brassbankmax
+  `
+  rem V109 BETA6 - replaced X file load with optional DBO convert/load for HUD.X
+  `load object tfile$,index
+  `addfiletocollection(tfile$)
+  if lower$(right$(tfile$,2))=".x" then tdbofile$=left$(tfile$,len(tfile$)-2)+".dbo" else tdbofile$=""
+  if file exist(tfile$)=1 or file exist(tdbofile$)=1
+   index=brassbankoffset+brassbankmax
+   brassbank$(brassbankmax)=tfile$
+   rem V109 BETA6 - replaced X file load with optional DBO convert/load for HUD.X
+   if file exist(tdbofile$)=1
+    tfile$=tdbofile$
+    tdbofile$=""
+   else
+    rem allowed to save DBO (once only)
+   endif
+   load object tfile$,index
+   if len(tdbofile$)>1
+    save object tdbofile$,index
+    if file exist(tdbofile$)=1
+     delete object index
+     load object tdbofile$,index
+     tfile$=tdbofile$
+    endif
+   endif
+   addfiletocollection(tfile$)
+   `
+   set object collision off index
+   disable object zdepth index
+   set object transparency index,1
+   set object specular index,15
+   set object fov index,45
+  endif
+ endif
+endfunction index
+
+function loadmuzzle(tfile$)
+ index=0
+ if muzzlebankmax>0
+  for t=1 to muzzlebankmax
+   if tfile$=muzzlebank$(t) then index=muzzlebankoffset+t : exit
+  next t
+ else
+  t=muzzlebankmax+1
+ endif
+ if t>muzzlebankmax
+  inc muzzlebankmax
+  muzzlebank$(muzzlebankmax)=tfile$
+  index=muzzlebankoffset+muzzlebankmax
+  loadinternalimageexcompress(tfile$,index,5)
+ endif
+endfunction index
+
+function loadsmoke(tfile$)
+ index=0
+ if smokebankmax>0
+  for t=1 to smokebankmax
+   if tfile$=smokebank$(t) then index=smokebankoffset+t : exit
+  next t
+ else
+  t=smokebankmax+1
+ endif
+ if t>smokebankmax
+  inc smokebankmax
+  smokebank$(smokebankmax)=tfile$
+  index=smokebankoffset+smokebankmax
+  loadinternalimageexcompress(tfile$,index,5)
+ endif
+endfunction index
+
+

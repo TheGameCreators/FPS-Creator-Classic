@@ -1,0 +1,2950 @@
+rem
+rem ENTITY
+rem
+
+_entity_validatearraysize:
+ `
+ rem ensure enough space in entity profile arrays
+ if entidmaster+32>entidmastermax
+  entidmastermax=entidmaster+32
+  dim entitybodypart(entidmastermax,100) as integer
+  dim entityanim(entidmastermax,animmax) as entityanimtype
+  dim entityfootfall(entidmastermax,footfallmax) as entityfootfalltype
+  dim entityprofileheader(entidmastermax) as entityprofileheadertype
+  dim entityprofile(entidmastermax) as entityprofiletype
+  dim entitydecal$(entidmastermax,100) as string
+  dim entitydecal(entidmastermax,100) as integer
+  entitybankmax=entidmastermax
+  dim entitybank$(entitybankmax)
+ endif
+ `
+return
+
+_entity_savebank:
+
+rem FPSCV104RC6 - scan entire entityelement, delete all entitybank entries not used
+rem V106 RC3 but not if we are constructing the level (as ENT will not match ELE)
+if gcompilestandaloneexe=0
+ if entidmaster>0
+  dim entitybankused(entidmaster)
+  for tttentid=1 to entidmaster
+   entitybankused(tttentid)=0
+  next tttentid
+  for ttte=1 to entityelementlist
+   tttentid=entityelement(ttte).bankindex
+   if tttentid>0
+    entitybankused(tttentid)=1
+   endif
+  next ttte
+  for tttentid=1 to entidmaster
+   if entitybankused(tttentid)=0
+    rem remove entity entry if not used when save FPM
+    entitybank$(tttentid)=""
+   endif
+  next tttentid
+  rem shuffle to remove empty entries
+  for tttentid=1 to entidmaster
+   rem not used to record where entities have been moved to
+   entitybankused(tttentid)=0
+  next tttentid
+  treadentid=1 : tlargest=0
+  for tttentid=1 to entidmaster
+   if treadentid<=entidmaster
+    while entitybank$(treadentid)=""
+     inc treadentid : if treadentid>entidmaster then exit
+    endwhile
+    if treadentid<=entidmaster
+     entitybank$(tttentid)=entitybank$(treadentid)
+     entityprofileheader(tttentid)=entityprofileheader(treadentid)
+     entityprofile(tttentid)=entityprofile(treadentid)
+     for tt=0 to 100 : entitybodypart(tttentid,tt)=entitybodypart(treadentid,tt) : next tt
+     for tt=0 to animmax : entityanim(tttentid,tt)=entityanim(treadentid,tt) : next tt
+     for tt=0 to footfallmax : entityfootfall(tttentid,tt)=entityfootfall(treadentid,tt) : next tt
+     for tt=0 to 100 : entitydecal$(tttentid,tt)=entitydecal$(treadentid,tt) : next tt
+     for tt=0 to 100 : entitydecal(tttentid,tt)=entitydecal(treadentid,tt) : next tt
+     entitybankused(treadentid)=tttentid
+     tlargest=tttentid
+    else
+     entitybank$(tttentid)=""
+    endif
+   else
+    entitybank$(tttentid)=""
+   endif
+   inc treadentid
+  next tttentid
+  rem new list size
+  if entidmaster<>tlargest
+   entidmaster=tlargest
+   entityorsegmententrieschanged=1
+  endif
+  rem update bank index numbers in entityelements
+  for ttte=1 to entityelementlist
+   tttentid=entityelement(ttte).bankindex
+   if tttentid>0
+    rem new entity entry place index
+    entityelement(ttte).bankindex=entitybankused(tttentid)
+   endif
+  next ttte
+  undim entitybankused()
+ endif
+endif
+
+rem Save segment bank
+if file exist("mapbank\testmap\map.ent")=1 then delete file "mapbank\testmap\map.ent"
+open to write 1,"mapbank\testmap\map.ent"
+ write file 1,entidmaster
+ if entidmaster>0
+  for entid=1 to entidmaster
+   write string 1,entitybank$(entid)
+  next entid
+ endif
+close file 1
+
+return
+
+_entity_deletebank:
+
+rem Destroy old entities
+if entidmastermax>0
+ rem V104RC6 changed from entidmaster
+ for entid=1 to entidmastermax
+  entobj=entitybankoffset+entid
+  if object exist(entobj)=1 then delete object entobj
+  entitybank$(entid)=""
+ next entid
+endif
+
+rem Destroy profile data
+undim entityprofile()
+dim entityprofile(100) as entityprofiletype
+entidmastermax=100
+entidmaster=0
+
+return
+
+_entity_loadbank:
+
+rem If ent file exists
+filename$=levelmapptah$+"map.ent"
+if file exist(filename$)=1
+ `
+ rem Destroy old entities
+ gosub _entity_deletebank
+ `
+ rem Load entity bank
+ open to read 1,levelmapptah$+"map.ent"
+  read file 1,entidmaster
+  if entidmaster>0
+   gosub _entity_validatearraysize
+   for entid=1 to entidmaster
+    read string 1,entitybank$(entid)
+   next entid
+  endif
+ close file 1
+ `
+ rem Load in all entity objects and data
+ gosub _entity_loadentitiesnow
+ `
+rem No file
+endif
+
+return
+
+_entity_loadentitiesnow:
+
+rem Load entities specified by bank
+entdir$="entitybank\"
+if entidmaster>0
+ for entid=1 to entidmaster
+  ent$=entitybank$(entid)
+  entpath$=getpath(ent$)
+  gosub _entity_load
+  if desc$=""
+   rem where entities have been lost, delete from list
+   entitybank$(entid)=""
+  endif
+ next entid
+endif
+
+return
+
+_entity_updatebank:
+
+rem If ent file exists
+filename$=levelmapptah$+"map.ent"
+if file exist(filename$)=1
+
+rem Clear non-present entries
+for entid=entidmaster+1 to entitybankmax
+ entitybank$(entid)=""
+next entid
+
+rem Update entity bank
+open to read 2,filename$
+ read file 2,tvalmax
+ if tvalmax>0
+  for tvalindex=1 to tvalmax
+   read string 2,tent$
+   addentityfile$=tent$
+   gosub _entity_adduniqueentity
+  next tvalindex
+ endif
+close file 2
+
+rem No file
+endif
+
+return
+
+_entity_adduniqueentity:
+
+rem Ensure 'entitybank\' is not part of entity filename
+entdir$="entitybank\"
+if lower$(left$(addentityfile$,11))="entitybank\"
+ addentityfile$=right$(addentityfile$,len(addentityfile$)-11)
+endif
+
+rem Check if entity already loaded in
+talreadyloaded=0
+for t=1 to entidmaster
+ if entitybank$(t)=addentityfile$ then talreadyloaded=1 : entid=t
+next t
+if talreadyloaded=0
+ `
+ rem Allocate one more entity item in array
+ if entidmaster>entitybankmax-4
+  dim tempentitybank$(entitybankmax)
+  for t=0 to entitybankmax : tempentitybank$(t)=entitybank$(t) : next t
+  inc entitybankmax
+  undim entitybank$(0)
+  dim entitybank$(entitybankmax)
+  for t=0 to entitybankmax-1 : entitybank$(t)=tempentitybank$(t) : next t
+ endif
+ `
+ rem Add entity to bank
+ inc entidmaster : gosub _entity_validatearraysize
+ entitybank$(entidmaster)=addentityfile$
+ `
+ rem Load extra entity
+ entid=entidmaster
+ ent$=entitybank$(entid)
+ entpath$=getpath(ent$)
+ gosub _entity_load
+ `
+endif
+
+return
+
+_entity_loadextra:
+
+rem load if entity is unique (unloaded - uses addentityfile$)
+gosub _entity_adduniqueentity
+
+rem Allocate one more into entity element array too
+if entityelementlist>entityelementmax-4
+ dim tempentityelement(entityelementmax) as entitytype
+ for t=0 to entityelementmax : tempentityelement(t)=entityelement(t) : next t
+ undim entityelement()
+ undim entitydebug$(0)
+ inc entityelementmax
+ dim entityelement(entityelementmax) as entitytype
+ dim entitydebug$(entityelementmax)
+ for t=0 to entityelementmax-1 : entityelement(t)=tempentityelement(t) : next t
+endif
+
+rem Ensure we subtract the offset used by the entity(which would be part of the seg-info)
+addentityx=addentityx-entityprofile(entid).offx
+addentityz=addentityz-entityprofile(entid).offz
+addentityy=addentityy-entityprofile(entid).offy
+
+rem Add reference to entity as element
+gosub _entity_addelement
+
+return
+
+_entity_addelement:
+ `
+ rem find spare
+ for e=1 to entityelementlist
+  if entityelement(e).bankindex=0 then exit
+ next e
+ if e>entityelementlist
+  rem add new
+  inc entityelementlist
+  if entityelementlist>entityelementmax
+   entityelementmax=entityelementlist
+   dim entityelement(entityelementmax) as entitytype
+   dim entitydebug$(entityelementmax)
+  endif
+  e=entityelementlist
+ endif
+ `
+ rem create element entry data
+ gosub _entity_fillelementfromprofile
+ entityelement(e).editorfixed=0
+ entityelement(e).maintype=1
+ entityelement(e).bankindex=entid
+ entityelement(e).x=addentityx+entityprofile(entid).offx
+ entityelement(e).y=addentityy+entityprofile(entid).offy
+ entityelement(e).z=addentityz+entityprofile(entid).offz
+ entityelement(e).rx=addentityrx+entityprofile(entid).rotx
+ entityelement(e).ry=addentityry+entityprofile(entid).roty
+ entityelement(e).rz=addentityrz+entityprofile(entid).rotz
+ `
+return
+
+_entity_loadtexturesandeffect:
+
+rem If entity object not exist, reset var
+if entobj>0
+ if object exist(entobj)=0 then entobj=0
+endif
+
+rem Only characters need a higher quality texture, rest use divide standard settings
+tfullorhalfdivide=0
+if segobjusedformapeditor=0
+ if entityprofile(entid).ischaracter=1
+  tfullorhalfdivide=2
+ else
+  if entityprofile(entid).reducetexture<>0
+   if entityprofile(entid).reducetexture=-1
+    tfullorhalfdivide=1
+   else
+    tfullorhalfdivide=2
+   endif
+  endif
+ endif
+endif
+`
+rem Apply TEXTURE to entity object
+tcanceltheeffect=0
+tuseeffecttexture=0
+tfile$=entityprofile(entid).texd$
+tfilealt$=entityprofile(entid).texaltd$
+if tfile$<>""
+ `
+ rem optional texture path for getting at any texture (gamecore gun textures, etc)
+ if entityprofile(entid).texpath$<>""
+  texdir$=entityprofile(entid).texpath$+tfile$
+  texaltdir$=entityprofile(entid).texpath$+tfilealt$
+ else
+  texdir$=entdir$+entpath$+tfile$
+  texaltdir$=entdir$+entpath$+tfilealt$
+ endif
+ if entityprofile(entid).transparency=0
+  texuseid=loadinternaltextureex(texdir$,1,tfullorhalfdivide)
+ else
+  texuseid=loadinternaltextureex(texdir$,5,tfullorhalfdivide)
+ endif
+ if texuseid=0
+  rem if not local texture, look in texture bank
+  texdir$=entityprofile(entid).texd$
+  texaltdir$=entityprofile(entid).texaltd$
+ endif
+ `
+ rem Effect Or No
+ tstage=0
+ tfile$=entityprofile(entid).effect$
+ teffectuseslightmapstage=0 : gosub _common_makeeffecttextureset
+ if tfile$<>"" and guseeffectonentitiesstate=1 and segobjusedformapeditor=0
+  `
+  rem Load and apply MAIN texture directly
+  for tlayer=0 to 4
+   if tlayer=0 then texfiletouse$=texdir1$
+   if tlayer=1 then texfiletouse$=texdir2$
+   if tlayer=2 then texfiletouse$=texdir3$
+   if tlayer=3 then texfiletouse$=texdir4$
+   if tlayer=4 then texfiletouse$=texdir5$
+   if entityprofile(entid).transparency=0
+    texuseid=loadinternalimagecompressquality(texfiletouse$,1,tfullorhalfdivide)
+   else
+    texuseid=loadinternalimagecompressquality(texfiletouse$,5,tfullorhalfdivide)
+   endif
+   if texuseid=0
+    if tlayer=0
+     rem can fall back to D2 if D not exist
+     texdir1$=tstr1$+"D2"+tstr2$ : texfiletouse$=texdir1$
+     if entityprofile(entid).transparency=0
+      texuseid=loadinternalimagecompressquality(texfiletouse$,1,tfullorhalfdivide)
+     else
+      texuseid=loadinternalimagecompressquality(texfiletouse$,5,tfullorhalfdivide)
+     endif
+    endif
+    if texuseid=0
+     rem main support textures N and I might be global (ie aiko_1_D2 and aiko_2_D2 use aiko_N.TGA, etc)
+     if tlayer>0
+      if upper$(right$(texfiletouse$,5))="N.TGA" then texfiletouse$=left$(tstr1$,len(tstr1$)-2)+"N"+tstr2$
+      if upper$(right$(texfiletouse$,5))="S.TGA" then texfiletouse$=left$(tstr1$,len(tstr1$)-2)+"S"+tstr2$
+      if entityprofile(entid).transparency=0
+       texuseid=loadinternalimagecompressquality(texfiletouse$,1,tfullorhalfdivide)
+      else
+       texuseid=loadinternalimagecompressquality(texfiletouse$,5,tfullorhalfdivide)
+      endif
+     endif
+    endif
+    if texuseid=0
+     rem some effects NEED to have a specific texture, or we cancel the effect
+     if absolutelyrequirethistexture>0 and (1+tlayer)=absolutelyrequirethistexture
+      rem no texture for this layer means we
+      tcanceltheeffect=1
+     else
+      rem some effects need a blank texture if no file available
+      if tlayer<=ensureclearlayermax
+       rem black texture if no texture
+       texuseid=loadinternalimagecompressquality("texturebank\common\black.tga",1,0)
+      endif
+     endif
+    endif
+   endif
+   if texuseid>0
+    if entobj>0 then texture object entobj,tstage,texuseid
+    if tstage=0 then entityprofile(entid).texdid=texuseid
+    if tstage=1 then entityprofile(entid).tex1id=texuseid
+    if tstage=2 then entityprofile(entid).tex2id=texuseid
+    if tstage=3 then entityprofile(entid).tex3id=texuseid
+    if tstage=4 then entityprofile(entid).tex4id=texuseid
+    inc tstage
+   endif
+  next tlayer
+  if tstage<3
+   for tst=tstage to 3
+    if tst=1 then entityprofile(entid).tex1id=0
+    if tst=2 then entityprofile(entid).tex2id=0
+    if tst=3 then entityprofile(entid).tex3id=0
+   next tst
+  endif
+  `
+  rem Using effect
+  if tcanceltheeffect=0
+   if tstage>0 then tuseeffecttexture=1
+  endif
+  `
+ endif
+ `
+ rem Record number of texture stages used
+ entityprofile(entid).texidmax=tstage-1
+ `
+ rem Load basic D2 MAIN texture (if no effect textures)
+ if tuseeffecttexture=0
+  if entityprofile(entid).transparency=0
+   texid=loadinternalimagecompressquality(texdir$,1,tfullorhalfdivide)
+  else
+   texid=loadinternalimagecompressquality(texdir$,5,tfullorhalfdivide)
+  endif
+  entityprofile(entid).texdid=texid
+  if entobj>0
+   texture object entobj,texid
+  endif
+ endif
+ `
+ rem Load ALT texture if available
+ texaltdid=loadinternalimagecompressquality(texaltdir$,1,tfullorhalfdivide)
+ entityprofile(entid).texaltdid=texaltdid
+ `
+else
+ `
+ rem FPSCV101 - add texturenames from file into filecollection (or exes will not find them)
+ if entobj>0
+  limbtexturename$=findmaterialtexturesinmodelfile(entdir$+entpath$+entityprofile(entid).model$,entdir$+entpath$)
+ endif
+ `
+endif
+`
+rem Apply effect to entity object (map editor does NOT use any effects)
+entityprofile(entid).usingeffect=0
+if guseeffectonentitiesstate=1 and segobjusedformapeditor=0 and tcanceltheeffect=0
+ tfile$=entityprofile(entid).effect$
+ gosub _common_wipeeffectifnotexist
+ if tfile$<>""
+  teffectid=loadinternaleffect(tfile$)
+  if teffectid>0
+`  V1040805 - do not apply to entity profile obj (the elements are assigned after the clone)
+`  if entobj>0 and teffectid>0
+`  set object effect entobj,teffectid
+   entityprofile(entid).usingeffect=teffectid
+  endif
+ endif
+endif
+`
+rem Set any entity transparenct
+if entobj>0 then set object transparency entobj,entityprofile(entid).transparency
+`
+rem If transparent, no need to Z write
+if entityprofile(entid).transparency>0 and entobj>0
+ rem had to remove this as in the game, the minigun (trans=1) was rendered inside out
+ if entityprofile(entid).transparency>=2
+  disable object zwrite entobj
+  enable object zbias entobj,0.0,-0.000001
+ endif
+endif
+
+return
+
+_entity_load:
+
+rem Entity Object Index
+entobj=entitybankoffset+entid
+
+rem debug info
+mytimer=timer()
+
+rem Load Entity profile data
+gosub _entity_loaddata
+
+rem Only load characters for entity-local-testing
+desc$=entityprofileheader(entid).desc$
+if scanforentitiescharactersonly=1
+ if entityprofile(entid).ischaracter=0
+  desc$=""
+ endif
+endif
+
+rem Only if profile data exists
+if desc$<>""
+ `
+ rem progress report as this is a slow phase
+ debugviewtext(175,strarr$(136)+str$(entid)+"a\"+str$(entidmaster)+" ("+entityprofile(entid).model$+")")
+ `
+ rem Load the model
+ tfile$=entdir$+entpath$+entityprofile(entid).model$
+ if lower$(right$(tfile$,2))=".x" then tdbofile$=left$(tfile$,len(tfile$)-2)+".dbo" else tdbofile$=""
+ if tdbofile$<>"" and file exist(tdbofile$)=1 then tfile$=tdbofile$
+ if file exist(tfile$)=0
+  tfile$=entityprofile(entid).model$
+  rem V109 BETA6 - 290408 - allow DBO creation/read if full relative path provides (i.e. meshbank\scifi\etc)
+  if lower$(right$(tfile$,2))=".x" then tdbofile$=left$(tfile$,len(tfile$)-2)+".dbo" else tdbofile$=""
+  if tdbofile$<>"" and file exist(tdbofile$)=1 then tfile$=tdbofile$
+ endif
+ if file exist(tfile$)=1
+  `
+  rem if DBO version exists, use that (quicker)
+  if file exist(tdbofile$)=1
+   tfile$=tdbofile$
+   tdbofile$=""
+  else
+   rem allowed to save DBO (once only)
+  endif
+  `
+  rem Load entity (compile does not need the dynamic objects)
+  load object tfile$,entobj
+  set object collision off entobj
+  addfiletocollection(tfile$)
+  if object exist(entobj)=1
+   `
+   rem Save if DBO not exist for entity (for fast loading)
+   if len(tdbofile$)>1
+    save object tdbofile$,entobj
+    if file exist(tdbofile$)=1
+     delete object entobj
+     load object tdbofile$,entobj
+     set object collision off entobj
+    endif
+   endif
+   `
+   rem main profile object adjustments
+   if entityprofile(entid).scale<>0 then scale object entobj,entityprofile(entid).scale,entityprofile(entid).scale,entityprofile(entid).scale
+   `
+   rem Apply texture and effect to entity profile obj
+   gosub _entity_loadtexturesandeffect
+   `
+   rem until static bonemodel scales when not animaating, loop
+   if entityprofile(entid).ischaracter=1
+    loop object entobj : stop object entobj
+   endif
+   `
+   rem if entity has decals, find indexes to decals (which are already preloaded)
+   entityprofile(entid).bloodscorch=0
+   if entityprofile(entid).decalmax>0
+    for tq=0 to entityprofile(entid).decalmax-1
+     decal$=entitydecal$(entid,tq)
+     if lower$(decal$)="blood" then entityprofile(entid).bloodscorch=1
+     gosub _decal_find
+     if decalid<0 then decalid=0
+     entitydecal(entid,tq)=decalid
+    next tq
+   endif
+   `
+   rem Hide object away
+   position object entobj,100000,100000,100000
+   `
+  endif
+ else
+  debugstring(right$(tfile$,70),strarr$(100))
+  rem V110 - 260508 - prevent crash when model name wrong/geometry file missing/etc
+  make object sphere entobj,1
+  position object entobj,100000,100000,100000
+ endif
+ `
+ rem Resolve default weapon gun ids
+ if entityprofile(entid).isweapon$<>""
+  findgun$=lower$(entityprofile(entid).isweapon$) : gosub _gun_findweaponindexbyname
+  entityprofile(entid).isweapon=foundgunid
+  if foundgunid>0 then gun(foundgunid).activeingame=1
+ else
+  entityprofile(entid).isweapon=0
+ endif
+ rem Finding hasweapon also in createlemenents (as eleprof may have changed the weapon!)
+ if entityprofile(entid).hasweapon$<>""
+  findgun$=lower$(entityprofile(entid).hasweapon$) : gosub _gun_findweaponindexbyname
+  entityprofile(entid).hasweapon=foundgunid
+  if foundgunid>0 and entityprofile(entid).isammo=0 then gun(foundgunid).activeingame=1
+ else
+  entityprofile(entid).hasweapon=0
+ endif
+ `
+ rem see if we can find head automatically
+ if entityprofile(entid).ischaracter=1
+  if entityprofile(entid).headlimb=-1
+   if object exist(entobj)=1
+    perform checklist for object limbs entobj
+    for tc=1 to checklist quantity()
+     if lower$(checklist string$(tc))="bip01_head"
+      entityprofile(entid).headlimb=tc-1
+      tc=checklist quantity()+1
+     endif
+    next tc
+   endif
+  endif
+  if entityprofile(entid).firespotlimb=-1
+   if object exist(entobj)=1
+    perform checklist for object limbs entobj
+    for tc=1 to checklist quantity()
+     if lower$(checklist string$(tc))="firespot"
+      entityprofile(entid).firespotlimb=tc-1
+      tc=checklist quantity()+1
+     endif
+    next tc
+   endif
+  endif
+ endif
+ `
+ rem assign physics weight and friction (if not set)
+ if entityprofile(entid).physics<>0
+  tfriction=(object size x(entobj)*75)+(object size y(entobj)*75)+(object size z(entobj)*75)
+  tweight=(object size x(entobj)*25)+(object size y(entobj)*25)+(object size z(entobj)*25)
+  tweight=(tweight/50)*50 : tfriction=(tfriction/50)*50
+  if tweight<200 then tweight=200
+`  if entityprofile(entid).phyweight=0 then entityprofile(entid).phyweight=tweight
+`  if entityprofile(entid).phyfriction=0 then entityprofile(entid).phyfriction=tfriction
+  entityprofile(entid).phyweight=tweight
+  entityprofile(entid).phyfriction=tfriction
+ endif
+ `
+rem no profile exists endif
+endif
+
+rem debug info and timestamp list (if logging)
+debugviewtext(-1,"Built "+ent$+" in "+str$(timer()-mytimer)+"ms")
+if entobj>0
+ if object exist(entobj)=1
+  timestampactivity(0,"Loaded "+str$(entid)+":"+ent$)
+ endif
+endif
+
+return
+
+_entity_loaddata:
+
+rem Ensure entity profile still exists
+entityprofileheader(entid).desc$=""
+tprofile$=left$(entdir$+ent$,len(entdir$+ent$)-4)+".bin"
+if isbinaryfileolderthantxtfileforent(tprofile$,entdir$+ent$)=1 then delete file tprofile$
+if file exist(entdir$+ent$)=1 or file exist(tprofile$)=1
+
+rem Export entity FPE file if flagged
+if gexportassets=1
+ tthumbbmpfile$=left$(entdir$+ent$,len(entdir$+ent$)-4)+".bmp"
+ addfiletocollection(entdir$+ent$) : addfiletocollection(tthumbbmpfile$)
+endif
+
+rem Check if binary version of entity profile exists (DELETE BIN AT MOMEMENT!)
+addfiletocollection(tprofile$)
+if file exist(tprofile$)=0
+ `
+ rem Must be reset before parse
+ entityprofile(entid).limbmax=0
+ entityprofile(entid).animmax=0
+ entityprofile(entid).footfallmax=0
+ entityprofile(entid).headlimb=-1
+ entityprofile(entid).firespotlimb=-1
+ entityprofile(entid).physics=1
+ entityprofile(entid).phyweight=100
+ entityprofile(entid).phyfriction=0
+ entityprofile(entid).raisefactor=0
+ `
+ rem Load entity Data from file
+ dim data$(400)
+ load array entdir$+ent$,data$()
+ for l=0 to 399
+  line$=data$(l)
+  if len(line$)>0
+   if left$(line$,1)<>";"
+    `
+    rem take fieldname and value
+    for c=0 to len(line$)
+     if mid$(line$,c)="=" then mid=c : exit
+    next c
+    field$=lower$(removeedgespaces(left$(line$,mid-1)))
+    value$=removeedgespaces(right$(line$,len(line$)-mid))
+    `
+    rem take value 1 and 2 from value
+    for c=0 to len(value$)
+     if mid$(value$,c)="," then mid=c : exit
+    next c
+    value1=val(removeedgespaces(left$(value$,mid-1)))
+    value2$=removeedgespaces(right$(value$,len(value$)-mid))
+    if len(value2$)>0 then value2=val(value2$) else value2=-1
+    `
+    rem entity header
+    if field$="desc" then entityprofileheader(entid).desc$=value$
+    `
+    rem entity AI
+    tryfield$="aiinit"
+    if field$=tryfield$ then entityprofile(entid).aiinit$=value$
+    tryfield$="aimain"
+    if field$=tryfield$ then entityprofile(entid).aimain$=value$
+    tryfield$="aidestroy"
+    if field$=tryfield$ then entityprofile(entid).aidestroy$=value$
+    tryfield$="aishoot"
+    if field$=tryfield$ then entityprofile(entid).aishoot$=value$
+    tryfield$="soundset"
+    if field$=tryfield$ then entityprofile(entid).soundset$=value$
+    tryfield$="soundset1"
+    if field$=tryfield$ then entityprofile(entid).soundset1$=value$
+    `
+    rem entity AI related vars
+    tryfield$="usekey"
+    if field$=tryfield$ then entityprofile(entid).usekey$=value$
+    tryfield$="ifused"
+    if field$=tryfield$ then entityprofile(entid).ifused$=value$
+    tryfield$="ifusednear"
+    if field$=tryfield$ then entityprofile(entid).ifusednear$=value$
+    `
+    rem entity SPAWN
+    tryfield$="spawnmax"
+    if field$=tryfield$ then entityprofile(entid).spawnmax=value1
+    tryfield$="spawndelay"
+    if field$=tryfield$ then entityprofile(entid).spawndelay=value1
+    tryfield$="spawnqty"
+    if field$=tryfield$ then entityprofile(entid).spawnqty=value1
+    `
+    rem entity orientation
+    tryfield$="model"
+    if field$=tryfield$ then entityprofile(entid).model$=value$
+    tryfield$="offx"
+    if field$=tryfield$ then entityprofile(entid).offx=value1
+    tryfield$="offy"
+    if field$=tryfield$ then entityprofile(entid).offy=value1
+    tryfield$="offz"
+    if field$=tryfield$ then entityprofile(entid).offz=value1
+    tryfield$="rotx"
+    if field$=tryfield$ then entityprofile(entid).rotx=value1
+    tryfield$="roty"
+    if field$=tryfield$ then entityprofile(entid).roty=value1
+    tryfield$="rotz"
+    if field$=tryfield$ then entityprofile(entid).rotz=value1
+    tryfield$="scale"
+    if field$=tryfield$ then entityprofile(entid).scale=value1
+    tryfield$="fixnewy"
+    if field$=tryfield$ then entityprofile(entid).fixnewy=value1
+    tryfield$="raisefactor"
+    if field$=tryfield$ then entityprofile(entid).raisefactor=value1
+    tryfield$="forwardfacing"
+    if field$=tryfield$ then entityprofile(entid).forwardfacing=value1
+    tryfield$="defaultheight"
+    if field$=tryfield$ then entityprofile(entid).defaultheight=value1
+    tryfield$="defaultstatic"
+    if field$=tryfield$ then entityprofile(entid).defaultstatic=value1
+    tryfield$="collisionmode"
+    if field$=tryfield$ then entityprofile(entid).collisionmode=value1
+    tryfield$="materialindex"
+    if field$=tryfield$ then entityprofile(entid).materialindex=value1
+    tryfield$="debrisshape"
+    if field$=tryfield$ then entityprofile(entid).debrisshapeindex=value1
+    `
+    rem physics setup
+    tryfield$="physics"
+    if field$=tryfield$ then entityprofile(entid).physics=value1
+    tryfield$="phyweight"
+    if field$=tryfield$ then entityprofile(entid).phyweight=value1
+    tryfield$="phyfriction"
+    if field$=tryfield$ then entityprofile(entid).phyfriction=value1
+    tryfield$="explodable"
+    if field$=tryfield$ then entityprofile(entid).explodable=value1
+    `
+    rem cone of sight
+    tryfield$="coneheight"
+    if field$=tryfield$ then entityprofile(entid).coneheight=value1
+    tryfield$="coneangle"
+    if field$=tryfield$ then entityprofile(entid).coneangle=value1
+    `
+    rem visual info
+    tryfield$="texturepath"
+    if field$=tryfield$ then entityprofile(entid).texpath$=value$
+    tryfield$="textured"
+    if field$=tryfield$ then entityprofile(entid).texd$=value$
+    tryfield$="texturealtd"
+    if field$=tryfield$ then entityprofile(entid).texaltd$=value$
+    tryfield$="effect"
+    if field$=tryfield$ then entityprofile(entid).effect$=value$
+    tryfield$="transparency"
+    if field$=tryfield$ then entityprofile(entid).transparency=value1
+    tryfield$="reducetexture"
+    if field$=tryfield$ then entityprofile(entid).reducetexture=value1
+    tryfield$="castshadow"
+    if field$=tryfield$ then entityprofile(entid).castshadow=value1
+    `
+    rem entity identity details
+    tryfield$="strength"
+    if field$=tryfield$ then entityprofile(entid).strength=value1
+    tryfield$="lives"
+    if field$=tryfield$ then entityprofile(entid).lives=value1
+    tryfield$="speed"
+    if field$=tryfield$ then entityprofile(entid).speed=value1
+    tryfield$="hurtfall"
+    if field$=tryfield$ then entityprofile(entid).hurtfall=value1
+    `
+    tryfield$="isimmobile"
+    if field$=tryfield$ then entityprofile(entid).isimmobile=value1
+    tryfield$="isobjective"
+    if field$=tryfield$ then entityprofile(entid).isobjective=value1
+    `
+    tryfield$="ischaracter"
+    if field$=tryfield$ then entityprofile(entid).ischaracter=value1
+    tryfield$="cantakeweapon"
+    if field$=tryfield$ then entityprofile(entid).cantakeweapon=value1
+    tryfield$="isweapon"
+    if field$=tryfield$ then entityprofile(entid).isweapon$=value$
+    tryfield$="isammo"
+    if field$=tryfield$ then entityprofile(entid).isammo=value1
+    tryfield$="hasweapon"
+    if field$=tryfield$ then entityprofile(entid).hasweapon$=value$
+    tryfield$="ishealth"
+    if field$=tryfield$ then entityprofile(entid).ishealth=value1
+    tryfield$="isflak"
+    if field$=tryfield$ then entityprofile(entid).isflak=value1
+    `
+    rem marker extras
+    tryfield$="ismarker"
+    if field$=tryfield$ then entityprofile(entid).ismarker=value1
+    tryfield$="markerindex"
+    if field$=tryfield$ then entityprofile(entid).markerindex=value1
+    `
+    rem light extras
+    tryfield$="lightcolor"
+    if field$=tryfield$ then entityprofile(entid).light.color=value1
+    tryfield$="lightrange"
+    if field$=tryfield$ then entityprofile(entid).light.range=value1
+    `
+    rem trigger extras
+    tryfield$="areax"
+    if field$=tryfield$ then entityprofile(entid).trigger.areax1=value1 : entityprofile(entid).trigger.areax2=value2
+    tryfield$="areay"
+    if field$=tryfield$ then entityprofile(entid).trigger.areay1=value1 : entityprofile(entid).trigger.areay2=value2
+    tryfield$="areaz"
+    if field$=tryfield$ then entityprofile(entid).trigger.areaz1=value1 : entityprofile(entid).trigger.areaz2=value2
+    `
+    rem entity body part list
+    tryfield$="limbmax"
+    if field$=tryfield$ then entityprofile(entid).limbmax=value1
+    if entityprofile(entid).limbmax>0
+     for q=0 to entityprofile(entid).limbmax-1
+      tryfield$="limb"+str$(q)
+      if field$=tryfield$
+       entitybodypart(entid,q)=value1
+       if value1=1
+        rem record head seperately too
+        entityprofile(entid).headlimb=q
+       endif
+      endif
+     next q
+    endif
+    `
+    rem entity decal refs
+    tryfield$="decalmax"
+    if field$=tryfield$ then entityprofile(entid).decalmax=value1
+    if entityprofile(entid).decalmax>0
+     for q=0 to entityprofile(entid).decalmax-1
+      tryfield$="decal"+str$(q)
+      if field$=tryfield$ then entitydecal$(entid,q)=value$
+     next q
+    endif
+    `
+    rem entity animation sets
+    tryfield$="animmax"
+    if field$=tryfield$ then entityprofile(entid).animmax=value1
+    if entityprofile(entid).animmax>0
+     for q=0 to entityprofile(entid).animmax-1
+      tryfield$="anim"+str$(q)
+      if field$=tryfield$ then entityanim(entid,q).start=value1 : entityanim(entid,q).finish=value2
+     next q
+    endif
+    `
+    rem V110 BETA5 - 080608 - get foot fall data (optional)
+    tryfield$="footfallmax"
+    if field$=tryfield$ then entityprofile(entid).footfallmax=value1
+    if entityprofile(entid).footfallmax>0
+     for q=0 to entityprofile(entid).footfallmax-1
+      tryfield$="footfall"+str$(q)
+      if field$=tryfield$ then entityfootfall(entid,q).keyframe=value1 : entityfootfall(entid,q).soundtype=value2
+     next q
+    endif
+    `
+    rem more data
+    tryfield$="quantity"
+    if field$=tryfield$ then entityprofile(entid).quantity=value1
+    `
+   endif
+  endif
+ next l
+ undim data$()
+ `
+ rem Localisation must change desc to local name
+ if entityprofileheader(entid).desc$<>""
+  if left$(entityprofileheader(entid).desc$,1)<>"%"
+   tflocalfilename$="languagebank\"+language$+"\textfiles\library\"+entdir$+ent$
+   tflocalfilename$=left$(tflocalfilename$,len(tflocalfilename$)-4)+".loc"
+   if file exist(tflocalfilename$)=1
+    dim tflocal$(1)
+    load array tflocalfilename$,tflocal$()
+    entityprofileheader(entid).desc$=tflocal$(0)
+    undim tflocal$()
+   endif
+  endif
+ endif
+ `
+ rem Translate entity references inside entity profile (token translations)
+ if lower$(entityprofileheader(entid).desc$)="%key"
+  entityprofileheader(entid).desc$=strarr$(472)
+ endif
+ if lower$(entityprofileheader(entid).desc$)="%light"
+  entityprofileheader(entid).desc$=strarr$(473)
+ endif
+ if lower$(entityprofileheader(entid).desc$)="%remote door"
+  entityprofileheader(entid).desc$=strarr$(474)
+ endif
+ if lower$(entityprofileheader(entid).desc$)="%teleporter in"
+  entityprofileheader(entid).desc$=strarr$(615)
+ endif
+ if lower$(entityprofileheader(entid).desc$)="%teleporter out"
+  entityprofileheader(entid).desc$=strarr$(616)
+ endif
+ if lower$(entityprofileheader(entid).desc$)="%lift"
+  entityprofileheader(entid).desc$=strarr$(617)
+ endif
+ if lower$(entityprofile(entid).usekey$)="%key"
+  entityprofile(entid).usekey$=strarr$(472)
+ endif
+ if lower$(entityprofile(entid).ifused$)="%light"
+  entityprofile(entid).ifused$=strarr$(473)
+ endif
+ if lower$(entityprofile(entid).ifused$)="%remote door"
+  entityprofile(entid).ifused$=strarr$(474)
+ endif
+ if lower$(entityprofile(entid).ifused$)="%teleporter in"
+  entityprofile(entid).ifused$=strarr$(615)
+ endif
+ if lower$(entityprofile(entid).ifused$)="%teleporter out"
+  entityprofile(entid).ifused$=strarr$(616)
+ endif
+ if lower$(entityprofile(entid).ifused$)="%lift"
+  entityprofile(entid).ifused$=strarr$(617)
+ endif
+ `
+ rem All profile defaults
+ if entityprofile(entid).ismarker<>1
+  if entityprofile(entid).lives<1 then entityprofile(entid).lives=1
+ endif
+ if entityprofile(entid).speed=0 then entityprofile(entid).speed=100
+ if entityprofile(entid).hurtfall=0 then entityprofile(entid).hurtfall=100
+ if entityprofile(entid).ischaracter=1
+  if entityprofile(entid).quantity=0 then entityprofile(entid).quantity=1
+ endif
+ `
+ rem Physics Data Defaults
+ if entityprofile(entid).ismarker=0
+  rem default physics settings (weight and friction done during object load (we need the obj size!)
+  entityprofile(entid).phyalways=0
+  entityprofile(entid).phyforcedamage=100
+  entityprofile(entid).rotatethrow=1
+  entityprofile(entid).explodedamage=100
+  entityprofile(entid).phyweight=0
+  entityprofile(entid).phyfriction=0
+  rem health packs have no physics by default for A compatibility
+  if entityprofile(entid).ishealth<>0
+   entityprofile(entid).physics=0
+  endif
+ else
+  entityprofile(entid).physics=0
+ endif
+ `
+ rem Spawn defaults
+ entityprofile(entid).spawnatstart=1
+ entityprofile(entid).spawndelayrandom=0
+ entityprofile(entid).spawnqtyrandom=0
+ entityprofile(entid).spawnvel=0
+ entityprofile(entid).spawnvelrandom=0
+ entityprofile(entid).spawnangle=90
+ entityprofile(entid).spawnanglerandom=0
+ entityprofile(entid).spawnlife=0
+ if entityprofile(entid).spawnmax>0
+  entityprofile(entid).spawnupto=entityprofile(entid).spawnmax
+  entityprofile(entid).spawnafterdelay=1
+  if entityprofile(entid).ischaracter=1
+   entityprofile(entid).spawnwhendead=1
+  else
+   entityprofile(entid).spawnwhendead=0
+  endif
+ else
+  entityprofile(entid).spawnupto=0
+  entityprofile(entid).spawnafterdelay=0
+  entityprofile(entid).spawnwhendead=0
+ endif
+ `
+ rem If animation data insufficient, make up rest with basic null sets
+ if entityprofile(entid).animmax>0
+  if entityprofile(entid).animmax<100
+   rem AI animation code relies on standard animation-set-numbers
+   for q=entityprofile(entid).animmax to 99
+    entityanim(entid,q).start=0 : entityanim(entid,q).finish=1
+   next q
+   entityprofile(entid).animmax=100
+  endif
+ endif
+ `
+ rem Save entity profile as binary
+ dim tempe(0) as entityprofiletype
+ open to write 1,tprofile$
+ rem V110 BETA5 - 080608 - added version control to entity BIN files
+ write string 1,"version" : write file 1,gversion
+ write string 1,entityprofileheader(entid).desc$
+ tempe(0)=entityprofile(entid)
+ if memblock exist(1)=1 then delete memblock 1
+ tempe(0).aiinit$=free string()
+ tempe(0).aimain$=free string()
+ tempe(0).aidestroy$=free string()
+ tempe(0).aishoot$=free string()
+ tempe(0).soundset$=free string()
+ tempe(0).soundset1$=free string()
+ tempe(0).usekey$=free string()
+ tempe(0).ifused$=free string()
+ tempe(0).ifusednear$=free string()
+ tempe(0).model$=free string()
+ tempe(0).texpath$=free string()
+ tempe(0).texd$=free string()
+ tempe(0).texaltd$=free string()
+ tempe(0).effect$=free string()
+ tempe(0).isweapon$=free string()
+ tempe(0).hasweapon$=free string()
+ make memblock from array 1,tempe(0)
+ write memblock 1,1
+ write string 1,entityprofile(entid).aiinit$
+ write string 1,entityprofile(entid).aimain$
+ write string 1,entityprofile(entid).aidestroy$
+ write string 1,entityprofile(entid).aishoot$
+ write string 1,entityprofile(entid).soundset$
+ write string 1,entityprofile(entid).soundset1$
+ write string 1,entityprofile(entid).usekey$
+ write string 1,entityprofile(entid).ifused$
+ write string 1,entityprofile(entid).ifusednear$
+ write string 1,entityprofile(entid).model$
+ write string 1,entityprofile(entid).texpath$
+ write string 1,entityprofile(entid).texd$
+ write string 1,entityprofile(entid).texaltd$
+ write string 1,entityprofile(entid).effect$
+ write string 1,entityprofile(entid).isweapon$
+ write string 1,entityprofile(entid).hasweapon$
+ for q = 0 to entityprofile(entid).animmax-1
+  write file 1,entityanim(entid,q).start
+  write file 1,entityanim(entid,q).finish
+ next q
+ for q = 0 to entityprofile(entid).footfallmax-1
+  write file 1,entityfootfall(entid,q).keyframe
+  write file 1,entityfootfall(entid,q).soundtype
+ next q
+ for q = 0 to entityprofile(entid).decalmax-1
+  write string 1,entitydecal$(entid,q)
+ next q
+ close file 1
+ delete memblock 1
+ undim tempe(0)
+ `
+else
+ `
+ rem load binary version of entity profile file
+ dim tempe(0) as entityprofiletype
+ open to read 1,tprofile$
+ rem V110 BETA5 - 080608 - added version control to entity BIN files
+ read string 1,tstr$ : read file 1,tversion
+ read string 1,tstr$ : entityprofileheader(entid).desc$=tstr$
+ read memblock 1,1
+ make array from memblock tempe(0),1
+ entityprofile(entid)=tempe(0)
+ read string 1,tstr$ : entityprofile(entid).aiinit$=tstr$
+ read string 1,tstr$ : entityprofile(entid).aimain$=tstr$
+ read string 1,tstr$ : entityprofile(entid).aidestroy$=tstr$
+ read string 1,tstr$ : entityprofile(entid).aishoot$=tstr$
+ read string 1,tstr$ : entityprofile(entid).soundset$=tstr$
+ read string 1,tstr$ : entityprofile(entid).soundset1$=tstr$
+ read string 1,tstr$ : entityprofile(entid).usekey$=tstr$
+ read string 1,tstr$ : entityprofile(entid).ifused$=tstr$
+ read string 1,tstr$ : entityprofile(entid).ifusednear$=tstr$
+ read string 1,tstr$ : entityprofile(entid).model$=tstr$
+ read string 1,tstr$ : entityprofile(entid).texpath$=tstr$
+ read string 1,tstr$ : entityprofile(entid).texd$=tstr$
+ read string 1,tstr$ : entityprofile(entid).texaltd$=tstr$
+ read string 1,tstr$ : entityprofile(entid).effect$=tstr$
+ read string 1,tstr$ : entityprofile(entid).isweapon$=tstr$
+ read string 1,tstr$ : entityprofile(entid).hasweapon$=tstr$
+ for q = 0 to entityprofile(entid).animmax-1
+  read file 1,entityanim(entid,q).start
+  read file 1,entityanim(entid,q).finish
+ next q
+ for q = 0 to entityprofile(entid).footfallmax-1
+  read file 1,entityfootfall(entid,q).keyframe
+  read file 1,entityfootfall(entid,q).soundtype
+ next q
+ for q = 0 to entityprofile(entid).decalmax-1
+  read string 1,entitydecal$(entid,q)
+ next q
+ close file 1
+ delete memblock 1
+ undim tempe(0)
+ `
+endif
+
+rem fileexistelse
+else
+ rem File not exist, provide debug information (only if file specified (old entities can be renamed and still hang around inside FPMs)
+ if len(entdir$+ent$)>len("entitybank\")
+  debugfilename(entdir$+ent$,tprofile$)
+ endif
+endif
+
+rem V109 BETA5 - 250408 - flag material is being used
+if entityprofile(entid).materialindex>0
+ mi=entityprofile(entid).materialindex-1
+ material(mi).usedinlevel=1
+endif
+if entityprofile(entid).debrisshapeindex>0
+ di=entityprofile(entid).debrisshapeindex
+ debrisshapeindexused(di)=1
+endif
+
+return
+
+_entity_saveelementsdata:
+
+rem Uses elementfilename$
+if elementsfilename$="" then elementsfilename$="mapbank\testmap\map.ele"
+
+rem Reduce list size if later elements blank
+e=entityelementlist
+while e>0
+ if entityelement(e).maintype=0 then dec e else exit
+endwhile
+entityelementlist=e
+
+rem Save entity element list
+dw as DWORD
+versionnumbersave=107
+if file exist(elementsfilename$)=1 then delete file elementsfilename$
+open to write 1,elementsfilename$
+ write file 1,versionnumbersave
+ write file 1,entityelementlist
+ if entityelementlist>0
+  for e=1 to entityelementlist
+   if versionnumbersave>=101
+    rem Version 1.01 - EA
+    a=entityelement(e).maintype : write file 1,a
+    a=entityelement(e).bankindex : write file 1,a
+    a=entityelement(e).staticflag : write file 1,a
+    a#=entityelement(e).x : write float 1,a#
+    a#=entityelement(e).y : write float 1,a#
+    a#=entityelement(e).z : write float 1,a#
+    a#=entityelement(e).rx : write float 1,a#
+    a#=entityelement(e).ry : write float 1,a#
+    a#=entityelement(e).rz : write float 1,a#
+    a$=entityelement(e).eleprof.name$ : write string 1,a$
+    a$=entityelement(e).eleprof.aiinit$ : write string 1,a$
+    a$=entityelement(e).eleprof.aimain$ : write string 1,a$
+    a$=entityelement(e).eleprof.aidestroy$ : write string 1,a$
+    a=entityelement(e).eleprof.isobjective : write file 1,a
+    a$=entityelement(e).eleprof.usekey$ : write string 1,a$
+    a$=entityelement(e).eleprof.ifused$ : write string 1,a$
+    a$=entityelement(e).eleprof.ifusednear$ : write string 1,a$
+    a=entityelement(e).eleprof.uniqueelement : write file 1,a
+    a$=entityelement(e).eleprof.texd$ : write string 1,a$
+    a$=entityelement(e).eleprof.texaltd$ : write string 1,a$
+    a$=entityelement(e).eleprof.effect$ : write string 1,a$
+    a=entityelement(e).eleprof.transparency : write file 1,a
+    a=entityelement(e).editorfixed : write file 1,a
+    a$=entityelement(e).eleprof.soundset$ : write string 1,a$
+    a$=entityelement(e).eleprof.soundset1$ : write string 1,a$
+    a=entityelement(e).eleprof.spawnmax : write file 1,a
+    a=entityelement(e).eleprof.spawndelay : write file 1,a
+    a=entityelement(e).eleprof.spawnqty : write file 1,a
+    a=entityelement(e).eleprof.hurtfall : write file 1,a
+    a=entityelement(e).eleprof.castshadow : write file 1,a
+    a=entityelement(e).eleprof.reducetexture : write file 1,a
+    a=entityelement(e).eleprof.speed : write file 1,a
+    a$=entityelement(e).eleprof.aishoot$ : write string 1,a$
+    a$=entityelement(e).eleprof.hasweapon$ : write string 1,a$
+    a=entityelement(e).eleprof.lives : write file 1,a
+    a=entityelement(e).spawn.max : write file 1,a
+    a=entityelement(e).spawn.delay : write file 1,a
+    a=entityelement(e).spawn.qty : write file 1,a
+    a#=entityelement(e).eleprof.scale : write float 1,a#
+    a#=entityelement(e).eleprof.coneheight : write float 1,a#
+    a#=entityelement(e).eleprof.coneangle : write float 1,a#
+    a=entityelement(e).eleprof.strength : write file 1,a
+    a=entityelement(e).eleprof.isimmobile : write file 1,a
+    a=entityelement(e).eleprof.cantakeweapon : write file 1,a
+    a=entityelement(e).eleprof.quantity : write file 1,a
+    a=entityelement(e).eleprof.markerindex : write file 1,a
+    dw=entityelement(e).eleprof.light.color : dw=(dw<<8)>>8 : a=dw : write file 1,a
+    a=entityelement(e).eleprof.light.range : write file 1,a
+    a=entityelement(e).eleprof.trigger.areax1 : write file 1,a
+    a=entityelement(e).eleprof.trigger.areay1 : write file 1,a
+    a=entityelement(e).eleprof.trigger.areaz1 : write file 1,a
+    a=entityelement(e).eleprof.trigger.areax2 : write file 1,a
+    a=entityelement(e).eleprof.trigger.areay2 : write file 1,a
+    a=entityelement(e).eleprof.trigger.areaz2 : write file 1,a
+    a$=entityelement(e).eleprof.basedecal$ : write string 1,a$
+   endif
+   if versionnumbersave>=102
+    a=entityelement(e).eleprof.rateoffire : write file 1,a
+    a=entityelement(e).eleprof.damage : write file 1,a
+    a=entityelement(e).eleprof.accuracy : write file 1,a
+    a=entityelement(e).eleprof.reloadqty : write file 1,a
+    a=entityelement(e).eleprof.fireiterations : write file 1,a
+    a=entityelement(e).eleprof.lifespan : write file 1,a
+    a#=entityelement(e).eleprof.throwspeed : write float 1,a#
+    a#=entityelement(e).eleprof.throwangle : write float 1,a#
+    a=entityelement(e).eleprof.bounceqty : write file 1,a
+    a=entityelement(e).eleprof.explodeonhit : write file 1,a
+    a=entityelement(e).eleprof.weaponisammo : write file 1,a
+    a=entityelement(e).eleprof.spawnupto : write file 1,a
+    a=entityelement(e).eleprof.spawnafterdelay : write file 1,a
+    a=entityelement(e).eleprof.spawnwhendead : write file 1,a
+    a=entityelement(e).eleprof.spare1 : write file 1,a
+    a=entityelement(e).eleprof.spare1 : write file 1,a
+    a=entityelement(e).eleprof.spare1 : write file 1,a
+    a=entityelement(e).eleprof.spare1 : write file 1,a
+    a=entityelement(e).eleprof.spare1 : write file 1,a
+    a=entityelement(e).eleprof.spare1 : write file 1,a
+   endif
+   if versionnumbersave>=103
+    rem V1 first draft - physics
+    a=entityelement(e).eleprof.physics : write file 1,a
+    a=entityelement(e).eleprof.phyweight : write file 1,a
+    a=entityelement(e).eleprof.phyfriction : write file 1,a
+    a=entityelement(e).eleprof.phyforcedamage : write file 1,a
+    a=entityelement(e).eleprof.rotatethrow : write file 1,a
+    a=entityelement(e).eleprof.explodable : write file 1,a
+    a=entityelement(e).eleprof.explodedamage : write file 1,a
+    a=entityelement(e).eleprof.phydw4 : write file 1,a
+    a=entityelement(e).eleprof.phydw5 : write file 1,a
+   endif
+   if versionnumbersave>=104
+    rem Addition of new physics field for BETA4
+    a=entityelement(e).eleprof.phyalways : write file 1,a
+   endif
+   if versionnumbersave>=105
+    rem Addition of new spawn fields for BETA8
+    a=entityelement(e).eleprof.spawndelayrandom : write file 1,a
+    a=entityelement(e).eleprof.spawnqtyrandom : write file 1,a
+    a=entityelement(e).eleprof.spawnvel : write file 1,a
+    a=entityelement(e).eleprof.spawnvelrandom : write file 1,a
+    a=entityelement(e).eleprof.spawnangle : write file 1,a
+    a=entityelement(e).eleprof.spawnanglerandom : write file 1,a
+   endif
+   if versionnumbersave>=106
+    rem Addition of new fields for BETA10
+    a=entityelement(e).eleprof.spawnatstart : write file 1,a
+    a=entityelement(e).eleprof.spawnlife : write file 1,a
+   endif
+   if versionnumbersave>=107
+    rem FPSCV104RC8 - forgot to save infinilight index (dynamic lights in final build never worked)
+    a=entityelement(e).eleprof.light.index : write file 1,a
+   endif
+  next e
+ endif
+close file 1
+
+return
+
+_entity_deleteelementsdata:
+
+rem Free any old elements
+gosub _entity_deleteelements
+
+rem Clear counter for new load
+entityelementlist=0
+entityelementmax=0
+
+return
+
+_entity_loadelementsdata:
+
+rem Free any old elements
+gosub _entity_deleteelementsdata
+
+rem Uses elementfilename$ (element data from test game quick build - not from universe.ele created during full build)
+if elementsfilename$="" then elementsfilename$="mapbank\testmap\map.ele"
+
+rem load entity element list
+dw as DWORD
+versionnumbersupported=107
+if file exist(elementsfilename$)=1
+ `
+ open to read 1,elementsfilename$
+  read file 1,versionnumberload
+  if versionnumberload<100
+   rem Pre-version data - development only
+   entityelementlist=versionnumberload
+   versionnumberload=100
+  else
+   read file 1,entityelementlist
+  endif
+  if versionnumberload<=versionnumbersupported
+   if entityelementlist>0
+    undim entityelement()
+    undim entitydebug$()
+    entityelementmax=entityelementlist
+    dim entityelement(entityelementmax) as entitytype
+    dim entitydebug$(entityelementmax)
+    for e=1 to entityelementlist
+     `
+     rem actual file data
+     if versionnumberload>=101
+      rem Version 1.01
+      read file 1,a : entityelement(e).maintype=a
+      read file 1,a : entityelement(e).bankindex=a
+      read file 1,a : entityelement(e).staticflag=a
+      read float 1,a# : entityelement(e).x=a#
+      read float 1,a# : entityelement(e).y=a#
+      read float 1,a# : entityelement(e).z=a#
+      read float 1,a# : entityelement(e).rx=a#
+      read float 1,a# : entityelement(e).ry=a#
+      read float 1,a# : entityelement(e).rz=a#
+      read string 1,a$ : entityelement(e).eleprof.name$=a$
+      read string 1,a$ : entityelement(e).eleprof.aiinit$=a$
+      read string 1,a$ : entityelement(e).eleprof.aimain$=a$
+      read string 1,a$ : entityelement(e).eleprof.aidestroy$=a$
+      read file 1,a : entityelement(e).eleprof.isobjective=a
+      read string 1,a$ : entityelement(e).eleprof.usekey$=a$
+      read string 1,a$ : entityelement(e).eleprof.ifused$=a$
+      read string 1,a$ : entityelement(e).eleprof.ifusednear$=a$
+      read file 1,a : entityelement(e).eleprof.uniqueelement=a
+      read string 1,a$ : entityelement(e).eleprof.texd$=a$
+      read string 1,a$ : entityelement(e).eleprof.texaltd$=a$
+      read string 1,a$ : entityelement(e).eleprof.effect$=a$
+      read file 1,a : entityelement(e).eleprof.transparency=a
+      read file 1,a : entityelement(e).editorfixed=a
+      read string 1,a$ : entityelement(e).eleprof.soundset$=a$
+      read string 1,a$ : entityelement(e).eleprof.soundset1$=a$
+      read file 1,a : entityelement(e).eleprof.spawnmax=a
+      read file 1,a : entityelement(e).eleprof.spawndelay=a
+      read file 1,a : entityelement(e).eleprof.spawnqty=a
+      read file 1,a : entityelement(e).eleprof.hurtfall=a
+      read file 1,a : entityelement(e).eleprof.castshadow=a
+      read file 1,a : entityelement(e).eleprof.reducetexture=a
+      read file 1,a : entityelement(e).eleprof.speed=a
+      read string 1,a$ : entityelement(e).eleprof.aishoot$=a$
+      read string 1,a$ : entityelement(e).eleprof.hasweapon$=a$
+      read file 1,a : entityelement(e).eleprof.lives=a
+      read file 1,a : entityelement(e).spawn.max=a
+      read file 1,a : entityelement(e).spawn.delay=a
+      read file 1,a : entityelement(e).spawn.qty=a
+      read float 1,a# : entityelement(e).eleprof.scale=a#
+      read float 1,a# : entityelement(e).eleprof.coneheight=a#
+      read float 1,a# : entityelement(e).eleprof.coneangle=a#
+      read file 1,a : entityelement(e).eleprof.strength=a
+      read file 1,a : entityelement(e).eleprof.isimmobile=a
+      read file 1,a : entityelement(e).eleprof.cantakeweapon=a
+      read file 1,a : entityelement(e).eleprof.quantity=a
+      read file 1,a : entityelement(e).eleprof.markerindex=a
+      read file 1,a : dw=a : dw=dw+0xFF000000 : entityelement(e).eleprof.light.color=dw
+      read file 1,a : entityelement(e).eleprof.light.range=a
+      read file 1,a : entityelement(e).eleprof.trigger.areax1=a
+      read file 1,a : entityelement(e).eleprof.trigger.areay1=a
+      read file 1,a : entityelement(e).eleprof.trigger.areaz1=a
+      read file 1,a : entityelement(e).eleprof.trigger.areax2=a
+      read file 1,a : entityelement(e).eleprof.trigger.areay2=a
+      read file 1,a : entityelement(e).eleprof.trigger.areaz2=a
+      read string 1,a$ : entityelement(e).eleprof.basedecal$=a$
+     endif
+     if versionnumberload>=102
+      rem Version 1.02
+      read file 1,a : entityelement(e).eleprof.rateoffire=a
+      read file 1,a : entityelement(e).eleprof.damage=a
+      read file 1,a : entityelement(e).eleprof.accuracy=a
+      read file 1,a : entityelement(e).eleprof.reloadqty=a
+      read file 1,a : entityelement(e).eleprof.fireiterations=a
+      read file 1,a : entityelement(e).eleprof.lifespan=a
+      read float 1,a# : entityelement(e).eleprof.throwspeed=a#
+      read float 1,a# : entityelement(e).eleprof.throwangle=a#
+      read file 1,a : entityelement(e).eleprof.bounceqty=a
+      read file 1,a : entityelement(e).eleprof.explodeonhit=a
+      read file 1,a : entityelement(e).eleprof.weaponisammo=a
+      read file 1,a : entityelement(e).eleprof.spawnupto=a
+      read file 1,a : entityelement(e).eleprof.spawnafterdelay=a
+      read file 1,a : entityelement(e).eleprof.spawnwhendead=a
+      read file 1,a : entityelement(e).eleprof.spare1=a
+      read file 1,a : entityelement(e).eleprof.spare1=a
+      read file 1,a : entityelement(e).eleprof.spare1=a
+      read file 1,a : entityelement(e).eleprof.spare1=a
+      read file 1,a : entityelement(e).eleprof.spare1=a
+      read file 1,a : entityelement(e).eleprof.spare1=a
+     endif
+     if versionnumberload>=103
+      rem Version 1.03 - V1 draft physics
+      read file 1,a : entityelement(e).eleprof.physics=a
+      read file 1,a : entityelement(e).eleprof.phyweight=a
+      read file 1,a : entityelement(e).eleprof.phyfriction=a
+      read file 1,a : entityelement(e).eleprof.phyforcedamage=a
+      read file 1,a : entityelement(e).eleprof.rotatethrow=a
+      read file 1,a : entityelement(e).eleprof.explodable=a
+      read file 1,a : entityelement(e).eleprof.explodedamage=a
+      read file 1,a : entityelement(e).eleprof.phydw4=a
+      read file 1,a : entityelement(e).eleprof.phydw5=a
+     endif
+     if versionnumberload>=104
+      rem Version 1.04 - BETA4 extra field
+      read file 1,a : entityelement(e).eleprof.phyalways=a
+     endif
+     if versionnumberload>=105
+      rem Version 1.05 - BETA8 extra fields
+      read file 1,a : entityelement(e).eleprof.spawndelayrandom=a
+      read file 1,a : entityelement(e).eleprof.spawnqtyrandom=a
+      read file 1,a : entityelement(e).eleprof.spawnvel=a
+      read file 1,a : entityelement(e).eleprof.spawnvelrandom=a
+      read file 1,a : entityelement(e).eleprof.spawnangle=a
+      read file 1,a : entityelement(e).eleprof.spawnanglerandom=a
+     endif
+     if versionnumberload>=106
+      rem Version 1.06 - BETA10 extra fields
+      read file 1,a : entityelement(e).eleprof.spawnatstart=a
+      read file 1,a : entityelement(e).eleprof.spawnlife=a
+     endif
+     if versionnumberload>=107
+      rem FPSCV104RC8 - forgot to save infinilight index (dynamic lights in final build never worked)
+      read file 1,a : entityelement(e).eleprof.light.index=a
+     endif
+     `
+     rem fill in the blanks if load older version
+     ttentid=entityelement(e).bankindex
+     if versionnumberload<103
+      rem Version 1.03 - V1 draft physics (-1 means calculate at entobj-loadtime)
+      entityelement(e).eleprof.physics=entityprofile(ttentid).physics
+      entityelement(e).eleprof.phyweight=entityprofile(ttentid).phyweight
+      entityelement(e).eleprof.phyfriction=entityprofile(ttentid).phyfriction
+      entityelement(e).eleprof.phyforcedamage=entityprofile(ttentid).phyforcedamage
+      entityelement(e).eleprof.rotatethrow=entityprofile(ttentid).rotatethrow
+      entityelement(e).eleprof.explodable=entityprofile(ttentid).explodable
+      entityelement(e).eleprof.phydw3=0
+      entityelement(e).eleprof.phydw4=0
+      entityelement(e).eleprof.phydw5=0
+     endif
+     if versionnumberload<104
+      rem Version 1.04 - BETA4 extra field
+      entityelement(e).eleprof.phyalways=entityprofile(ttentid).phyalways
+     endif
+     if versionnumberload<105
+      rem Version 1.05 - BETA8
+      entityelement(e).eleprof.spawndelayrandom=entityprofile(ttentid).spawndelayrandom
+      entityelement(e).eleprof.spawnqtyrandom=entityprofile(ttentid).spawnqtyrandom
+      entityelement(e).eleprof.spawnvel=entityprofile(ttentid).spawnvel
+      entityelement(e).eleprof.spawnvelrandom=entityprofile(ttentid).spawnvelrandom
+      entityelement(e).eleprof.spawnangle=entityprofile(ttentid).spawnangle
+      entityelement(e).eleprof.spawnanglerandom=entityprofile(ttentid).spawnanglerandom
+     endif
+     if versionnumberload<106
+      rem Version 1.06 - BETA10
+      entityelement(e).eleprof.spawnatstart=entityprofile(ttentid).spawnatstart
+      entityelement(e).eleprof.spawnlife=entityprofile(ttentid).spawnlife
+     endif
+     `
+    next e
+   endif
+  else
+   debugstring(strarr$(101),"")
+  endif
+ close file 1
+ `
+endif
+
+rem and erase any elements that DO NOT have a valid profile (file moved/deleted)
+for e=1 to entityelementlist
+ entid=entityelement(e).bankindex
+ if entid>0
+  if len(entitybank$(entid))=0
+   entityelement(e).bankindex=0
+  endif
+ endif
+next e
+
+return
+
+_entity_setupelementobject:
+
+rem place entity at correct position and orientation
+if object exist(obj)=1
+ `
+ `tscale=entityelement(e).eleprof.scale EA does not support SCALE value in eleprof!
+ tscale=entityprofile(entid).scale
+ if tscale<>0 then scale object obj,tscale,tscale,tscale
+ `
+ if entityprofile(entid).fixnewy<>0
+  rotate object obj,0,entityprofile(entid).fixnewy,0
+  fix object pivot obj
+ endif
+ `
+ position object obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
+ rotate object obj,entityelement(e).rx,entityelement(e).ry,entityelement(e).rz
+ set object speed obj,125
+ `
+ rem setup lighting properties of entity
+ set object diffuse obj,rgb(128,128,128)
+ set object ambience obj,rgb(255,255,255)
+ set object emissive obj,0
+ set object specular obj,0
+ `
+ rem Load and Apply ''unique'' FX effect
+ if entityelement(e).staticflag=0
+  if guseeffectonentitiesstate=1
+   tfile$=entityelement(e).eleprof.effect$
+   if tfile$<>""
+    teffectid=loadinternaleffectunique(tfile$,1)
+    entityelement(e).eleprof.usingeffect=teffectid
+    entityelement(e).eleprof.uniqueelement=1
+   endif
+  else
+   rem fastbone for quick speed test (if system supports Vertex Shader
+   if entityprofile(entid).ischaracter=1
+    tthisentobjshallbetextured=0
+    if gignorefastbone=0
+     if total object frames(obj)>1
+      rem and MUST have animation to bone animate
+      if object exist(obj)=1
+       if get maximum vertex shader version()>=2.0
+        teffectid=0
+        teffectid=loadinternaleffectunique("effectbank\fastbone\fastbone.fx",1)
+        if teffectid>0
+         entityelement(e).eleprof.usingeffect=teffectid
+         entityelement(e).eleprof.uniqueelement=1
+         tthisentobjshallbetextured=1
+        endif
+       endif
+      endif
+     endif
+    endif
+    if tthisentobjshallbetextured=0
+     rem this works, but if texture customised it gets wiped out I think (needs investigation)
+     if entityelement(e).eleprof.texdid=0
+      rem repair texture if not being uniquelement textured below
+      entityelement(e).eleprof.texdid=entityprofile(entid).texdid
+      texture object obj,entityelement(e).eleprof.texdid
+     endif
+    endif
+   endif
+  endif
+ else
+  rem if staic, universe needs this entity to be a shared FX (because the object will be deleted!)
+  if guseeffectonentitiesstate=1
+   if entityelement(e).eleprof.usingeffect>0
+    entityelement(e).eleprof.uniqueelement=1
+    `
+    rem FPSCV105RC3 - illumination shader does not work with static entity (due to missing LM code)
+    tttfile$=lower$(entityelement(e).eleprof.effect$)
+    ttt$="illuminationent.fx"
+    if lower$(right$(tttfile$,len(ttt$)))=ttt$
+     rem change ENT shader to LM-based shader
+     tttfile$="effectbank\illuminationmap\illuminationmap.fx"
+     entityelement(e).eleprof.effect$=tttfile$
+     teffectid=loadinternaleffect(tttfile$)
+     if teffectid>0
+      entityelement(e).eleprof.usingeffect=teffectid
+      set object effect obj,entityelement(e).eleprof.usingeffect
+     endif
+     rem load correct textures
+     tfullorhalfdivide=0
+     tttentid=entityelement(e).bankindex
+     texdir$=entityprofile(tttentid).texd$
+     tfile$=tttfile$ : teffectuseslightmapstage=0 : gosub _common_makeeffecttextureset
+     entityelement(e).eleprof.texdid=loadinternalimagecompressquality(texdir1$,1,tfullorhalfdivide)
+     entityelement(e).eleprof.tex1id=loadinternalimagecompressquality(texdir2$,1,tfullorhalfdivide)
+     entityelement(e).eleprof.tex2id=loadinternalimagecompressquality(texdir3$,1,tfullorhalfdivide)
+     rem add the required LM stage
+     texture object obj,0,entityelement(e).eleprof.texdid
+     texture object obj,1,entityelement(e).eleprof.tex1id
+     texture object obj,2,entityelement(e).eleprof.tex2id
+    else
+     for tstage=0 to entityelement(e).eleprof.texidmax
+      if tstage=0 then texture object obj,tstage,entityelement(e).eleprof.texdid
+      if tstage=1 then texture object obj,tstage,entityelement(e).eleprof.tex1id
+      if tstage=2 then texture object obj,tstage,entityelement(e).eleprof.tex2id
+      if tstage=3 then texture object obj,tstage,entityelement(e).eleprof.tex3id
+      if tstage=4 then texture object obj,tstage,entityelement(e).eleprof.tex4id
+     next tstage
+    endif
+   endif
+    `
+  endif
+ endif
+ `
+ rem If element unique, can take its own texture, effect and transparency
+ teletransparency=entityelement(e).eleprof.transparency
+ if entityelement(e).eleprof.uniqueelement=1
+  teffectid=entityelement(e).eleprof.usingeffect
+  if teffectid>0
+   set object effect obj,teffectid
+  else
+   texture object obj,0,entityelement(e).eleprof.texdid
+  endif
+ endif
+ `
+ rem Set entity element transparency also, so that it is placed correctly in render order
+ set object transparency obj,teletransparency
+ `
+ rem If transparent, no need to Z write
+ if teletransparency>0
+  if teletransparency>=2
+   disable object zwrite obj
+   enable object zbias obj,0.0,-0.000001
+  endif
+ endif
+ `
+ rem pre-use step for characters
+ if total object frames(obj)>0
+  set object frame obj,0
+  if entityprofile(entid).ischaracter=1
+   if entityprofile(entid).animmax>=1
+    teai=0 : if entityanim(entid,1).start>0 then teai=1
+    tbaseframe=teai : gosub _entity_getactualframestart : tfstart=tactualframe
+    tbaseframe=teai : gosub _entity_getactualframefinish : tffinish=tactualframe
+    loop object obj,tfstart,tffinish
+   else
+    loop object obj : stop object obj
+   endif
+  endif
+ endif
+ `
+ rem weapon and ammo are none collidable
+ if entityprofile(entid).isweapon>0 or entityprofile(entid).isammo>0
+  entityelement(e).collisionactive=0
+  set object collision off obj
+ else
+  set object collision on obj
+ endif
+ `
+ rem do not allow player to stop at entity characters (so can run through them)
+ if entityprofile(entid).ischaracter=1
+  entityelement(e).collisionactive=0
+  set object collision off obj
+ endif
+ `
+endif
+
+rem child spawns should remain invisible for now
+if entityelement(e).spawn.leaderid>0
+ if entityelement(e).spawn.leader=0
+  if object exist(obj)=1
+   entityelement(e).collisionactive=0
+   set object collision off obj
+   hide object obj
+  endif
+ endif
+endif
+
+rem makrers by default are hidden
+if entityprofile(entid).ismarker>0
+ if object exist(obj)=1
+  entityelement(e).collisionactive=0
+  set object collision off obj
+  hide object obj
+ endif
+endif
+
+return
+
+_entity_createelementasobject:
+
+rem preset entity data
+entityelement(e).obj=obj
+entid=entityelement(e).bankindex
+entityelement(e).profileobj=entitybankoffset+entid
+
+rem delete any existing object and create new one
+tgoaheadandsetup=0
+if object exist(obj)=1 then delete object obj
+if entityelement(e).profileobj>0
+ if object exist(entityelement(e).profileobj)=1
+  if entityelement(e).spawn.leader=1 and entityelement(e).spawn.max>0
+   rem spawning entitiy leaders do not need visual obj (they are invisible makrings), but need obj for object XY ref
+   make object triangle obj,0,0,0,0,0,0,0,0,0
+   hide object obj
+  else
+   rem special clone which keeps the animation data in once place (smaller mem footprint)
+   if entityelement(e).staticflag=1 and entityprofile(entid).ischaracter=1
+    rem if static, and obj has animation (character) - hide it
+    make object triangle obj,0,0,0,0,0,0,0,0,0
+    hide object obj
+   else
+    rem FPSCV10X - old U57 clone does not copy multi-materials over
+    if entityprofile(entid).texd$=""
+     ent$=entitybank$(entid)
+     entdir$="entitybank\"
+     entpath$=getpath(ent$)
+     tfile$=entdir$+entpath$+entityprofile(entid).model$
+     if lower$(right$(tfile$,2))=".x" then tdbofile$=left$(tfile$,len(tfile$)-2)+".dbo" else tdbofile$=""
+     if tdbofile$<>"" and file exist(tdbofile$)=1 then tfile$=tdbofile$
+     if file exist(tfile$)=0 then tfile$=entityprofile(entid).model$
+     if file exist(tfile$)=1
+      load object tfile$,obj
+     else
+      clone object obj,entityelement(e).profileobj,1
+     endif
+    else
+     clone object obj,entityelement(e).profileobj,1
+    endif
+    tgoaheadandsetup=1
+   endif
+  endif
+ else
+  rem some elements can be empty - result of editing
+  make object triangle obj,0,0,0,0,0,0,0,0,0
+  hide object obj
+ endif
+else
+ rem some elements can be empty - result of editing
+ make object triangle obj,0,0,0,0,0,0,0,0,0
+ hide object obj
+endif
+
+rem Setup element object (position and orientations)
+if tgoaheadandsetup=1
+ gosub _entity_setupelementobject
+else
+ if obj>0
+  if object exist(obj)=1
+   position object obj,entityelement(e).x,entityelement(e).y,entityelement(e).z
+   rotate object obj,entityelement(e).rx,entityelement(e).ry,entityelement(e).rz
+  endif
+ endif
+endif
+
+rem FPSCV101 - static entities that do not specify a texture draw from local TGA (however when used inside UNIVERSE.DBO the relative location of the texture is lost)
+rem so we must manually insert a texture so the static entity has the path to get the actual texture
+if entityelement(e).staticflag=1 and entityprofile(entid).texd$=""
+ if obj>0
+  if object exist(obj)=1
+   tprofileobjnum=entityelement(e).profileobj
+   if tprofileobjnum>0
+    if object exist(tprofileobjnum)=1
+     tscanfile$=entdir$+entpath$+entityprofile(entid).model$
+     if lower$(right$(tscanfile$,2))=".x"
+      if file exist(tscanfile$)=0
+       tscanfile$=left$(tscanfile$,len(tscanfile$)-2)+".dbo"
+      endif
+     endif
+     ttrythisone$=findmaterialtexturesinmodelfile(tscanfile$,entdir$+entpath$)
+     limbtexid=loadinternalimagecompressquality(ttrythisone$,5,0)
+     if limbtexid>0
+      entityelement(e).eleprof.texd$=ttrythisone$
+      addfiletocollection(entityelement(e).eleprof.texd$)
+      entityelement(e).eleprof.texdid=limbtexid
+      texture object obj,limbtexid
+     endif
+    endif
+   endif
+  endif
+ endif
+endif
+
+return
+
+_entity_getgunidandflakid:
+
+rem Use Weapon Name to get GUNID and FLAKID
+if tgunid$<>""
+ findgun$=lower$(tgunid$)
+ gosub _gun_findweaponindexbyname
+ tgunid=foundgunid
+ tflakid$=gun(tgunid).settings.flakname$
+ if tflakid$<>""
+  flak$=lower$(tflakid$) : gosub _flak_findindex
+  tflakid=tindex
+ else
+  tflakid=0
+ endif
+else
+ tgunid=0 : tflakid=0
+endif
+
+return
+
+_entity_fillelementfromprofile:
+ `
+ rem Name
+ entityelement(e).eleprof.name$=entityprofileheader(entid).desc$
+ `
+ rem AI values
+ entityelement(e).eleprof.aiinit$=entityprofile(entid).aiinit$
+ entityelement(e).eleprof.aimain$=entityprofile(entid).aimain$
+ entityelement(e).eleprof.aidestroy$=entityprofile(entid).aidestroy$
+ entityelement(e).eleprof.aishoot$=entityprofile(entid).aishoot$
+ `
+ rem AI use vars
+ entityelement(e).eleprof.usekey$=entityprofile(entid).usekey$
+ entityelement(e).eleprof.ifused$=entityprofile(entid).ifused$
+ entityelement(e).eleprof.ifusednear$=entityprofile(entid).ifusednear$
+ `
+ rem Spawn
+ entityelement(e).eleprof.spawnatstart=entityprofile(entid).spawnatstart
+ entityelement(e).eleprof.spawnmax=entityprofile(entid).spawnmax
+ entityelement(e).eleprof.spawndelay=entityprofile(entid).spawndelay
+ entityelement(e).eleprof.spawnqty=entityprofile(entid).spawnqty
+ entityelement(e).eleprof.spawnupto=entityprofile(entid).spawnupto
+ entityelement(e).eleprof.spawnafterdelay=entityprofile(entid).spawnafterdelay
+ entityelement(e).eleprof.spawnwhendead=entityprofile(entid).spawnwhendead
+ entityelement(e).eleprof.spawndelayrandom=entityprofile(entid).spawndelayrandom
+ entityelement(e).eleprof.spawnqtyrandom=entityprofile(entid).spawnqtyrandom
+ entityelement(e).eleprof.spawnvel=entityprofile(entid).spawnvel
+ entityelement(e).eleprof.spawnvelrandom=entityprofile(entid).spawnvelrandom
+ entityelement(e).eleprof.spawnangle=entityprofile(entid).spawnangle
+ entityelement(e).eleprof.spawnanglerandom=entityprofile(entid).spawnanglerandom
+ entityelement(e).eleprof.spawnlife=entityprofile(entid).spawnlife
+ `
+ rem Scale, Cone
+ entityelement(e).eleprof.scale=entityprofile(entid).scale
+ entityelement(e).eleprof.coneheight=entityprofile(entid).coneheight
+ entityelement(e).eleprof.coneangle=entityprofile(entid).coneangle
+ `
+ rem Textre and Effect Data (zero to begin with
+ entityelement(e).eleprof.uniqueelement=0
+ entityelement(e).eleprof.texd$=entityprofile(entid).texd$
+ entityelement(e).eleprof.texaltd$=entityprofile(entid).texaltd$
+ entityelement(e).eleprof.effect$=entityprofile(entid).effect$
+ entityelement(e).eleprof.transparency=entityprofile(entid).transparency
+ entityelement(e).eleprof.castshadow=entityprofile(entid).castshadow
+ entityelement(e).eleprof.reducetexture=entityprofile(entid).reducetexture
+ `
+ rem Strength and Quantity
+ entityelement(e).eleprof.strength=entityprofile(entid).strength
+ entityelement(e).eleprof.lives=entityprofile(entid).lives
+ entityelement(e).eleprof.isimmobile=entityprofile(entid).isimmobile
+ entityelement(e).eleprof.cantakeweapon=entityprofile(entid).cantakeweapon
+ entityelement(e).eleprof.hasweapon$=entityprofile(entid).hasweapon$
+ entityelement(e).eleprof.quantity=entityprofile(entid).quantity
+ entityelement(e).eleprof.isobjective=entityprofile(entid).isobjective
+ entityelement(e).eleprof.speed=entityprofile(entid).speed
+ entityelement(e).eleprof.hurtfall=entityprofile(entid).hurtfall
+ `
+ rem Decal and Soundset Name
+ entityelement(e).eleprof.basedecal$=entitydecal$(entid,0)
+ entityelement(e).eleprof.soundset$=entityprofile(entid).soundset$
+ entityelement(e).eleprof.soundset1$=entityprofile(entid).soundset1$
+ `
+ rem Marker Data
+ entityelement(e).eleprof.markerindex=entityprofile(entid).markerindex
+ entityelement(e).eleprof.light=entityprofile(entid).light
+ entityelement(e).eleprof.trigger=entityprofile(entid).trigger
+ `
+ rem Data Extracted From GUN and FLAK
+ tgunid$=entityprofile(entid).isweapon$
+ gosub _entity_getgunidandflakid
+ entityelement(e).eleprof.rateoffire=85
+ entityelement(e).eleprof.weaponisammo=0
+ if tgunid>0
+  entityelement(e).eleprof.accuracy=gun(tgunid).settings.accuracy
+  entityelement(e).eleprof.reloadqty=gun(tgunid).settings.reloadqty
+  entityelement(e).eleprof.fireiterations=gun(tgunid).settings.iterate
+  if tflakid=0
+   entityelement(e).eleprof.damage=gun(tgunid).settings.damage
+  else
+   entityelement(e).eleprof.damage=flak(tflakid).profile.damage
+   entityelement(e).eleprof.lifespan=flak(tflakid).profile.lifespan
+   entityelement(e).eleprof.throwspeed=flak(tflakid).profile.zinc
+   entityelement(e).eleprof.throwangle=flak(tflakid).profile.yinc
+   entityelement(e).eleprof.bounceqty=flak(tflakid).profile.bounceonhit
+   entityelement(e).eleprof.explodeonhit=flak(tflakid).profile.explodeonhit
+   entityelement(e).eleprof.weaponisammo=tflakid
+  endif
+ endif
+ `
+ rem Physics Data
+ entityelement(e).eleprof.physics=entityprofile(entid).physics
+ entityelement(e).eleprof.phyalways=entityprofile(entid).phyalways
+ entityelement(e).eleprof.phyweight=entityprofile(entid).phyweight
+ entityelement(e).eleprof.phyfriction=entityprofile(entid).phyfriction
+ entityelement(e).eleprof.phyforcedamage=entityprofile(entid).phyforcedamage
+ entityelement(e).eleprof.rotatethrow=entityprofile(entid).rotatethrow
+ entityelement(e).eleprof.explodable=entityprofile(entid).explodable
+ entityelement(e).eleprof.explodedamage=entityprofile(entid).explodedamage
+ `
+ rem Copy over found data and or load it
+ configureobj=0 : gosub _entity_configueelementforuse
+ `
+return
+
+_entity_fillgrideleproffromprofile:
+ `
+ rem Name
+ grideleprof.name$=entityprofileheader(entid).desc$
+ `
+ rem AI values
+ grideleprof.aiinit$=entityprofile(entid).aiinit$
+ grideleprof.aimain$=entityprofile(entid).aimain$
+ grideleprof.aidestroy$=entityprofile(entid).aidestroy$
+ grideleprof.aishoot$=entityprofile(entid).aishoot$
+ `
+ rem AI use vars
+ grideleprof.usekey$=entityprofile(entid).usekey$
+ grideleprof.ifused$=entityprofile(entid).ifused$
+ grideleprof.ifusednear$=entityprofile(entid).ifusednear$
+ `
+ rem Spawn
+ grideleprof.spawnatstart=entityprofile(entid).spawnatstart
+ grideleprof.spawnmax=entityprofile(entid).spawnmax
+ grideleprof.spawndelay=entityprofile(entid).spawndelay
+ grideleprof.spawnqty=entityprofile(entid).spawnqty
+ grideleprof.spawnupto=entityprofile(entid).spawnupto
+ grideleprof.spawnafterdelay=entityprofile(entid).spawnafterdelay
+ grideleprof.spawnwhendead=entityprofile(entid).spawnwhendead
+ grideleprof.spawndelayrandom=entityprofile(entid).spawndelayrandom
+ grideleprof.spawnqtyrandom=entityprofile(entid).spawnqtyrandom
+ grideleprof.spawnvel=entityprofile(entid).spawnvel
+ grideleprof.spawnvelrandom=entityprofile(entid).spawnvelrandom
+ grideleprof.spawnangle=entityprofile(entid).spawnangle
+ grideleprof.spawnanglerandom=entityprofile(entid).spawnanglerandom
+ grideleprof.spawnlife=entityprofile(entid).spawnlife
+ `
+ rem Scale, Cone
+ grideleprof.scale=entityprofile(entid).scale
+ grideleprof.coneheight=entityprofile(entid).coneheight
+ grideleprof.coneangle=entityprofile(entid).coneangle
+ `
+ rem Textre and Effect Data
+ grideleprof.uniqueelement=0
+ grideleprof.texd$=entityprofile(entid).texd$
+ grideleprof.texaltd$=entityprofile(entid).texaltd$
+ grideleprof.effect$=entityprofile(entid).effect$
+ grideleprof.transparency=entityprofile(entid).transparency
+ grideleprof.castshadow=entityprofile(entid).castshadow
+ grideleprof.reducetexture=entityprofile(entid).reducetexture
+ `
+ rem Strength and Quantity
+ grideleprof.strength=entityprofile(entid).strength
+ grideleprof.lives=entityprofile(entid).lives
+ grideleprof.isimmobile=entityprofile(entid).isimmobile
+ grideleprof.cantakeweapon=entityprofile(entid).cantakeweapon
+ grideleprof.hasweapon$=entityprofile(entid).hasweapon$
+ grideleprof.quantity=entityprofile(entid).quantity
+ grideleprof.isobjective=entityprofile(entid).isobjective
+ grideleprof.hurtfall=entityprofile(entid).hurtfall
+ grideleprof.speed=entityprofile(entid).speed
+ `
+ rem Decal and Sound Name
+ grideleprof.basedecal$=entitydecal$(entid,0)
+ grideleprof.soundset$=entityprofile(entid).soundset$
+ grideleprof.soundset1$=entityprofile(entid).soundset1$
+ `
+ rem Marker Data
+ grideleprof.markerindex=entityprofile(entid).markerindex
+ grideleprof.light=entityprofile(entid).light
+ grideleprof.trigger=entityprofile(entid).trigger
+ `
+ rem Data Extracted From GUN and FLAK
+ tgunid$=entityprofile(entid).isweapon$
+ gosub _entity_getgunidandflakid
+ grideleprof.rateoffire=85
+ grideleprof.weaponisammo=0
+ if tgunid>0
+  grideleprof.accuracy=gun(tgunid).settings.accuracy
+  grideleprof.reloadqty=gun(tgunid).settings.reloadqty
+  grideleprof.fireiterations=gun(tgunid).settings.iterate
+  if tflakid=0
+   grideleprof.damage=gun(tgunid).settings.damage
+  else
+   grideleprof.damage=flak(tflakid).profile.damage
+   grideleprof.lifespan=flak(tflakid).profile.lifespan
+   grideleprof.throwspeed=flak(tflakid).profile.zinc
+   grideleprof.throwangle=flak(tflakid).profile.yinc
+   grideleprof.bounceqty=flak(tflakid).profile.bounceonhit
+   grideleprof.explodeonhit=flak(tflakid).profile.explodeonhit
+   grideleprof.weaponisammo=tflakid
+  endif
+ endif
+ `
+ rem Physics Data
+ grideleprof.physics=entityprofile(entid).physics
+ grideleprof.phyalways=entityprofile(entid).phyalways
+ grideleprof.phyweight=entityprofile(entid).phyweight
+ grideleprof.phyfriction=entityprofile(entid).phyfriction
+ grideleprof.phyforcedamage=entityprofile(entid).phyforcedamage
+ grideleprof.rotatethrow=entityprofile(entid).rotatethrow
+ grideleprof.explodable=entityprofile(entid).explodable
+ grideleprof.explodedamage=entityprofile(entid).explodedamage
+ `
+return
+
+_entity_createattachment:
+ `
+ rem Load all VWEAPS for each entity that wants weapon attachments
+ entid=entityelement(e).bankindex
+ entityelement(e).attachmentobj=0
+ entityelement(e).attachmentbaseobj=0
+ entityelement(e).attachmentweapontype=0
+ entityelement(e).attachmentobjfirespotlimb=0
+ if entityprofile(entid).ischaracter=1
+  if object exist(eleobj+e)=1
+   if entityprofile(entid).firespotlimb>-1
+    `
+    rem all vweaps (that are active)
+    rem FPSCV104 - changed so MULTIPLAYER=ALL weapons, SINGLEPLAYER=only weapon being held (quicker/bugfree/load)
+    ttattachindex=0
+    for tgindex=1 to gunmax
+     if gun(tgindex).activeingame=1
+      tweaponname$=gun(tgindex).name$
+      if tweaponname$<>""
+       `
+       rem FPSCV104 - either multiplayer or single player entity has this gun in their hands
+       tthasweapon$=lower$(entityelement(e).eleprof.hasweapon$)
+       if tthasweapon$=tweaponname$ or gmultiplayergame=1
+        `
+        rem go and load this gun (attached to calling entity instance)
+        inc ttattachindex
+        inc entityattachmentindex
+        ttobj=entityattachmentsoffset+entityattachmentindex
+        if ttattachindex=1 then entityelement(e).attachmentbaseobj=ttobj
+        if object exist(ttobj)=1 then delete object ttobj
+        `
+        rem V109 BETA6 - replaced X file load with optional DBO convert/load
+        tfile$="gamecore\Guns\"+tweaponname$+"\vweap.x"
+        `rem FPSCV10X some weapons do not have vweap.x models
+        `if file exist(tfile$)=1
+        ` load object tfile$,ttobj : addfiletocollection(tfile$)
+        `else
+        ` rem invisible weapon attachment
+        ` make object triangle ttobj,0,0,0,0,0,0,0,0,0
+        `endif
+        if lower$(right$(tfile$,2))=".x" then tdbofile$=left$(tfile$,len(tfile$)-2)+".dbo" else tdbofile$=""
+        if file exist(tfile$)=1 or file exist(tdbofile$)=1
+         if file exist(tdbofile$)=1
+          tfile$=tdbofile$
+          tdbofile$=""
+         endif
+         load object tfile$,ttobj
+         if len(tdbofile$)>1
+          save object tdbofile$,ttobj
+          if file exist(tdbofile$)=1
+           delete object ttobj
+           load object tdbofile$,ttobj
+           tfile$=tdbofile$
+          endif
+         endif
+         addfiletocollection(tfile$)
+        else
+         rem invisible weapon attachment
+         make object triangle ttobj,0,0,0,0,0,0,0,0,0
+        endif
+        `
+        texuseid=loadinternaltexture("gamecore\Guns\"+tweaponname$+"\gun_D2.tga")
+        set object transparency ttobj,1
+        set object collision off ttobj
+        texture object ttobj,texuseid
+        hide object ttobj
+        `
+       endif
+       `
+      endif
+     endif
+    next tgindex
+    rem Opportunity for default first weapon to be attached
+    tobj=eleobj+e : gosub _entity_switchattachment
+    `
+   endif
+  endif
+ endif
+ `
+ rem Create blob shadow for characters
+ if entityprofile(entid).ischaracter=1
+  if object exist(eleobj+e)=1
+   inc entityattachmentindex
+   ttobj=entityattachmentsoffset+entityattachmentindex
+   entityelement(e).attachmentblobobj=ttobj
+   make object plain ttobj,40,40
+   xrotate object ttobj,90
+   set object light ttobj,0
+   disable object zwrite ttobj
+   set object cull ttobj,1
+   position object ttobj,-50000,-50000,50000
+   ttexid=loadinternaltextureex("gamecore\decals\blob\blob.png",5,1)
+   texture object ttobj,ttexid
+   set object transparency ttobj,2
+  endif
+ endif
+ `
+return
+
+_entity_switchattachment:
+ `
+ rem uses tobj, e, entid, [hasweapon$ can be changed]
+ thasweapon$=lower$(entityelement(e).eleprof.hasweapon$)
+ tvweapobj=entityelement(e).attachmentobj
+ `
+ rem unglue old VWEAP (if any)
+ if tvweapobj>0
+  rem re-hide object
+  if object exist(tvweapobj)=1
+   unglue object tvweapobj
+   position object tvweapobj,0,0,0
+   hide object tvweapobj
+  endif
+ endif
+ `
+ rem reset entity so not carrying
+ entityelement(e).attachmentobjfirespotlimb=0
+ entityelement(e).attachmentweapontype=0
+ entityelement(e).attachmentobj=0
+ entityelement(e).currentweapon=0
+ `
+ rem pick new VWEAP model to attach
+ tvweapobj=0
+ ttattachindex=0
+ if gmultiplayergame=1
+  rem arena characters have all guns attached to them
+  for tgindex=1 to gunmax
+   if gun(tgindex).activeingame=1
+    if gun(tgindex).name$<>"" then inc ttattachindex
+    if lower$(gun(tgindex).name$)=thasweapon$ then tvweapobj=entityelement(e).attachmentbaseobj+(ttattachindex-1) : exit
+   endif
+  next tgindex
+ else
+  rem FPSCV10X - single play characters have one gun - but still need to return gunindex
+  ttattachindex=1
+  for tgindex=1 to gunmax
+   if gun(tgindex).activeingame=1
+    if lower$(gun(tgindex).name$)=thasweapon$ then tvweapobj=entityelement(e).attachmentbaseobj+(ttattachindex-1) : exit
+   endif
+  next tgindex
+ endif
+ tentid=entityelement(e).bankindex
+ if tvweapobj>0
+  rem FPSCV10X - removing VWEAP.X no longer crashes
+  if object exist(tvweapobj)=0
+   tvweapobj=0
+  else
+   if entityprofile(tentid).firespotlimb=-1
+    tvweapobj=0
+   else
+    if object exist(tobj)=1
+     if limb exist(tobj,entityprofile(tentid).firespotlimb)=0
+      tvweapobj=0
+     endif
+    else
+     tvweapobj=0
+    endif
+   endif
+  endif
+ endif
+ if tvweapobj>0
+  entityelement(e).attachmentweapontype=gun(tgindex).weapontype
+  entityelement(e).currentweapon=tgindex
+ endif
+ `
+ rem if new gun selected
+ if tvweapobj>0
+  rem new attached object
+  entityelement(e).attachmentobj=tvweapobj
+  rem glue new VWEAP to entity(character)
+  position object tvweapobj,0,0,0
+  glue object to limb tvweapobj,tobj,entityprofile(tentid).firespotlimb
+  rem relocate firepsot within VWEAP model for entity use
+  entityelement(e).attachmentobjfirespotlimb=0
+  perform checklist for object limbs tvweapobj
+  for tc=1 to checklist quantity()
+   if lower$(checklist string$(tc))="firespot"
+    entityelement(e).attachmentobjfirespotlimb=tc-1
+    tc=checklist quantity()+1
+   endif
+  next tc
+  rem finally show thw weapon (if not spawn child)
+  if entityelement(e).spawn.leaderid=0
+   show object tvweapobj
+  else
+   hide object tvweapobj
+  endif
+ endif
+ `
+return
+
+_entity_iseleprofunique:
+ `
+ rem Entity unique if texture or effect different
+ tokay=0
+ if (len(entityprofile(entid).texd$)>0 or len(entityelement(e).eleprof.texd$)>0) and entityprofile(entid).texd$<>entityelement(e).eleprof.texd$ then tokay=1
+ if (len(entityprofile(entid).texaltd$)>0 or len(entityelement(e).eleprof.texaltd$)>0) and entityprofile(entid).texaltd$<>entityelement(e).eleprof.texaltd$ then tokay=1
+ if (len(entityprofile(entid).effect$)>0 or len(entityelement(e).eleprof.effect$)>0) and entityprofile(entid).effect$<>entityelement(e).eleprof.effect$ then tokay=1
+ if tokay=1
+  entityelement(e).eleprof.uniqueelement=1
+ else
+  entityelement(e).eleprof.uniqueelement=0
+ endif
+ `
+return
+
+_entity_updatetextureandeffectfromeleprof:
+ `
+ rem Texture and Effect (use entityprofile loader)
+ storeentdefaults as entityprofiletype
+ storeentdefaults=entityprofile(entid)
+ entityprofile(entid).texd$=entityelement(e).eleprof.texd$
+ entityprofile(entid).texaltd$=entityelement(e).eleprof.texaltd$
+ entityprofile(entid).texdid=entityelement(e).eleprof.texdid
+ entityprofile(entid).texaltdid=entityelement(e).eleprof.texaltdid
+ entityprofile(entid).effect$=entityelement(e).eleprof.effect$
+ entityprofile(entid).usingeffect=entityelement(e).eleprof.usingeffect
+ entityprofile(entid).tex1id=entityelement(e).eleprof.tex1id
+ entityprofile(entid).tex2id=entityelement(e).eleprof.tex2id
+ entityprofile(entid).tex3id=entityelement(e).eleprof.tex3id
+ entityprofile(entid).tex4id=entityelement(e).eleprof.tex4id
+ entityprofile(entid).texidmax=entityelement(e).eleprof.texidmax
+ entityprofile(entid).transparency=entityelement(e).eleprof.transparency
+ entityprofile(entid).reducetexture=entityelement(e).eleprof.reducetexture
+ gosub _entity_loadtexturesandeffect
+ entityelement(e).eleprof.texd$=entityprofile(entid).texd$
+ entityelement(e).eleprof.texaltd$=entityprofile(entid).texaltd$
+ entityelement(e).eleprof.texdid=entityprofile(entid).texdid
+ entityelement(e).eleprof.texaltdid=entityprofile(entid).texaltdid
+ entityelement(e).eleprof.effect$=entityprofile(entid).effect$
+ entityelement(e).eleprof.usingeffect=entityprofile(entid).usingeffect
+ entityelement(e).eleprof.tex1id=entityprofile(entid).tex1id
+ entityelement(e).eleprof.tex2id=entityprofile(entid).tex2id
+ entityelement(e).eleprof.tex3id=entityprofile(entid).tex3id
+ entityelement(e).eleprof.tex4id=entityprofile(entid).tex4id
+ entityelement(e).eleprof.texidmax=entityprofile(entid).texidmax
+ entityelement(e).eleprof.transparency=entityprofile(entid).transparency
+ entityelement(e).eleprof.reducetexture=entityprofile(entid).reducetexture
+ entityprofile(entid)=storeentdefaults
+ `
+return
+
+_entity_isgrideleprofunique:
+ `
+ rem Entity unique if texture or effect different
+ tokay=0
+ if (len(entityprofile(entid).texd$)>0 or len(grideleprof.texd$)>0) and entityprofile(entid).texd$<>grideleprof.texd$ then tokay=1
+ if (len(entityprofile(entid).texaltd$)>0 or len(grideleprof.texaltd$)>0) and entityprofile(entid).texaltd$<>grideleprof.texaltd$ then tokay=1
+ if (len(entityprofile(entid).effect$)>0 or len(grideleprof.effect$)>0) and entityprofile(entid).effect$<>grideleprof.effect$ then tokay=1
+ if tokay=1
+  grideleprof.uniqueelement=1
+ else
+  grideleprof.uniqueelement=0
+ endif
+ `
+return
+
+_entity_updatetextureandeffectfromgrideleprof:
+ `
+ rem Texture and Effect (use entityprofile loader)
+ storeentdefaults as entityprofiletype
+ storeentdefaults=entityprofile(entid)
+ entityprofile(entid).texd$=grideleprof.texd$
+ entityprofile(entid).texaltd$=grideleprof.texaltd$
+ entityprofile(entid).texdid=grideleprof.texdid
+ entityprofile(entid).texaltdid=grideleprof.texaltdid
+ entityprofile(entid).effect$=grideleprof.effect$
+ entityprofile(entid).usingeffect=grideleprof.usingeffect
+ entityprofile(entid).tex1id=grideleprof.tex1id
+ entityprofile(entid).tex2id=grideleprof.tex2id
+ entityprofile(entid).tex3id=grideleprof.tex3id
+ entityprofile(entid).tex4id=grideleprof.tex4id
+ entityprofile(entid).texidmax=grideleprof.texidmax
+ entityprofile(entid).transparency=grideleprof.transparency
+ entityprofile(entid).reducetexture=grideleprof.reducetexture
+ gosub _entity_loadtexturesandeffect
+ grideleprof.texd$=entityprofile(entid).texd$
+ grideleprof.texaltd$=entityprofile(entid).texaltd$
+ grideleprof.texdid=entityprofile(entid).texdid
+ grideleprof.texaltdid=entityprofile(entid).texaltdid
+ grideleprof.effect$=entityprofile(entid).effect$
+ grideleprof.usingeffect=entityprofile(entid).usingeffect
+ grideleprof.tex1id=entityprofile(entid).tex1id
+ grideleprof.tex2id=entityprofile(entid).tex2id
+ grideleprof.tex3id=entityprofile(entid).tex3id
+ grideleprof.tex4id=entityprofile(entid).tex4id
+ grideleprof.texidmax=entityprofile(entid).texidmax
+ grideleprof.transparency=entityprofile(entid).transparency
+ grideleprof.reducetexture=entityprofile(entid).reducetexture
+ entityprofile(entid)=storeentdefaults
+ `
+return
+
+_entity_configueelementforuse:
+ `
+ rem Resolve AI indexes from AI script filenames
+ aifile$=entityelement(e).eleprof.aiinit$ : gosub _ai_findlibindex : entityelement(e).eleprof.aiinit=libindex
+ aifile$=entityelement(e).eleprof.aimain$ : gosub _ai_findlibindex : entityelement(e).eleprof.aimain=libindex
+ aifile$=entityelement(e).eleprof.aidestroy$ : gosub _ai_findlibindex : entityelement(e).eleprof.aidestroy=libindex
+ aifile$=entityelement(e).eleprof.aishoot$ : gosub _ai_findlibindex : entityelement(e).eleprof.aishoot=libindex
+ `
+ rem prevent main AI from running in (multiplayer)
+ if gmultiplayergame=1
+  rem server entities by default
+  entityelement(e).servercontrolled=1
+  if entityprofile(entid).ischaracter=1
+   rem characters are ALL possible players NO MAIN LOGIC - SERVER CONTROLLED ZOMBIE ENTITIES
+   aifile$="default.fpi" : gosub _ai_findlibindex : entityelement(e).eleprof.aimain=libindex
+  endif
+ endif
+ `
+ rem Configure AI for element
+ entityelement(e).active=1
+ entityelement(e).dormant=1
+ entityelement(e).collisionactive=1
+ entityelement(e).ai.libinit=entityelement(e).eleprof.aiinit
+ entityelement(e).ai.libmain=entityelement(e).eleprof.aimain
+ entityelement(e).ai.libdestroy=entityelement(e).eleprof.aidestroy
+ entityelement(e).ai.libshoot=entityelement(e).eleprof.aishoot
+ entityelement(e).ai.libindex=entityelement(e).ai.libinit
+ entityelement(e).mover.da=entityelement(e).ry
+ entityelement(e).ai.waypoint.state=0
+ entityelement(e).ai.alphafade=0
+ entityelement(e).ai.state=0
+ `
+ rem Configure animation defaults
+ if entityprofile(entid).ischaracter=1
+  entityelement(e).animspeed=2.0
+ else
+  entityelement(e).animspeed=4.0
+ endif
+ `
+ rem Spawn values
+ entityelement(e).spawn.atstart=entityelement(e).eleprof.spawnatstart
+ entityelement(e).spawn.max=entityelement(e).eleprof.spawnmax
+ entityelement(e).spawn.delay=entityelement(e).eleprof.spawndelay
+ entityelement(e).spawn.qty=entityelement(e).eleprof.spawnqty
+ entityelement(e).spawn.upto=entityelement(e).eleprof.spawnupto
+ entityelement(e).spawn.afterdelay=entityelement(e).eleprof.spawnafterdelay
+ entityelement(e).spawn.whendead=entityelement(e).eleprof.spawnwhendead
+ entityelement(e).spawn.delayrandom=entityelement(e).eleprof.spawndelayrandom
+ entityelement(e).spawn.qtyrandom=entityelement(e).eleprof.spawnqtyrandom
+ entityelement(e).spawn.vel=entityelement(e).eleprof.spawnvel
+ entityelement(e).spawn.velrandom=entityelement(e).eleprof.spawnvelrandom
+ entityelement(e).spawn.angle=entityelement(e).eleprof.spawnangle
+ entityelement(e).spawn.anglerandom=entityelement(e).eleprof.spawnanglerandom
+ entityelement(e).spawn.life=entityelement(e).eleprof.spawnlife
+ `
+ rem Spawn off means spawn-ready to be used, so..
+ if entityelement(e).spawn.atstart=0 and entityelement(e).spawn.max=0
+  entityelement(e).spawn.max=1
+  if entityelement(e).spawn.afterdelay=0 and entityelement(e).spawn.whendead=0
+   entityelement(e).spawn.afterdelay=1
+  endif
+  if entityelement(e).spawn.qty=0 then entityelement(e).spawn.qty=1
+  if entityelement(e).spawn.upto=0 then entityelement(e).spawn.upto=1
+ endif
+ `
+ rem Configure health from strength
+ if entityelement(e).eleprof.strength>0
+  entityelement(e).health=entityelement(e).eleprof.strength
+ else
+  entityelement(e).health=1
+ endif
+ `
+ rem Moved from SETUP, as FX name can change here
+ if guseeffectonentitiesstate=1
+  tfile$=entityelement(e).eleprof.effect$
+  if tfile$<>""
+   if entityelement(e).staticflag=0
+    rem dynamic entities cannot use scene FX, must be entity FX..
+    rem for backwards EA compatibility with old entity eleprofs, bump.fx has become bumpent.fx
+    if lower$(tfile$)="effectbank\bump\bump.fx" then tfile$="effectbank\bumpent\bumpent.fx"
+    entityelement(e).eleprof.effect$=tfile$
+    entityelement(e).eleprof.uniqueelement=1
+   else
+    rem if entity static, this routine called from UNIVERSE code to prepare static entities
+    rem ENSURE the bumpent.fx is replaced with BUMP.FX as the former FX file would be wrong
+    if lower$(tfile$)="effectbank\bumpent\bumpent.fx" then tfile$="effectbank\bump\bump.fx"
+    if lower$(tfile$)="effectbank\bumpbone\bumpbone.fx" then tfile$="effectbank\bump\bump.fx"
+    entityelement(e).eleprof.effect$=tfile$
+   endif
+  endif
+ endif
+ `
+ rem Texture and Effect (use entityprofile loader)
+ gosub _entity_iseleprofunique
+ entobj=configureobj : gosub _entity_updatetextureandeffectfromeleprof
+ `
+ rem Resolve default weapon gun ids
+ if entityelement(e).eleprof.hasweapon$<>""
+  findgun$=lower$(entityelement(e).eleprof.hasweapon$) : gosub _gun_findweaponindexbyname
+  entityelement(e).eleprof.hasweapon=foundgunid
+  if foundgunid>0 and entityprofile(entid).isammo=0 then gun(foundgunid).activeingame=1
+ else
+  entityelement(e).eleprof.hasweapon=0
+ endif
+ `
+return
+
+_entity_createelements:
+
+rem pre-create element data (load from eleprof)
+for e=1 to entityelementlist
+ entobj=0 : entid=entityelement(e).bankindex
+ configureobj=0 : gosub _entity_configueelementforuse
+next e
+
+rem spawn all elements (one element with a max.spawn of 5 means we duplicate another 4 here)
+countnewselementsize=0
+for spawne=1 to entityelementlist
+ if entityelement(spawne).staticflag=0
+  inc countnewselementsize,1+entityelement(spawne).spawn.max
+ endif
+next spawne
+
+dim newentityelement(countnewselementsize) as entitytype
+newentityelementlist=0
+for spawne=1 to entityelementlist
+ if entityelement(spawne).staticflag=0
+  for te=1 to 1+entityelement(spawne).spawn.max
+   inc newentityelementlist
+   newentityelement(newentityelementlist)=entityelement(spawne)
+   if te=1
+    rem leader
+    newentityelement(newentityelementlist).spawn.leader=1
+    newentityelement(newentityelementlist).spawn.leadercount=0
+    newentityelement(newentityelementlist).spawn.leaderid=0
+    newentityelement(newentityelementlist).spawn.x=entityelement(spawne).x
+    newentityelement(newentityelementlist).spawn.y=entityelement(spawne).y
+    newentityelement(newentityelementlist).spawn.z=entityelement(spawne).z
+    newentityelement(newentityelementlist).active=1
+    newentityelement(newentityelementlist).dormant=0
+    theleader=newentityelementlist
+   else
+    rem follower - uses MAX range to group followers to each leader
+    newentityelement(newentityelementlist).spawn.leader=0
+    newentityelement(newentityelementlist).spawn.leadercount=0
+    newentityelement(newentityelementlist).spawn.leaderid=theleader
+    newentityelement(newentityelementlist).active=0
+    newentityelement(newentityelementlist).dormant=1
+    newentityelement(newentityelementlist).health=0
+    newentityelement(newentityelementlist).eleprof.lives=0
+   endif
+  next te
+ endif
+next spawne
+undim entityelement()
+undim entitydebug$()
+entityelementlist=newentityelementlist
+entityelementmax=entityelementlist
+dim entityelement(entityelementmax) as entitytype
+dim entitybreadcrumbs(entityelementmax,50) as entitybreadcrumbstype
+dim entitydebug$(entityelementmax)
+for e=1 to entityelementmax
+ entityelement(e)=newentityelement(e)
+next e
+undim newentityelement()
+
+rem V109 BETA3 - create correct size array for local script variables
+dim ailocals(entityelementmax,99)
+
+rem create instances for all elements (create dynamic entities only)
+debugviewtext(302,strarr$(102))
+eleobj=entityobjectoffset : ttick=0 : ttickmax=entityelementlist/3 : rem V106 faster build time ttickmax=1
+for e=1 to entityelementlist
+ obj=eleobj+e
+ if obj>0
+  if entityelement(e).staticflag=0
+   inc ttick : if ttick>ttickmax then ttick=0 : debugviewtext(302,strarr$(103)+str$(e)+"/"+str$(entityelementlist)+" ("+entityprofile(tentid).model$+")")
+   tentid=entityelement(e).bankindex
+   if entityprofile(tentid).ismarker=0
+    gosub _entity_createelementasobject
+   endif
+  endif
+ endif
+next e
+
+rem after leader creations, do not need leader flag if entity does not spawn
+for e=1 to entityelementlist
+ if entityelement(e).spawn.leader=1
+  tentid=entityelement(e).bankindex
+  if entityelement(e).spawn.max=0
+   entityelement(e).spawn.leader=0
+  endif
+ endif
+next e
+
+rem Create Entity Attachments
+debugviewtext(304,strarr$(104))
+entityattachmentindex=0
+eleobj=entityobjectoffset : ttick=0 : ttickmax=entityelementlist/3 : rem V106 faster build time ttickmax=1
+for e=1 to entityelementlist
+ inc ttick : if ttick>ttickmax then ttick=0 : debugviewtext(306,str$(e)+"\"+str$(entityelementlist)+" "+entityelement(e).eleprof.name$)
+ gosub _entity_createattachment
+next e
+
+rem if entity is server controlled, hide entity initially (multiplayer)
+if gmultiplayergame=1
+ for e=1 to entityelementlist
+  if entityelement(e).servercontrolled=1
+   obj=entityelement(e).obj
+   if obj>0
+    if object exist(obj)=1
+     hide object tobj
+    endif
+   endif
+  endif
+ next e
+endif
+
+rem Assign characters as fake players and set default weapon
+fakeplayercount=2
+for e=1 to entityelementlist
+ entid=entityelement(e).bankindex
+ if entityprofile(entid).ischaracter=1
+  entityelement(e).fakeplayerid=fakeplayercount
+  inc fakeplayercount
+ endif
+ entityelement(e).currentweapon=entityelement(e).eleprof.hasweapon
+ entityelement(e).currentclipammo=9999
+ entityelement(e).currentammo=0
+next e
+rem recreate array to new size
+playermax=fakeplayercount-1
+dim player(playermax) as playertype
+dim playersound(playermax,520) as integer
+dim playersoundset$(playermax) as string
+dim playermovementstep(playermax) as integer
+dim playerinventory(playermax,100) as inventorytype
+
+rem Transfer sound sets to player data
+fakeplayercount=2
+playersoundset$(1)=""
+for e=1 to entityelementlist
+ entid=entityelement(e).bankindex
+ if entityprofile(entid).ismarker=1 and entityprofile(entid).lives>0
+  playersoundset$(1)=entityelement(e).eleprof.soundset$
+ endif
+ if entityprofile(entid).ischaracter=1
+  playersoundset$(fakeplayercount)=entityelement(e).eleprof.soundset$
+  entityelement(e).fakeplrindex=fakeplayercount
+  inc fakeplayercount
+ endif
+next e
+
+rem Activate any decals
+for e=1 to entityelementlist
+ entid=entityelement(e).bankindex
+ if entityprofile(entid).decalmax>0
+  for tq=0 to entityprofile(entid).decalmax-1
+   decalid=entitydecal(entid,tq)
+   if decalid>0
+    decal(decalid).active=1
+   endif
+  next tq
+ endif
+next e
+
+rem Load any soundsets not belonging to characters or players
+debugviewtext(306,strarr$(105))
+for e=1 to entityelementlist
+ entityelement(e).soundset=0
+ entid=entityelement(e).bankindex
+ tokay=0
+ if entityprofile(entid).ischaracter=0 and entityprofile(entid).ismarker=0 then tokay=1
+ if entityprofile(entid).ismarker=1 and entityprofile(entid).lives=0 then tokay=1
+ if entityprofile(entid).ismarker=3 or entityprofile(entid).ismarker=4 then tokay=1
+ if tokay=1
+  `
+  rem V109BETA4 - 240408 - use 2D mode if MUSIC ZONE is the name
+  if lower$(left$(entityelement(e).eleprof.name$,10))="music zone" then t3d=0 else t3d=1
+  `
+  rem Load sound sets
+  if entityelement(e).eleprof.soundset$<>""
+   rem load as 3D sound ready for playing or looping in game (generator)
+   tfile$=entityelement(e).eleprof.soundset$
+   if file exist(tfile$)=1
+    addfiletocollection(tfile$)
+    entityelement(e).soundset=loadinternalsoundcore(tfile$,t3d)
+   endif
+  endif
+  if entityelement(e).eleprof.soundset1$<>""
+   rem load as 3D sound ready for playing or looping in game (generator)
+   tfile$=entityelement(e).eleprof.soundset1$
+   if file exist(tfile$)=1
+    addfiletocollection(tfile$)
+    entityelement(e).soundset1=loadinternalsoundcore(tfile$,t3d)
+   endif
+  endif
+ endif
+next e
+
+return
+
+_entity_attachelementstogame:
+
+rem associate dynamic entities with game universe (vislinking)
+eleobj=entityobjectoffset
+for e=1 to entityelementlist
+ obj=eleobj+e
+ if obj>0
+  entid=entityelement(e).bankindex
+  if entityelement(e).staticflag=0
+   if object exist(obj)=1
+    attach object to static obj
+   endif
+  endif
+ endif
+next e
+
+rem was here
+gosub _player_resetobjectives
+
+return
+
+_entity_calculateobjectivestotal:
+
+rem count all objective entities
+missiongoaltotal=0
+for e=1 to entityelementlist
+ mi=entityelement(e).eleprof.isobjective
+ if missiongoaltotal<mi then missiongoaltotal=mi
+next e
+
+rem count all as complete
+for mi=1 to 99 : playerobjective(mi)=1 : next mi
+
+rem and clear those awaiting to be filled in my entity
+for e=1 to entityelementlist
+ mi=entityelement(e).eleprof.isobjective
+ if mi>0 then playerobjective(mi)=0
+next e
+
+return
+
+_entity_deleteelements:
+
+rem Quick deletes
+if entityelementlist>0
+ delete objects entityobjectoffset+1, entityobjectoffset+entityelementlist
+endif
+if entityattachmentindex>0
+ delete objects entityattachmentsoffset+1, entityattachmentsoffset+entityattachmentindex
+endif
+
+return
+
+_entity_scanfornewentitiesnoload:
+
+rem Scan for entities
+entdir$="entitybank\"
+empty array filelist$()
+buildfilelist(entdir$,"")
+
+rem If entities exist
+if array count(filelist$())>0
+ for chkfile=0 to array count(filelist$())
+  `
+  rem entity name from folder
+  ent$=filelist$(chkfile)
+  `
+  rem Check if filename valid
+  if right$(ent$,4)=".fpe"
+  `
+  rem Check entity exists in bank
+  tokay=1
+  if entidmaster>0
+   for entid=1 to entidmaster
+    if entitybank$(entid)=ent$ then tokay=0
+   next entid
+  endif
+  if tokay=1
+    `
+   rem Find Free entity Index
+   freeentid=-1
+   if entidmaster>0
+    for entid=1 to entidmaster
+     if entitybank$(entid)="" then freeentid=entid : exit
+    next entid
+   endif
+   `
+   rem New entity or Free One
+   if freeentid=-1
+    inc entidmaster : gosub _entity_validatearraysize
+    entid=entidmaster
+   else
+    entid=freeentid
+   endif
+   `
+   rem Load entity
+   dim entitybank$(entid)
+   entitybank$(entid)=ent$
+   `
+  endif
+  `
+  endif
+  `
+ next chkfile
+endif
+
+return
+
+
+_entity_scanfornewentities:
+
+rem Load all entity names
+gosub _entity_scanfornewentitiesnoload
+
+rem Load entities themselves
+for entid=1 to endidmaster
+ ent$=entitybank$(entid)
+ entpath$=getpath(ent$)
+ gosub _entity_load
+next entid
+
+return
+
+_entity_addtoselection:
+
+rem Load entity from file requester
+set dir currententitydir$
+ent$=browseropen$(9)
+entdir$="entitybank\"
+ent$=right$(ent$,len(ent$)-len(rootdir$+entdir$))
+currententitydir$=get dir$()
+set dir rootdir$
+`
+rem Check if filename valid
+entnewloaded=0 : entid=0
+if right$(ent$,4)=".fpe"
+ `
+ rem Check entity exists in bank
+ tokay=1
+ if entidmaster>0
+  for entid=1 to entidmaster
+   if entitybank$(entid)=ent$ then tokay=0 : tfoundid=entid : exit
+  next entid
+ endif
+ if tokay=1
+  `
+  rem Find Free entity Index
+  freeentid=-1
+  if entidmaster>0
+   for entid=1 to entidmaster
+    if entityprofileheader(entid).desc$="" then freeentid=entid : exit
+   next entid
+  endif
+  `
+  rem New entity or Free One
+  if freeentid=-1
+   inc entidmaster : gosub _entity_validatearraysize
+   entid=entidmaster
+   entnewloaded=1
+  else
+   entid=freeentid
+  endif
+  `
+  rem Load entity
+  entitybank$(entid)=ent$
+  entpath$=getpath(ent$)
+  gosub _entity_load
+  `
+ else
+  `
+  rem already got, assign ID from existing
+  entid=tfoundid
+  `
+ endif
+ `
+endif
+
+return
+
+_entity_delete:
+ `
+ rem Remove trace of entity (and object)
+ tdelobj=entitybankoffset+entid
+ if tdelobj>0
+  if object exist(tdelobj)=1 then delete object tdelobj
+  entityprofileheader(entid).desc$=""
+  entitybank$(entid)=""
+  entityprofile(entid).aiinit$=""
+  entityprofile(entid).aimain$=""
+  entityprofile(entid).aidestroy$=""
+  entityprofile(entid).aishoot$=""
+  entityprofile(entid).soundset$=""
+  entityprofile(entid).soundset1$=""
+  entityprofile(entid).usekey$=""
+  entityprofile(entid).ifused$=""
+  entityprofile(entid).ifusednear$=""
+  entityprofile(entid).spawnatstart=0
+  entityprofile(entid).spawnmax=0
+  entityprofile(entid).spawnupto=0
+  entityprofile(entid).spawnafterdelay=0
+  entityprofile(entid).spawnwhendead=0
+  entityprofile(entid).spawndelay=0
+  entityprofile(entid).spawnqty=0
+  entityprofile(entid).spawndelayrandom=0
+  entityprofile(entid).spawnqtyrandom=0
+  entityprofile(entid).spawnvel=0
+  entityprofile(entid).spawnvelrandom=0
+  entityprofile(entid).spawnangle=0
+  entityprofile(entid).spawnanglerandom=0
+  entityprofile(entid).spawnlife=0
+  entityprofile(entid).model$=""
+  entityprofile(entid).offx=0.0
+  entityprofile(entid).offy=0.0
+  entityprofile(entid).offz=0.0
+  entityprofile(entid).rotx=0.0
+  entityprofile(entid).roty=0.0
+  entityprofile(entid).rotz=0.0
+  entityprofile(entid).scale=0.0
+  entityprofile(entid).fixnewy=0.0
+  entityprofile(entid).raisefactor=0
+  entityprofile(entid).forwardfacing=0
+  entityprofile(entid).defaultheight=0.0
+  entityprofile(entid).defaultstatic=0
+  entityprofile(entid).collisionmode=0
+  entityprofile(entid).materialindex=0
+  entityprofile(entid).debrisshapeindex=0
+  entityprofile(entid).coneheight=0.0
+  entityprofile(entid).coneangle=0.0
+  entityprofile(entid).hurtfall=0
+  entityprofile(entid).texpath$=""
+  entityprofile(entid).texd$=""
+  entityprofile(entid).texdid=0
+  entityprofile(entid).texaltd$=""
+  entityprofile(entid).texaltdid=0
+  entityprofile(entid).tex1id=0
+  entityprofile(entid).tex2id=0
+  entityprofile(entid).tex3id=0
+  entityprofile(entid).tex4id=0
+  entityprofile(entid).texidmax=0
+  entityprofile(entid).effect$=""
+  entityprofile(entid).usingeffect=0
+  entityprofile(entid).castshadow=0
+  entityprofile(entid).transparency=0
+  entityprofile(entid).reducetexture=0
+  entityprofile(entid).strength=0
+  entityprofile(entid).lives=0
+  entityprofile(entid).speed=0
+  entityprofile(entid).isimmobile=0
+  entityprofile(entid).ischaracter=0
+  entityprofile(entid).cantakeweapon=0
+  entityprofile(entid).isweapon$=""
+  entityprofile(entid).isweapon=0
+  entityprofile(entid).isammo=0
+  entityprofile(entid).hasweapon$=""
+  entityprofile(entid).hasweapon=0
+  entityprofile(entid).ishealth=0
+  entityprofile(entid).isflak=0
+  entityprofile(entid).limbmax=0
+  entityprofile(entid).headlimb=0
+  entityprofile(entid).firespotlimb=0
+  entityprofile(entid).animmax=0
+  entityprofile(entid).footfallmax=0
+  entityprofile(entid).quantity=0
+  entityprofile(entid).ismarker=0
+  entityprofile(entid).markerindex=0
+  entityprofile(entid).isobjective=0
+  entityprofile(entid).decalmax=0
+  entityprofile(entid).bloodscorch=0
+  entityprofile(entid).rateoffire=0
+  entityprofile(entid).damage=0
+  entityprofile(entid).accuracy=0
+  entityprofile(entid).reloadqty=0
+  entityprofile(entid).fireiterations=0
+  entityprofile(entid).lifespan=0
+  entityprofile(entid).throwspeed=0.0
+  entityprofile(entid).throwangle=0.0
+  entityprofile(entid).bounceqty=0
+  entityprofile(entid).explodeonhit=0
+  entityprofile(entid).weaponisammo=0
+  entityprofile(entid).physics=0
+  entityprofile(entid).phyalways=0
+  entityprofile(entid).phyweight=0
+  entityprofile(entid).phyfriction=0
+  entityprofile(entid).phyforcedamage=0
+  entityprofile(entid).rotatethrow=0
+  entityprofile(entid).explodable=0
+  entityprofile(entid).explodedamage=0
+ endif
+ `
+return
+
+`
+` FUNCTION TO FIND ENTITY ELEMENT INDEX FROM OBJ VALUE
+`
+function findentityfromobj(objclicked)
+ entitytoselect=0
+ for e=1 to entityelementlist
+  if objclicked=entityelement(e).obj
+   entitytoselect=e : exit
+  endif
+ next e
+endfunction entitytoselect
+
+`
+` FUNCTION TO FIND ALL TEXTURES IN MODEL FILE (for file collection)
+`
+function findmaterialtexturesinmodelfile(file$,texpath$)
+ `
+ rem To determine if a model file requires
+ rem texture files, we scan the file for a
+ rem match to the text .TGA or .JPG (and use texfile$)
+ returntexfile$=""
+ if file exist(file$)=1
+ filesize=file size(file$)
+ mbi=255
+ open to read 11,file$
+ make memblock from file mbi,11
+ close file 11
+ for b=0 to filesize-1
+  if memblock byte(mbi,b+0)=asc(".")
+   `
+   tfoundpiccy=0
+   if memblock byte(mbi,b+1)=asc("T") or memblock byte(mbi,b+1)=asc("t")
+    if memblock byte(mbi,b+2)=asc("G") or memblock byte(mbi,b+2)=asc("g")
+     if memblock byte(mbi,b+3)=asc("A") or memblock byte(mbi,b+3)=asc("a")
+      tfoundpiccy=1
+     endif
+    endif
+   endif
+   if memblock byte(mbi,b+1)=asc("J") or memblock byte(mbi,b+1)=asc("j")
+    if memblock byte(mbi,b+2)=asc("P") or memblock byte(mbi,b+2)=asc("p")
+     if memblock byte(mbi,b+3)=asc("G") or memblock byte(mbi,b+3)=asc("g")
+      tfoundpiccy=1
+     endif
+    endif
+   endif
+   `
+   if tfoundpiccy=1
+      rem trace back
+      for c=b to b-255 step -1
+       if memblock byte(mbi,c)>=asc(" ") and memblock byte(mbi,c)<=asc("z") and memblock byte(mbi,c)<>34
+        rem part of filename
+       else
+        rem no more filename
+        exit
+       endif
+      next c
+      texfile$=""
+      for d=c+1 to b+3
+       texfile$=texfile$+chr$(memblock byte(mbi,d))
+      next d
+      addfiletocollection(texpath$+texfile$)
+      if returntexfile$="" then returntexfile$=texpath$+texfile$
+      inc b,4
+   endif
+   `
+  endif
+ next b
+ delete memblock mbi
+ endif
+ `
+endfunction returntexfile$
+

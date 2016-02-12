@@ -1,0 +1,3042 @@
+rem
+rem ENTITY (Control)
+rem
+
+_entity_startentitiesoff:
+ `
+ rem Prepare entities for logical usage
+ for e=1 to entityelementlist
+  if entityelement(e).active=1 and entityelement(e).spawn.leader=0
+   entityelement(e).logiccount=0
+   entityelement(e).logictimestamp=timer()
+   entityelement(e).dormant=1
+   rem check if entity starts inside geometry
+   entid=entityelement(e).bankindex
+   if entityprofile(entid).ischaracter=1
+    tettry=0 : tskip=0
+    ttryy#=entityelement(e).y
+    ellipseheight#=1.0
+    if entityelement(e).obj
+     if object exist(entityelement(e).obj)=1
+      if object size y(entityelement(e).obj)<50
+       tskip=1
+      endif
+     endif
+    endif
+    if tskip=0
+     while tettry<25
+      if static volume(entityelement(e).x,ttryy#+33,entityelement(e).z,entityelement(e).x,ttryy#+32,entityelement(e).z,ellipseheight#)=0 then exit
+      ttryy#=ttryy#+1.0
+      inc tettry
+     endwhile
+     if tettry>=25
+      rem entity stuck - so make it immobile to shut down struggle!
+      entityelement(e).eleprof.isimmobile=1
+     else
+      rem entities can find floor initially (not playerstart,trigger,light,emission)
+      entityelement(e).y=ttryy#
+      entityelement(e).mover.inmotion=1
+      entityelement(e).mover.grav=0.0
+     endif
+    endif
+   endif
+  endif
+ next e
+ timestamp=timer()
+ `
+ rem Overwrite any GUN or FLAK settings with mods-from-entity-weapons
+ for e=1 to entityelementlist
+  entid=entityelement(e).bankindex
+  tgunid$=entityprofile(entid).isweapon$
+  gosub _entity_getgunidandflakid
+  if tgunid>0
+   gun(tgunid).settings.accuracy=entityelement(e).eleprof.accuracy
+   gun(tgunid).settings.reloadqty=entityelement(e).eleprof.reloadqty
+   gun(tgunid).settings.iterate=entityelement(e).eleprof.fireiterations
+   if tflakid=0
+    gun(tgunid).settings.damage=entityelement(e).eleprof.damage
+   else
+    flak(tflakid).profile.damage=entityelement(e).eleprof.damage
+    flak(tflakid).profile.lifespan=entityelement(e).eleprof.lifespan
+    flak(tflakid).profile.bounceonhit=entityelement(e).eleprof.bounceqty
+    flak(tflakid).profile.explodeonhit=entityelement(e).eleprof.explodeonhit
+    `
+    rem some assumptions over how FLAK settings affect flak itself
+    flak(tflakid).profile.zinc=entityelement(e).eleprof.throwspeed
+    flak(tflakid).profile.yinc=entityelement(e).eleprof.throwangle/10.0
+    flak(tflakid).profile.yspeed=1+((entityelement(e).eleprof.throwangle/2.0)/1000.0)
+    flak(tflakid).throwangle=entityelement(e).eleprof.throwangle
+    if entityelement(e).eleprof.throwangle>0
+     flak(tflakid).profile.weight=0.5
+    else
+     flak(tflakid).profile.weight=0.0
+    endif
+    `
+   endif
+  endif
+ next e
+ `
+ rem also ensure entity characters have switched to their weapon (gundata not avail at createelements)
+ for e=1 to entityelementlist
+  obj=entityelement(e).obj
+  entid=entityelement(e).bankindex
+  if obj>0 and entid>0
+   if entityprofile(entid).ischaracter=1
+    if object exist(obj)=1
+     if entityprofile(entid).firespotlimb>-1
+      rem spawn leaders do not require attached weapon
+      if entityelement(e).spawn.leader=0
+       tobj=obj : gosub _entity_switchattachment
+      endif
+     endif
+    endif
+   endif
+  endif
+ next e
+ `
+return
+
+_entity_resetentitiestorestartstates:
+ `
+ rem uses tcopyorrestart (1-resttart)
+ rem copy start-data-entity-backup to real entityelements
+ if tcopyorrestart=0
+  dim copyofentityelement(entityelementmax) as entitytype
+  for e=1 to entityelementmax
+   copyofentityelement(e)=entityelement(e)
+  next e
+ else
+  for e=1 to entityelementmax
+   entityelement(e)=copyofentityelement(e)
+  next e
+ endif
+ `
+return
+
+_entity_resetentitiesifplrleaps:
+ `
+ rem Reset logic if player leaps from one location to another
+ for e=1 to entityelementlist
+  if entityelement(e).active=1
+   entityelement(e).logiccount=0
+   entityelement(e).logictimestamp=timer()
+   entityelement(e).dormant=1
+  endif
+ next e
+ `
+return
+
+_entity_addetoprioritylist:
+ `
+ rem add entity to prority status
+ if entityelement(e).priorityai=0
+  entityelement(e).priorityai=1
+  inc logicprioritycount
+ endif
+ `
+return
+
+_entity_removeefromprioritylist:
+ `
+ rem remove entity from prority status
+ if entityelement(e).priorityai=1
+  if entityelement(e).priorityduration=0
+   entityelement(e).losttargetcount=99999
+   entityelement(e).priorityai=0
+   if logicprioritycount>0
+    dec logicprioritycount
+   endif
+   `
+   rem V110 - 290508 - stop loop sound if entity pulled from priority action
+   entityelement(e).fireweapon=0
+   if entityelement(e).firesoundloop>0
+    stop sound entityelement(e).firesoundloop
+    entityelement(e).firesoundloop=0
+   endif
+   `
+  endif
+ endif
+ `
+return
+
+_entity_stealpriorityandgivetoe:
+ `
+ rem Steal from furthest, give to this one (E)
+ if lastlogicpriorityfurtheste>0
+  if entityelement(e).priorityai=0
+   if entityelement(lastlogicpriorityfurtheste).priorityai=1
+    if entityelement(lastlogicpriorityfurtheste).priorityduration=0
+     tste=e : e=lastlogicpriorityfurtheste : gosub _entity_removeefromprioritylist
+     e=tste : entityelement(e).logiccount=0
+     gosub _entity_addetoprioritylist
+    endif
+   endif
+  endif
+ endif
+ `
+return
+
+_entity_blastinitentities:
+ `
+ rem give entities a 10 cycle blast of logic (to set up things like decals and floating collectables)
+ for tencycles=1 to 10
+  for e=1 to entityelementlist
+   if entityelement(e).active=1 and entityelement(e).spawn.leader=0
+    entid=entityelement(e).bankindex
+    if entid>0
+     obj=entityelement(e).obj
+     entityelement(e).logictimestamp=timer()
+     gosub _entity_controlsingleai
+     tdx#=entityelement(e).x-mex# : tdz#=entityelement(e).z-mez# : tdy#=entityelement(e).y-mey#
+     entityelement(e).plrdist=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+     `X9 - 050208 - s4real speedup if entityelement(e).plrdist<1000.0
+     if entityelement(e).plrdist<600.0
+      entityelement(e).logiccount=0
+      entityelement(e).dormant=0
+     else
+      entityelement(e).logiccount=0
+      entityelement(e).dormant=1
+     endif
+    endif
+   endif
+  next e
+ next tencycles
+ `
+ rem Bring all entities alive quickly
+ allentsfulllogicatstartcount=100
+ `
+ rem 030805 - and once call to entity control to start off visuals/decals/etc
+ gosub _entity_controlelements
+ `
+return
+
+_entity_showdebugstringinfo:
+ `
+ if e>0 and obj>0
+  if entityelement(e).priorityai<>0 then ink rgb(255,255,255),0
+  if entityelement(e).plrdist<500
+   if object in screen(obj)=1
+    `
+    rem Entity Name and Debug string
+    if entityelement(e).priorityai=1 then tpri$=" (priority)" else tpri$=""
+    center text object screen x(obj),object screen y(obj)-60,entityelement(e).eleprof.name$+tpri$
+    center text object screen x(obj),object screen y(obj)-40,entitydebug$(e)
+    `
+    rem V109 BETA3 - variable readout
+    center text object screen x(obj),object screen y(obj)+20,"G:"+str$(aiglobals(0))+","+str$(aiglobals(1))+","+str$(aiglobals(2))+" L:"+str$(ailocals(e,0))+","+str$(ailocals(e,1))+","+str$(ailocals(e,2))
+    `
+    rem Entity Status Info
+    tentid=entityelement(e).bankindex
+    if entityprofile(tentid).ischaracter<>0
+     if entityelement(e).ai.libindex>=1 and entityelement(e).ai.libindex<=array count(scriptbank$(0))
+      tainame$=scriptbank$(entityelement(e).ai.libindex)
+     else
+      tainame$=str$(entityelement(e).ai.libindex)
+     endif
+     center text object screen x(obj),object screen y(obj)-20,"A:"+tainame$+" S:"+str$(entityelement(e).ai.state)+" WS:"+str$(entityelement(e).ai.waypoint.state)+" L:"+str$(entityelement(e).eleprof.lives)+" H:"+str$(entityelement(e).health)+" LT:"+str$(entityelement(e).losttargetcount)+"("+str$(int(entityelement(e).actualtargetx))+","+str$(int(entityelement(e).actualtargety))+","+str$(int(entityelement(e).actualtargetz))+") RCC:"+str$(entityelement(e).raycastcount)+" FRAME:"+str$(entityelement(e).animframe)+"\"+str$(entityelement(e).destanimframe)+"  ry="+str$(entityelement(e).ry)
+     if entityelement(e).currentweapon>0
+      center text object screen x(obj),object screen y(obj),"WA:"+str$(entityelement(e).currentammo)+"\"+str$(entityelement(e).currentclipammo)
+     endif
+    else
+     if entityprofile(tentid).isweapon<>0
+      tgunid=entityprofile(tentid).isweapon
+      center text object screen x(obj),object screen y(obj)-20," AI:"+str$(entityelement(e).ai.libindex)+" S:"+str$(entityelement(e).ai.state)+strarr$(99)+str$(gun(tgunid).settings.damage)+" H:"+str$(entityelement(e).health)
+     else
+      center text object screen x(obj),object screen y(obj)-20," AI:"+str$(entityelement(e).ai.libindex)+" S:"+str$(entityelement(e).ai.state)+" H:"+str$(entityelement(e).health)+" FRAME:"+str$(entityelement(e).animframe)+"\"+str$(entityelement(e).destanimframe)
+     endif
+    endif
+    `
+   endif
+  endif
+  if entityelement(e).priorityai<>0 then ink rgb(255,255,0),0
+ endif
+ `
+return
+
+_entity_controlelements:
+
+rem FPSCV10X - solve slow life for entities at distance
+if allentsfulllogicatstartcount>0
+ dec allentsfulllogicatstartcount
+endif
+
+rem Entity Performance
+gameperftimestamplocal=perftimer()
+
+rem General data for control management
+mex#=camerapositionx : mey#=camerapositiony : mez#=camerapositionz
+meheight#=(ellipsevolumesize#-0.25)*30.0
+
+rem handle AI sound
+managebroadcastsound()
+
+rem maintain constant game speed
+timeelapsed#=(1.0/50.0)*(timer()-timestamp) : timestamp=timer()
+
+rem maintain couner for any animspeed changes
+inc timeelapsedrefreshentityanimspeeds
+if timeelapsedrefreshentityanimspeeds>5
+ timeelapsedrefreshentityanimspeeds=0
+endif
+
+rem Debug entire AI logic
+if gshowdebugtextingamestate=1
+ if debugviewtog=1
+  set cursor 0,100
+  ink rgb(128,255,128),0
+  print strarr$(98)
+  print
+ endif
+endif
+
+rem Go through all entities for LOGIC
+superstealpriority=0
+tonestealperaiphase=0
+tonestealperaiphasedist#=99999
+logicpriorityfurthest#=0
+for e=1 to entityelementlist
+ entid=entityelement(e).bankindex
+ obj=entityelement(e).obj
+
+ rem find value from entity
+ `if obj>0
+ ` if object exist(obj)=1
+ `  center text object screen x(obj),object screen y(obj),str$(entityelement(e).rx)+" "+str$(entityelement(e).rz)
+ ` endif
+ `endif
+
+ if entityelement(e).active=1 and entityelement(e).dormant=0
+  `
+  rem only non-spawn-masters with valid profile indexes
+  if entid>0 and entityelement(e).spawn.leader=0
+   `
+   rem reset kill flag
+   tkillentitynow=0
+   `
+   rem always fade entity to lifespan no matter logic slice
+   if entityelement(e).spawn.life>0
+    if timer()>entityelement(e).spawn.life
+     entityelement(e).spawn.life=0
+     tkillentitynow=1
+    endif
+   endif
+   `
+   rem always kill an entity falling out of universe
+   if entityelement(e).y<-100
+    tkillentitynow=1
+   endif
+   `
+   rem kill now
+   if tkillentitynow=1
+    tdamage=entityelement(e).health
+    tdamagesource=0 : timpacttype=1
+    tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y : tdamagez#=entityelement(e).z
+    ttodestroyevenifimmune=entityelement(e).eleprof.strength : rem store for later return
+    if entityelement(e).eleprof.strength=0 then entityelement(e).eleprof.strength=1
+    gosub _entity_deducthealth : entityelement(e).eleprof.strength=ttodestroyevenifimmune
+    tkillentitynow=0
+   endif
+   `
+   rem logic timeslice
+   tlogic#=entityelement(e).logiccount-timeelapsed#
+   entityelement(e).logiccount=tlogic#
+   if entityelement(e).eleprof.phyalways<>0 then entityelement(e).logiccount=0
+   if entityelement(e).logiccountburst>0 then entityelement(e).logiccountburst=entityelement(e).logiccountburst-1 : entityelement(e).logiccount=0
+   if entityelement(e).logiccount>0.0
+    `
+    rem if player runs at entity quickly, entity AI should be ready with AI
+    tdx#=entityelement(e).x-mex# : tdy#=entityelement(e).y-mey# : tdz#=entityelement(e).z-mez#
+    entityelement(e).plrdist=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+    if entityprofile(entid).ischaracter=0
+     rem for doors and proximity AI
+     if entityelement(e).plrdist<100
+      entityelement(e).logiccount=0
+     endif
+    else
+     rem characters can have a priority logic monopoly
+     if logicprioritycount<int(logicprioritymax#)
+      gosub _entity_addetoprioritylist
+     else
+      rem if this entity character is substantially closer that furthest priority entity, switch
+      if entityelement(e).plrdist<lastlogicpriorityfurthest#+125.0
+       rem switch priroity to this entity (priority entity characters are always the closest)
+       if entityelement(e).plrdist<tonestealperaiphasedist#
+        tonestealperaiphasedist#=entityelement(e).plrdist
+        tonestealperaiphase=e
+       endif
+      endif
+      rem hold character logic at bay - until logicpriority allows
+      entityelement(e).logiccount=100
+     endif
+     if entityelement(e).priorityai=1
+      entityelement(e).logiccount=0
+     endif
+    endif
+    if entityelement(e).ai.libindex=entityelement(e).ai.libdestroy or entityelement(e).ai.libindex=entityelement(e).ai.libinit
+     entityelement(e).logiccount=0
+    endif
+    if entityprofile(entid).ismarker<>0
+     rem checkpoint, lights, triggers and emissions
+     entityelement(e).logiccount=0
+    endif
+    `
+   endif
+   if entityelement(e).logiccount<=0
+    `
+    rem time slice of logic (...since entity last thought...)
+    timeslice#=(1.0/50.0)*(timer()-entityelement(e).logictimestamp)
+    entityelement(e).logictimestamp=timer()
+    `
+    rem logic control
+    gosub _entity_controlsingleai
+    `
+    rem when move, sounds might also need moving
+    if entityelement(e).eleprof.physics<=2
+     for tsnd=0 to 2
+      if tsnd=0 then ttsnd=entityelement(e).soundset
+      if tsnd=1 then ttsnd=entityelement(e).soundset1
+      if tsnd=2 then ttsnd=entityelement(e).soundlooping
+      if ttsnd>0
+       if sound exist(ttsnd)=1
+        if sound looping(ttsnd)=1
+         posinternal3dsound(ttsnd,entityelement(e).x,entityelement(e).y,entityelement(e).z)
+        endif
+       endif
+      endif
+     next tsnd
+    endif
+    `
+    rem free up a counter for a new AI character to be selected
+    if entityelement(e).priorityai=1
+     tokay=0
+     `X9 - 050208 - s4real speedup if entityelement(e).active=0 or entityelement(e).plrdist>1000
+     if entityelement(e).active=0 or entityelement(e).plrdist>500
+      entityelement(e).priorityduration=0
+      tokay=1
+     endif
+     if tokay=1
+      gosub _entity_removeefromprioritylist
+     else
+      rem work out which E is the furthest back
+      tpridist#=entityelement(e).plrdist
+      if tpridist#>logicpriorityfurthest#
+       logicpriorityfurthest#=tpridist#
+       logicpriorityfurtheste=e
+      endif
+     endif
+     rem priority duration protects from being lost or stolen for a while (running away)
+     if entityelement(e).priorityduration>0
+      entityelement(e).priorityduration=entityelement(e).priorityduration-1
+     else
+      entityelement(e).priorityduration=0
+     endif
+    endif
+    `
+    rem calculate player activity distance
+    tdx#=entityelement(e).x-mex# : tdz#=entityelement(e).z-mez#
+    entityelement(e).plrdist=sqrt(abs(tdx#*tdx#)+abs(tdz#*tdz#))
+    `
+    rem can I see checkpoints here
+    if entityprofile(entid).ismarker=1 and entityprofile(entid).lives=0
+     if entityelement(e).plrdist<120.0
+      if checkpointentity<>e
+       playinternal3dsound(entityelement(e).soundset,mex#,mey#,mez#)
+       checkpointentity=e
+      endif
+     endif
+    endif
+    `
+    rem logic count based on distance (cancelled for important AI above)
+    if allentsfulllogicatstartcount>0
+     rem FPSCV10X - all entities should have immediate burst of logic to get started
+     entityelement(e).logiccount=0
+    else
+     entityelement(e).logiccount=entityelement(e).plrdist/5.0
+    endif
+    `
+   endif
+   `
+  endif
+  `
+ else
+  `
+  rem only if not dormant
+  if entityelement(e).dormant=0
+   `
+   rem Inactive entity, however characters have logic even when dead
+   if entityprofile(entid).ischaracter=1
+    if entityelement(e).eleprof.cantakeweapon=1
+     tgunid=entityelement(e).currentweapon
+     if tgunid>0
+      rem calculate player activity distance (of the attached weapon point)
+      if entityprofile(entid).firespotlimb>-1
+       x1#=limb position x(obj,entityprofile(entid).firespotlimb)
+       y1#=limb position y(obj,entityprofile(entid).firespotlimb)
+       z1#=limb position z(obj,entityprofile(entid).firespotlimb)
+      else
+       x1#=entityelement(e).x
+       y1#=entityelement(e).y
+       z1#=entityelement(e).z
+      endif
+      tdx#=x1#-mex# : tdy#=y1#-mey# : tdz#=z1#-mez#
+      entityelement(e).plrdist=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+      if entityelement(e).plrdist<80
+       rem player collects weapon from enemy (stores takeweaponammo in Quantity)
+       weaponindex=tgunid
+       weaponinvposition=pi : tgunid=weaponindex
+       tqty=rnd(gun(tgunid).settings.reloadqty)
+       gosub _player_addweapon
+       rem for weapnisammo collections, add required ammo
+       if gotweapon>0
+        if gun(tgunid).settings.weaponisammo=0
+         tqty=gun(tgunid).settings.reloadqty*entityelement(e).eleprof.quantity
+         weaponclipammo(gotweapon)=weaponclipammo(gotweapon)+tqty
+        else
+         if tqty=0 then tqty=1
+         if weaponammo(gotweapon)=0
+          weaponammo(gotweapon)=tqty
+         else
+          weaponclipammo(gotweapon)=weaponclipammo(gotweapon)+tqty
+         endif
+        endif
+       endif
+       rem and play a reload sound from the gun (collection sound=reload)
+       if gunsound(tgunid,2).soundid>0
+        if sound exist(gunsound(tgunid,2).soundid)=1
+         if sound playing(gunsound(tgunid,2).soundid)=0
+          playinternalBC3dsound(gunsound(tgunid,2).soundid,camera position x(),camera position y(),camera position z(),1)
+         endif
+        endif
+       endif
+       rem and remove weapon from dead entity
+       entityelement(e).currentweapon=0
+       rem remove attached weapon from entity also
+       tobj=entityelement(e).attachmentobj
+       if tobj>0 then hide object tobj
+      endif
+     endif
+    endif
+   endif
+  else
+   `
+   rem Entity is completely dormant (brand new or frozen by distance)
+   if obj>0
+    if object exist(obj)=1
+     if object visible(obj)=1
+      rem no longer dormant if revealed by areabox render
+      entityelement(e).dormant=0
+     endif
+    endif
+   else
+    rem not dormant if close enough to be useful (trigger areas, emissions, non-objs)
+    tdx#=entityelement(e).x-mex# : tdy#=entityelement(e).y-mey# : tdz#=entityelement(e).z-mez#
+    entityelement(e).plrdist=sqrt(abs(tdx#*tdx#)+abs(tdy#*tdy#)+abs(tdz#*tdz#))
+    if entityelement(e).plrdist<1000.0
+     entityelement(e).dormant=0
+    endif
+   endif
+   `
+   rem Not dormant if always active
+   if entityelement(e).eleprof.phyalways<>0 then entityelement(e).dormant=0
+   `
+  endif
+  `
+ endif
+next e
+
+rem end of debug entire AI logic
+if gshowdebugtextingamestate=1
+ if debugviewtog=1
+  ink rgb(255,255,0),0
+ endif
+endif
+
+rem Steal priority if new entity closer
+if tonestealperaiphase>0
+ e=tonestealperaiphase : gosub _entity_stealpriorityandgivetoe
+endif
+
+rem Drop a priority entity if need to get some AI speed back
+if logicpriorityfurtheste>0
+ lastlogicpriorityfurthest#=logicpriorityfurthest#
+ lastlogicpriorityfurtheste=logicpriorityfurtheste
+ if logicprioritycount>int(logicprioritymax#)
+  e=logicpriorityfurtheste
+  gosub _entity_removeefromprioritylist
+ endif
+endif
+
+rem Entity Performance
+inc gameperfentities1, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
+
+rem Go through all entities for MOVEMENT
+for e=1 to entityelementlist
+ if entityelement(e).dormant=0
+  obj=entityelement(e).obj
+  entid=entityelement(e).bankindex
+  gosub _entity_controlspawn
+  if entityelement(e).spawn.leader=0
+   if entityelement(e).active=1
+    gosub _entity_controlwaypoints
+    gosub _entity_controlforce
+    gosub _entity_controlcollision
+    inc gameperfentities2, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
+    gosub _entity_controlmovements
+    inc gameperfentities3, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
+    gosub _entity_controldelayeddamage
+   endif
+  endif
+ endif
+next e
+
+rem Entity Performance
+inc gameperfentities4, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
+
+rem Calculate any logic drop increments/decrements
+rem V110 - 290508 - give more MS to entity logic (it is a drainer in X9)
+`if screen fps()>=30
+if screen fps()>=25
+ `X9 - 060208 - if logicprioritymax#<10.0
+ if logicprioritymax#<5.0
+  rem better consistent frame rate if only five entities have close logic (for raycasting, etc)
+  logicprioritymax#=logicprioritymax#+0.02
+ endif
+else
+ rem V110 - 290508 - step down slowly to stop all AI just halting instantly
+ `logicprioritymax#=2.0
+ if logicprioritymax#>2.0
+  dec logicprioritymax#,0.04
+ endif
+endif
+if logicprioritymax#<2.0 then logicprioritymax#=2.0
+
+rem Go through all entities for VISUAL
+for e=1 to entityelementlist
+ obj=entityelement(e).obj
+ entid=entityelement(e).bankindex
+ if entityelement(e).active=1 and entityelement(e).dormant=0
+  if obj>0
+   `
+   if object exist(obj)=1 and entityelement(e).plrdist<2000
+    `
+    rem Operate spin and float system
+    tspin#=0.0 : thover#=0.0
+    if entityelement(e).spinrate<>0
+     entityelement(e).spinvalue=entityelement(e).spinvalue+entityelement(e).spinrate
+     tspin#=wrapvalue(entityelement(e).spinvalue)
+    endif
+    if entityelement(e).floatrate<>0
+     entityelement(e).floatvalue=entityelement(e).floatvalue+4
+     thover#=entityelement(e).floatrate+(cos(wrapvalue(entityelement(e).floatvalue))*entityelement(e).floatrate)
+    endif
+    `
+    rem update entity object position (keep position for univese vis-culling)
+    if entityelement(e).eleprof.physics=1
+     rem regular physics driven
+     entityelement(e).x=object position x(obj)
+     entityelement(e).y=object position y(obj)
+     entityelement(e).z=object position z(obj)
+     entityelement(e).ry=object angle y(obj)
+    else
+     if entityelement(e).eleprof.physics=2
+      rem entity driven physics (character)
+      todee=e : gosub _ode_entitydrivenphysics
+     else
+      if entityelement(e).eleprof.physics=3
+       rem entity is typically immobile (door/window)
+       todee=e : gosub _ode_entitydrivenstaticphysics
+      else
+       rem no physics influences
+       position object obj,entityelement(e).x,entityelement(e).y+thover#,entityelement(e).z
+      endif
+     endif
+    endif
+    `
+    rem Animations need consistency when suddenly obj is visible
+    gosub _entity_controlanim
+    `
+    rem if actually visible to camera
+    if object visible(obj)=1
+     `
+     rem Only need decal creation if an existing obj is visible
+     gosub _entity_controldecals
+     `
+     rem handle object rotation
+     if entityelement(e).norotate=0
+      yrotate object obj,entityelement(e).ry+tspin#
+     endif
+     `
+     rem update animation frame of entity
+     if entityelement(e).animframeupdate=1
+       stop object obj : set object interpolation obj,100
+       set object frame obj,entityelement(e).animframe
+       entityelement(e).animframeupdate=0
+     endif
+     `
+     rem Update head if available
+     if entityprofile(entid).headlimb<>-1
+      if limb exist(obj,entityprofile(entid).headlimb)=1
+       rotate limb obj,entityprofile(entid).headlimb,curveangle(entityelement(e).ai.headangle,limb angle x(obj,entityprofile(entid).headlimb),3.0),limb angle y(obj,entityprofile(entid).headlimb),limb angle z(obj,entityprofile(entid).headlimb)
+      endif
+     endif
+     `
+     rem any visual overlay info
+     if gshowentitygameinfostate=1 then gosub _entity_showdebugstringinfo
+     `
+     rem update alpha fade value
+     if gmultiplayergame=1
+      rem multiplayer - bug in 5.8, characters cannot control alpha (seem to be influenced by other objects)
+      set alpha mapping on obj,100
+      if entityprofile(entid).ischaracter<>0
+       if entityelement(e).invincibleactive<>0
+        ghost object on obj
+       else
+        ghost object off obj
+       endif
+      endif
+     else
+      rem keep for single player
+      if entityelement(e).invincibleactive<>0
+       set alpha mapping on obj,50+rnd(25)
+      else
+       if entityelement(e).ai.alphafadeupdate=1
+         set alpha mapping on obj,entityelement(e).ai.alphafade
+         entityelement(e).ai.alphafadeupdate=0
+       endif
+      endif
+     endif
+     `
+     rem handle any entity attachments (coneofsight)
+     gosub _entity_controlattachments
+     `
+     rem control lighting of entities (and free at start also - get start lighting)
+     if gdynamiclightingstate=1 or forceambientlightsetting>0
+      if object in screen(obj)=1
+       gosub _entity_controllighting
+      endif
+     endif
+     `
+`cone of sight debug not use dnow
+`     rem if attachment not from debug mode, show when entityvisible
+`     if gshowentitygameinfostate=0
+     tobj=entityelement(e).attachmentobj
+     if tobj>0
+      if object exist(tobj)=1
+       show object tobj
+      endif
+     endif
+`     endif
+     `
+     rem blob shadow control (all other non local plrs) (might be performance issue here)
+     if entityelement(e).attachmentblobobj>0
+      if object exist(entityelement(e).attachmentblobobj)=1
+       if (gmultiplayergame=0 and entityelement(e).health>0) or (gmultiplayergame=1 and entityelement(e).collisionactive<>0)
+        dst#=static raycast(entityelement(e).x,entityelement(e).y+5,entityelement(e).z,entityelement(e).x,entityelement(e).y-50,entityelement(e).z)
+       else
+        dst#=0.0
+       endif
+       if dst#>0
+        dst#=dst#-5.0
+        tmvszy#=(object size y(obj)/2)*(entityprofile(entid).scale/100.0)
+        tmvy#=object position y(obj)-tmvszy#
+        rem X9 V109 - 14030 - Account for RAISEFACTOR when setting shadow position
+        `position object entityelement(e).attachmentblobobj,object position x(obj),(tmvy#-dst#)+0.5,object position z(obj)
+        position object entityelement(e).attachmentblobobj,object position x(obj),(tmvy#-dst#-entityprofile(entid).raisefactor)+0.5,object position z(obj)
+        show object entityelement(e).attachmentblobobj
+        tsc#=(100.0-dst#) : scale object entityelement(e).attachmentblobobj,tsc#,tsc#,tsc#
+       else
+        hide object entityelement(e).attachmentblobobj
+       endif
+      endif
+     endif
+     `
+    else
+     `
+     rem Limited debug info view of entities not visible (for spawn debugging)
+     if gshowentitygameinfostate=1 then gosub _entity_showdebugstringinfo
+     `
+     rem entity not visible by camera ny more
+     tobj=entityelement(e).attachmentobj
+     if tobj>0
+      if object exist(tobj)=1
+       hide object tobj
+      endif
+     endif
+     `
+    endif
+    `
+   endif
+   `
+  else
+   `
+   rem entity has no OBJ
+   if entityprofile(entid).ismarker=4
+    rem emission markers can emit decals of course
+    gosub _entity_controldecals
+   endif
+   `
+  endif
+ endif
+next e
+
+rem Display vis col map (as radar test)
+if entitysystemdisabled=0 and gshowentitygameinfostate=1
+ lock pixels
+ thorizpos=(screen width()-40)-40-10
+ tvertpos=(screen height()-40)-511-10-20
+ metx=camerapositionx/25 : mety=camerapositiony/100 : metz=camerapositionz/-25
+ line thorizpos,470+tvertpos,thorizpos+82,470+tvertpos : line thorizpos,553+tvertpos,thorizpos+82,553+tvertpos
+ line thorizpos,470+tvertpos,thorizpos,553+tvertpos : line thorizpos+82,470+tvertpos,thorizpos+82,553+tvertpos
+ for tx=metx-20 to metx+20
+  for ty=mety to mety
+   for tz=metz-20 to metz+20
+    tdot=0
+    if tx>=0 and tx<=160 and ty>=0 and ty<=5 and tz>=0 and tz<=160
+     if viscolmap(tx,ty,tz)<>0
+      tdot=1
+     endif
+    else
+     if (tx=-1 or tx=161) and tz>=0 and tz<=160
+      tdot=1
+     endif
+     if (tz=-1 or tz=161) and tx>=0 and tx<=160
+      tdot=1
+     endif
+    endif
+    if tdot=1
+     dot thorizpos+41+((tx-metx)*2),511+((tz-metz)*2)+tvertpos
+     dot thorizpos+41+((tx-metx)*2),512+((tz-metz)*2)+tvertpos
+     dot thorizpos+42+((tx-metx)*2),511+((tz-metz)*2)+tvertpos
+     dot thorizpos+42+((tx-metx)*2),512+((tz-metz)*2)+tvertpos
+    endif
+   next tz
+  next ty
+ next tx
+ unlock pixels
+endif
+
+rem Entity Performance
+inc gameperfentities5, perftimer()-gameperftimestamplocal : gameperftimestamplocal=perftimer()
+
+return
+
+_entity_fillviscolmap:
+ `
+ rem Fill empty map tiles with no-walk id
+ for tmx=0 to 39
+  for tmz=0 to 39
+   for tml=0 to 4
+    for tx=0 to 3
+     for tz=0 to 3
+      viscolmap((tmx*4)+tx,tml,(tmz*4)+tz)=0
+     next tz
+    next tx
+   next tml
+  next tmz
+ next tmx
+ `
+ rem FPSCV104RC5 use map data to determine where layer holes are (so characters cannot fall off ledges)
+ for tmx=0 to 39
+  for tmz=0 to 39
+   for tml=0 to 19
+    if map(tml,tmx,tmz)=0
+     for tx=0 to 3
+      for tz=0 to 3
+       viscolmap((tmx*4)+tx,tml,(tmz*4)+tz)=-2
+      next tz
+     next tx
+    endif
+   next tml
+  next tmz
+ next tmx
+ `
+return
+
+_entity_controlsingleai:
+
+rem get functional overview
+gosub _entity_controlrecalcdist
+
+rem before any point of logic, if no health in main AI, die
+if entityelement(e).ai.libindex=entityelement(e).ai.libmain
+ if entityelement(e).health<=0
+  entityelement(e).ai.libindex=entityelement(e).ai.libdestroy
+  entityelement(e).ai.waypoint.state=0
+  entityelement(e).ai.headangle=0
+  entityelement(e).ai.state=0
+ endif
+endif
+
+rem New AI Script flag
+trundefaultscript=0
+taddforcesphere=0
+
+rem Get AI Script for Entity Element
+aiindex=entityelement(e).ai.libindex
+gosub _ai_control
+`
+rem Apply force if actioned
+if taddforcesphere>0
+ spherex#=entityelement(e).x
+ spherey#=entityelement(e).y
+ spherez#=entityelement(e).z
+ sphereforce#=taddforcesphere/100.0
+ gosub _entity_addforcesphere
+endif
+`
+rem Weapon Control for entities
+if entityelement(e).fireweapon=1
+ tgunid=entityelement(e).currentweapon
+ if tgunid>0
+  `
+  rem start of shot pos
+  if entityprofile(entid).firespotlimb>-1
+   x1#=limb position x(obj,entityprofile(entid).firespotlimb)
+   y1#=limb position y(obj,entityprofile(entid).firespotlimb)
+   z1#=limb position z(obj,entityprofile(entid).firespotlimb)
+  else
+   x1#=entityelement(e).x
+   y1#=entityelement(e).y+45.0
+   z1#=entityelement(e).z
+  endif
+  `
+  rem weapon type
+  flakid=gun(tgunid).settings.flakindex
+  if flakid=0
+   `
+   rem BULLET
+   rem initial shot creates light flash
+   spotflash=100 : tx#=x1# : ty#=y1# : tz#=z1#
+   tcolr=gun(tgunid).settings.muzzlecolorr
+   tcolg=gun(tgunid).settings.muzzlecolorg
+   tcolb=gun(tgunid).settings.muzzlecolorb
+   gosub _lighting_spotflash
+   `
+   rem discharge sound (single fire, or automatic loop sound)
+   tsndid=gunsoundcompanion(tgunid,1,rnd(2)).soundid
+   if tsndid>0
+    if gun(tgunid).action.automatic.s>0
+     if entityelement(e).firesoundloop=0
+      play sound tsndid,gun(tgunid).sound.fireloopend : rem some sound bug
+      loop sound tsndid,0,gun(tgunid).sound.fireloopend
+      entityelement(e).firesoundloop=tsndid
+     endif
+    else
+     play sound tsndid
+    endif
+    posinternal3dsound(tsndid,x1#,y1#,z1#)
+    broadcast3dsound(x1#,y1#,z1#,25.0)
+   endif
+   `
+   rem gun data for accuracy
+   trayaccuracy=gun(tgunid).settings.accuracy
+   `
+   rem project gun-line-for-shot (from raw-calc or target)
+   if entityelement(e).actualtarget<>0
+    rem no accuracy drift if close
+    x2#=entityelement(e).actualtargetx
+    y2#=entityelement(e).actualtargety
+    z2#=entityelement(e).actualtargetz
+    tdx#=abs(x2#-x1#)
+    tdy#=abs(y2#-y1#)
+    tdz#=abs(z2#-z1#)
+    tdd#=sqrt((tdx#*tdx#)+(tdy#*tdy#)+(tdz#*tdz#))
+    rem greater than 200 units add drift
+    if tdd#>200.0
+     rem add a basic distance drift to enemy shooing (human error)
+     trayaccuracy=(trayaccuracy*5)+rnd((tdd#-200)*2)
+     rem Work out final trajectory of shot
+     x2#=entityelement(e).actualtargetx+trayaccuracy-rnd(trayaccuracy*2)
+     y2#=entityelement(e).actualtargety+trayaccuracy-rnd(trayaccuracy*2)
+     z2#=entityelement(e).actualtargetz+trayaccuracy-rnd(trayaccuracy*2)
+    endif
+   else
+    position object hudbankoffset+3,x1#,y1#,z1#
+    rotate object hudbankoffset+3,0,entityelement(e).mover.da,0
+    move object hudbankoffset+3,gun(tgunid).settings.range
+    disable object zdepth hudbankoffset+3
+    x2#=object position x(hudbankoffset+3)+trayaccuracy-rnd(trayaccuracy*2)
+    y2#=object position y(hudbankoffset+3)+trayaccuracy-rnd(trayaccuracy*2)
+    z2#=object position z(hudbankoffset+3)+trayaccuracy-rnd(trayaccuracy*2)
+   endif
+   `
+   rem had bulletray hit anything solid
+   tbullethit=0 : tbullethitstatic=0
+   tbullethitmaterial=0 : tbullethitflesh=0
+   entityelement(e).raycastcount=0
+   dst#=static raycast(x1#,y1#,z1#,x2#,y2#,z2#)
+   if dst#<>0
+    x#=checklist fvalue a(6) : x2#=x#
+    y#=checklist fvalue b(6) : y2#=y#
+    z#=checklist fvalue c(6) : z2#=z#
+    tbullethitstatic=1 : tbullethit=1
+    tcolmaterial=get static collision value()-1
+    `if tcolmaterial>=0 and tcolmaterial<=8 then tbullethitmaterial=tcolmaterial : rem FPSCV101 - fix
+    if tcolmaterial>=0 and tcolmaterial<=99 then tbullethitmaterial=tcolmaterial
+   endif
+   `
+   rem if it hits player before wall, hurt player
+   if entityelement(e).actualtarget=1
+    dst#=intersect object(hudbankoffset+2,x1#,y1#,z1#,x2#,y2#,z2#)
+    if dst#<>0 or tdd#<125.0
+     tbullethitstatic=0
+    endif
+   endif
+   `
+   rem where wall not hit, must be a hit
+   if tbullethitstatic=0
+    trange#=gun(tgunid).settings.range
+    tperc#=(trange#-dst#)/trange#
+    if dst#<200 then tperc#=1.0
+    bulletdamage#=gun(tgunid).settings.damage : dec bulletdamage#,rnd(bulletdamage#/5)
+    if gun(tgunid).settings.damage>5
+     rem enemy fire always one half the players effectiveness after first few points
+     tperc#=tperc#*0.5
+    endif
+    tdamage#=bulletdamage#*tperc# : tdamage=tdamage#
+    if entityelement(e).actualtarget=1
+     rem player was the target
+     if tdamage>0 then gosub _player_takedamage
+     if player(1).health<=0
+      rem hear the full sound of what killed you
+      if tsndid>0
+       playinternal3dsound(tsndid,camera position x(),camera position y(),camera position z())
+      endif
+     endif
+    else
+     rem entity was the target (store E while leap to other entity for damage control)
+     if entityelement(e).actualtarget>1 and tdamage>0
+      tdamagesource=0 : timpacttype=1
+      tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y : tdamagez#=entityelement(e).z
+      stte=e : e=entityelement(e).actualtarget-1 : gosub _entity_deducthealth : e=stte
+      tentid=entityelement(e).bankindex
+      entid=entityelement(e).bankindex
+     endif
+    endif
+    tbullethitstatic=0 : tbullethit=1
+    tbullethitflesh=1
+   endif
+   `
+   rem bullet result
+   if tbullethit=1
+    rem debris where the bullet struck
+    for p=1 to 32
+     if debris(p)=0
+      rem debris where the bullet struck
+      position particles p,x#,0,z#
+      position particle emissions p,0,y#/20.0,0
+      set particle emissions p,10
+      debris(p)=40
+      exit
+     endif
+    next p
+    rem add scorch if hit universe static polygons
+    if tbullethitstatic=1
+     tscorchtype=gun(tgunid).settings.scorchtype
+     gosub _entity_doscorch
+    endif
+   endif
+   `
+  else
+   `
+   rem FLAK (grenames, rockets)
+   tsndid=gunsoundcompanion(tgunid,1,rnd(2)).soundid
+   playinternal3dsound(tsndid,x1#,y1#,z1#)
+   broadcast3dsound(x1#,y1#,z1#,15.0)
+   `
+   rem determine if need to pitch the launch based on direction and distance
+   flakpitch=0
+   if flak(flakid).throwangle=0
+    rem LAUNCH
+    tdx#=mex#-entityelement(e).x
+    tdz#=mez#-entityelement(e).z
+    tdy#=(mey#-50)-entityelement(e).y
+    flakpitch=atanfull(tdy#,sqrt(abs(tdx#*tdx#)+abs(tdz#*tdz#)))*-1
+   else
+    rem LOB
+    if entityelement(e).actualtarget<>0
+     y2#=entityelement(e).actualtargety
+     if y2#>entityelement(e).y-100.0
+      x2#=entityelement(e).actualtargetx
+      z2#=entityelement(e).actualtargetz
+      tdx#=abs(x2#-entityelement(e).x)
+      tdy#=abs(y2#-entityelement(e).y)
+      tdz#=abs(z2#-entityelement(e).z)
+      tdd#=sqrt((tdx#*tdx#)+(tdy#*tdy#)+(tdz#*tdz#))
+      flakpitch=22.0+((45.0/500.0)*tdd#)
+      if flakpitch>80 then flakpitch=80
+      if flakpitch<22.0 then flakpitch=22.0
+      rem FPSCV105RC2 - so can throw closer to plr (through door)
+      firestr#=entityelement(e).firestrength/100.0
+      flakpitch=flakpitch*firestr#*-1.0
+     endif
+    endif
+   endif
+   `
+   rem launch the flak
+   flakangle=entityelement(e).mover.da : flakowner=e
+   flakx=x1#+newxvalue(0,flakangle+flak(flakid).throwangle,flak(flakid).throwforward)
+   flaky=y1#+flak(flakid).throwheight
+   flakz=z1#+newzvalue(0,flakangle+flak(flakid).throwangle,flak(flakid).throwforward)
+   flakspeed#=2.0
+   gosub _flakelement_create
+   `
+  endif
+  rem a pause while guns cools down (fingers of shooter release trigger and repress)
+  entityelement(e).fireweapon=2
+ else
+  rem no wepon so deflag fire
+  entityelement(e).fireweapon=0
+ endif
+else
+ if entityelement(e).fireweapon>0
+  tgunid=entityelement(e).currentweapon
+  entityelement(e).fireweapon=entityelement(e).fireweapon+1
+  if gun(tgunid).action.automatic.s>0
+   if entityelement(e).currentammo<=0 and entityelement(e).firesoundloop>0
+    stop sound entityelement(e).firesoundloop
+    entityelement(e).firesoundloop=0
+   endif
+   if entityelement(e).fireweapon>6
+    entityelement(e).fireweapon=0
+   endif
+  else
+   if entityelement(e).fireweapon>30 then entityelement(e).fireweapon=0
+  endif
+ else
+  if entityelement(e).firesoundloop>0
+   stop sound entityelement(e).firesoundloop
+   entityelement(e).firesoundloop=0
+  endif
+ endif
+endif
+`
+rem Switch to FPI AI Scripts
+if trundefaultscript>0
+ `
+ rem About to leave main?
+ tleavingmain=0
+ if entityelement(e).ai.libindex=entityelement(e).ai.libmain then tleavingmain=1
+ `
+ rem Switch to specified AI scripts
+ entityelement(e).ai.libindex=trundefaultscript-1
+ trundefaultscript=0
+ `
+ rem If returning from internal AI switch
+ if entityelement(e).ai.usinginternalai=1
+  rem restore old state values
+  entityelement(e).ai.waypoint.state=entityelement(e).ai.oldwaypointstate
+  entityelement(e).ai.alphafade=entityelement(e).ai.oldalphafade
+  entityelement(e).ai.state=entityelement(e).ai.oldstate
+  entityelement(e).ai.usinginternalai=0
+  `
+  rem V109 - 210308 - prevents death anim from throw going back to middle of main anim which might be 2600-2650! goes through all anims
+  if entityelement(e).health>0
+   rem but only restore if entity not dead and going to get back up, etc
+   entityelement(e).animframe=entityelement(e).ai.oldanimframe
+   entityelement(e).destanimframe=entityelement(e).ai.olddestanimframe
+  endif
+  `
+ else
+  if trundefaultscriptinternal=1 and tleavingmain=1
+   gosub _entity_storemainai
+  endif
+  entityelement(e).ai.waypoint.state=0
+  entityelement(e).ai.state=0
+ endif
+ `
+ rem Always reset these after AI script switch
+ entityelement(e).ai.headdestangle=0
+ entityelement(e).ai.headangle=0
+ `
+endif
+
+return
+
+_entity_doscorch:
+ rem material damage
+ if tbullethitmaterial>0
+  tscorchsize2#=4.0+(rnd(10)/10.0) : tscorchtype2=11+tbullethitmaterial
+  if tscorchtype2>15 then tscorchtype2=12 : rem FPSCV101 - fix
+  add static scorch tscorchsize2#,tscorchtype2
+ endif
+ if tbullethitflesh>0
+  rem blood splat
+  tscorchtype3=8+rnd(3)
+  tscorchsize3#=10.0+((tbullethitflesh/100.0)*(20.0+rnd(20)))
+  if gbloodonfloor=1
+   rem FPSC - X9 - V109 - 310308 - if flagged, blood is redirected to floor
+   if bulletrayhit>0
+    tempx#=entityelement(bulletrayhit).x
+    tempy#=entityelement(bulletrayhit).y
+    tempz#=entityelement(bulletrayhit).z
+    tempraytofloor#=static raycast(tempx#,tempy#+25,tempz#,tempx#,tempy#-125,tempz#)
+   endif
+  endif
+  add static scorch tscorchsize3#,tscorchtype3
+ else
+  rem bullethole
+  tscorchsize#=2.0+(rnd(10)/10.0)
+  if tscorchtype>=2 then tscorchsize#=3.0+(rnd(10)/10.0)
+  add static scorch tscorchsize#,tscorchtype
+ endif
+return
+
+_entity_controlspawn:
+
+rem Only leaders control spawn events (activated is automatic for spawn switch on)
+if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=0 and entityelement(e).activated=1 then entityelement(e).spawn.atstart=1
+if entityelement(e).spawn.leader=1 and entityelement(e).spawn.atstart=1
+ rem Count down to next spawn
+ if entityelement(e).spawn.afterdelay=1
+  entityelement(e).spawn.leadercount=entityelement(e).spawn.leadercount-1
+ endif
+ rem If count goes to zero (and have some left 'upto')
+ tpermitaspawn=0
+ if entityelement(e).spawn.upto>0
+  if entityelement(e).spawn.leadercount<=0 then tpermitaspawn=1
+  if entityelement(e).spawn.whendead=1
+   for te=1+e to e+entityelement(e).spawn.max
+    tobj=entityelement(te).obj
+    if tobj>0
+     if object exist(tobj)=1 and entityelement(te).active=0
+      if entityelement(te).beenkilled=1
+       entityelement(te).beenkilled=0
+       tpermitaspawn=1 : exit
+      endif
+     endif
+    endif
+   next te
+  endif
+ endif
+ if tpermitaspawn=1
+  rem Restart spawn cycle
+  entityelement(e).spawn.leadercount=entityelement(e).spawn.delay+rnd(entityelement(e).spawn.delayrandom)
+  rem Find child of this leader to spawn
+  tproduceqty=0
+  tnumbertospawn=entityelement(e).spawn.qty+rnd(entityelement(e).spawn.qtyrandom)
+  for te=1+e to e+entityelement(e).spawn.max
+   tobj=entityelement(te).obj
+   if tobj>0
+    if object exist(tobj)=1 and entityelement(te).active=0
+     `
+     rem find place not occupied if entity driven object
+     rem V111 - 140608 - and only if NOT only one in spawn chain (first and only object is ALWAYS placed where you put it)
+     `if entityelement(te).eleprof.physics=0 or entityelement(te).eleprof.physics=2
+     if entityelement(e).spawn.max>1 and (entityelement(te).eleprof.physics=0 or entityelement(te).eleprof.physics=2)
+      tokay=0
+      ttriesrange=0
+      while tokay=0
+       for ttriesx=ttriesrange*-1 to ttriesrange
+        for ttriesz=ttriesrange*-1 to ttriesrange
+         tryx#=entityelement(e).spawn.x+(ttriesx*25)
+         tryz#=entityelement(e).spawn.z+(ttriesz*25)
+         ty=entityelement(te).y/100
+         tx=tryx#/25 : tz=tryz#/-25
+         if tx>=0 and ty>=0 and tz>=0
+          if tx<=viscolx and ty<=viscoly and tz<=viscolz
+           if viscolmap(tx,ty,tz)=0
+            entityelement(te).y=entityelement(e).spawn.y
+            entityelement(te).x=tryx#
+            entityelement(te).z=tryz#
+            tokay=1 : exit
+           endif
+          endif
+         endif
+        next ttriesz
+       next ttriesx
+       inc ttriesrange
+       if ttriesrange>8 then tokay=2
+      endwhile
+     else
+      entityelement(te).x=entityelement(e).spawn.x
+      entityelement(te).y=entityelement(e).spawn.y
+      entityelement(te).z=entityelement(e).spawn.z
+      tokay=1
+     endif
+     `
+     rem if space, init entity with AIINIT
+     if tokay=1
+      `
+      entityelement(te).active=1
+      entityelement(te).dormant=1
+      entityelement(te).ai.libindex=entityelement(te).ai.libinit
+      entityelement(te).ai.waypoint.state=0
+      entityelement(te).ai.waypoint.tracker=0
+      entityelement(te).ai.waypoint.current=0
+      entityelement(te).ai.state=0
+      entityelement(te).ai.headangle=0
+      entityelement(te).ai.headdestangle=0
+      entityelement(te).ai.usinginternalai=0
+      entityelement(te).ai.oldstate=0
+      entityelement(te).ai.alphafade=0
+      entityelement(te).ai.oldalphafade=0
+      entityelement(te).ai.destalphafade=0
+      entityelement(te).ai.oldwaypointstate=0
+      entityelement(te).ai.headshot=0
+      entityelement(te).actualtarget=0
+      entityelement(te).losttargetcount=0
+      `
+      entityelement(te).rx=entityelement(e).rx
+      entityelement(te).ry=entityelement(e).ry
+      entityelement(te).rz=entityelement(e).rz
+      entityelement(te).mover.da=entityelement(e).ry
+      `
+      entitybreadcrumbs(te,0).x=0
+      entityelement(te).mover.grav=1.0
+      entityelement(te).mover.moved=0
+      entityelement(te).mover.inmotion=0
+      entityelement(te).mover.ix=0
+      entityelement(te).force.ix=0
+      entityelement(te).mover.iy=0
+      entityelement(te).force.iy=0
+      entityelement(te).mover.iz=0
+      entityelement(te).force.iz=0
+      entityelement(te).force.active=0
+      entityelement(te).logiccount=0
+      entityelement(te).blockedby=0
+      `
+      rem reset entity that reappears in game
+      if entityelement(te).eleprof.strength>0
+       entityelement(te).health=entityelement(e).eleprof.strength
+      else
+       entityelement(te).health=1
+      endif
+      entityelement(te).eleprof.lives=entityelement(e).eleprof.lives
+      entityelement(te).shotdamage=0
+      entityelement(te).shotdamagesource=0
+      `
+      rem clear out dake player info
+      tplrid=entityelement(e).fakeplayerid
+      player(tplrid).inventorymax=0
+      `
+      rem put weapon back in character hands
+      entityelement(te).currentweapon=entityelement(e).eleprof.hasweapon
+      entityelement(te).currentclipammo=9999
+      entityelement(te).firesoundloop=0
+      entityelement(te).currentammo=0
+      entityelement(te).fireweapon=0
+      `
+      rem give entity infinite or finite life
+      if entityelement(e).spawn.life>0
+       entityelement(te).spawn.life=timer()+(entityelement(e).spawn.life*1000)
+      else
+       entityelement(te).spawn.life=0
+      endif
+      `
+      rem object setting
+      if entityelement(te).eleprof.physics=1 or entityelement(te).eleprof.physics=2
+       ste=e : e=te : gosub _ode_switchoffe : e=ste
+      endif
+      position object tobj,entityelement(te).x,entityelement(te).y,entityelement(te).z
+      rem V109 BETA10 - 120508 - fix disppearing spawned characters using full effects
+      entityelement(te).ai.alphafade=0
+      entityelement(te).ai.destalphafade=100
+      set alpha mapping on tobj,entityelement(te).ai.alphafade
+      rem V106 RC3 set rotation of spawned to rotation values too
+`      rotate object tobj,0,0,0
+      rotate object tobj,entityelement(te).rx,entityelement(te).ry,entityelement(te).rz
+      show object tobj
+      if entityelement(te).eleprof.physics=1 or entityelement(te).eleprof.physics=2
+       ste=e : e=te : gosub _ode_setupewithphysics
+       tvel=entityelement(e).spawn.vel+rnd(entityelement(e).spawn.velrandom)
+       tangle=entityelement(e).spawn.angle+rnd(entityelement(e).spawn.anglerandom)
+       gosub _ode_pushusingtvelandangle
+       e=ste
+      endif
+      `
+      rem reset visuals
+      entid=entityelement(te).bankindex
+      tobj=entityelement(te).obj
+      if total object frames(tobj)>0
+       set object frame tobj,0
+       if entityprofile(entid).ischaracter=1
+        if entityprofile(entid).animmax>=1
+         teai=0 : if entityanim(entid,1).start>0 then teai=1
+         tbaseframe=teai : gosub _entity_getactualframestart : tfstart=tactualframe
+         tbaseframe=teai : gosub _entity_getactualframefinish : tffinish=tactualframe
+         loop object tobj,tfstart,tffinish
+        else
+         loop object tobj : stop object tobj
+        endif
+       endif
+      endif
+      `
+      rem set spawned entity collision
+      if entityprofile(entid).isweapon>0 or entityprofile(entid).isammo>0
+       entityelement(te).collisionactive=0
+       set object collision off tobj
+      else
+       entityelement(te).collisionactive=1
+       set object collision on tobj
+      endif
+      `
+      rem write entity to viscolmap if space available, else find new place
+      if entityelement(te).eleprof.physics=0 or entityelement(te).eleprof.physics=2
+       tx=entityelement(te).x/25
+       ty=entityelement(te).y/100
+       tz=entityelement(te).z/-25
+       if tx>=0 and ty>=0 and tz>=0
+        if tx<=viscolx and ty<=viscoly and tz<=viscolz
+         viscolmap(tx,ty,tz)=te
+        endif
+       endif
+      endif
+      `      `
+      rem reduce overall UPTO count
+      entityelement(e).spawn.upto=entityelement(e).spawn.upto-1
+      if entityelement(e).spawn.upto<=0
+       entityelement(e).spawn.upto=0
+       exit
+      endif
+      `
+      rem go to end if no more to produce
+      inc tproduceqty
+      if tproduceqty>=tnumbertospawn
+       te=e+entityelement(e).spawn.max
+       exit
+      endif
+      `
+     endif
+     `
+    endif
+   endif
+  next te
+ endif
+endif
+
+return
+
+_entity_controlwaypoints:
+
+rem waypoint behaviour substatesystem
+if entityelement(e).ai.waypoint.state>0
+ w=entityelement(e).ai.waypoint.current
+ if entityelement(e).ai.waypoint.state=1
+  `
+  rem before set-off make sure can see destination
+  tokay=0
+  telex#=entityelement(e).x
+  teley#=entityelement(e).y+35.0
+  telez#=entityelement(e).z
+  tdistx#=telex#-waypointcoord(w).x
+  tdisty#=teley#-waypointcoord(w).y+35.0
+  tdistz#=telez#-waypointcoord(w).z
+  tdist#=sqrt(abs(tdistx#*tdistx#)+abs(tdisty#*tdisty#)+abs(tdistz#*tdistz#))
+  if tdist#<1000.0
+   tmpx#=waypointcoord(w).x
+   tmpy#=waypointcoord(w).y+35.0
+   tmpz#=waypointcoord(w).z
+   entityelement(e).raycastcount=0
+   if static raycast(telex#,teley#,telez#,tmpx#,tmpy#,tmpz#)=0
+    tokay=1
+   endif
+  endif
+  `
+  rem setup walk to get to next waypoint
+  entityelement(e).mover.dx=waypointcoord(w).x
+  entityelement(e).mover.dy=waypointcoord(w).y
+  entityelement(e).mover.dz=waypointcoord(w).z
+  entityelement(e).mover.moved=1
+  entityelement(e).mover.run=0
+  entityelement(e).ai.waypoint.state=2
+  `
+  rem characters animate when waypoint is followed, if alive
+  entid=entityelement(e).bankindex
+  if entityprofile(entid).ischaracter=1 and entityelement(e).health>0
+   if entityelement(e).animdo<>entityelement(e).animset-1
+    entityelement(e).animset=3
+   endif
+  endif
+  `
+ endif
+ if entityelement(e).ai.waypoint.state=2
+  rem walking along wayppoint
+  entityelement(e).mover.dx=waypointcoord(w).x
+  entityelement(e).mover.dy=waypointcoord(w).y
+  entityelement(e).mover.dz=waypointcoord(w).z
+  entityelement(e).mover.moved=1
+  entityelement(e).mover.run=0
+  tdx#=entityelement(e).mover.dx-entityelement(e).x
+  tdz#=entityelement(e).mover.dz-entityelement(e).z
+  entityelement(e).mover.da=atanfull(tdx#,tdz#)
+  distx#=waypointcoord(w).x-entityelement(e).x
+  distz#=waypointcoord(w).z-entityelement(e).z
+  dist#=sqrt(abs(distx#*distx#)+abs(distz#*distz#))
+  if dist#<7.0*(entityelement(e).eleprof.speed/100.0)
+   rem decision on direction
+   if entityelement(e).ai.waypoint.direction=1
+    rem forward
+    linkto=waypointcoord(w).link
+    if linkto>0
+     entityelement(e).ai.waypoint.state=4
+    else
+     if w>=waypoint(entityelement(e).ai.waypoint.tracker).finish
+      entityelement(e).ai.waypoint.state=5
+     else
+      entityelement(e).ai.waypoint.state=3
+     endif
+    endif
+   else
+    rem backward
+    linkto=waypointcoord(w).link
+    if linkto>0
+     entityelement(e).ai.waypoint.state=4
+    else
+     if w<=waypoint(entityelement(e).ai.waypoint.tracker).start
+      entityelement(e).ai.waypoint.state=5
+     else
+      entityelement(e).ai.waypoint.state=3
+     endif
+    endif
+   endif
+   rem ensure action taken immediately
+   entityelement(e).logiccount=0
+  endif
+ endif
+ if entityelement(e).ai.waypoint.state=999
+  rem internal state - wait for force to end in main AI
+  if entityelement(e).ai.libindex=entityelement(e).ai.libmain
+   if entityelement(e).force.active=0 and entityelement(e).ai.waypoint.tracker>0
+    rem resume waypoint logic (only if alive and have waypoints)
+    if entityelement(e).health>0
+     entityelement(e).ai.waypoint.state=1
+     entityelement(e).logiccount=0
+    endif
+   endif
+  endif
+ endif
+endif
+
+return
+
+_entity_controlforce:
+
+rem control force events via inertia values
+if entityelement(e).force.active=1
+ rem no force if entity immobile
+ if entityelement(e).eleprof.isimmobile=1
+  entityelement(e).force.active=0
+ else
+  rem degrade inertia values
+  forceineffect=0
+  if entityelement(e).force.ix<>0.0 then forceineffect=1 : entityelement(e).force.ix=entityelement(e).force.ix/1.1
+  if entityelement(e).force.iz<>0.0 then forceineffect=1 : entityelement(e).force.iz=entityelement(e).force.iz/1.1
+  rem apply gravity constant only when above ground
+  entityelement(e).force.iy=entityelement(e).force.iy-1.0
+  rem update entity position with inertia values if in effect
+  if forceineffect=1
+   rem restrict by active raycast collision
+   tmpx1#=entityelement(e).x
+   tmpz1#=entityelement(e).z
+   tmpheight#=entityelement(e).y+40
+   tnorm#=abs(entityelement(e).force.ix)+abs(entityelement(e).force.iz)
+   tmpx2#=tmpx1#+entityelement(e).force.ix+((entityelement(e).force.ix/tnorm#)*20.0)
+   tmpz2#=tmpz1#+entityelement(e).force.iz+((entityelement(e).force.iz/tnorm#)*20.0)
+   entityelement(e).raycastcount=0
+   if static raycast(tmpx1#,tmpheight#,tmpz1#,tmpx2#,tmpheight#,tmpz2#)=0
+    rem move the element if no collision or collision too far away
+    entityelement(e).mover.stepcount=1
+    entityelement(e).mover.ix=entityelement(e).force.ix
+    entityelement(e).mover.iy=entityelement(e).force.iy
+    entityelement(e).mover.iz=entityelement(e).force.iz
+    entityelement(e).ai.waypoint.state=999
+    entityelement(e).mover.inmotion=1
+   endif
+   rem so small we can make them zero
+   if entityprofile(entid).ischaracter=1
+    rem characters regain themselves quicker
+    if abs(entityelement(e).force.ix)<2 then entityelement(e).force.ix=0.0
+    if abs(entityelement(e).force.iz)<2 then entityelement(e).force.iz=0.0
+   else
+    rem inanimate objects slide to a stop
+    if abs(entityelement(e).force.ix)<0.1 then entityelement(e).force.ix=0.0
+    if abs(entityelement(e).force.iz)<0.1 then entityelement(e).force.iz=0.0
+   endif
+  else
+   entityelement(e).force.active=0
+  endif
+ endif
+endif
+
+return
+
+_entity_controlanim:
+
+rem entity with an object
+if obj>0
+ `
+ rem animation and slerp handling
+ if entityelement(e).animset>0
+  entityelement(e).animdo=entityelement(e).animset-1
+  entityelement(e).animtime=4
+  entityelement(e).animset=0
+  stop object obj : set object interpolation obj,25
+  tbaseframe=entityelement(e).animdo : gosub _entity_getactualframestart
+  set object frame obj,tactualframe
+ endif
+ if entityelement(e).animdo>=0
+  rem handle transition into loop anim
+  if entityelement(e).animtime=1
+   set object interpolation obj,100
+   tbaseframe=entityelement(e).animdo : gosub _entity_getactualframestart : tfstart=tactualframe
+   tbaseframe=entityelement(e).animdo : gosub _entity_getactualframefinish : tffinish=tactualframe
+   rem hack as we know the anims (die anims) (multiplayer)
+   if gmultiplayergame=1
+    if entityelement(e).animdo=11 then entityelement(e).animonce=1
+    if entityelement(e).animdo=14 then entityelement(e).animonce=1
+    if entityelement(e).animdo=17 then entityelement(e).animonce=1
+    if entityelement(e).animdo=20 then entityelement(e).animonce=1
+   endif
+   if entityelement(e).animonce=1
+    loop object obj,tffinish-0.001,tffinish
+    set object frame obj,tfstart
+    entityelement(e).animonce=0
+    set object speed obj,100
+   else
+    loop object obj,tfstart,tffinish
+    if entityelement(e).animdir=1
+     set object speed obj,-125
+    else
+     set object speed obj,125
+    endif
+   endif
+  endif
+  if entityelement(e).animtime>0 then entityelement(e).animtime=entityelement(e).animtime-1
+  rem monitor any animation (periodically)
+  if timeelapsedrefreshentityanimspeeds=0
+   if entityelement(e).animdir=1
+    set object speed obj,-110*timeelapsed#
+   else
+    set object speed obj,110*timeelapsed#
+   endif
+  endif
+ endif
+ `
+ rem slerp limbs back into place
+ if entityelement(e).limbslerp>0
+  tlcount=0
+  for tl=0 to entityelement(e).limbslerp-1
+   if tl>0
+    if limb exist(entityelement(e).obj,tl)=1
+     tlx#=limb angle x(entityelement(e).obj,tl)/1.1
+     tly#=limb angle y(entityelement(e).obj,tl)/1.1
+     tlz#=limb angle z(entityelement(e).obj,tl)/1.1
+     rotate limb entityelement(e).obj,tl,tlx#,tly#,tlz#
+     if tlx#=0 and tly#=0 and tlz#=0 then inc tlcount
+    endif
+   else
+    inc tlcount
+   endif
+  next tl
+  if tlcount>=entityelement(e).limbslerp
+   entityelement(e).limbslerp=0
+  endif
+ endif
+ `
+endif
+
+return
+
+_entity_controldecals:
+
+rem decal effects from entity element
+tindex=entityelement(e).decalindex
+if tindex<>0
+ if tindex<0
+  decalid=abs(tindex)
+ else
+  decalid=entitydecal(entid,tindex-1)
+ endif
+ if decalid>0
+  rem entityelement(e).decalmode
+  rem 0-once face player
+  rem 1-once keep angle
+  rem 2-loop face player
+  rem 3-loop keep angle
+  rem 4-once face up
+  rem 5-loop face up
+  rem 6-character-spot-decal (at end of entity characters gun if available)
+  decalorient=0
+  decalx=entityelement(e).x : decalz=entityelement(e).z
+  if entityelement(e).decalmode>=4 and entityelement(e).decalmode<=5
+   decaly=entityelement(e).y+0.5
+  else
+   decaly=entityelement(e).y
+  endif
+  if entityelement(e).decalmode=1
+   rem used for windows, where glass smash decal must exactly match
+   if entityelement(e).obj>0
+    decalx=decalx+object collision center x(entityelement(e).obj)
+    decaly=decaly+object collision center y(entityelement(e).obj)
+    decalz=decalz+object collision center z(entityelement(e).obj)
+   endif
+  endif
+  if entityelement(e).decalmode=1 or entityelement(e).decalmode=3
+   decalorient=1 : decalorientx#=entityelement(e).rx : decalorienty#=entityelement(e).ry : decalorientz#=entityelement(e).rz
+  endif
+  if entityelement(e).decalmode=4 or entityelement(e).decalmode=5
+   decalorient=2
+  endif
+  decalscalemodx=entityelement(e).decalsizex
+  decalscalemody=entityelement(e).decalsizey
+  if entityelement(e).decalmode=6
+   if entityprofile(entid).ischaracter=1
+    tobj=entityelement(e).attachmentobj
+    if tobj>0
+     tobjlimb=entityelement(e).attachmentobjfirespotlimb
+     decalx=limb position x(tobj,tobjlimb)
+     decaly=limb position y(tobj,tobjlimb)
+     decalz=limb position z(tobj,tobjlimb)
+` see if close up decal position corrected
+`     tdx#=(mex#-decalx)
+`     tdy#=(mey#-decaly)
+`     tdz#=(mez#-decalz)
+`     tdd#=sqrt(abs(tdx#*tdx#)+abs(tdz#*tdz#)+abs(tdy#*tdy#))
+`     tdx#=(tdx#/tdd#)*30.0
+`     tdy#=(tdy#/tdd#)*30.0
+`     tdz#=(tdz#/tdd#)*30.0
+`     decalx=decalx+tdx#
+`     decaly=decaly+tdy#
+`     decalz=decalz+tdz#
+    endif
+   endif
+   decalorient=3
+  endif
+  if entityelement(e).decalmode=0 or entityelement(e).decalmode=1 or entityelement(e).decalmode=4 or entityelement(e).decalmode=6
+   rem play decal once
+   entityelement(e).decalindex=0
+   originatore=e : gosub _decalelement_create
+  endif
+  if entityelement(e).decalmode=2 or entityelement(e).decalmode=3 or entityelement(e).decalmode=5
+   rem loop decal continually recreating it
+   entityelement(e).decalloop=entityelement(e).decalloop+1
+   if entityelement(e).decalloop>=15
+    entityelement(e).decalloop=0
+    currentdecald=entityelement(e).decalslotused
+    originatore=e : gosub _decalelement_continue
+    entityelement(e).decalslotused=currentdecald
+   endif
+  endif
+ endif
+endif
+
+return
+
+_entity_controlcollision:
+
+rem no movement if entity immobile
+if entityelement(e).mover.moved=1
+ if entityelement(e).eleprof.isimmobile=1
+  entityelement(e).mover.moved=0
+ endif
+endif
+
+rem entity has moved, collision a consideration
+if entityelement(e).mover.moved=1 and entityelement(e).force.active=0
+ `
+ rem tragectory of entity movement
+ tdx#=entityelement(e).mover.dx-entityelement(e).x
+ tdy#=entityelement(e).mover.dy-entityelement(e).y
+ tdz#=entityelement(e).mover.dz-entityelement(e).z
+ tdist#=sqrt(abs(tdx#*tdx#)+abs(tdz#*tdz#))+30
+ `
+ rem ensure projected movement is free of large entity obstacles
+ dstbest#=99999.9 : dstbestfound=0
+ tblockedtox=entityelement(e).mover.dx
+ tblockedtoy=entityelement(e).mover.dy
+ tblockedtoz=entityelement(e).mover.dz
+ `
+ rem if blocked, a quicker check to see if collision disabled on it
+ tusethisasweneeddoorstoblock=1
+ if tusethisasweneeddoorstoblock=1
+  if entityelement(e).blockedby>0
+   if entityelement(e).blockedtox=tblockedtox and entityelement(e).blockedtoy=tblockedtoy and entityelement(e).blockedtoz=tblockedtoz
+    te=entityelement(e).blockedby
+    if entityelement(te).active=0 or entityelement(te).collisionactive=0
+     entityelement(e).blockedby=0
+    else
+     dstbestfound=te
+    endif
+   else
+    entityelement(e).blockedby=0
+   endif
+  endif
+  rem obstacle detection removed for V1 (speed issue)
+  if entityelement(e).blockedby=0 and entitysystemdisabled=0
+   rem intensive scan for solid entity obstacles
+   for te=1 to entityelementlist
+    if te<>e
+     if entityelement(te).active=1
+      if entityelement(te).obj>0 and entityelement(te).collisionactive=1
+       tentid=entityelement(te).bankindex
+       if entityprofile(tentid).ischaracter=0
+        rem ensure only entity with DOOR characteristics are rayscanned
+        if entityelement(te).editorfixed<>0
+         dst#=intersect object(entityelement(te).obj,entityelement(e).x,entityelement(e).y+40.0,entityelement(e).z,entityelement(e).mover.dx,entityelement(e).mover.dy+40.0,entityelement(e).mover.dz)
+         if dst#>0 and dst#<tdist#-30
+          if dst#<dstbest# then dstbest#=dst# : dstbestfound=te
+         endif
+        endif
+       endif
+      endif
+     endif
+    endif
+   next te
+   if dstbestfound>0
+    rem if collide with close entity, recalc distance to move so we just touch it
+    entityelement(e).blockedby=dstbestfound
+    entityelement(e).blockedtox=tblockedtox
+    entityelement(e).blockedtoy=tblockedtoy
+    entityelement(e).blockedtoz=tblockedtoz
+    tdist#=dstbest#-1.0 : dstbestfound=0
+   endif
+  endif
+ endif
+ `
+ rem go ahead - can move or not move
+ if dstbestfound=0
+  `
+  rem get angle from tragectory
+  tda#=atanfull(tdx#,tdz#)
+  tstepup#=0.0
+  `
+  rem strafe adjusts mover angle
+  if entityelement(e).mover.strafe<>0
+   tda#=tda#+entityelement(e).mover.strafe
+   tdistold#=tdist#
+   tdist#=50.0
+  endif
+  `
+  rem When need to slide past other things
+  if entityelement(e).mover.slidevel<>0
+   tda#=tda#+entityelement(e).mover.slidevel
+  endif
+  `
+  rem strafe dist over-shot so character not in wall, reduce back to real dist
+  tdist#=tdist#-30.0
+  `
+  rem speed calc using timestamp
+  tspeed#=tdist# : if tspeed#>3.0 then tspeed#=3.0
+  `
+  rem calculate mover inertias for per-cycle movement
+  entityelement(e).mover.ix=newxvalue(0,tda#,tspeed#)
+  entityelement(e).mover.iz=newzvalue(0,tda#,tspeed#)
+  if entityelement(e).nogravity=1
+   entityelement(e).mover.iy=tdy#/(tdist#/tspeed#)
+  else
+   entityelement(e).mover.iy=0.0
+  endif
+  if tdist#<1.0
+   entityelement(e).mover.stepcount=0
+  else
+   entityelement(e).mover.stepcount=tdist#/tspeed#
+  endif
+  entityelement(e).mover.inmotion=1
+  `
+ else
+  `
+  rem if blocked, losing target
+  entityelement(e).losttargetcount=entityelement(e).losttargetcount+1
+  `
+ endif
+ `
+ rem checks over
+ entityelement(e).mover.moved=0
+ `
+endif
+
+return
+
+_entity_move_removeref:
+ tx=entityelement(e).x/25 : ttryx=tx
+ ty=entityelement(e).y/100
+ tz=entityelement(e).z/-25 : ttryz=tz
+ if tx>=0 and ty>=0 and tz>=0
+  if tx<=viscolx and ty<=viscoly and tz<=viscolz
+   viscolmap(tx,ty,tz)=0
+  endif
+ endif
+return
+
+_entity_move_avoidentities:
+ tx=entityelement(e).x/25
+ ty=entityelement(e).y/100
+ tz=entityelement(e).z/-25
+ if ty>=0 and ty<=viscoly
+  tnearest=0 : tnearestds#=9999
+  for lsx=tx-2 to tx+2
+   for lsz=tz-2 to tz+2
+    if lsx>=0 and lsz>=0
+     if lsx<=viscolx and lsz<=viscolz
+      localscan=viscolmap(lsx,ty,lsz)
+      if localscan>0
+       rem touching entity
+       tentid=entityelement(localscan).bankindex
+       if entityprofile(tentid).ischaracter=1
+        if entityelement(localscan).mover.inmotion=0 or e>localscan
+         rem ensure this E does not enter cylinder of locally scanned E
+         tldx#=entityelement(e).x-entityelement(localscan).x
+         tldz#=entityelement(e).z-entityelement(localscan).z
+         tlds#=sqrt(abs(tldx#*tldx#)+abs(tldz#*tldz#))
+         if tlds#<36.0
+          if tnearestds#>tlds# then tnearestds#=tlds# : tnearest=localscan
+         endif
+        endif
+       endif
+      endif
+     endif
+    endif
+   next lsz
+  next lsx
+  if tnearest>0
+   tldx#=entityelement(e).x-entityelement(tnearest).x
+   tldz#=entityelement(e).z-entityelement(tnearest).z
+   tlan#=atanfull(tldx#,tldz#)
+   if (int(e/2.0)*2.0)=int((e/2.0)*2.0)
+    entityelement(e).mover.slidevel=entityelement(e).mover.slidevel+1
+    tlan#=tlan#+3
+   else
+    entityelement(e).mover.slidevel=entityelement(e).mover.slidevel-1
+    tlan#=tlan#-3
+   endif
+   entityelement(e).x=newxvalue(entityelement(tnearest).x,tlan#,36.0)
+   entityelement(e).z=newzvalue(entityelement(tnearest).z,tlan#,36.0)
+   tavoidedentity=1
+  endif
+ endif
+return
+
+_entity_move_restoreref:
+ rem get tile coord
+ tputback=0
+ tx=entityelement(e).x/25
+ ty=entityelement(e).y/100
+ tz=entityelement(e).z/-25
+ if tx>=0 and tx<=viscolx and ty>=0 and ty<=viscoly and tz>=0 and tz<=viscolz
+  rem or an obstacle (entity, not player) either above or below
+  if viscolmap(tx,ty,tz)>0 then tputback=1
+  rem FPSCV105RC2 - added all voids as obstacles in VISCOLMAP (so characters canont run off ledges)
+  if viscolmap(tx,ty,tz)=-2
+   rem if blocked, instantly lose target
+   entityelement(e).losttargetcount=100
+   tputback=1
+  endif
+  tryy = (entityelement(e).y+35)/100 : if tryy<=viscoly and viscolmap(tx,tryy,tz)>0 then tputback=1
+  tryy = (entityelement(e).y-35)/100 : if tryy>=0 and viscolmap(tx,tryy,tz)>0 then tputback=1
+ else
+  tputback=1
+ endif
+ if tputback=1
+  tkillfallingentity=0
+  if entityelement(e).y<0
+   rem entity left by falling off the universe, restore but remove all health and lives
+   tkillfallingentity=1
+  else
+   rem restore by bouncing tragectory back
+   if entityelement(e).mover.grav>1
+    entityelement(e).mover.grav=entityelement(e).mover.grav*-1
+   endif
+  endif
+  entityelement(e).x=toldx#
+  entityelement(e).y=toldy#
+  entityelement(e).z=toldz#
+  entityelement(e).mover.stepcount=tstep#
+  if tkillfallingentity=1 and entityelement(e).health>0
+   entityelement(e).eleprof.lives=1
+   entityelement(e).eleprof.strength=1
+   tdamage=entityelement(e).health
+   entityelement(e).health=1
+   tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y : tdamagez#=entityelement(e).z
+   gosub _entity_deducthealth
+  endif
+ endif
+ rem place back in viscolmap
+ tx=entityelement(e).x/25
+ ty=entityelement(e).y/100
+ tz=entityelement(e).z/-25
+ if tx>=0 and ty>=0 and tz>=0
+  if tx<=viscolx and ty<=viscoly and tz<=viscolz
+   viscolmap(tx,ty,tz)=e
+  endif
+ endif
+return
+
+_entity_controlmovements:
+ `
+ rem uses MOVER IX IY IZ and STEPCOUNT to move entity around the scene
+ tstep#=entityelement(e).mover.stepcount
+ if entityelement(e).eleprof.isimmobile=0
+  `
+  rem server controlled entities never have motion
+  if entityelement(e).servercontrolled=1
+   entityelement(e).mover.inmotion=0
+  endif
+  `
+  rem clear viscolmap data if going to move
+  if entityelement(e).mover.inmotion=1
+   gosub _entity_move_removeref
+  endif
+  `
+  rem control position movement
+  toldx#=entityelement(e).x
+  toldy#=entityelement(e).y
+  toldz#=entityelement(e).z
+  if tstep#>0.0
+   `
+   rem machine-independent inertia
+   tbit#=(1.0*timeelapsed#)
+   if tstep#>tbit#
+    rem standard paced inertia movememt
+    tix#=entityelement(e).mover.ix*timeelapsed#
+    tiy#=entityelement(e).mover.iy*timeelapsed#
+    tiz#=entityelement(e).mover.iz*timeelapsed#
+    if entityelement(e).mover.run=1 then tix#=tix#*2.0 : tiy#=tiy#*2.0 : tiz#=tiz#*2.0
+    if entityelement(e).eleprof.speed<>100
+     tss#=entityelement(e).eleprof.speed/100.0
+     tix#=tix#*tss# : tiy#=tiy#*tss# : tiz#=tiz#*tss#
+    endif
+   else
+    rem ensure steps are taken to the last decimal bit
+    tbit#=tstep#
+    tix#=entityelement(e).mover.ix*tbit#
+    tiy#=entityelement(e).mover.iy*tbit#
+    tiz#=entityelement(e).mover.iz*tbit#
+   endif
+   rem movement
+   entityelement(e).x=entityelement(e).x+tix#
+   entityelement(e).y=entityelement(e).y+tiy#
+   entityelement(e).z=entityelement(e).z+tiz#
+   entityelement(e).mover.stepcount=tstep#-tbit#
+   `
+  endif
+  `
+  rem ensure entity characters do not croud each other
+  tavoidedentity=0
+  if entityelement(e).mover.inmotion=1
+   if entityprofile(entid).ischaracter=1
+    gosub _entity_move_avoidentities
+   endif
+  endif
+  if tavoidedentity=0
+   if entityelement(e).mover.slidevel<>0
+    entityelement(e).mover.slidevel=entityelement(e).mover.slidevel/1.1
+    if abs(entityelement(e).mover.slidevel)<1.0
+     entityelement(e).mover.slidevel=0
+    endif
+   endif
+  endif
+  `
+  rem simple volume check for free-moving entities
+  if entityelement(e).mover.inmotion=1
+   tokay=0 : tgravitydefeated=0
+   if entityelement(e).nogravity=0
+    if entityelement(e).nofloorlogic=0
+     rem full gravity and volume handling of entities in motion
+     if entitysystemdisabled=0
+      rem can be a little heavy on CPU time (any ideas to speed up?)
+      entityelement(e).y=entityelement(e).y-entityelement(e).mover.grav
+      if static volume(toldx#,toldy#+30,toldz#,entityelement(e).x,entityelement(e).y+30,entityelement(e).z,1.0)=1
+       entityelement(e).x=toldx#+get static collision x()
+       entityelement(e).y=toldy#+get static collision y()
+       entityelement(e).z=toldz#+get static collision z()
+       colmaterialtype=-1
+       if get static collision floor()=1
+        tgravitydefeated=1 : colmaterialtype=get static collision value()-1
+       endif
+       tokay=1
+      endif
+     endif
+    else
+     rem quick no-vertical-no-gravity handling (always floor)
+     entityelement(e).y=entityelement(e).y-entityelement(e).mover.grav
+     if entityelement(e).y<entityelement(e).nofloorlogic-1
+      entityelement(e).y=entityelement(e).nofloorlogic-1
+      tgravitydefeated=1 : colmaterialtype=-1
+      tokay=1
+     endif
+     rem allow physics to do this - no static geom detection for v1 (speed issue)
+     rem V109 - BETA11 - reactivated this as it helps nofloorlogic characters keep out of walls!
+     if 1
+      tdx2#=entityelement(e).x-toldx#
+      tdz2#=entityelement(e).z-toldz#
+      tda2#=atanfull(tdx2#,tdz2#)
+      tdforex#=newxvalue(0,tda2#,30.0)
+      tdforez#=newzvalue(0,tda2#,30.0)
+      if static raycast(toldx#,toldy#+30,toldz#,entityelement(e).x+tdforex#,entityelement(e).y+30,entityelement(e).z+tdforez#)<>0
+       entityelement(e).x=toldx#
+       entityelement(e).z=toldz#
+       tokay=1
+      else
+       rem V109 BETA11 - 130508 - check change in floor height, if so do not go there (stairs and holes)
+       ttddist#=static raycast(entityelement(e).x+tdforex#,entityelement(e).y+30,entityelement(e).z+tdforez#,entityelement(e).x+tdforex#,entityelement(e).y-30,entityelement(e).z+tdforez#)
+       if abs(ttddist#-30.0)>2.0
+        entityelement(e).x=toldx#
+        entityelement(e).z=toldz#
+        tokay=1
+       endif
+      endif
+     endif
+    endif
+   endif
+   if tokay=1
+    plrid=entityelement(e).fakeplayerid
+    if entityprofile(entid).footfallmax>0 and plrid>1
+     rem V110 BETA5 - 080608 - manually controlled footfalls (from FPE data)
+     manuallycontrolledfootfallframe=1
+     if obj>0
+      tcurrentkeyframe=object frame(obj)
+      for q=0 to entityprofile(entid).footfallmax-1
+       if entityfootfall(entid,q).keyframe=tcurrentkeyframe then manuallycontrolledfootfallframe=1+tcurrentkeyframe : exit
+      next q
+      `entitydebug$(e)="footfallmax="+str$(entityprofile(entid).footfallmax)+" obj="+str$(obj)+" manuallycontrolledfootfallframe="+str$(manuallycontrolledfootfallframe)+"/"+str$(tcurrentkeyframe)
+      if manuallycontrolledfootfallframe>1
+       rem make a footfall sound for the entity
+       movement=1 : leapedlanded=0 : plrid=entityelement(e).fakeplayerid
+       gosub _player_playfootfall
+       `entitydebug$(e)="footfallmax="+str$(entityprofile(entid).footfallmax)+" obj="+str$(obj)+" manuallycontrolledfootfallframe="+str$(manuallycontrolledfootfallframe)+"/"+str$(tcurrentkeyframe)+"   PING!"
+      endif
+     endif
+     manuallycontrolledfootfallframe=0
+    else
+     rem default - timer based footfalls
+     if tstep#>0.0
+      if entityelement(e).mover.run=1
+       basespeed#=55
+      else
+       basespeed#=35
+      endif
+      if entityelement(e).eleprof.speed<>100
+       tss#=entityelement(e).eleprof.speed/100.0
+       basespeed#=basespeed#*tss#
+      endif
+      movement=1 : leapedlanded=0 : plrid=entityelement(e).fakeplayerid
+      if plrid>1 then gosub _player_playfootfall
+     endif
+    endif
+    if entityelement(e).force.active=1
+     if tgravitydefeated=1
+      entityelement(e).force.iy=0
+     else
+      entityelement(e).force.ix=0 : entityelement(e).force.iz=0
+     endif
+    endif
+   endif
+   if tgravitydefeated=1
+    rem determine if fall hurt character
+    if entityelement(e).y<entityelement(e).mover.gravlasty-entityelement(e).eleprof.hurtfall
+     rem level substantial different from last stood on ground
+     tdamage=1+((abs(entityelement(e).y-entityelement(e).mover.gravlasty)-entityelement(e).eleprof.hurtfall)/5.0)
+     tdamagex#=entityelement(e).x : tdamagey#=entityelement(e).y : tdamagez#=entityelement(e).z
+     tdamagesource=0 : timpacttype=1
+     gosub _entity_deducthealth
+    endif
+    rem record last ground player stood on
+    entityelement(e).mover.gravlasty=entityelement(e).y
+    rem restore gravity
+    entityelement(e).mover.grav=1
+   else
+    entityelement(e).mover.grav=entityelement(e).mover.grav+1
+   endif
+  endif
+  `
+  rem if not moving (colliding), increment losttarget counter
+  if entityelement(e).mover.inmotion=1
+   if abs(entityelement(e).x-toldx#)+abs(entityelement(e).z-toldz#)<(1.0*timeelapsed#)
+    entityelement(e).losttargetcount=entityelement(e).losttargetcount+1
+   else
+    entityelement(e).losttargetcount=0
+   endif
+  endif
+  `
+  rem restore entity viscolmap data
+  if entityelement(e).mover.inmotion=1
+   gosub _entity_move_restoreref
+  endif
+  `
+  rem if gravity stops entity, and was in motion, and no-more-moving, deactivate motion
+  if entityelement(e).mover.inmotion=1
+   if tgravitydefeated=1 and tstep#=0
+    rem entity stops moving
+    entityelement(e).mover.inmotion=0
+    rem stop animation too if logic count far from resolution
+    if entityprofile(entid).animmax>=1
+     if entityelement(e).animdo>=1 and entityelement(e).animdo<=5
+      entityelement(e).animset=1+1
+     endif
+    endif
+   endif
+  endif
+  `
+ endif
+ `
+ rem control rotation movement
+ entityelement(e).ry=curveangle(entityelement(e).mover.da,entityelement(e).ry,2.0/timeelapsed#)
+ `
+ rem control alpha level movement
+ if entityelement(e).ai.destalphafade<>entityelement(e).ai.alphafade
+  if entityelement(e).ai.alphafade<entityelement(e).ai.destalphafade
+   entityelement(e).ai.alphafade=entityelement(e).ai.alphafade+(10.0*timeelapsed#)
+   if entityelement(e).ai.alphafade>entityelement(e).ai.destalphafade
+    entityelement(e).ai.alphafade=entityelement(e).ai.destalphafade
+   endif
+  else
+   entityelement(e).ai.alphafade=entityelement(e).ai.alphafade-(10.0*timeelapsed#)
+   if entityelement(e).ai.alphafade<entityelement(e).ai.destalphafade
+    entityelement(e).ai.alphafade=entityelement(e).ai.destalphafade
+   endif
+  endif
+  entityelement(e).ai.alphafadeupdate=1
+ endif
+ `
+ rem update animation frame of entity
+ if entityelement(e).animframe<>entityelement(e).destanimframe
+  tss#=1.0 : if entityelement(e).eleprof.speed<>100 then tss#=entityelement(e).eleprof.speed/100.0
+  if entityelement(e).animframe<entityelement(e).destanimframe
+   entityelement(e).animframe=entityelement(e).animframe+(entityelement(e).animspeed*timeelapsed#*tss#)
+   if entityelement(e).animframe>entityelement(e).destanimframe
+    entityelement(e).animframe=entityelement(e).destanimframe
+   endif
+  else
+   entityelement(e).animframe=entityelement(e).animframe-(entityelement(e).animspeed*timeelapsed#*tss#)
+   if entityelement(e).animframe<entityelement(e).destanimframe
+    entityelement(e).animframe=entityelement(e).destanimframe
+   endif
+  endif
+  entityelement(e).animframeupdate=1
+ endif
+ `
+ rem make sure head rotates and can restore itself (in proportion)
+ if entityelement(e).ai.headangle<>entityelement(e).ai.headdestangle
+  if entityelement(e).ai.headangle<entityelement(e).ai.headdestangle
+   entityelement(e).ai.headangle=entityelement(e).ai.headangle+(10*timeelapsed#)
+   if entityelement(e).ai.headangle>entityelement(e).ai.headdestangle
+    entityelement(e).ai.headangle=entityelement(e).ai.headdestangle
+   endif
+  else
+   entityelement(e).ai.headangle=entityelement(e).ai.headangle-(10*timeelapsed#)
+   if entityelement(e).ai.headangle<entityelement(e).ai.headdestangle
+    entityelement(e).ai.headangle=entityelement(e).ai.headdestangle
+   endif
+  endif
+ else
+  rem add subtle movements in headangle
+  entityelement(e).ai.headangle=curvevalue(entityelement(e).ai.headdestangle-5.0+(rnd(100)/10.0),entityelement(e).ai.headangle,3.0)
+ endif
+ `
+return
+
+_entity_controlattachments:
+
+rem handle entity attachment if cone of sight debug triangle
+if gshowentitygameinfostate=1
+ tobj=entityelement(e).attachmentobj
+ if tobj>0
+  if object exist(tobj)=1
+   position object tobj,object position x(obj),object position y(obj),object position z(obj)
+   rotate object tobj,object angle x(obj),object angle y(obj)+entityelement(e).ai.headangle,object angle z(obj)
+   set alpha mapping on tobj,entityelement(e).mover.viewconeused
+   if entityelement(e).mover.viewconeused>0
+    entityelement(e).mover.viewconeused=entityelement(e).mover.viewconeused-(1.0*timeelapsed#)
+    if entityelement(e).mover.viewconeused<0 then entityelement(e).mover.viewconeused=0
+   endif
+   show object tobj
+  endif
+ endif
+endif
+
+return
+
+_entity_controllighting:
+
+rem handle entity lighintg
+gosub _lighting_applyentitycolor
+
+return
+
+_entity_storemainai:
+ `
+ rem store old behaviour (for internal AI changes such as HURT)
+ if entityelement(e).ai.usinginternalai=0
+  entityelement(e).ai.oldwaypointstate=entityelement(e).ai.waypoint.state
+  entityelement(e).ai.oldalphafade=entityelement(e).ai.alphafade
+  entityelement(e).ai.oldstate=entityelement(e).ai.state
+  entityelement(e).ai.usinginternalai=1
+  entityelement(e).logiccount=0
+  `
+  rem V109 - 210308 - prevents death anim from throw going back to middle of main anim which might be 2600-2650! goes through all anims
+  entityelement(e).ai.oldanimframe=entityelement(e).animframe
+  entityelement(e).ai.olddestanimframe=entityelement(e).destanimframe
+  `
+ endif
+ `
+return
+
+_entity_setnewai:
+ rem store old behaviour
+ gosub _entity_storemainai
+ rem setting waypoint state to 1 causes animation to retriger on return
+ if entityelement(e).health<=0
+  entityelement(e).ai.oldwaypointstate=999
+ else
+  if entityelement(e).ai.waypoint.state>0 and entityelement(e).ai.waypoint.state<99
+   entityelement(e).ai.oldwaypointstate=1
+  else
+   entityelement(e).ai.oldwaypointstate=0
+  endif
+ endif
+ rem trigger entity behaviour (aifile$)
+ gosub _ai_findlibindex
+ entityelement(e).ai.libindex=libindex
+ entityelement(e).ai.waypoint.state=0
+ entityelement(e).ai.alphafade=100
+ entityelement(e).ai.state=0
+ rem some resets to prevent cross-code
+ entityelement(e).animframe=entityelement(e).destanimframe
+ entityelement(e).animtime=0
+ rem ensure it is immediate
+ entityelement(e).logiccount=0
+return
+
+_entity_hasbulletrayhit:
+ `
+ rem optimise : only entities with range of the players range (of gun)
+ `
+ rem bulletray is x1#,y1#,z1#,x2#,y2#,z2#=bulletrayhit,gunrange#
+ brayx1#=x1# : brayy1#=y1# : brayz1#=z1#
+ brayx2#=x2# : brayy2#=y2# : brayz2#=z2#
+ bulletrayhit=0 : bulletrayhitdist#=0.0
+ `
+ rem go through entities
+ tclosestdist#=99999.0
+ tcloseste=0 : tlimbifany=-1
+ for e=1 to entityelementlist
+  gosub _entity_controlrecalcdist
+  if dist#<gunrange# and entityelement(e).obj>0
+   rem within range of gun
+   if entityelement(e).active<>0
+    `
+    rem if character (animated by GPU, work out general hit (faster paced target)
+    usethelimbdatafromintersectcommand=0
+    dst#=0.0 : entid=entityelement(e).bankindex
+    if entityprofile(entid).ischaracter=1
+     `
+     rem V111 beta8 - 020708 - character bullet detect based on fixed size of character (30x30 and variable height (stood/ducked)
+     if gmultiplayergame=0
+      `tbbase#=-25 : tbheight#=30 : if entityelement(e).crouchprofile=1 then tbheight#=15
+      `tbbase#=-25 : tbheight#=30 : if entityelement(e).crouchprofile=1 then tbheight#=15
+      rem Add V111 BETA8 - 020708 - add scaling to this detection
+      tbbase#=0
+      tbheight#=object size y(entityelement(e).obj)
+      if entityelement(e).crouchprofile=1 then tbheight#=tbheight#*0.68
+     else
+      tbbase#=0 : tbheight#=55 : if entityelement(e).crouchprofile=1 then tbheight#=40
+     endif
+     tbwide#=object size x(entityelement(e).obj)/2
+     if tbwide#<object size z(entityelement(e).obj)/2 then tbwide#=object size z(entityelement(e).obj)/2
+     if (entityelement(e).collisionactive=1 and entityelement(e).invincibleactive=0) or gmultiplayergame=0
+      dstx#=object position x(entityelement(e).obj)
+      dsty#=entityelement(e).y : rem v111beta8 object position y(entityelement(e).obj)
+      dstz#=object position z(entityelement(e).obj)
+      tbx#=brayx1# : tbix#=brayx2#-brayx1#
+      tby#=brayy1# : tbiy#=brayy2#-brayy1#
+      tbz#=brayz1# : tbiz#=brayz2#-brayz1#
+      trange=sqrt(abs(tbix#*tbix#)+abs(tbiz#*tbiz#))
+      trange#=trange/10.0
+      tbix#=tbix#/trange#
+      tbiy#=tbiy#/trange#
+      tbiz#=tbiz#/trange#
+      for st=1 to trange step 10
+       if tbx#>=dstx#-tbwide# and tbx#<=dstx#+tbwide#
+        if tby#>=dsty#+tbbase# and tby#<=dsty#+tbheight#
+         if tbz#>=dstz#-tbwide# and tbz#<=dstz#+tbwide#
+          ttbix#=tbx#-brayx1#
+          ttbiy#=tby#-brayy1#
+          ttbiz#=tbz#-brayz1#
+          dst#=sqrt(abs(ttbix#*ttbix#)+abs(ttbiy#*ttbiy#)+abs(ttbiz#*ttbiz#))
+          st=trange
+          exit
+         endif
+        endif
+       endif
+       tbx#=tbx#+tbix#
+       tby#=tby#+tbiy#
+       tbz#=tbz#+tbiz#
+      next st
+     endif
+     `
+    else
+     rem TIP : an intersect object command that used animation data to CPU animate the limb bound boxes would
+     rem yeild the correct CHECKLIST VALUE B for limb detection without much performance hit..
+     dst#=intersect object(entityelement(e).obj,brayx1#,brayy1#,brayz1#,brayx2#,brayy2#,brayz2#)
+     usethelimbdatafromintersectcommand=1
+    endif
+    `
+    rem if intersect
+    if dst#>0
+     if dst#<tclosestdist#
+      tclosestdist#=dst# : tcloseste=e
+      if usethelimbdatafromintersectcommand=1
+       tlimbifany=checklist value b(1)
+      endif
+     endif
+    endif
+    `
+   endif
+  endif
+ next e
+ `
+return
+
+_entity_completerayhit:
+ `
+ if tcloseste>0
+  `
+  rem work on closest entity hit
+  e=tcloseste
+  gosub _entity_controlrecalcdist
+  dst#=tclosestdist#
+  `
+  rem work out bullet force
+  distx#=brayx2#-brayx1# : disty#=brayy2#-brayy1# : distz#=brayz2#-brayz1#
+  fulldst#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
+  x#=brayx1#+((distx#/fulldst#)*dst#)
+  y#=brayy1#+((disty#/fulldst#)*dst#)
+  z#=brayz1#+((distz#/fulldst#)*dst#)
+  `
+  rem X9 - 070208 - enhance bullet damage if the entity is prone to a headshot
+  tentid=entityelement(e).bankindex
+  if entityprofile(tentid).ischaracter=1
+   `
+   rem will need new INTERSECT OBJECT command that works on GPU animations if used for characters
+   entityheadshotvalue=entityelement(e).ai.headshot
+   if entityheadshotvalue>0 and gheadshotdamage>0
+      `
+      rem X9 - 080308 - headshot value has significance (specify one uses internal default, other value denotes height of head)
+      if entityheadshotvalue=1 then entityheadshotvalue=43
+      `
+      if tlimbifany>=0
+       rem can use head limb to find head (and whether we hit it)
+       if entityelement(e).obj>0
+        if object exist(entityelement(e).obj)=1
+         if entityprofile(tentid).headlimb=tlimbifany
+          if limb exist(entityelement(e).obj,tlimbifany)=1
+           rem perfect geometry based head shot
+           bulletdamage=gheadshotdamage
+          endif
+         endif
+        endif
+       endif
+      else
+       rem have to use maths to find head
+       if entityelement(e).animdo>=31 and entityelement(e).animdo<40
+        rem crouched
+        if y#>(entityelement(e).y+(entityheadshotvalue-12.24))
+         bulletdamage=gheadshotdamage
+        endif
+       else
+        rem stood
+        if y#>(entityelement(e).y+entityheadshotvalue)
+         bulletdamage=gheadshotdamage
+        endif
+       endif
+      endif
+      `
+   endif
+   `
+  endif
+  `
+  rem work out relative direction to throw entity from entity angle
+  tdir=0
+  distx#=entityelement(e).x-brayx1# : distz#=entityelement(e).z-brayz1#
+  tentitya#=wrapvalue(atanfull(distx#,distz#))-wrapvalue(entityelement(e).ry)
+  if tentitya#<0.0 then tentitya#=tentitya#+360.0
+  if tentitya#>=360.0 then tentitya#=tentitya#-360.0
+  if tentitya#>180-45 and tentitya#<180+45
+   tdir=1
+  else
+   if tentitya#>315 or tentitya#<45
+    tdir=2
+   else
+    if tentitya#>45 and tentitya#<180-45
+     tdir=4
+    else
+     tdir=3
+    endif
+   endif
+  endif
+  `
+  if tdir>0
+   `
+   rem Pierce
+   if bulletraytype<>2
+    `
+    rem affect limb if hit
+    if tlimbifany>0
+     if entityelement(e).obj>0
+      if object exist(entityelement(e).obj)=1
+       tentid=entityelement(e).bankindex
+       if entityprofile(tentid).headlimb=tlimbifany
+        if limb exist(entityelement(e).obj,tlimbifany)=1
+         if rnd(1)=1 then tr=6 else tr=-6
+         entityelement(e).ai.headangle=tr
+        endif
+       endif
+      endif
+     endif
+    endif
+    `
+   endif
+   `
+   rem if entity prone to damage deal damage to entity (based on distance)
+   tentid=entityelement(e).bankindex
+   tperc#=(gunrange#-dst#)/gunrange#
+   if dst#<200 then tperc#=1.0
+   tdamage=bulletdamage : dec tdamage,rnd(tdamage/5)
+   tdamage=tdamage*tperc#
+   tdamagesource=0 : timpacttype=bulletraytype
+   tdamagex#=x# : tdamagey#=y# : tdamagez#=z#
+   tuseentityowndecaldamage=1
+   `
+   rem arena game there are no knock-downs (multiplayer)
+   if gmultiplayergame=1
+    timpacttype=1
+    tentid=entityelement(e).bankindex
+    if entityprofile(tentid).ischaracter=1
+     multiplayerdamagecollected=multiplayerdamagecollected+tdamage
+     multiplayerdamagechar=e
+    else
+     gosub _entity_deducthealth
+    endif
+   else
+    gosub _entity_deducthealth
+   endif
+   `
+   rem report bullet hit entity
+   bulletrayhitdist#=dst#
+   bulletrayhit=e
+   `
+  endif
+  `
+ endif
+ `
+return
+
+_entity_spherecollision:
+ `
+ rem go through entities
+ spheree=-1
+ for e=1 to entityelementlist
+  if entityelement(e).active=1
+   distx#=entityelement(e).x-spherex#
+   disty#=entityelement(e).y-spherey#
+   distz#=entityelement(e).z-spherez#
+   dist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
+   obj=entityelement(e).obj
+   if obj>0
+    if dist#<object size(obj)*2
+     idist#=intersect object(obj,spherex#,spherey#,spherez#,spherenx#,sphereny#,spherenz#)
+     if idist#>0 and idist#<=dist#
+      spheree=e : exit
+     endif
+    endif
+   endif
+  endif
+ next e
+ `
+return
+
+_entity_addforcesphere:
+ `
+ rem optimise : only entities with range of the sphere
+ `
+ rem go through entities
+ for tte=1 to entityelementlist
+  rem if entity prone to damage
+  ttentid=entityelement(tte).bankindex
+  rem work out if in range of force
+  distx#=entityelement(tte).x-spherex#
+  disty#=entityelement(tte).y-spherey#
+  distz#=entityelement(tte).z-spherez#
+  dist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
+  tblastradius#=400.0*sphereforce#
+  if dist#<tblastradius#
+   rem calculate force
+   tix#=distx#/dist# : tiy#=disty#/dist# : tiz#=distz#/dist#
+   tforce#=(tblastradius#-dist#)/tblastradius#
+   rem work out if direct or indirect damage (raycast)
+   tdirectdamage=0
+   if static raycast(spherex#,spherey#+2.5,spherez#,entityelement(tte).x,entityelement(tte).y+2.5,entityelement(tte).z)=0
+    tdirectdamage=1
+   endif
+   if tdirectdamage=1
+    rem add simple force to entity
+    if entityelement(tte).eleprof.isimmobile=0
+     if entityelement(tte).eleprof.physics=1
+      rem apply force using physics
+      todeforce#=tforce#*75 : rem a bit stronger force movement!
+      todee=tte : tdx#=tix#*todeforce# : tdz#=tiz#*todeforce#
+      if disty#>10.0
+       tdy#=(tiy#*todeforce#)+(0.25*todeforce#)
+      else
+       tdy#=tiy#*todeforce#
+      endif
+      todefalloff#=0.0 : twithpointforce=0
+      tpx#=spherex# : tpy#=spherey# : tpz#=spherez#
+      gosub _ode_applyforce
+     else
+      rem apply regular force calc
+      entityelement(tte).force.ix=entityelement(tte).force.ix+(tix#*tforce#)
+      if abs(disty#)<10.0
+       entityelement(tte).force.iy=entityelement(tte).force.iy+(tiy#*tforce#)+(1.5*tforce#)
+      else
+       entityelement(tte).force.iy=entityelement(tte).force.iy+(tiy#*tforce#)
+      endif
+      entityelement(tte).force.iz=entityelement(tte).force.iz+(tiz#*tforce#)
+      entityelement(tte).force.active=1
+     endif
+     rem entity rotates to such large blast
+     entityelement(tte).mover.da=atanfull(distx#*-1.0,distz#*-1.0)
+    endif
+   endif
+   rem suggest damage to entity if strong enough force
+   if tforce#>0.2
+    rem indirect damage is a hugely reduced value
+    if tdirectdamage=0 then tforce#=tforce#/50.0
+    rem actual entity damage
+    tdamagex#=entityelement(tte).x : tdamagey#=entityelement(tte).y : tdamagez#=entityelement(tte).z
+    tdamage=tforce#*spheredamage
+    tdamagesource=0 : timpacttype=3 : tdir=0
+    ste=e : sttentid=tentid
+    tentid=entityelement(tte).bankindex
+    e=tte
+    if entityprofile(tentid).ischaracter=1
+     rem characters can shrug off some explosion force
+     if tdamage<30 then timpacttype=1
+     gosub _entity_deducthealth
+    else
+     gosub _entity_delayeddeducthealth
+    endif
+    e=ste : tentid=sttentid
+   endif
+  endif
+ next tte
+ `
+ rem initial blast if player close
+ distx#=camera position x()-spherex#
+ disty#=camera position y()-spherey#
+ distz#=camera position z()-spherez#
+ dist#=sqrt(abs(distx#*distx#)+abs(disty#*disty#)+abs(distz#*distz#))
+ tblastradius#=400.0*sphereforce#
+ if dist#<tblastradius#
+  rem damage power
+  tpower#=(tblastradius#-dist#)/tblastradius#
+  rem work out if direct damage or indirect
+  tdirectdamage=0
+  sphtx#=spherex#+((distx#/dist#)*20.0)
+  sphtz#=spherez#+((distz#/dist#)*20.0)
+  if static raycast(sphtx#,spherey#+2.5,sphtz#,camera position x(),camera position y(),camera position z())=0
+   tdirectdamage=1
+  endif
+  if tdirectdamage=1
+   rem force applied to player from blast (fly force is cumilative and bleeds into camforce)
+   camflyforcex#=camflyforcex#+((distx#/dist#)*(spheredamage*25)*tpower#)
+   camflyforcey#=camflyforcey#+((spheredamage*25)*tpower#)
+   camflyforcez#=camflyforcez#+((distz#/dist#)*(spheredamage*25)*tpower#)
+   camshake#=camshake#+tdamage# : camshakedir=rnd(1)
+   if abs(camshake#)>20
+    if camshake#>20 then camshake#=20.0
+    if camshake#<-20 then camshake#=-20.0
+   endif
+  endif
+  if tpower#>0.2
+   rem indirect damage is a hugely reduced value
+   if tdirectdamage=0 then tpower#=tpower#/50.0
+   rem damage to player (if strong enough force)
+   tdamage#=spheredamage*tpower#
+   tdamage=tdamage# : if tdamage>0 then gosub _player_takedamage
+  endif
+ endif
+ `
+return
+
+_entity_resolveobjective:
+ rem e assumed to be active=0, ie tse<>e
+ tokay=0 : tleadere=entityelement(e).spawn.leaderid
+ if tleadere=0
+  rem instant complete - no spawn versions
+  tleadere=e
+  tokay=1
+ else
+  if entityelement(tleadere).spawn.upto=0
+   tokay=1 : rem complete unless child still alive (active)
+   for tse=1+tleadere to tleadere+entityelement(tleadere).spawn.max
+    if tse<>e
+     tsobj=entityelement(tse).obj
+     if tsobj>0
+      if object exist(tsobj)=1
+       if entityelement(tse).active<>0
+        rem entity alive
+        tokay=0
+       endif
+      endif
+     endif
+    endif
+   next tse
+  endif
+ endif
+ if tokay=1
+  rem handle objective
+  if gamewarmupcount=0
+   rem Only if game in ful swing
+   mi=entityelement(tleadere).eleprof.isobjective : if mi>0 then playerobjective(mi)=1
+  endif
+ endif
+return
+
+_entity_delayeddeducthealth:
+ `
+ rem store damage to be dealt when delay runs out
+ if entityelement(e).delaydamagecount=0
+  entityelement(e).delaydamagecount=10
+  entityelement(e).delaydamagesource=tdamagesource
+  entityelement(e).delaydamage=tdamage
+  entityelement(e).delayimpact=timpacttype
+  entityelement(e).delaydamagex#=tdamagex#
+  entityelement(e).delaydamagey#=tdamagey#
+  entityelement(e).delaydamagez#=tdamagez#
+  entityelement(e).delaydir=tdir
+ endif
+ `
+return
+
+_entity_controldelayeddamage:
+ `
+ rem count down to delayed damage (fuel exploding)
+ if entityelement(e).delaydamagecount>0
+  entityelement(e).delaydamagecount=entityelement(e).delaydamagecount-1
+  if entityelement(e).delaydamagecount=0
+   tdamagesource=entityelement(e).delaydamagesource
+   tdamage=entityelement(e).delaydamage
+   timpacttype=entityelement(e).delayimpact
+   tdamagex#=entityelement(e).delaydamagex#
+   tdamagey#=entityelement(e).delaydamagey#
+   tdamagez#=entityelement(e).delaydamagez#
+   tdir=entityelement(e).delaydir
+   gosub _entity_deducthealth
+  endif
+ endif
+ `
+return
+
+_entity_deducthealth:
+ `
+ rem takes TDAMAGE,TDIR and TIMPACTTYPE
+ tresult=0 : tentid=entityelement(e).bankindex
+ `
+ rem entity damage makes a material sound
+ tsoundtrigger=0 : tsoundmaterial=0
+ if entityprofile(tentid).ischaracter=0 and tdamage>1
+  tmatindex=entityprofile(tentid).materialindex-1
+  `if tmatindex>=0 and tmatindex<gmaterialmax : rem FPSCV101 - fix
+  if tmatindex>=0 and tmatindex<=gmaterialmax
+   tsoundtrigger=material(tmatindex).impactid
+   tsoundmaterial=1+tmatindex
+   tspd#=(material(tmatindex).freq*2)+rnd(material(tmatindex).freq)
+   tsx#=tdamagex# : tsy#=tdamagey# : tsz#=tdamagez#
+  endif
+ endif
+ `
+ rem work out effect on health and lives
+ if entityelement(e).eleprof.strength>0
+  if entityelement(e).health>0 or gmultiplayergame=1
+   rem multiplayer arena deals damage via server, opposed to directly to entity in single player mode
+   if gmultiplayergame=1
+    rem actual damage sent to server to control
+    gosub _multi_dealentityedamage
+   else
+    rem deduct the health points (non-multiplayer only)
+    entityelement(e).health=entityelement(e).health-tdamage
+    entityelement(e).shotdamage=entityelement(e).shotdamage+tdamage
+    entityelement(e).shotdamagesource=tdamagesource
+    rem if hit, and character, give a priority to deal with AI (and duration to last the action)
+    if entityprofile(tentid).ischaracter=1
+     gosub _entity_stealpriorityandgivetoe
+     if entityelement(e).priorityai=1
+      entityelement(e).priorityduration=60
+      entityelement(e).logiccount=0
+     endif
+    endif
+   endif
+   rem work out if dead or alive
+   if entityelement(e).health<=0
+    rem entity killed
+    entityelement(e).health=0
+    entityelement(e).shotdamage=0
+    entityelement(e).shotdamagesource=0
+    entityelement(e).eleprof.lives=entityelement(e).eleprof.lives-1
+    rem if entity has more lives
+    if entityelement(e).eleprof.lives>0
+     rem rejuvinate entity
+     entityelement(e).health=entityelement(e).eleprof.strength
+     tresult=2
+    else
+     rem set as killed
+     entityelement(e).beenkilled=1
+     rem mission objective counter
+     gosub _entity_resolveobjective
+     rem dead perminantly
+     tresult=3
+     rem get explodable flag (0-none/1-bang/2-scorch leftover)
+     texplodable=entityelement(e).eleprof.explodable
+     rem remove entity from physics world
+     if entityelement(e).eleprof.physics<>0
+      tobj=entityelement(e).obj
+      if texplodable<>2 then phyobjremove(tobj)=1
+     endif
+     rem entity destruction makes a material destroy sound
+     if entityprofile(tentid).ischaracter=0
+      rem non-character entities made from a material?
+      tmatindex=entityprofile(tentid).materialindex-1
+      `if tmatindex>=0 and tmatindex<gmaterialmax : rem FPSCV101 - fix
+      if tmatindex>=0 and tmatindex<=gmaterialmax
+       tsoundtrigger=material(tmatindex).destroyid
+       tsoundmaterial=1+tmatindex
+       tsx#=tdamagex# : tsy#=tdamagey# : tsz#=tdamagez#
+      endif
+      rem debris from total destruction (regular physics only objects?)
+      debrisshapeindex=entityprofile(tentid).debrisshapeindex
+      if entityelement(e).eleprof.physics=1
+       rem May shed debris..
+       tobj=entityelement(e).obj
+       frox#=entityelement(e).x : froy#=entityelement(e).y : froz#=entityelement(e).z
+       `froa#=object angle y(tobj)
+       frocopyorientfrom=tobj
+       if debrisshapeindex>0
+        rem place debris to explode in place of real object
+        debristextureused=entityelement(e).eleprof.texdid
+        debrissizex#=object size x(tobj) : debrissizey#=object size y(tobj) : debrissizez#=object size z(tobj)
+        debrisexplodable=texplodable
+        gosub _part_createfragment
+        rem Forces object invisible (replaced by fragments)
+        tobj=entityelement(e).obj
+        hide object tobj
+       else
+        if texplodable=2 and explosionscorch<>0
+         rem not quite explode, just scorch (as though internally fried)
+         tobj=entityelement(e).obj
+         set blend mapping on tobj, 1, explosionscorch, 3, 6
+         set object transparency tobj,0
+        endif
+       endif
+       rem May trigger explosion if entity needs one
+       rem V110 BETA5 - 080608 - moved lower down so characters can explode too
+       `if texplodable=1
+       ` rem the visual part
+       ` gosub _part_triggerexplosion
+       ` rem the force part
+       ` spheredamage=entityelement(e).eleprof.explodedamage
+       ` spherex#=frox# : spherey#=froy# : spherez#=froz#
+       ` sphereforce#=1.0 : gosub _entity_addforcesphere
+       `endif
+      else
+       rem obj not hidden, as phyobjectremove used
+      endif
+      `
+     else
+      rem entity character grunts in death
+      tplrid=entityelement(e).fakeplayerid : tsnd=15
+      if playersound(tplrid,tsnd)>0
+       playinternal3dsoundfactor(playersound(tplrid,tsnd),entityelement(e).x,entityelement(e).y,entityelement(e).z,10.0)
+      endif
+     endif
+     `
+     rem May trigger explosion if entity needs one (V110 BETA5 moved down from above)
+     if texplodable=1
+      rem the visual and audio bang part
+      frox#=entityelement(e).x : froy#=entityelement(e).y : froz#=entityelement(e).z
+      gosub _part_triggerexplosion
+      rem the force part
+      spheredamage=entityelement(e).eleprof.explodedamage
+      spherex#=frox# : spherey#=froy# : spherez#=froz#
+      sphereforce#=1.0 : gosub _entity_addforcesphere
+      rem characters disappear when they explode
+      if entityprofile(tentid).ischaracter=1
+       rem destroy object completely
+       gosub _ode_switchoffe
+       rem hide object
+       tobj=entityelement(e).obj
+       hide object tobj
+       rem hide blob shadow if any
+       if entityelement(e).attachmentblobobj>0
+        if object exist(entityelement(e).attachmentblobobj)=1
+         hide object entityelement(e).attachmentblobobj
+        endif
+       endif
+       rem triggers the throwback scripts to skip, direct to destroy AI
+       tresult=4
+      endif
+     endif
+     `
+    endif
+    rem killing blows makes character fall!
+    timpacttype=2
+   else
+    rem entity can sometimes shrug off a fall-over-hit
+    if timpacttype=3
+     rem flak reactions always thrown
+     timpacttype=2
+    else
+     if timpacttype=2
+      if entityelement(e).health>entityelement(e).eleprof.strength/2
+       timpacttype=1
+      else
+       if rnd(3)=1 then timpacttype=1
+      endif
+     endif
+    endif
+    rem entity hurt
+    tresult=1
+    if entityprofile(tentid).ischaracter=1
+     rem entity character grunts in hurt
+     tplrid=entityelement(e).fakeplayerid : tsnd=12+rnd(2)
+     if playersound(tplrid,tsnd)>0
+      playinternal3dsoundfactor(playersound(tplrid,tsnd),entityelement(e).x,entityelement(e).y,entityelement(e).z,5.0)
+     endif
+    endif
+   endif
+  endif
+ else
+  rem FLAK is always throwing
+  if timpacttype=3 then timpacttype=2 : tresult=1
+ endif
+ `
+ rem play and sounds that are due (entity hurt, damage, destroy)
+ gosub _ode_triggermaterialsound
+ `
+ rem play decal only if requested (set in _entity_completerayhit)
+ if tuseentityowndecaldamage=1 then tuseentityowndecaldamage=0 : gosub _decal_triggermaterialdebris
+ `
+ rem if character, result translates as reaction
+ if tresult>0
+  tentid=entityelement(e).bankindex
+  if entityprofile(tentid).ischaracter=1 and entityprofile(tentid).animmax>0
+   rem V110 BETA5 - 080608 - if exploded, straight to destroy script!
+   if tresult=4
+    aifile$=entityelement(e).eleprof.aidestroy$
+    gosub _entity_setnewai
+   else
+    rem only if not already reacting
+    if entityelement(e).ai.libindex=entityelement(e).ai.libmain or entityelement(e).ai.libindex=entityelement(e).ai.libshoot or tresult=3
+     if timpacttype=2
+      rem Blast
+      aifile$="people\throwback.fpi"
+      if tdir=1 then aifile$="people\throwback.fpi"
+      if tdir=2 then aifile$="people\throwfore.fpi"
+      if tdir=3 then aifile$="people\throwleft.fpi"
+      if tdir=4 then aifile$="people\throwright.fpi"
+      gosub _entity_setnewai
+      rem any waypoint activity must stop right away
+      entityelement(e).ai.waypoint.state=999
+      entityelement(e).mover.moved=0
+     endif
+    endif
+   endif
+  else
+   rem non-character reaction
+   if tresult=3
+    aifile$=entityelement(e).eleprof.aidestroy$
+    gosub _entity_setnewai
+   endif
+  endif
+ endif
+ `
+return
+
+_entity_findplayerstartposition:
+
+rem Scan present elements for player start markers
+playerstartx#=0
+playerstartlives=0
+playerstartstrength=0
+playerstarthasweapon=0
+playerstarthasweaponqty=0
+playerhurtfall=0
+playerspeedratio#=1.0
+
+for e=1 to entityelementlist
+ entid=entityelement(e).bankindex
+ if entityprofile(entid).ismarker=1 and entityprofile(entid).lives>0
+  rem Player Start Marker
+  if playerstartx#=0 or rnd(2)=0
+   playerstartx#=entityelement(e).x
+   playerstarty#=entityelement(e).y
+   playerstartz#=entityelement(e).z
+   playerstartry#=entityelement(e).ry
+   playerstartlives=entityelement(e).eleprof.lives
+   playerstartstrength=entityelement(e).eleprof.strength
+   playerstarthasweapon=entityelement(e).eleprof.hasweapon
+   playerstarthasweaponqty=entityelement(e).eleprof.quantity
+   playerhurtfall=entityelement(e).eleprof.hurtfall
+   playerspeedratio#=entityelement(e).eleprof.speed/100.0
+  endif
+ endif
+next e
+
+rem FPSCV104 - make playerspeed reasonable - RC2 - min is now zero
+if playerspeedratio#<0.0 then playerspeedratio#=0.0
+if playerspeedratio#>2.0 then playerspeedratio#=2.0
+
+rem if checkpoint, override position
+if checkpointentity<>-1
+ e=checkpointentity
+ playerstartx#=entityelement(e).x
+ playerstarty#=entityelement(e).y
+ playerstartz#=entityelement(e).z
+ playerstartry#=entityelement(e).ry
+endif
+
+rem Default settings
+if playerstartlives=0 then playerstartlives=1
+if playerstartstrength=0 then playerstartstrength=100
+if playerhurtfall=0 then playerhurtfall=100
+if playerspeedratio#=0.0 then playerspeedratio#=1.0
+
+rem If from level 2 onwards, replace player start details with current-save-state
+if level>1
+ playerstartlives=saveplayerstate.lives
+ rem FPSXV10X - actually replaced the MAX health, naughty naughty
+ `playerstartstrength=saveplayerstate.health
+ weaponammoindex=saveplayerstate.weaponindexholding
+ playerstarthasweapon=weaponslot(weaponammoindex).pref
+endif
+
+return
+
+_entity_switchtostaticformultiplayer:
+ `
+ rem usually no physics as most dynamic entities are converted to static here for the construction process
+ if gmultiplayergame=1
+  for e=1 to entityelementlist
+   if entityelement(e).staticflag=0
+    entid=entityelement(e).bankindex
+    if entityprofile(entid).isweapon=0 and entityprofile(entid).isammo=0 and entityprofile(entid).ischaracter=0 and entityprofile(entid).ishealth=0
+     if entityelement(e).eleprof.isimmobile=1
+      rem door or window
+      entityelement(e).eleprof.physics=3
+     else
+      rem something else
+      entityelement(e).staticflag=1
+      entityelement(e).eleprof.physics=0
+     endif
+    else
+     rem weapon, ammo or character, or health
+     entityelement(e).eleprof.physics=0
+    endif
+   endif
+  next e
+ endif
+ `
+return
+
+
