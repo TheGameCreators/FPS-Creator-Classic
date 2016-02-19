@@ -2,7 +2,7 @@
 Getting Started
 ---------------
 
-In addition to the complete source code, we have also made available the complete product and latest update for your convenience.
+In addition to the complete source code, we have also made available the complete product and latest update for your convenience. The serial code to install the product is 00V1121132404bc0.
 
 [FPS Creator Classic](http://fstore.thegamecreators.com/FPSCreatorClassic/FPSCreatorClassic-00V1121132404bc0.exe)
 
