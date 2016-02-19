@@ -1,5 +1,14 @@
+
+Getting Started
+---------------
+
+In addition to the complete source code, we have also made available the complete product and latest update for your convenience.
+
+[FPS Creator Classic](http://fstore.thegamecreators.com/FPSCreatorClassic/FPSCreatorClassic-00V1121132404bc0.exe)
+[FPS Creator Classic Update V120](http://fstore.thegamecreators.com/FPSCreatorClassic/FPSCreatorClassic-Update-V120.exe)
+
 How To Use Source
-=================
+-----------------
 
 1. Launch DBP using this path: 'Dark Basic Pro Shared\Dark Basic Pro\Launch.exe'
 
