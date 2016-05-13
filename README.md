@@ -98,3 +98,8 @@ How To Use Source
 11. Run FPSCreator.exe to launch FPS Creator Classic
 
 12. An alternative WASP branch of the FPSC source code has been archived here: 'WASP Branch Code'
+
+A Great FPSC Mod
+----------------
+
+You can also check out an excellent 'mod' of FPS Creator Classic called Black Ice, which can be found here: [BlackIceMod](http://www.blackicemod.org/)
