@@ -99,7 +99,7 @@ How To Use Source
 
 12. An alternative WASP branch of the FPSC source code has been archived here: 'WASP Branch Code'
 
-A Great FPSC Mod
-----------------
+Black Ice Mod
+-------------
 
-You can also check out an excellent 'mod' of FPS Creator Classic called Black Ice, which can be found here: [BlackIceMod](http://www.blackicemod.org/)
+The [BlackIceMod](http://www.blackicemod.org/) has been in development since 2015 and available to use for free on both commercial and non-commercial projects. BlackIceMod has combined the ease of use FPSC provides with significant features and improvements including 60fps gameplay, high definition graphics, a new lighting system, intelligent bot AI, dual wielding weapons and much more.
