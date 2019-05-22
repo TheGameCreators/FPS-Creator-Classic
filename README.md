@@ -107,4 +107,4 @@ The [BlackIceMod](http://www.blackicemod.org/) has been in development since 201
 License
 -------
 
-This source code does not use any open source license, and is provided to allow users to compile and run the software for their own personal use. This source code shall not be used for commercial purposes, and you are not permitted to sell this software. You are, however, allowed to sell the games you make with this or a modified version of FPS Creator.
+This source code does not use any open source license, and is provided to allow users to compile and run the software for their own personal use. This source code shall not be used for commercial purposes, and you are not permitted to sell this software. You are, however, allowed to sell the games you make with FPS Creator.
