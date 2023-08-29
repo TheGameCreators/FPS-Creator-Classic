@@ -14,8 +14,11 @@ Free Model Packs
 Over the years FPS Creator Classic released a lot of model packs, some created officially and some created by third parties. Those artists have generously agreed to release their packs for free as part of this open source project.
 
 FPSC Model Pack 01=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_01.zip
+
 FPSC Model Pack 03=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_03.zip
+
 FPSC Model Pack 05=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_05.zip
+
 FPSC Model Pack 06=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_06.zip
 FPSC Model Pack 07=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_07.zip
 FPSC Model Pack 11=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_11.zip
