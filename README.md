@@ -2,11 +2,13 @@
 Getting Started
 ---------------
 
-In addition to the complete source code, we have also made available the complete product and latest update for your convenience. The serial code to install the product is 00V1121132404bc0.
+In addition to the complete source code, we have also made available the complete product and the latest update for your convenience. The serial code to install the product is 00V1121132404bc0.
 
 FPS Creator Classic=fstore.thegamecreators.com/FPSCreatorClassic/FPSCreatorClassic-00V1121132404bc0.exe
 
 FPS Creator Classic Update V120=fstore.thegamecreators.com/FPSCreatorClassic/FPSCreatorClassic-Update-V120.exe
+
+NOTE: For all provided links, copy the URL address into your browser to download the file.
 
 Free Model Packs
 ----------------
@@ -20,59 +22,113 @@ FPSC Model Pack 03=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPS
 FPSC Model Pack 05=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_05.zip
 
 FPSC Model Pack 06=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_06.zip
+
 FPSC Model Pack 07=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_07.zip
+
 FPSC Model Pack 11=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_11.zip
+
 FPSC Model Pack 12=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_12.zip
+
 FPSC Model Pack 13=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_13.zip
+
 FPSC Model Pack 14=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_14.zip
+
 FPSC Model Pack 15=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_15.zip
+
 FPSC Model Pack 16=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_16.zip
+
 FPSC Model Pack 19=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_19.zip
+
 FPSC Model Pack 20=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_20.zip
+
 FPSC Model Pack 21=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_21.zip
+
 FPSC Model Pack 23=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_23.zip
+
 FPSC Model Pack 24=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_24.zip
+
 FPSC Model Pack 25=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_25.zip
+
 FPSC Model Pack 27=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_27.zip
+
 FPSC Model Pack 28=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_28.zip
+
 FPSC Model Pack 29=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_29.zip
+
 FPSC Model Pack 30=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_30.zip
+
 FPSC Model Pack 31=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_31.zip
+
 FPSC Model Pack 32=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_32.zip
+
 FPSC Model Pack 33=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_33.zip
+
 FPSC Model Pack 34=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_34.zip
+
 FPSC Model Pack 35=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_35.zip
+
 FPSC Model Pack 36=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_36.zip
+
 FPSC Model Pack 37=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_37.zip
+
 FPSC Model Pack 40=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_40.zip
+
 FPSC Model Pack 42=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_42.zip
+
 FPSC Model Pack 43=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_43.zip
+
 FPSC Model Pack 44=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_44.zip
+
 FPSC Model Pack 45=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_45.zip
+
 FPSC Model Pack 46=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_46.zip
+
 FPSC Model Pack 47=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_47.zip
+
 FPSC Model Pack 48=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_48.zip
+
 FPSC Model Pack 49=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_49.zip
+
 FPSC Model Pack 50=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_50.zip
+
 FPSC Model Pack 54=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_54.zip
+
 FPSC Model Pack 55=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_55.zip
+
 FPSC Model Pack 56=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_56.zip
+
 FPSC Model Pack 58=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_58.zip
+
 FPSC Model Pack 59=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_59.zip
+
 FPSC Model Pack 60=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_60.zip
+
 FPSC Model Pack 61=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_61.zip
+
 FPSC Model Pack 63=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_63.zip
+
 FPSC Model Pack 64=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_64.zip
+
 FPSC Model Pack 65=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_65.zip
+
 FPSC Model Pack 66=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_66.zip
+
 FPSC Model Pack 67=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_67.zip
+
 FPSC Model Pack 68=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_68.zip
+
 FPSC Model Pack 69=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_69.zip
+
 FPSC Model Pack 70=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_70.zip
+
 FPSC Model Pack 71=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_71.zip
+
 FPSC Model Pack 72=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_72.zip
+
 FPSC Model Pack 75=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_75.zip
+
 FPSC Model Pack 76=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_76.zip
+
 FPSC Model Pack 77=fstore.thegamecreators.com/FPSCreatorClassic-Packs/Zipped/FPSC_MP_77.zip
 
 How To Use Source
