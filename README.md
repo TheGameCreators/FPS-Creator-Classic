@@ -161,9 +161,9 @@ How To Use Source
 Black Ice Mod
 -------------
 
-The [BlackIceMod](www.blackicemod.org/) has been in development since 2015 and available to use for free on both commercial and non-commercial projects. BlackIceMod has combined the ease of use FPSC provides with significant features and improvements including 60fps gameplay, high definition graphics, a new lighting system, intelligent bot AI, dual wielding weapons and much more.
+The BlackIceMod (www.blackicemod.org) has been in development since 2015 and is available to use for free on both commercial and non-commercial projects. BlackIceMod has combined the ease of use FPSC provides with significant features and improvements including 60fps gameplay, high-definition graphics, a new lighting system, intelligent bot AI, dual-wielding weapons, and much more.
 
 License
 -------
 
-This source code does not use any open source license, and is provided to allow users to compile and run the software for their own personal use. This source code shall not be used for commercial purposes, and you are not permitted to sell this software. You are, however, allowed to sell the games you make with FPS Creator.
+This source code does not use any open source license and is provided to allow users to compile and run the software for their own personal use. This source code shall not be used for commercial purposes, and you are not permitted to sell this software. You are, however, allowed to sell the games you make with FPS Creator.
